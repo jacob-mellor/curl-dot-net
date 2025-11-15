@@ -1,0 +1,109 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">netstandard2.0;net472;net8.0</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows'))">netstandard2.0;net8.0</TargetFrameworks>
+    <!-- Note: .NET 10 support will be added when released -->
+    <LangVersion>8.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Package Metadata -->
+    <PackageId>CurlDotNet</PackageId>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+
+    <!-- Authors and Sponsorship -->
+    <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
+    <Company>IronSoftware</Company>
+    <Copyright>Copyright © 1996-2025 Daniel Stenberg, et al. Copyright © 2024-2025 Jacob Mellor and IronSoftware. All rights reserved.</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <!-- Package Description -->
+    <Title>CurlDotNet - Pure .NET curl | Sponsored by IronSoftware</Title>
+    <Description>🚀 THE KILLER FEATURE: Copy and paste any curl command - it just works!
+
+CurlDotNet brings the power of curl to .NET. Simply paste any curl command string and execute it directly. No translation needed, no shell execution, pure .NET.
+
+✨ Key Features:
+• Paste ANY curl command - works with or without "curl" prefix
+• All 300+ curl options supported
+• Stream-based for memory efficiency
+• Perfect for CI/CD pipelines
+• Every curl error code has its own exception type
+• Middleware and DI support
+
+📦 Supported Platforms:
+• .NET 8.0
+• .NET Framework 4.7.2+ (Windows)
+• .NET Standard 2.0 (maximum compatibility)
+• Xamarin, Unity, Blazor
+
+💎 Proudly sponsored by IronSoftware (ironsoftware.com), creators of IronPDF, IronOCR, IronXL, and IronBarcode.</Description>
+
+    <!-- Package Tags -->
+    <PackageTags>curl;http;https;ftp;rest;api;client;web;request;ironsoftware;command-line;wget;download;upload;cicd;automation;testing</PackageTags>
+
+    <!-- License and Repository -->
+    <!-- Note: Using PackageLicenseExpression (MIT) instead of PackageLicenseFile -->
+    <!-- PackageLicenseFile would conflict with PackageLicenseExpression -->
+    <RepositoryUrl>https://github.com/jacob-mellor/curl-dot-net</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/jacob-mellor/curl-dot-net</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+
+    <!-- Package Icon and Release Notes -->
+    <!-- <PackageIcon>icon.png</PackageIcon> -->
+    <PackageReleaseNotes>Version 1.0.0 - Initial Release
+🚀 Killer Feature: Paste any curl command and it works!
+✅ All 300+ curl options supported
+✅ Stream-based for memory efficiency
+✅ Perfect IntelliSense with full documentation
+✅ Every curl error code has its own exception
+✅ Middleware and DI support
+💎 Sponsored by IronSoftware
+
+For full documentation and examples, visit https://github.com/jacob-mellor/curl-dot-net</PackageReleaseNotes>
+
+    <!-- Output and Build -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <!-- Allow tests to access internals -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>CurlDotNet.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageReference Include="Ninject" Version="3.3.6" />
+    <PackageReference Include="Ninject.Extensions.Factory" Version="3.3.3" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <!-- Conditional package references for .NET Standard 2.0 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\THANKS" Pack="true" PackagePath="docs\" Condition="Exists('..\..\THANKS')" />
+  </ItemGroup>
+
+  <!-- Conditional package references for different target frameworks -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+</Project>
