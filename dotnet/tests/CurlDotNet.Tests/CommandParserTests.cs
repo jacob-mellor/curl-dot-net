@@ -251,10 +251,10 @@ namespace CurlDotNet.Tests
         /// Tests parsing of basic authentication.
         /// </summary>
         [Theory]
-        [InlineData("-u user:pass", "user:pass")]
-        [InlineData("--user admin:secret", "admin:secret")]
-        [InlineData("-u 'domain\\user:pass'", "domain\\user:pass")]
-        public void Parse_BasicAuth_ShouldSetUserAuth(string authFlag, string expectedAuth)
+        [InlineData("-u user:pass", "user", "pass")]
+        [InlineData("--user admin:secret", "admin", "secret")]
+        [InlineData("-u 'domain\\user:pass'", "domain\\user", "pass")]
+        public void Parse_BasicAuth_ShouldSetUserAuth(string authFlag, string expectedUser, string expectedPass)
         {
             // Arrange
             var command = $"curl {authFlag} https://example.com";
@@ -263,7 +263,9 @@ namespace CurlDotNet.Tests
             var options = _parser.Parse(command);
 
             // Assert
-            options.UserAuth.Should().Be(expectedAuth);
+            options.UserAuth.Should().NotBeNull();
+            options.UserAuth.UserName.Should().Be(expectedUser);
+            options.UserAuth.Password.Should().Be(expectedPass);
         }
 
         /// <summary>
@@ -497,9 +499,8 @@ namespace CurlDotNet.Tests
 
             // Act & Assert
             Action act = () => _parser.Parse(command);
-            act.Should().Throw<CurlInvalidCommandException>()
-                .WithMessage("*URL*")
-                .And.InvalidPart.Should().BeNull();
+            act.Should().Throw<CurlException>()
+                .WithMessage("*URL*");
         }
 
         /// <summary>

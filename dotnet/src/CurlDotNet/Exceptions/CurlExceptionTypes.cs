@@ -3,8 +3,13 @@
  *
  * Every curl error code gets its own exception type for precise catching
  * Based on curl's libcurl/include/curl/curl.h error codes
+ * Original curl Copyright (C) 1996-2025, Daniel Stenberg, <daniel@haxx.se>, et al.
+ *
+ * This .NET implementation:
+ * Copyright (C) 2024-2025 Jacob Mellor and IronSoftware
  *
  * By Jacob Mellor
+ * Sponsored by IronSoftware
  ***************************************************************************/
 
 using System;
@@ -177,7 +182,14 @@ namespace CurlDotNet.Exceptions
     [Serializable]
     public class CurlHttpReturnedErrorException : CurlHttpException
     {
-        public CurlHttpReturnedErrorException(int statusCode, string statusText, string body, string command = null)
+        /// <summary>
+        /// Initializes a new instance of CurlHttpReturnedErrorException.
+        /// </summary>
+        /// <param name="statusCode">The HTTP status code.</param>
+        /// <param name="statusText">The HTTP status text.</param>
+        /// <param name="body">The response body.</param>
+        /// <param name="command">The curl command that failed.</param>
+        public CurlHttpReturnedErrorException(int statusCode, string statusText, string body, string? command = null)
             : base($"HTTP error {statusCode}: {statusText}", statusCode, statusText, body, command)
         {
         }
@@ -189,9 +201,18 @@ namespace CurlDotNet.Exceptions
     [Serializable]
     public class CurlWriteErrorException : CurlException
     {
+        /// <summary>
+        /// The file path where the write error occurred.
+        /// </summary>
         public string FilePath { get; }
 
-        public CurlWriteErrorException(string filePath, string message, string command = null)
+        /// <summary>
+        /// Initializes a new instance of CurlWriteErrorException.
+        /// </summary>
+        /// <param name="filePath">The file path where the error occurred.</param>
+        /// <param name="message">The error message.</param>
+        /// <param name="command">The curl command that failed.</param>
+        public CurlWriteErrorException(string filePath, string message, string? command = null)
             : base($"Write error for {filePath}: {message}", 23, command)
         {
             FilePath = filePath;
@@ -219,9 +240,18 @@ namespace CurlDotNet.Exceptions
     [Serializable]
     public class CurlReadErrorException : CurlException
     {
+        /// <summary>
+        /// The file path where the read error occurred.
+        /// </summary>
         public string FilePath { get; }
 
-        public CurlReadErrorException(string filePath, string message, string command = null)
+        /// <summary>
+        /// Initializes a new instance of CurlReadErrorException.
+        /// </summary>
+        /// <param name="filePath">The file path where the error occurred.</param>
+        /// <param name="message">The error message.</param>
+        /// <param name="command">The curl command that failed.</param>
+        public CurlReadErrorException(string filePath, string message, string? command = null)
             : base($"Read error for {filePath}: {message}", 26, command)
         {
             FilePath = filePath;
@@ -256,7 +286,12 @@ namespace CurlDotNet.Exceptions
     [Serializable]
     public class CurlHttpPostErrorException : CurlException
     {
-        public CurlHttpPostErrorException(string message, string command = null)
+        /// <summary>
+        /// Initializes a new instance of CurlHttpPostErrorException.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <param name="command">The curl command that failed.</param>
+        public CurlHttpPostErrorException(string message, string? command = null)
             : base($"HTTP POST error: {message}", 34, command) { }
     }
 
@@ -266,7 +301,12 @@ namespace CurlDotNet.Exceptions
     [Serializable]
     public class CurlSslConnectErrorException : CurlSslException
     {
-        public CurlSslConnectErrorException(string message, string command = null)
+        /// <summary>
+        /// Initializes a new instance of CurlSslConnectErrorException.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <param name="command">The curl command that failed.</param>
+        public CurlSslConnectErrorException(string message, string? command = null)
             : base($"SSL connect error: {message}", null, command)
         {
         }
@@ -439,7 +479,12 @@ namespace CurlDotNet.Exceptions
     [Serializable]
     public class CurlSendErrorException : CurlException
     {
-        public CurlSendErrorException(string message, string command = null)
+        /// <summary>
+        /// Initializes a new instance of CurlSendErrorException.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <param name="command">The curl command that failed.</param>
+        public CurlSendErrorException(string message, string? command = null)
             : base($"Send error: {message}", 55, command) { }
     }
 
@@ -449,7 +494,12 @@ namespace CurlDotNet.Exceptions
     [Serializable]
     public class CurlReceiveErrorException : CurlException
     {
-        public CurlReceiveErrorException(string message, string command = null)
+        /// <summary>
+        /// Initializes a new instance of CurlReceiveErrorException.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <param name="command">The curl command that failed.</param>
+        public CurlReceiveErrorException(string message, string? command = null)
             : base($"Receive error: {message}", 56, command) { }
     }
 

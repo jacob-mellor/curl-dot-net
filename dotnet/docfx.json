@@ -46,7 +46,7 @@
     "globalMetadata": {
       "_appTitle": "CurlDotNet",
       "_appName": "CurlDotNet - Pure .NET curl",
-      "_appFooter": "Sponsored by <a href='https://ironsoftware.com'>IronSoftware</a> | Copyright © 2025",
+      "_appFooter": "Based on curl by Daniel Stenberg and contributors | Sponsored by <a href='https://ironsoftware.com'>IronSoftware</a> | Copyright © 1996-2025 curl authors, 2024-2025 CurlDotNet authors",
       "_appLogoPath": "images/logo.svg",
       "_appFaviconPath": "favicon.ico",
       "_enableSearch": true,

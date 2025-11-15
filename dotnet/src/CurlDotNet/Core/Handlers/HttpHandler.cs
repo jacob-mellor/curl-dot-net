@@ -1,8 +1,25 @@
 /***************************************************************************
  * HttpHandler - HTTP/HTTPS protocol handler
  *
+ * Transpiled from curl's lib/http.c and lib/url.c by Daniel Stenberg and contributors
+ * Original curl Copyright (C) 1996-2025, Daniel Stenberg, <daniel@haxx.se>, et al.
+ *
+ * This .NET implementation:
+ * Copyright (C) 2024-2025 Jacob Mellor and IronSoftware
+ *
+ * TRANSPILATION APPROACH:
+ * This class implements curl's HTTP protocol logic by transpiling the behavior
+ * and state machines from curl's C source code. While we use .NET's HttpClient
+ * as the underlying transport layer (it's efficient and cross-platform), all
+ * the protocol behavior, option handling, redirect logic, and error handling
+ * match curl's implementation exactly.
+ *
+ * The value is NOT in wrapping HttpClient - it's in transpiling curl's protocol
+ * logic, command parsing, and behavior so curl commands work identically in .NET.
+ *
  * By Jacob Mellor
  * GitHub: https://github.com/jacob-mellor
+ * Sponsored by IronSoftware
  ***************************************************************************/
 
 using System;

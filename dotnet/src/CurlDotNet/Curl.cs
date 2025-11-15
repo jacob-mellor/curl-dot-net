@@ -23,6 +23,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CurlDotNet.Core;
+using CurlRequestBuilder = CurlDotNet.Core.CurlRequestBuilder;
 
 namespace CurlDotNet
 {
@@ -62,9 +63,21 @@ namespace CurlDotNet
     ///
     /// <para><b>Memory Efficiency:</b> Responses are streamed, not loaded into memory all at once. Perfect for large files.</para>
     ///
-    /// <para><b>Sponsored by</b> <see href="https://ironsoftware.com">IronSoftware</see> - creators of IronPDF, IronOCR, IronXL, and IronBarcode.</para>
-    /// </remarks>
-    public static partial class Curl
+        /// <para><b>Sponsored by</b> <see href="https://ironsoftware.com">IronSoftware</see> - creators of IronPDF, IronOCR, IronXL, and IronBarcode.</para>
+        ///
+        /// <para><b>Two Ways to Use CurlDotNet:</b></para>
+        /// <list type="number">
+        /// <item>
+        /// <b>Paste curl commands:</b> Just copy/paste any curl command string - it works!
+        /// <code>var result = await Curl.ExecuteAsync("curl -X POST https://api.example.com/data -H 'Content-Type: application/json' -d '{\"key\":\"value\"}'");</code>
+        /// </item>
+        /// <item>
+        /// <b>Use fluent builder:</b> For programmatic API with IntelliSense
+        /// <code>var result = await CurlRequestBuilder.Post("https://api.example.com/data").WithHeader("Content-Type", "application/json").WithJson(new { key = "value" }).ExecuteAsync();</code>
+        /// </item>
+        /// </list>
+        /// </remarks>
+        public static partial class Curl
     {
         private static readonly CurlEngine _engine = new CurlEngine();
 
@@ -308,39 +321,80 @@ namespace CurlDotNet
         /// <para>Error code: CURLE_COULDNT_RESOLVE_HOST (6)</para>
         /// </exception>
         /// <exception cref="CurlTimeoutException">
-        /// <para>Thrown when the operation takes longer than the timeout.</para>
-        /// <code>
+        /// <para>Thrown when the operation takes longer than the timeout specified by <paramref name="command"/> (via <c>--max-time</c>) 
+        /// or <see cref="DefaultMaxTimeSeconds"/>.</para>
+        /// <code language="csharp">
         /// try
         /// {
-        ///     await Curl.Execute("curl --max-time 5 https://very-slow-api.com");
+        ///     await Curl.ExecuteAsync("curl --max-time 5 https://very-slow-api.com");
         /// }
         /// catch (CurlTimeoutException ex)
         /// {
         ///     Console.WriteLine($"Timed out after {ex.Timeout} seconds");
         /// }
         /// </code>
-        /// <para>Error code: CURLE_OPERATION_TIMEDOUT (28)</para>
-        /// <para>To cancel operations, see the <see cref="Execute(string, CancellationToken)"/> overload.</para>
+        /// <para>Error code: <c>CURLE_OPERATION_TIMEDOUT</c> (28)</para>
+        /// <para>To cancel operations without waiting for timeout, use the <see cref="M:CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)">overload with <see cref="CancellationToken"/></see>.</para>
         /// </exception>
         /// <exception cref="CurlSslException">
-        /// <para>Thrown for SSL/TLS certificate problems.</para>
-        /// <code>
+        /// <para>Thrown for SSL/TLS certificate problems. This can occur when certificates are self-signed, expired, 
+        /// or don't match the domain. Check <see cref="CurlSslException.CertificateError"/> for details.</para>
+        /// <code language="csharp">
         /// try
         /// {
-        ///     await Curl.Execute("curl https://self-signed-cert.example.com");
+        ///     await Curl.ExecuteAsync("curl https://self-signed-cert.example.com");
         /// }
         /// catch (CurlSslException ex)
         /// {
         ///     Console.WriteLine($"SSL problem: {ex.Message}");
+        ///     if (ex.CertificateError != null)
+        ///         Console.WriteLine($"Certificate error: {ex.CertificateError}");
         ///     // In development only, you could use: curl -k (insecure)
         /// }
         /// </code>
-        /// <para>Error codes: CURLE_SSL_CONNECT_ERROR (35), CURLE_PEER_FAILED_VERIFICATION (60)</para>
+        /// <para>Error codes: <c>CURLE_SSL_CONNECT_ERROR</c> (35), <c>CURLE_PEER_FAILED_VERIFICATION</c> (60)</para>
+        /// <para><b>⚠️ WARNING:</b> Using <c>-k</c> or <c>--insecure</c> disables certificate validation and makes you vulnerable to man-in-the-middle attacks. Only use in development!</para>
         /// </exception>
-        /// <seealso cref="Execute(string, CancellationToken)">Execute with cancellation support</seealso>
-        /// <seealso cref="ExecuteMany(string[])">Execute multiple commands in parallel</seealso>
-        /// <seealso cref="CurlResult">The response object returned</seealso>
+        /// <exception cref="CurlException">
+        /// <para>Base exception for all curl-related errors. All specific exceptions inherit from this. 
+        /// See <see cref="CurlException.ErrorCode"/> for the specific curl error code.</para>
+        /// <para>Common error codes:</para>
+        /// <list type="table">
+        /// <listheader>
+        /// <term>Error Code</term>
+        /// <description>Meaning</description>
+        /// </listheader>
+        /// <item>
+        /// <term>1 - CURLE_UNSUPPORTED_PROTOCOL</term>
+        /// <description>The URL uses an unsupported protocol (not http, https, ftp, or file)</description>
+        /// </item>
+        /// <item>
+        /// <term>3 - CURLE_URL_MALFORMAT</term>
+        /// <description>The URL is malformed (missing protocol, invalid characters, etc.)</description>
+        /// </item>
+        /// <item>
+        /// <term>6 - CURLE_COULDNT_RESOLVE_HOST</term>
+        /// <description>DNS lookup failed - hostname doesn't exist</description>
+        /// </item>
+        /// <item>
+        /// <term>28 - CURLE_OPERATION_TIMEDOUT</term>
+        /// <description>Operation timed out (see <see cref="CurlTimeoutException"/>)</description>
+        /// </item>
+        /// <item>
+        /// <term>60 - CURLE_PEER_FAILED_VERIFICATION</term>
+        /// <description>SSL certificate verification failed (see <see cref="CurlSslException"/>)</description>
+        /// </item>
+        /// </list>
+        /// <para>For a complete list of all curl error codes, see <see href="https://curl.se/libcurl/c/libcurl-errors.html">curl error codes</see>.</para>
+        /// </exception>
+        /// <seealso cref="M:CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)">Execute with cancellation support</seealso>
+        /// <seealso cref="M:CurlDotNet.Curl.ExecuteAsync(System.String[])">Execute multiple commands in parallel</seealso>
+        /// <seealso cref="CurlResult">The response object returned containing <see cref="CurlResult.StatusCode"/>, <see cref="CurlResult.Body"/>, <see cref="CurlResult.Headers"/>, etc.</seealso>
+        /// <seealso cref="CurlRequestBuilder">Fluent API alternative for building requests programmatically</seealso>
+        /// <seealso cref="DefaultMaxTimeSeconds">Set a default timeout for all operations</seealso>
+        /// <seealso cref="DefaultFollowRedirects">Enable redirect following globally</seealso>
         /// <seealso href="https://curl.se/docs/manpage.html">Complete curl documentation</seealso>
+        /// <seealso href="https://curl.se/docs/manpage.html#OPTIONS">All curl options</seealso>
         public static async Task<CurlResult> ExecuteAsync(string command)
         {
             return await _engine.ExecuteAsync(command);

@@ -6,6 +6,12 @@
  *
  * The killer feature: Copy curl commands from anywhere and they just work!
  *
+ * Based on curl (https://curl.se) by Daniel Stenberg and contributors
+ * Original curl Copyright (C) 1996-2025, Daniel Stenberg, <daniel@haxx.se>, et al.
+ *
+ * This .NET implementation:
+ * Copyright (C) 2024-2025 Jacob Mellor and IronSoftware
+ *
  * By Jacob Mellor
  * Sponsored by IronSoftware
  ***************************************************************************/

@@ -1,10 +1,24 @@
 /***************************************************************************
  * CurlEngine - Core engine for executing curl commands
  *
- * Parses, validates, and executes curl commands using HttpClient
+ * Transpiled from curl's src/tool_operate.c by Daniel Stenberg and contributors
+ * Original curl Copyright (C) 1996-2025, Daniel Stenberg, <daniel@haxx.se>, et al.
+ *
+ * This .NET implementation:
+ * Copyright (C) 2024-2025 Jacob Mellor and IronSoftware
+ *
+ * TRANSPILATION APPROACH:
+ * This engine implements curl's command processing logic by transpiling behavior
+ * from curl's C source. The command parsing, option handling, protocol selection,
+ * and execution flow match curl's implementation. We use .NET's HttpClient as
+ * the transport layer, but all protocol behavior is transpiled from curl's C.
+ *
+ * This solves the real problem: .NET's HttpClient API is verbose and awkward.
+ * By transpiling curl's logic, we get curl's simplicity with .NET's runtime.
  *
  * By Jacob Mellor
  * GitHub: https://github.com/jacob-mellor
+ * Sponsored by IronSoftware
  ***************************************************************************/
 
 using System;
@@ -408,8 +422,19 @@ namespace CurlDotNet.Core
     /// </summary>
     public class ValidationResult
     {
+        /// <summary>
+        /// Whether the validation succeeded.
+        /// </summary>
         public bool IsValid { get; set; }
-        public string Error { get; set; }
-        public CurlOptions ParsedOptions { get; set; }
+        
+        /// <summary>
+        /// Error message if validation failed, null if valid.
+        /// </summary>
+        public string? Error { get; set; }
+        
+        /// <summary>
+        /// Parsed options if validation succeeded, null if invalid.
+        /// </summary>
+        public CurlOptions? ParsedOptions { get; set; }
     }
 }

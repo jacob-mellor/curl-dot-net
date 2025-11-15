@@ -19,7 +19,6 @@
           "/Users/jacob/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
-          "net6.0",
           "net8.0",
           "netstandard2.0"
         ],
@@ -27,10 +26,6 @@
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net6.0": {
-            "targetAlias": "net6.0",
-            "projectReferences": {}
-          },
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {}
@@ -53,58 +48,6 @@
         "SdkAnalysisLevel": "9.0.300"
       },
       "frameworks": {
-        "net6.0": {
-          "targetAlias": "net6.0",
-          "dependencies": {
-            "Newtonsoft.Json": {
-              "target": "Package",
-              "version": "[13.0.3, )"
-            },
-            "Ninject": {
-              "target": "Package",
-              "version": "[3.3.6, )"
-            },
-            "Ninject.Extensions.Factory": {
-              "target": "Package",
-              "version": "[3.3.3, )"
-            },
-            "System.CommandLine": {
-              "target": "Package",
-              "version": "[2.0.0-beta4.22272.1, )"
-            },
-            "System.Text.Json": {
-              "target": "Package",
-              "version": "[8.0.5, )"
-            }
-          },
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48",
-            "net481"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[6.0.36, 6.0.36]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[6.0.36, 6.0.36]"
-            }
-          ],
-          "frameworkReferences": {
-            "Microsoft.NETCore.App": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.306/RuntimeIdentifierGraph.json"
-        },
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
@@ -221,30 +164,12 @@
           "/Users/jacob/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
-          "net6.0",
-          "net8.0",
-          "netcoreapp3.1"
+          "net8.0"
         ],
         "sources": {
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "netcoreapp3.1": {
-            "targetAlias": "netcoreapp3.1",
-            "projectReferences": {
-              "/Users/jacob/Documents/GitHub/curl-dot-net/dotnet/src/CurlDotNet/CurlDotNet.csproj": {
-                "projectPath": "/Users/jacob/Documents/GitHub/curl-dot-net/dotnet/src/CurlDotNet/CurlDotNet.csproj"
-              }
-            }
-          },
-          "net6.0": {
-            "targetAlias": "net6.0",
-            "projectReferences": {
-              "/Users/jacob/Documents/GitHub/curl-dot-net/dotnet/src/CurlDotNet/CurlDotNet.csproj": {
-                "projectPath": "/Users/jacob/Documents/GitHub/curl-dot-net/dotnet/src/CurlDotNet/CurlDotNet.csproj"
-              }
-            }
-          },
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
@@ -267,130 +192,6 @@
         "SdkAnalysisLevel": "9.0.300"
       },
       "frameworks": {
-        "netcoreapp3.1": {
-          "targetAlias": "netcoreapp3.1",
-          "dependencies": {
-            "FluentAssertions": {
-              "target": "Package",
-              "version": "[6.12.0, )"
-            },
-            "Microsoft.NET.Test.Sdk": {
-              "target": "Package",
-              "version": "[17.8.0, )"
-            },
-            "Moq": {
-              "target": "Package",
-              "version": "[4.20.69, )"
-            },
-            "Ninject": {
-              "target": "Package",
-              "version": "[3.3.6, )"
-            },
-            "Ninject.Extensions.Factory": {
-              "target": "Package",
-              "version": "[3.3.3, )"
-            },
-            "xunit": {
-              "target": "Package",
-              "version": "[2.6.2, )"
-            },
-            "xunit.runner.visualstudio": {
-              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[2.5.4, )"
-            }
-          },
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48",
-            "net481"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[3.1.10, 3.1.10]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[3.1.0, 3.1.0]"
-            }
-          ],
-          "frameworkReferences": {
-            "Microsoft.NETCore.App": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.306/RuntimeIdentifierGraph.json"
-        },
-        "net6.0": {
-          "targetAlias": "net6.0",
-          "dependencies": {
-            "FluentAssertions": {
-              "target": "Package",
-              "version": "[6.12.0, )"
-            },
-            "Microsoft.NET.Test.Sdk": {
-              "target": "Package",
-              "version": "[17.8.0, )"
-            },
-            "Moq": {
-              "target": "Package",
-              "version": "[4.20.69, )"
-            },
-            "Ninject": {
-              "target": "Package",
-              "version": "[3.3.6, )"
-            },
-            "Ninject.Extensions.Factory": {
-              "target": "Package",
-              "version": "[3.3.3, )"
-            },
-            "xunit": {
-              "target": "Package",
-              "version": "[2.6.2, )"
-            },
-            "xunit.runner.visualstudio": {
-              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[2.5.4, )"
-            }
-          },
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48",
-            "net481"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[6.0.36, 6.0.36]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[6.0.36, 6.0.36]"
-            }
-          ],
-          "frameworkReferences": {
-            "Microsoft.NETCore.App": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.306/RuntimeIdentifierGraph.json"
-        },
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
@@ -413,6 +214,18 @@
             "Ninject.Extensions.Factory": {
               "target": "Package",
               "version": "[3.3.3, )"
+            },
+            "coverlet.collector": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[6.0.0, )"
+            },
+            "coverlet.msbuild": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[6.0.0, )"
             },
             "xunit": {
               "target": "Package",

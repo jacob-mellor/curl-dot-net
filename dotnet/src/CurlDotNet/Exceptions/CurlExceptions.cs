@@ -3,9 +3,15 @@
  *
  * Meaningful, catchable exceptions for every failure scenario
  *
+ * Based on curl's error handling in libcurl by Daniel Stenberg and contributors
+ * Original curl Copyright (C) 1996-2025, Daniel Stenberg, <daniel@haxx.se>, et al.
+ *
+ * This .NET implementation:
+ * Copyright (C) 2024-2025 Jacob Mellor and IronSoftware
+ *
  * By Jacob Mellor
  * GitHub: https://github.com/jacob-mellor
- * Sponsored by Iron Software (ironsoftware.com)
+ * Sponsored by IronSoftware
  ***************************************************************************/
 
 using System;
@@ -675,9 +681,18 @@ namespace CurlDotNet.Exceptions
     /// </summary>
     public class CurlSslException : CurlException
     {
-        public string CertificateError { get; }
+        /// <summary>
+        /// Details about the certificate error that occurred.
+        /// </summary>
+        public string? CertificateError { get; }
 
-        public CurlSslException(string message, string certError = null, string command = null)
+        /// <summary>
+        /// Initializes a new instance of CurlSslException.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <param name="certError">Details about the certificate error.</param>
+        /// <param name="command">The curl command that failed.</param>
+        public CurlSslException(string message, string? certError = null, string? command = null)
             : base(message, 60, command) // CURLE_PEER_FAILED_VERIFICATION = 60
         {
             CertificateError = certError;

@@ -277,8 +277,11 @@ namespace CurlDotNet.Core
         /// <summary>
         /// <para><b>Parse the JSON response into your C# class.</b></para>
         ///
-        /// <para>The most common operation - turning JSON into objects:</para>
-        /// <code>
+        /// <para>The most common operation - turning JSON into objects. This method uses <see cref="System.Text.Json.JsonSerializer"/> 
+        /// in .NET 6+ and <see cref="Newtonsoft.Json.JsonConvert"/> in .NET Standard 2.0 for maximum compatibility.</para>
+        ///
+        /// <para><b>Example:</b></para>
+        /// <code language="csharp">
         /// // Define your class matching the JSON structure
         /// public class User
         /// {
@@ -298,9 +301,19 @@ namespace CurlDotNet.Core
         ///
         /// <para><b>Tip:</b> Use https://json2csharp.com to generate C# classes from JSON!</para>
         /// </summary>
-        /// <typeparam name="T">The type to deserialize to (your class)</typeparam>
-        /// <returns>Your object with data from the JSON</returns>
-        /// <exception cref="JsonException">If the JSON is invalid or doesn't match your type</exception>
+        /// <typeparam name="T">The type to deserialize to. Must match the JSON structure. Can be a class, struct, or collection type like <see cref="List{T}"/> or <see cref="Dictionary{TKey, TValue}"/>.</typeparam>
+        /// <returns>An instance of <typeparamref name="T"/> with data from the JSON <see cref="Body"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <see cref="Body"/> is null or empty.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when JSON deserialization fails or JSON doesn't match type <typeparamref name="T"/>.</exception>
+        /// <exception cref="JsonException">Thrown when the JSON syntax is invalid. See <see cref="Exception.InnerException"/> for details.</exception>
+        /// <remarks>
+        /// <para>This method automatically detects whether to use System.Text.Json or Newtonsoft.Json based on the target framework.</para>
+        /// <para>For complex JSON structures, consider using <see cref="AsJsonDynamic"/> for exploration, then creating a typed class.</para>
+        /// <para>If <paramref name="T"/> doesn't match the JSON structure, properties that don't match will be left at their default values.</para>
+        /// </remarks>
+        /// <seealso cref="AsJson{T}">Alternative method name for parsing JSON</seealso>
+        /// <seealso cref="AsJsonDynamic">Parse JSON as dynamic object without a class</seealso>
+        /// <seealso cref="Body">The JSON string being parsed</seealso>
         public T ParseJson<T>()
         {
             if (string.IsNullOrEmpty(Body))
@@ -321,24 +334,38 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// <para><b>Parse JSON response (alternative name, same as ParseJson).</b></para>
+        /// <para><b>Parse JSON response (alternative name for <see cref="ParseJson{T}"/>).</b></para>
         ///
-        /// <para>Some people prefer AsJson, some prefer ParseJson. Both work!</para>
-        /// <code>
+        /// <para>Some people prefer <c>AsJson</c>, some prefer <c>ParseJson</c>. Both methods are identical and produce the same result.</para>
+        /// <code language="csharp">
         /// var data = result.AsJson&lt;MyData&gt;();
-        /// // Same as: result.ParseJson&lt;MyData&gt;()
+        /// // Exactly the same as: result.ParseJson&lt;MyData&gt;()
         /// </code>
         /// </summary>
+        /// <typeparam name="T">The type to deserialize to. See <see cref="ParseJson{T}"/> for details.</typeparam>
+        /// <returns>An instance of <typeparamref name="T"/> with data from the JSON <see cref="Body"/>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <see cref="Body"/> is null or empty.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when JSON deserialization fails.</exception>
+        /// <exception cref="JsonException">Thrown when the JSON syntax is invalid.</exception>
+        /// <remarks>
+        /// <para>This is simply an alias for <see cref="ParseJson{T}"/>. Use whichever method name you prefer.</para>
+        /// </remarks>
+        /// <seealso cref="ParseJson{T}">Primary method for parsing JSON</seealso>
+        /// <seealso cref="AsJsonDynamic">Parse JSON as dynamic without a class</seealso>
         public T AsJson<T>() => ParseJson<T>();
 
         /// <summary>
         /// <para><b>Parse JSON as dynamic object (when you don't have a class).</b></para>
         ///
-        /// <para>Useful for quick exploration or simple JSON:</para>
-        /// <code>
+        /// <para>Useful for quick exploration or simple JSON structures. This method returns a dynamic object that allows 
+        /// you to access JSON properties without defining a C# class. However, there's no compile-time checking, so prefer 
+        /// <see cref="ParseJson{T}"/> with typed classes when possible.</para>
+        ///
+        /// <para><b>Example:</b></para>
+        /// <code language="csharp">
         /// dynamic json = result.AsJsonDynamic();
-        /// Console.WriteLine(json.name);    // Access properties directly
-        /// Console.WriteLine(json.users[0].email);  // Navigate arrays
+        /// Console.WriteLine(json.name);           // Access properties directly
+        /// Console.WriteLine(json.users[0].email); // Navigate arrays
         ///
         /// // Iterate dynamic arrays
         /// foreach (var item in json.items)
@@ -346,9 +373,27 @@ namespace CurlDotNet.Core
         ///     Console.WriteLine(item.title);
         /// }
         /// </code>
-        ///
-        /// <para><b>Note:</b> No compile-time checking! Prefer typed classes when possible.</para>
         /// </summary>
+        /// <returns>
+        /// <para>A dynamic object representing the JSON. In .NET 6+, this is a <see cref="System.Text.Json.JsonDocument"/>.
+        /// In .NET Standard 2.0, this is a <c>JObject</c> from Newtonsoft.Json.</para>
+        /// <para>Access properties like: <c>dynamicObj.propertyName</c> or <c>dynamicObj["propertyName"]</c></para>
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Thrown when <see cref="Body"/> is null or empty.</exception>
+        /// <exception cref="JsonException">Thrown when the JSON syntax is invalid.</exception>
+        /// <remarks>
+        /// <para><b>⚠️ Warning:</b> No compile-time checking! If a property doesn't exist, you'll get a runtime exception.</para>
+        /// <para>For production code, prefer <see cref="ParseJson{T}"/> with typed classes for better safety and IntelliSense support.</para>
+        /// <para>This method is useful for:</para>
+        /// <list type="bullet">
+        /// <item>Quick prototyping and exploration</item>
+        /// <item>Working with highly dynamic JSON structures</item>
+        /// <item>One-off scripts and tools</item>
+        /// </list>
+        /// </remarks>
+        /// <seealso cref="ParseJson{T}">Parse JSON into typed classes (recommended)</seealso>
+        /// <seealso cref="AsJson{T}">Alternative method name for typed parsing</seealso>
+        /// <seealso cref="Body">The JSON string being parsed</seealso>
         public dynamic AsJsonDynamic()
         {
             #if NETSTANDARD2_0
@@ -387,6 +432,35 @@ namespace CurlDotNet.Core
         /// </summary>
         /// <param name="filePath">Where to save the file</param>
         /// <returns>This result (for chaining)</returns>
+        /// <example>
+        /// <code language="csharp">
+        /// // Download and save JSON response
+        /// var result = await Curl.ExecuteAsync("curl https://api.example.com/data.json");
+        /// result.SaveToFile("data.json");
+        /// // File is now saved to disk AND still available in result.Body
+        ///
+        /// // Download image and save
+        /// var result = await Curl.ExecuteAsync("curl https://example.com/logo.png");
+        /// result.SaveToFile("logo.png");
+        /// Console.WriteLine($"Saved {result.BinaryData.Length} bytes");
+        ///
+        /// // Chain with parsing
+        /// var result = await Curl.ExecuteAsync("curl https://api.example.com/users");
+        /// var users = result
+        ///     .SaveToFile("backup-users.json")  // Save backup
+        ///     .ParseJson&lt;List&lt;User&gt;&gt;();    // Then parse
+        ///
+        /// // Save with relative path
+        /// result.SaveToFile("downloads/report.pdf");
+        ///
+        /// // Save with absolute path
+        /// result.SaveToFile(@"C:\Temp\output.txt");  // Windows
+        /// result.SaveToFile("/tmp/output.txt");       // Linux/Mac
+        /// </code>
+        /// </example>
+        /// <seealso cref="SaveToFileAsync">Async version that doesn't block</seealso>
+        /// <seealso cref="SaveAsJson">Save JSON with formatting</seealso>
+        /// <seealso cref="AppendToFile">Append to existing file instead of overwriting</seealso>
         public CurlResult SaveToFile(string filePath)
         {
             if (BinaryData != null)
@@ -543,8 +617,12 @@ namespace CurlDotNet.Core
         /// <summary>
         /// <para><b>Get a specific header value (case-insensitive).</b></para>
         ///
-        /// <para>Easy header access with null safety:</para>
-        /// <code>
+        /// <para>Easy header access with null safety. This matches curl's header behavior exactly.</para>
+        /// </summary>
+        /// <param name="headerName">Name of the header (case doesn't matter)</param>
+        /// <returns>Header value or null if not found</returns>
+        /// <example>
+        /// <code language="csharp">
         /// // Get content type
         /// var contentType = result.GetHeader("Content-Type");
         /// if (contentType?.Contains("json") == true)
@@ -552,16 +630,30 @@ namespace CurlDotNet.Core
         ///     var data = result.ParseJson&lt;MyData&gt;();
         /// }
         ///
-        /// // Check rate limits
+        /// // Check rate limits (common in APIs)
         /// var remaining = result.GetHeader("X-RateLimit-Remaining");
         /// if (remaining != null &amp;&amp; int.Parse(remaining) &lt; 10)
         /// {
-        ///     Console.WriteLine("Slow down!");
+        ///     Console.WriteLine("⚠️ Only {0} API calls left!", remaining);
+        /// }
+        ///
+        /// // Check cache control
+        /// var cacheControl = result.GetHeader("Cache-Control");
+        /// if (cacheControl?.Contains("no-cache") == true)
+        /// {
+        ///     Console.WriteLine("Response should not be cached");
+        /// }
+        ///
+        /// // Get redirect location
+        /// var location = result.GetHeader("Location");
+        /// if (location != null)
+        /// {
+        ///     Console.WriteLine($"Redirected to: {location}");
         /// }
         /// </code>
-        /// </summary>
-        /// <param name="headerName">Name of the header (case doesn't matter)</param>
-        /// <returns>Header value or null if not found</returns>
+        /// </example>
+        /// <seealso cref="HasHeader">Check if header exists</seealso>
+        /// <seealso cref="Headers">Access all headers as dictionary</seealso>
         public string GetHeader(string headerName)
         {
             return Headers.TryGetValue(headerName, out var value) ? value : null;
@@ -570,15 +662,42 @@ namespace CurlDotNet.Core
         /// <summary>
         /// <para><b>Check if a header exists.</b></para>
         ///
-        /// <para>Test for header presence:</para>
-        /// <code>
+        /// <para>Test for header presence before accessing. This is case-insensitive, matching curl's behavior.</para>
+        /// </summary>
+        /// <param name="headerName">Name of the header to check (case-insensitive)</param>
+        /// <returns>true if the header exists, false otherwise</returns>
+        /// <example>
+        /// <code language="csharp">
+        /// // Check for cookies
         /// if (result.HasHeader("Set-Cookie"))
         /// {
-        ///     // Server sent cookies
         ///     var cookie = result.GetHeader("Set-Cookie");
+        ///     Console.WriteLine($"Cookie received: {cookie}");
+        /// }
+        ///
+        /// // Check for authentication requirements
+        /// if (result.HasHeader("WWW-Authenticate"))
+        /// {
+        ///     Console.WriteLine("Authentication required");
+        /// }
+        ///
+        /// // Check for custom headers
+        /// if (result.HasHeader("X-Custom-Header"))
+        /// {
+        ///     var value = result.GetHeader("X-Custom-Header");
+        ///     ProcessCustomValue(value);
+        /// }
+        ///
+        /// // Conditional logic based on headers
+        /// if (result.HasHeader("Content-Encoding") &amp;&amp; 
+        ///     result.GetHeader("Content-Encoding").Contains("gzip"))
+        /// {
+        ///     Console.WriteLine("Response is gzip compressed");
         /// }
         /// </code>
-        /// </summary>
+        /// </example>
+        /// <seealso cref="GetHeader">Get header value</seealso>
+        /// <seealso cref="Headers">Access all headers</seealso>
         public bool HasHeader(string headerName)
         {
             return Headers.ContainsKey(headerName);
@@ -591,8 +710,13 @@ namespace CurlDotNet.Core
         /// <summary>
         /// <para><b>Throw an exception if the request wasn't successful (not 200-299).</b></para>
         ///
-        /// <para>Use this when you expect success and want to fail fast:</para>
-        /// <code>
+        /// <para>Use this when you expect success and want to fail fast. This matches curl's <c>-f</c> (fail) flag behavior.</para>
+        /// </summary>
+        /// <returns>This result if successful (for chaining)</returns>
+        /// <exception cref="CurlHttpException">Thrown if status is not 200-299. The exception contains <see cref="CurlHttpException.StatusCode"/> and <see cref="CurlHttpException.ResponseBody"/>.</exception>
+        /// <example>
+        /// <code language="csharp">
+        /// // Fail fast pattern
         /// try
         /// {
         ///     var data = result
@@ -601,19 +725,41 @@ namespace CurlDotNet.Core
         /// }
         /// catch (CurlHttpException ex)
         /// {
-        ///     Console.WriteLine($"Failed with status {ex.StatusCode}");
+        ///     Console.WriteLine($"HTTP {ex.StatusCode}: {ex.Message}");
+        ///     Console.WriteLine($"Response body: {ex.ResponseBody}");
+        /// }
+        ///
+        /// // Common API pattern - get user data
+        /// var user = (await Curl.ExecuteAsync("curl https://api.example.com/user/123"))
+        ///     .EnsureSuccess()        // Throws on 404, 500, etc.
+        ///     .ParseJson&lt;User&gt;();    // Safe to parse, we know it's 200
+        ///
+        /// // Chain multiple operations
+        /// var response = await Curl.ExecuteAsync("curl https://api.example.com/data");
+        /// var processed = response
+        ///     .EnsureSuccess()           // Ensure 200-299
+        ///     .SaveToFile("backup.json") // Save backup
+        ///     .ParseJson&lt;DataModel&gt;(); // Then parse
+        ///
+        /// // Different handling for different status codes
+        /// try
+        /// {
+        ///     result.EnsureSuccess();
+        ///     ProcessData(result.Body);
+        /// }
+        /// catch (CurlHttpException ex) when (ex.StatusCode == 404)
+        /// {
+        ///     Console.WriteLine("Resource not found");
+        /// }
+        /// catch (CurlHttpException ex) when (ex.StatusCode >= 500)
+        /// {
+        ///     Console.WriteLine("Server error - retry later");
         /// }
         /// </code>
-        ///
-        /// <para><b>Common pattern in APIs:</b></para>
-        /// <code>
-        /// var user = (await Curl.Execute("curl https://api.example.com/user/123"))
-        ///     .EnsureSuccess()
-        ///     .ParseJson&lt;User&gt;();
-        /// </code>
-        /// </summary>
-        /// <returns>This result if successful (for chaining)</returns>
-        /// <exception cref="CurlHttpException">Thrown if status is not 200-299</exception>
+        /// </example>
+        /// <seealso cref="EnsureStatus">Ensure specific status code</seealso>
+        /// <seealso cref="EnsureContains">Ensure response contains text</seealso>
+        /// <seealso cref="IsSuccess">Check success without throwing</seealso>
         public CurlResult EnsureSuccess()
         {
             if (!IsSuccess)

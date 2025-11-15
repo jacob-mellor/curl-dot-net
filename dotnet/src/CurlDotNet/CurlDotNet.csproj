@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">netstandard2.0;net48;net6.0;net8.0</TargetFrameworks>
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows'))">netstandard2.0;net6.0;net8.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">netstandard2.0;net472;net8.0</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows'))">netstandard2.0;net8.0</TargetFrameworks>
+    <!-- Note: .NET 10 support will be added when released -->
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -15,9 +16,10 @@
     <FileVersion>1.0.0.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
-    <Authors>Jacob Mellor;IronSoftware</Authors>
+    <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
     <Company>IronSoftware</Company>
-    <Copyright>Copyright © 2025 Jacob Mellor and IronSoftware. All rights reserved.</Copyright>
+    <Copyright>Copyright © 1996-2025 Daniel Stenberg, et al. Copyright © 2024-2025 Jacob Mellor and IronSoftware. All rights reserved.</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
 
     <!-- Package Description -->
     <Title>CurlDotNet - Pure .NET curl | Sponsored by IronSoftware</Title>
@@ -34,7 +36,7 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 • Middleware and DI support
 
 📦 Supported Platforms:
-• .NET 8.0 and .NET 6.0
+• .NET 8.0
 • .NET Framework 4.7.2+ (Windows)
 • .NET Standard 2.0 (maximum compatibility)
 • Xamarin, Unity, Blazor
@@ -45,10 +47,13 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
     <PackageTags>curl;http;https;ftp;rest;api;client;web;request;ironsoftware;command-line;wget;download;upload;cicd;automation;testing</PackageTags>
 
     <!-- License and Repository -->
-    <PackageLicenseFile>COPYING</PackageLicenseFile>
-    <RepositoryUrl>https://github.com/jacob/curl-dot-net</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/jacob/curl-dot-net</PackageProjectUrl>
+    <!-- Note: Using PackageLicenseExpression (MIT) instead of PackageLicenseFile -->
+    <!-- PackageLicenseFile would conflict with PackageLicenseExpression -->
+    <RepositoryUrl>https://github.com/jacob-mellor/curl-dot-net</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/jacob-mellor/curl-dot-net</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 
     <!-- Package Icon and Release Notes -->
     <!-- <PackageIcon>icon.png</PackageIcon> -->
@@ -61,7 +66,7 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 ✅ Middleware and DI support
 💎 Sponsored by IronSoftware
 
-For full documentation and examples, visit https://github.com/jacob/curl-dot-net</PackageReleaseNotes>
+For full documentation and examples, visit https://github.com/jacob-mellor/curl-dot-net</PackageReleaseNotes>
 
     <!-- Output and Build -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -91,8 +96,9 @@ For full documentation and examples, visit https://github.com/jacob/curl-dot-net
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\COPYING" Pack="true" PackagePath="\" />
-    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\THANKS" Pack="true" PackagePath="docs\" Condition="Exists('..\..\THANKS')" />
   </ItemGroup>
 
   <!-- Conditional package references for different target frameworks -->

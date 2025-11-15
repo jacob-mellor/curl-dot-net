@@ -19,7 +19,6 @@
           "/Users/jacob/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
-          "net6.0",
           "net8.0",
           "netstandard2.0"
         ],
@@ -27,10 +26,6 @@
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net6.0": {
-            "targetAlias": "net6.0",
-            "projectReferences": {}
-          },
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {}
@@ -53,58 +48,6 @@
         "SdkAnalysisLevel": "9.0.300"
       },
       "frameworks": {
-        "net6.0": {
-          "targetAlias": "net6.0",
-          "dependencies": {
-            "Newtonsoft.Json": {
-              "target": "Package",
-              "version": "[13.0.3, )"
-            },
-            "Ninject": {
-              "target": "Package",
-              "version": "[3.3.6, )"
-            },
-            "Ninject.Extensions.Factory": {
-              "target": "Package",
-              "version": "[3.3.3, )"
-            },
-            "System.CommandLine": {
-              "target": "Package",
-              "version": "[2.0.0-beta4.22272.1, )"
-            },
-            "System.Text.Json": {
-              "target": "Package",
-              "version": "[8.0.5, )"
-            }
-          },
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48",
-            "net481"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[6.0.36, 6.0.36]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[6.0.36, 6.0.36]"
-            }
-          ],
-          "frameworkReferences": {
-            "Microsoft.NETCore.App": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.306/RuntimeIdentifierGraph.json"
-        },
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {

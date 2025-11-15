@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "XPvVqentejc=",
+  "dgSpecHash": "sqSP76NMv4I=",
   "success": true,
   "projectFilePath": "/Users/jacob/Documents/GitHub/curl-dot-net/dotnet/src/CurlDotNet/CurlDotNet.csproj",
   "expectedPackageFiles": [
@@ -100,8 +100,6 @@
     "/Users/jacob/.nuget/packages/system.xml.readerwriter/4.3.0/system.xml.readerwriter.4.3.0.nupkg.sha512",
     "/Users/jacob/.nuget/packages/system.xml.xdocument/4.3.0/system.xml.xdocument.4.3.0.nupkg.sha512",
     "/Users/jacob/.nuget/packages/system.xml.xmldocument/4.3.0/system.xml.xmldocument.4.3.0.nupkg.sha512",
-    "/Users/jacob/.nuget/packages/microsoft.netcore.app.ref/6.0.36/microsoft.netcore.app.ref.6.0.36.nupkg.sha512",
-    "/Users/jacob/.nuget/packages/microsoft.aspnetcore.app.ref/6.0.36/microsoft.aspnetcore.app.ref.6.0.36.nupkg.sha512",
     "/Users/jacob/.nuget/packages/microsoft.netcore.app.ref/8.0.21/microsoft.netcore.app.ref.8.0.21.nupkg.sha512",
     "/Users/jacob/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.21/microsoft.aspnetcore.app.ref.8.0.21.nupkg.sha512"
   ],
