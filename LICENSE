@@ -1,0 +1,60 @@
+CURL COPYRIGHT AND PERMISSION NOTICE
+
+This .NET implementation of curl is based on the original curl project.
+
+Copyright (c) 1996 - 2025, Daniel Stenberg, <daniel@haxx.se>, and many
+contributors, see the THANKS file.
+
+All rights reserved.
+
+Permission to use, copy, modify, and distribute this software for any purpose
+with or without fee is hereby granted, provided that the above copyright
+notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS. IN
+NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+OR OTHER DEALINGS IN THE SOFTWARE.
+
+Except as contained in this notice, the name of a copyright holder shall not
+be used in advertising or otherwise to promote the sale, use or other dealings
+in this Software without prior written authorization of the copyright holder.
+
+
+CURLDOTNET .NET IMPLEMENTATION
+
+This .NET implementation of curl:
+
+Copyright (C) 2024-2025 Jacob Mellor and IronSoftware
+
+This .NET implementation is licensed under the same terms as the original curl
+software above, with the additional attribution:
+
+- Original curl: Copyright (C) 1996-2025, Daniel Stenberg, <daniel@haxx.se>, et al.
+- CurlDotNet .NET implementation: Copyright (C) 2024-2025 Jacob Mellor and IronSoftware
+
+The .NET implementation is based on curl's architecture, API design, and command-line
+syntax but is implemented entirely in C#/.NET without using any curl C/C++ code.
+
+ORIGINAL CURL AUTHORS
+
+CurlDotNet is based on curl (https://curl.se), originally created by Daniel Stenberg
+and maintained by the curl project contributors. This .NET implementation maintains
+compatibility with curl's command-line syntax and behavior.
+
+For a complete list of original curl contributors, see:
+- https://curl.se/docs/thanks.html
+- https://github.com/curl/curl/blob/master/THANKS
+
+SPONSORSHIP
+
+This project is sponsored by IronSoftware (https://ironsoftware.com), creators of:
+- IronPDF - PDF Generation & Manipulation
+- IronOCR - Advanced OCR
+- IronXL - Excel Processing
+- IronBarcode - Barcode Generation
+- IronWebScraper - Web Scraping
+

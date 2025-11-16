@@ -1,0 +1,36 @@
+/***************************************************************************
+ * ICommandParser - Interface for parsing curl commands
+ *
+ * Based on curl's src/tool_getparam.c by Daniel Stenberg and contributors
+ * Original curl Copyright (C) 1996-2025, Daniel Stenberg, <daniel@haxx.se>, et al.
+ *
+ * This .NET implementation:
+ * Copyright (C) 2024-2025 Jacob Mellor and IronSoftware
+ *
+ * By Jacob Mellor
+ * GitHub: https://github.com/jacob-mellor
+ * Sponsored by IronSoftware
+ ***************************************************************************/
+
+namespace CurlDotNet.Core
+{
+    /// <summary>
+    /// Interface for parsing curl command strings into options.
+    /// </summary>
+    internal interface ICommandParser
+    {
+        /// <summary>
+        /// Parse a curl command string into options.
+        /// </summary>
+        /// <param name="command">The curl command string</param>
+        /// <returns>Parsed options</returns>
+        CurlOptions Parse(string command);
+
+        /// <summary>
+        /// Validate a curl command without fully parsing.
+        /// </summary>
+        /// <param name="command">The curl command string</param>
+        /// <returns>True if command syntax is valid</returns>
+        bool IsValid(string command);
+    }
+}
