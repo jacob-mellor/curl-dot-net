@@ -1,0 +1,42 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'documentation/**'
+      - 'src/**'
+      - 'docfx/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install DocFX
+        run: dotnet tool install -g docfx
+
+      - name: Build Documentation
+        run: |
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          cd docfx
+          docfx docfx.json
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          cname: curldotnet.dev  # Optional: if you have a custom domain

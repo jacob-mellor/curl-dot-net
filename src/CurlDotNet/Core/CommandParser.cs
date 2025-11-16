@@ -318,21 +318,11 @@ namespace CurlDotNet.Core
                     continue;
                 }
 
-                // Windows-style escaped quotes: "" becomes " (when inside quotes)
+                // Windows-style escaped quotes: "" becomes "
                 if (c == '"' && next == '"' && inQuote && quoteChar == '"')
                 {
                     current.Append('"');
                     i += 2; // Skip both quotes
-                    continue;
-                }
-
-                // Also handle "" when not currently in quotes (Windows CMD style)
-                if (c == '"' && next == '"' && !inQuote)
-                {
-                    // This starts a quoted section with an immediate quote character
-                    inQuote = true;
-                    quoteChar = '"';
-                    i++; // Move to the second quote
                     continue;
                 }
 
@@ -396,64 +386,21 @@ namespace CurlDotNet.Core
                         optionToken = arg.Substring(0, equalsIndex);
                     }
 
-                    // Handle combined short options like -sS
-                    if (optionToken.StartsWith("-") && !optionToken.StartsWith("--") && optionToken.Length > 2)
-                    {
-                        // Split combined short options into individual options
-                        for (int j = 1; j < optionToken.Length; j++)
-                        {
-                            var singleOption = "-" + optionToken[j];
-                            var normalizedOption = NormalizeOption(singleOption);
+                    var optionName = NormalizeOption(optionToken);
+                    var needsValue = NeedsValue(optionName);
+                    var value = inlineValue;
 
-                            // Check if this option needs a value
-                            if (NeedsValue(normalizedOption))
-                            {
-                                // For options that need values in combined form,
-                                // the value should be the rest of the string or next arg
-                                string optValue = "";
-                                if (j < optionToken.Length - 1)
-                                {
-                                    // Rest of the string is the value
-                                    optValue = optionToken.Substring(j + 1);
-                                    ProcessOption(normalizedOption, optValue, options, ref methodSpecified);
-                                    break; // Stop processing combined options
-                                }
-                                else if (!string.IsNullOrEmpty(inlineValue))
-                                {
-                                    optValue = inlineValue;
-                                }
-                                else if (i + 1 < args.Count && !args[i + 1].StartsWith("-"))
-                                {
-                                    optValue = args[++i];
-                                }
-                                ProcessOption(normalizedOption, optValue, options, ref methodSpecified);
-                            }
-                            else
-                            {
-                                // Process as flag (no value needed)
-                                ProcessOption(normalizedOption, "", options, ref methodSpecified);
-                            }
+                    if (needsValue && string.IsNullOrEmpty(inlineValue))
+                    {
+                        if (i + 1 < args.Count && !args[i + 1].StartsWith("-"))
+                    {
+                        value = args[++i];
                         }
                     }
-                    else
+
+                    if (!ProcessOption(optionName, value, options, ref methodSpecified))
                     {
-                        // Process single option as before
-                        var optionName = NormalizeOption(optionToken);
-                        var needsValue = NeedsValue(optionName);
-                        var value = inlineValue;
-
-                        if (needsValue && string.IsNullOrEmpty(inlineValue))
-                        {
-                            if (i + 1 < args.Count && !args[i + 1].StartsWith("-"))
-                            {
-                                value = args[++i];
-                            }
-                        }
-
-                        if (!ProcessOption(optionName, value, options, ref methodSpecified))
-                        {
-                            // Unknown option - ignore but do not consume URL arguments
-                        }
+                        // Unknown option - ignore but do not consume URL arguments
                     }
                 }
                 else if (string.IsNullOrEmpty(options.Url))
@@ -792,13 +739,6 @@ namespace CurlDotNet.Core
             {
                 var key = header.Substring(0, colonIndex).Trim();
                 var value = header.Substring(colonIndex + 1).Trim();
-
-                // Handle special headers
-                if (key.Equals("User-Agent", StringComparison.OrdinalIgnoreCase))
-                {
-                    options.UserAgent = value;
-                }
-
                 options.Headers[key] = value;
             }
         }
