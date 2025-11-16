@@ -947,9 +947,7 @@ CurlDotNet is the first module in **UserlandDotNet**—a suite that will reimagi
 
 ### Documentation
 
-- **[Manual](manual/README.md)** – Comprehensive guides and tutorials (Markdown + DocFX). Start with:
-  - `05 - LibCurl Deep Dive & Tutorials` for reusable clients.
-  - `06 - Curl String Playbook` for copy/paste workflows.
+- **[Manual](manual/README.md)** – Comprehensive guides and tutorials (Markdown + DocFX).
 - **[API Reference](https://github.com/jacob-mellor/curl-dot-net)** – Generated XML/DocFX API docs.
 - **[Examples](examples/README.md)** – Real-world code examples in C#, F#, and VB.NET.
 - **[Advanced Features](docs/ADVANCED.md)** – Middleware, protocol extensions, fluent builder hooks.

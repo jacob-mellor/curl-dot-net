@@ -96,8 +96,8 @@ namespace CurlDotNet.Core
             catch (TaskCanceledException)
             {
                 if (cancellationToken.IsCancellationRequested)
-                    return CreateCancelledResult(options);
-                return CreateTimeoutResult(options);
+                    throw new CurlAbortedByCallbackException("Operation cancelled");
+                throw new CurlOperationTimeoutException(GetTimeoutSeconds(options), options.OriginalCommand);
             }
             catch (HttpRequestException ex)
             {
@@ -593,7 +593,6 @@ namespace CurlDotNet.Core
             };
 
             return new HttpClient(handler);
-        }
         }
     }
 }
