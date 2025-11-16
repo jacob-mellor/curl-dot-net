@@ -2,17 +2,19 @@
 
 <div align="center">
   <img src="build/icon-128.png" alt="CurlDotNet Logo" width="128" />
+
+  ### 📚 [Full Documentation](https://jacob-mellor.github.io/curl-dot-net/) | 🚀 [Getting Started](https://jacob-mellor.github.io/curl-dot-net/articles/getting-started.html) | 📖 [API Reference](https://jacob-mellor.github.io/curl-dot-net/api/)
 </div>
 
 [![NuGet](https://img.shields.io/nuget/v/CurlDotNet.svg)](https://www.nuget.org/packages/CurlDotNet/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/CurlDotNet.svg)](https://www.nuget.org/packages/CurlDotNet/)
 [![Documentation](https://img.shields.io/badge/Docs-GitHub%20Pages-blue.svg)](https://jacob-mellor.github.io/curl-dot-net/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![.NET 10 Ready](https://img.shields.io/badge/.NET%2010-Ready-success.svg)](manual/04-Compatibility-Matrix.md)
+[![.NET 10 Ready](https://img.shields.io/badge/.NET%2010-Ready-success.svg)](https://jacob-mellor.github.io/curl-dot-net/)
 [![Tests](https://img.shields.io/badge/Tests-228%2F240%20(95%25)-yellow.svg)](tests/README.md)
-[![.NET Standard 2.0](https://img.shields.io/badge/.NET%20Standard%202.0-Universal-blue.svg)](manual/04-Compatibility-Matrix.md)
+[![.NET Standard 2.0](https://img.shields.io/badge/.NET%20Standard%202.0-Universal-blue.svg)](https://jacob-mellor.github.io/curl-dot-net/)
 [![Build Status](https://img.shields.io/badge/Build-Passing-success.svg)](build/README.md)
-[![UserlandDotNet Vision](https://img.shields.io/badge/Userland-.NET%20Tooling-512BD4.svg)](manual/03-Future-Vision-UserlandDotNet.md)
+[![UserlandDotNet Vision](https://img.shields.io/badge/Userland-.NET%20Tooling-512BD4.svg)](https://userlanddotnet.org)
 [![Sponsored by IronSoftware](https://img.shields.io/badge/Sponsored%20by-IronSoftware-red.svg)](https://ironsoftware.com)
 
 📚 **[Full Documentation](https://jacob-mellor.github.io/curl-dot-net/)** | 🚀 **[Getting Started](https://jacob-mellor.github.io/curl-dot-net/articles/getting-started.html)** | 📖 **[API Reference](https://jacob-mellor.github.io/curl-dot-net/api/)**
@@ -181,7 +183,7 @@ using (var curl = new LibCurl())
 
 - Built by **Jacob Mellor**, CTO at [IronSoftware](https://ironsoftware.com/about-us/authors/jacobmellor/) with 25+ years of Microsoft ecosystem leadership. Connect via [GitHub](https://github.com/jacob-mellor) or [LinkedIn](https://www.linkedin.com/in/jacob-mellor-iron-software/).
 - Inspired by [.NET Foundation](https://dotnetfoundation.org/) guidance and community figures like Jeff Fritz—transparent engineering, heavy testing, world-class docs.
-- Operates under the **UserlandDotNet** initiative to bring Linux userland tools to .NET and PowerShell without native binaries. Read the manifesto in [manual/03-Future-Vision-UserlandDotNet.md](manual/03-Future-Vision-UserlandDotNet.md).
+- Operates under the **UserlandDotNet** initiative to bring Linux userland tools to .NET and PowerShell without native binaries. Learn more at [userlanddotnet.org](https://userlanddotnet.org).
 
 ## 🎯 Test Coverage & Quality
 
@@ -215,7 +217,7 @@ CurlDotNet ships multi-targeted binaries supporting **every .NET platform**:
 - **Azure Functions / App Service** – Works via DI without native binaries
 - **Docker / Kubernetes** – No curl binary needed in containers
 
-See the full platform compatibility matrix in [manual/04-Compatibility-Matrix.md](manual/04-Compatibility-Matrix.md).
+See the [full documentation](https://jacob-mellor.github.io/curl-dot-net/) for platform compatibility details.
 
 ## 📦 Installation and Setup
 
@@ -1008,7 +1010,7 @@ The documentation includes:
 
 ### 📖 Local Documentation
 
-- **[Manual](manual/README.md)** – Comprehensive guides and tutorials
+- **[Documentation](https://jacob-mellor.github.io/curl-dot-net/)** – Comprehensive guides, tutorials, and API reference
 - **[Examples](examples/README.md)** – Code examples in C#, F#, and VB.NET
 - **[Advanced Features](docs/ADVANCED.md)** – Middleware, protocols, and extensions
 

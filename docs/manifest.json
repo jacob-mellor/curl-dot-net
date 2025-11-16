@@ -1,5 +1,5 @@
 {
-  "source_base_path": "/Users/jacob/Documents/GitHub/curl-dot-net/docfx",
+  "source_base_path": "/Users/jacob/Documents/GitHub/curl-dot-net/build/docfx",
   "xrefmap": "xrefmap.yml",
   "files": [
     {
@@ -26,6 +26,1303 @@
       "output": {
         ".html": {
           "relative_path": "README.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Core.CurlFtpException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Core.CurlFtpException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Core.CurlFtpException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Core.CurlFtpException.yml\" sourcestartlinenumber=\"1\">FTP-specific exception.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Core.CurlHttpException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Core.CurlHttpException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Core.CurlHttpException",
+      "Summary": "<p><b>Exception for HTTP errors (4xx, 5xx status codes).</b></p>\n<p>Thrown by EnsureSuccess() when request fails:</p>\n<pre><code class=\"lang-csharp\">try\n{\n    result.EnsureSuccess();\n}\ncatch (CurlHttpException ex)\n{\n    Console.WriteLine($\"HTTP {ex.StatusCode}: {ex.Message}\");\n    Console.WriteLine($\"Response was: {ex.ResponseBody}\");\n}</code></pre>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Core.CurlOptions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Core.CurlOptions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Core.CurlOptions",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Core.CurlOptions.yml\" sourcestartlinenumber=\"1\">Represents parsed curl command options.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Core.CurlRequestBuilder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Core.CurlRequestBuilder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Core.CurlRequestBuilder",
+      "Summary": "<p><b>\uD83C\uDFA8 Fluent Builder API - Build curl requests programmatically!</b></p>\n<p>For developers who prefer a fluent API over curl command strings.\nThis builder lets you construct HTTP requests using method chaining,\nperfect for IntelliSense and compile-time checking.</p>\n<p><b>When to use Builder vs Curl String:</b></p>\n<ul><li><b>Use Builder</b> - When building requests dynamically, need IntelliSense, or prefer type safety</li><li><b>Use Curl String</b> - When you have curl commands from docs/examples (paste and go!)</li></ul>\n<p><b>Quick Example:</b></p>\n<pre><code class=\"lang-csharp\">// Build a request fluently\nvar result = await CurlRequestBuilder\n    .Get(\"https://api.example.com/users\")\n    .WithHeader(\"Accept\", \"application/json\")\n    .WithHeader(\"Authorization\", \"Bearer token123\")\n    .WithTimeout(TimeSpan.FromSeconds(30))\n    .ExecuteAsync();\n\n// Same as: curl -H 'Accept: application/json' -H 'Authorization: Bearer token123' --max-time 30 https://api.example.com/users</code></pre>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Core.CurlResult.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Core.CurlResult.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Core.CurlResult",
+      "Summary": "<p><b>\uD83C\uDFAF The response from your curl command - everything you need is here!</b></p>\n<p>After running any curl command, you get this object back. It has the status code,\nresponse body, headers, and helpful methods to work with the data.</p>\n<p><b>The API is designed to be intuitive - just type what you want to do:</b></p>\n<ul><li>Want the body? → <code>result.Body</code></li><li>Want JSON? → <code>result.ParseJson&lt;T&gt;()</code> or <code>result.AsJson&lt;T&gt;()</code></li><li>Want to save? → <code>result.SaveToFile(\"path\")</code></li><li>Want headers? → <code>result.Headers[\"Content-Type\"]</code></li><li>Check success? → <code>result.IsSuccess</code> or <code>result.EnsureSuccess()</code></li></ul>\n<p><b>Quick Example:</b></p>\n<pre><code class=\"lang-csharp\">var result = await Curl.Execute(\"curl https://api.github.com/users/octocat\");\n\nif (result.IsSuccess)  // Was it 200-299?\n{\n    var user = result.ParseJson&lt;User&gt;();  // Parse JSON to your type\n    result.SaveToFile(\"user.json\");       // Save for later\n}</code></pre>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Core.CurlSettings.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Core.CurlSettings.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Core.CurlSettings",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Core.CurlSettings.yml\" sourcestartlinenumber=\"1\">Fluent builder for .NET-specific curl settings.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Core.CurlTimings.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Core.CurlTimings.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Core.CurlTimings",
+      "Summary": "<p><b>Detailed timing breakdown of the curl operation.</b></p>\n<p>See where time was spent (like curl -w):</p>\n<pre><code class=\"lang-csharp\">if (result.Timings.Total &gt; 2000)\n{\n    Console.WriteLine(\"Slow request! Let's see why:\");\n    Console.WriteLine($\"DNS: {result.Timings.NameLookup}ms\");\n    Console.WriteLine($\"Connect: {result.Timings.Connect}ms\");\n    Console.WriteLine($\"SSL: {result.Timings.AppConnect}ms\");\n    Console.WriteLine($\"Wait: {result.Timings.StartTransfer}ms\");\n}</code></pre>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Core.ValidationResult.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Core.ValidationResult.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Core.ValidationResult",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Core.ValidationResult.yml\" sourcestartlinenumber=\"1\">Result of command validation.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Core.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Core.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Core",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Curl.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Curl.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Curl",
+      "Summary": "<p><b>\uD83D\uDE80 THE MAIN CURLDOTNET CLASS - Start here!</b></p>\n<p>This class lets you run ANY curl command in C# by just copying and pasting it as a string.\nNo translation needed. No learning curve. If it works in curl, it works here.</p>\n<p><b>Quick Start:</b></p>\n<pre><code class=\"lang-csharp\">// Just paste any curl command as a string:\nvar response = await Curl.Execute(\"curl https://api.github.com\");\nConsole.WriteLine(response.Body);  // That's it! You're done!</code></pre>\n<p><b>What is curl?</b> curl is the universal tool for making HTTP requests from the command line.\nEvery API documentation uses it. Now you can use those exact same commands in your C# code.</p>\n<p><b>Learn more:</b></p>\n<ul><li>\uD83D\uDCD6 curl documentation: <a href=\"https://curl.se/docs/\">https://curl.se/docs/</a></li><li>\uD83D\uDCDA curl tutorial: <a href=\"https://curl.se/docs/tutorial.html\">https://curl.se/docs/tutorial.html</a></li><li>⌨️ curl command generator: <a href=\"https://curlbuilder.com/\">https://curlbuilder.com/</a></li></ul>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.DotNetCurl.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.DotNetCurl.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.DotNetCurl",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.DotNetCurl.yml\" sourcestartlinenumber=\"1\">DotNetCurl - Alternative API entry point for curl commands.\nThe killer feature: Copy and paste any curl command and it works!</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlAbortedByCallbackException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlAbortedByCallbackException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlAbortedByCallbackException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlAbortedByCallbackException.yml\" sourcestartlinenumber=\"1\">CURLE_ABORTED_BY_CALLBACK (42) - Aborted by callback</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlAuthenticationException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlAuthenticationException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlAuthenticationException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlAuthenticationException.yml\" sourcestartlinenumber=\"1\">Thrown when authentication fails</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlBadContentEncodingException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlBadContentEncodingException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlBadContentEncodingException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlBadContentEncodingException.yml\" sourcestartlinenumber=\"1\">CURLE_BAD_CONTENT_ENCODING (61) - Unrecognized content encoding</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlBadDownloadResumeException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlBadDownloadResumeException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlBadDownloadResumeException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlBadDownloadResumeException.yml\" sourcestartlinenumber=\"1\">CURLE_BAD_DOWNLOAD_RESUME (36) - Bad download resume</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlBadFunctionArgumentException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlBadFunctionArgumentException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlBadFunctionArgumentException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlBadFunctionArgumentException.yml\" sourcestartlinenumber=\"1\">CURLE_BAD_FUNCTION_ARGUMENT (43) - Bad function argument</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlConnectionException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlConnectionException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlConnectionException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlConnectionException.yml\" sourcestartlinenumber=\"1\">Thrown when a network connection cannot be established to the target host.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlCookieException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlCookieException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlCookieException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlCookieException.yml\" sourcestartlinenumber=\"1\">Thrown when cookie operations fail</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlCouldntConnectException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlCouldntConnectException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlCouldntConnectException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlCouldntConnectException.yml\" sourcestartlinenumber=\"1\">CURLE_COULDNT_CONNECT (7) - Failed to connect to host</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlCouldntResolveHostException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlCouldntResolveHostException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlCouldntResolveHostException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlCouldntResolveHostException.yml\" sourcestartlinenumber=\"1\">CURLE_COULDNT_RESOLVE_HOST (6) - Couldn't resolve host</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlCouldntResolveProxyException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlCouldntResolveProxyException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlCouldntResolveProxyException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlCouldntResolveProxyException.yml\" sourcestartlinenumber=\"1\">CURLE_COULDNT_RESOLVE_PROXY (5) - Couldn't resolve proxy</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlDnsException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlDnsException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlDnsException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlDnsException.yml\" sourcestartlinenumber=\"1\">Thrown when DNS resolution fails for a hostname.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlException.yml\" sourcestartlinenumber=\"1\">Base exception for all curl operations. This is the base class for all curl-specific exceptions.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlExecutionException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlExecutionException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlExecutionException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlExecutionException.yml\" sourcestartlinenumber=\"1\">Thrown when execution fails for general reasons</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlFailedInitException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlFailedInitException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlFailedInitException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlFailedInitException.yml\" sourcestartlinenumber=\"1\">CURLE_FAILED_INIT (2) - Failed to initialize</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlFileCouldntReadException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlFileCouldntReadException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlFileCouldntReadException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlFileCouldntReadException.yml\" sourcestartlinenumber=\"1\">CURLE_FILE_COULDNT_READ_FILE (37) - Couldn't read file</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlFileException.FileOperation.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlFileException.FileOperation.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlFileException.FileOperation",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlFileException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlFileException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlFileException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlFileException.yml\" sourcestartlinenumber=\"1\">Thrown when file operations fail</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlFileSizeExceededException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlFileSizeExceededException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlFileSizeExceededException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlFileSizeExceededException.yml\" sourcestartlinenumber=\"1\">CURLE_FILESIZE_EXCEEDED (63) - File size exceeded</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlFtpAcceptFailedException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlFtpAcceptFailedException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlFtpAcceptFailedException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlFtpAcceptFailedException.yml\" sourcestartlinenumber=\"1\">CURLE_FTP_ACCEPT_FAILED (10) - FTP accept failed</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlFtpAcceptTimeoutException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlFtpAcceptTimeoutException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlFtpAcceptTimeoutException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlFtpAcceptTimeoutException.yml\" sourcestartlinenumber=\"1\">CURLE_FTP_ACCEPT_TIMEOUT (12) - FTP accept timeout</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlFtpException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlFtpException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlFtpException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlFtpException.yml\" sourcestartlinenumber=\"1\">Thrown when FTP operations fail</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlFtpWeirdPassReplyException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlFtpWeirdPassReplyException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlFtpWeirdPassReplyException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlFtpWeirdPassReplyException.yml\" sourcestartlinenumber=\"1\">CURLE_FTP_WEIRD_PASS_REPLY (11) - FTP weird PASS reply</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlFunctionNotFoundException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlFunctionNotFoundException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlFunctionNotFoundException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlFunctionNotFoundException.yml\" sourcestartlinenumber=\"1\">CURLE_FUNCTION_NOT_FOUND (41) - Function not found</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlGotNothingException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlGotNothingException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlGotNothingException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlGotNothingException.yml\" sourcestartlinenumber=\"1\">CURLE_GOT_NOTHING (52) - Got nothing (empty reply)</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlHttpException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlHttpException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlHttpException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlHttpException.yml\" sourcestartlinenumber=\"1\">Thrown for HTTP error responses when using ThrowOnError()</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlHttpPostErrorException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlHttpPostErrorException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlHttpPostErrorException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlHttpPostErrorException.yml\" sourcestartlinenumber=\"1\">CURLE_HTTP_POST_ERROR (34) - HTTP POST error</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlHttpReturnedErrorException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlHttpReturnedErrorException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlHttpReturnedErrorException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlHttpReturnedErrorException.yml\" sourcestartlinenumber=\"1\">CURLE_HTTP_RETURNED_ERROR (22) - HTTP returned error</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlInterfaceFailedException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlInterfaceFailedException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlInterfaceFailedException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlInterfaceFailedException.yml\" sourcestartlinenumber=\"1\">CURLE_INTERFACE_FAILED (45) - Interface failed</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlInvalidCommandException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlInvalidCommandException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlInvalidCommandException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlInvalidCommandException.yml\" sourcestartlinenumber=\"1\">Thrown when the curl command syntax is invalid or cannot be parsed.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlLoginDeniedException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlLoginDeniedException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlLoginDeniedException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlLoginDeniedException.yml\" sourcestartlinenumber=\"1\">CURLE_LOGIN_DENIED (67) - Login denied</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlMalformedUrlException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlMalformedUrlException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlMalformedUrlException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlMalformedUrlException.yml\" sourcestartlinenumber=\"1\">CURLE_URL_MALFORMAT (3) - Malformed URL</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlNotBuiltInException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlNotBuiltInException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlNotBuiltInException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlNotBuiltInException.yml\" sourcestartlinenumber=\"1\">CURLE_NOT_BUILT_IN (4) - Feature not built in</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlNotSupportedException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlNotSupportedException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlNotSupportedException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlNotSupportedException.yml\" sourcestartlinenumber=\"1\">Thrown when a required feature is not supported</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlOperationTimeoutException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlOperationTimeoutException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlOperationTimeoutException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlOperationTimeoutException.yml\" sourcestartlinenumber=\"1\">CURLE_OPERATION_TIMEDOUT (28) - Operation timeout</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlOptionSyntaxException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlOptionSyntaxException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlOptionSyntaxException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlOptionSyntaxException.yml\" sourcestartlinenumber=\"1\">CURLE_SETOPT_OPTION_SYNTAX (49) - Option syntax error</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlOutOfMemoryException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlOutOfMemoryException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlOutOfMemoryException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlOutOfMemoryException.yml\" sourcestartlinenumber=\"1\">CURLE_OUT_OF_MEMORY (27) - Out of memory</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlParsingException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlParsingException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlParsingException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlParsingException.yml\" sourcestartlinenumber=\"1\">Thrown when content parsing fails</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlPeerFailedVerificationException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlPeerFailedVerificationException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlPeerFailedVerificationException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlPeerFailedVerificationException.yml\" sourcestartlinenumber=\"1\">CURLE_PEER_FAILED_VERIFICATION (60) - Peer certificate verification failed</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlProxyException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlProxyException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlProxyException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlProxyException.yml\" sourcestartlinenumber=\"1\">Thrown when proxy connection fails</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlRateLimitException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlRateLimitException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlRateLimitException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlRateLimitException.yml\" sourcestartlinenumber=\"1\">Thrown when rate limiting is encountered</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlReadErrorException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlReadErrorException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlReadErrorException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlReadErrorException.yml\" sourcestartlinenumber=\"1\">CURLE_READ_ERROR (26) - Read error</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlReceiveErrorException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlReceiveErrorException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlReceiveErrorException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlReceiveErrorException.yml\" sourcestartlinenumber=\"1\">CURLE_RECV_ERROR (56) - Receive error</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlRedirectException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlRedirectException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlRedirectException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlRedirectException.yml\" sourcestartlinenumber=\"1\">Thrown when redirect limit is exceeded</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlRemoteAccessDeniedException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlRemoteAccessDeniedException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlRemoteAccessDeniedException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlRemoteAccessDeniedException.yml\" sourcestartlinenumber=\"1\">CURLE_REMOTE_ACCESS_DENIED (9) - Access denied to remote resource</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlRetryException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlRetryException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlRetryException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlRetryException.yml\" sourcestartlinenumber=\"1\">Thrown when retry attempts are exhausted</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlSendErrorException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlSendErrorException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlSendErrorException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlSendErrorException.yml\" sourcestartlinenumber=\"1\">CURLE_SEND_ERROR (55) - Send error</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlSslCertificateProblemException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlSslCertificateProblemException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlSslCertificateProblemException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlSslCertificateProblemException.yml\" sourcestartlinenumber=\"1\">CURLE_SSL_CERTPROBLEM (58) - Problem with local certificate</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlSslCipherException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlSslCipherException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlSslCipherException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlSslCipherException.yml\" sourcestartlinenumber=\"1\">CURLE_SSL_CIPHER (59) - Couldn't use SSL cipher</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlSslConnectErrorException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlSslConnectErrorException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlSslConnectErrorException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlSslConnectErrorException.yml\" sourcestartlinenumber=\"1\">CURLE_SSL_CONNECT_ERROR (35) - SSL connect error</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlSslEngineNotFoundException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlSslEngineNotFoundException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlSslEngineNotFoundException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlSslEngineNotFoundException.yml\" sourcestartlinenumber=\"1\">CURLE_SSL_ENGINE_NOTFOUND (53) - SSL engine not found</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlSslEngineSetFailedException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlSslEngineSetFailedException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlSslEngineSetFailedException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlSslEngineSetFailedException.yml\" sourcestartlinenumber=\"1\">CURLE_SSL_ENGINE_SETFAILED (54) - Failed setting SSL engine</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlSslException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlSslException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlSslException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlSslException.yml\" sourcestartlinenumber=\"1\">Thrown when SSL/TLS certificate validation fails</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlTimeoutException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlTimeoutException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlTimeoutException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlTimeoutException.yml\" sourcestartlinenumber=\"1\">Thrown when an operation exceeds the configured timeout period.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlTooManyRedirectsException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlTooManyRedirectsException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlTooManyRedirectsException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlTooManyRedirectsException.yml\" sourcestartlinenumber=\"1\">CURLE_TOO_MANY_REDIRECTS (47) - Too many redirects</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlUnknownOptionException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlUnknownOptionException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlUnknownOptionException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlUnknownOptionException.yml\" sourcestartlinenumber=\"1\">CURLE_UNKNOWN_OPTION (48) - Unknown option</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlUnsupportedProtocolException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlUnsupportedProtocolException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlUnsupportedProtocolException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlUnsupportedProtocolException.yml\" sourcestartlinenumber=\"1\">CURLE_UNSUPPORTED_PROTOCOL (1) - Unsupported protocol</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlUploadFailedException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlUploadFailedException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlUploadFailedException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlUploadFailedException.yml\" sourcestartlinenumber=\"1\">CURLE_UPLOAD_FAILED (25) - Upload failed</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlUseSslFailedException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlUseSslFailedException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlUseSslFailedException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlUseSslFailedException.yml\" sourcestartlinenumber=\"1\">CURLE_USE_SSL_FAILED (64) - Required SSL level failed</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlWeirdServerReplyException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlWeirdServerReplyException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlWeirdServerReplyException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlWeirdServerReplyException.yml\" sourcestartlinenumber=\"1\">CURLE_WEIRD_SERVER_REPLY (8) - Weird server reply</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.CurlWriteErrorException.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.CurlWriteErrorException.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions.CurlWriteErrorException",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Exceptions.CurlWriteErrorException.yml\" sourcestartlinenumber=\"1\">CURLE_WRITE_ERROR (23) - Write error</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Exceptions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Exceptions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Exceptions",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Extensions.FluentExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Extensions.FluentExtensions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Extensions.FluentExtensions",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Extensions.FluentExtensions.yml\" sourcestartlinenumber=\"1\">Extension methods for fluent curl building.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Extensions.StringExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Extensions.StringExtensions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Extensions.StringExtensions",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Extensions.StringExtensions.yml\" sourcestartlinenumber=\"1\">Extension methods for string to provide syntactic sugar for curl operations.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Extensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Extensions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Extensions",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Lib.LibCurl.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Lib.LibCurl.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Lib.LibCurl",
+      "Summary": "<p><b>\uD83D\uDD27 LibCurl - Object-Oriented API for Programmatic HTTP</b></p>\n<p>Provides a libcurl-style object-oriented API for .NET developers who prefer\nprogrammatic control over curl command strings. Perfect for building HTTP clients\nwhere you need fine-grained control and reusable configurations.</p>\n<p><b>When to use LibCurl vs Curl String vs CurlRequestBuilder:</b></p>\n<ul><li><b>LibCurl</b> - When you need persistent configuration, reusable instances, or object-oriented patterns</li><li><b>CurlRequestBuilder</b> - When you want fluent method chaining with one-off requests</li><li><b>Curl String</b> - When you have curl commands from docs/examples (paste and go!)</li></ul>\n<p><b>Quick Example:</b></p>\n<pre><code class=\"lang-csharp\">using (var curl = new LibCurl())\n{\n    // Configure defaults for all requests\n    curl.WithHeader(\"Accept\", \"application/json\")\n        .WithBearerToken(\"your-token\")\n        .WithTimeout(TimeSpan.FromSeconds(30));\n\n    // Make multiple requests with same configuration\n    var user = await curl.GetAsync(\"https://api.example.com/user\");\n    var posts = await curl.GetAsync(\"https://api.example.com/posts\");\n}</code></pre>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Lib.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Lib.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Lib",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Middleware.AuthenticationMiddleware.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Middleware.AuthenticationMiddleware.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Middleware.AuthenticationMiddleware",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Middleware.AuthenticationMiddleware.yml\" sourcestartlinenumber=\"1\">Middleware for adding authentication headers.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Middleware.CachingMiddleware.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Middleware.CachingMiddleware.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Middleware.CachingMiddleware",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Middleware.CachingMiddleware.yml\" sourcestartlinenumber=\"1\">Simple in-memory caching middleware.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Middleware.CurlContext.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Middleware.CurlContext.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Middleware.CurlContext",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Middleware.CurlContext.yml\" sourcestartlinenumber=\"1\">Context object containing information about the curl request.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Middleware.CurlMiddlewarePipeline.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Middleware.CurlMiddlewarePipeline.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Middleware.CurlMiddlewarePipeline",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Middleware.CurlMiddlewarePipeline.yml\" sourcestartlinenumber=\"1\">Manages the middleware pipeline for curl operations.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Middleware.CurlMiddlewarePipelineBuilder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Middleware.CurlMiddlewarePipelineBuilder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Middleware.CurlMiddlewarePipelineBuilder",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Middleware.CurlMiddlewarePipelineBuilder.yml\" sourcestartlinenumber=\"1\">Fluent builder for creating middleware pipelines.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Middleware.ICurlMiddleware.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Middleware.ICurlMiddleware.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Middleware.ICurlMiddleware",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Middleware.ICurlMiddleware.yml\" sourcestartlinenumber=\"1\">Interface for curl middleware/interceptors.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Middleware.LoggingMiddleware.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Middleware.LoggingMiddleware.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Middleware.LoggingMiddleware",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Middleware.LoggingMiddleware.yml\" sourcestartlinenumber=\"1\">Middleware for logging curl operations.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Middleware.RateLimitMiddleware.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Middleware.RateLimitMiddleware.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Middleware.RateLimitMiddleware",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Middleware.RateLimitMiddleware.yml\" sourcestartlinenumber=\"1\">Simple rate limiting middleware.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Middleware.RequestModifierMiddleware.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Middleware.RequestModifierMiddleware.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Middleware.RequestModifierMiddleware",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Middleware.RequestModifierMiddleware.yml\" sourcestartlinenumber=\"1\">Middleware for modifying requests.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Middleware.ResponseModifierMiddleware.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Middleware.ResponseModifierMiddleware.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Middleware.ResponseModifierMiddleware",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Middleware.ResponseModifierMiddleware.yml\" sourcestartlinenumber=\"1\">Middleware for modifying responses.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Middleware.RetryMiddleware.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Middleware.RetryMiddleware.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Middleware.RetryMiddleware",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Middleware.RetryMiddleware.yml\" sourcestartlinenumber=\"1\">Middleware for retry logic with exponential backoff.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Middleware.TimingMiddleware.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Middleware.TimingMiddleware.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Middleware.TimingMiddleware",
+      "Summary": "<p sourcefile=\"api/CurlDotNet.Middleware.TimingMiddleware.yml\" sourcestartlinenumber=\"1\">Middleware for timing curl operations.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.Middleware.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.Middleware.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet.Middleware",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/CurlDotNet.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/CurlDotNet.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "CurlDotNet",
+      "Summary": null
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "api/index.md",
+      "output": {
+        ".html": {
+          "relative_path": "api/index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "api/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/toc.html"
+        },
+        ".json": {
+          "relative_path": "api/toc.json"
         }
       },
       "version": ""

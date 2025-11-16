@@ -1,0 +1,1888 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Class CurlRequestBuilder | CurlDotNet </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Class CurlRequestBuilder | CurlDotNet ">
+      
+      <meta name="description" content="&#127912; Fluent Builder API - Build curl requests programmatically! For developers who prefer a fluent API over curl command strings. This builder lets you construct HTTP requests using method chaining, perfect for IntelliSense and compile-time checking. When to use Builder vs Curl String: Use Builder - When building requests dynamically, need IntelliSense, or prefer type safetyUse Curl String - When you have curl commands from docs/examples (paste and go!) Quick Example: // Build a request fluently var result = await CurlRequestBuilder     .Get(&quot;https://api.example.com/users&quot;)     .WithHeader(&quot;Accept&quot;, &quot;application/json&quot;)     .WithHeader(&quot;Authorization&quot;, &quot;Bearer token123&quot;)     .WithTimeout(TimeSpan.FromSeconds(30))     .ExecuteAsync();  // Same as: curl -H &#39;Accept: application/json&#39; -H &#39;Authorization: Bearer token123&#39; --max-time 30 https://api.example.com/users">
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/jacob-mellor/curl-dot-net/new/main/docs/new?filename=CurlDotNet_Core_CurlRequestBuilder.md&amp;value=---%0Auid%3A%20CurlDotNet.Core.CurlRequestBuilder%0Asummary%3A%20&#39;*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax&#39;%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="ManagedReference">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../images/logo.png" alt="CurlDotNet - Pure .NET curl">
+            CurlDotNet - Pure .NET curl
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="CurlDotNet.Core.CurlRequestBuilder">
+
+
+
+  <h1 id="CurlDotNet_Core_CurlRequestBuilder" data-uid="CurlDotNet.Core.CurlRequestBuilder" class="text-break">
+Class CurlRequestBuilder  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L56"><i class="bi bi-code-slash"></i></a>
+  </h1>
+
+  <div class="facts text-secondary">
+    <dl><dt>Namespace</dt><dd><a class="xref" href="CurlDotNet.html">CurlDotNet</a>.<a class="xref" href="CurlDotNet.Core.html">Core</a></dd></dl>
+  <dl><dt>Assembly</dt><dd>CurlDotNet.dll</dd></dl>
+  </div>
+
+  <div class="markdown summary"><p><b>🎨 Fluent Builder API - Build curl requests programmatically!</b></p>
+<p>For developers who prefer a fluent API over curl command strings.
+This builder lets you construct HTTP requests using method chaining,
+perfect for IntelliSense and compile-time checking.</p>
+<p><b>When to use Builder vs Curl String:</b></p>
+<ul><li><b>Use Builder</b> - When building requests dynamically, need IntelliSense, or prefer type safety</li><li><b>Use Curl String</b> - When you have curl commands from docs/examples (paste and go!)</li></ul>
+<p><b>Quick Example:</b></p>
+<pre><code class="lang-csharp">// Build a request fluently
+var result = await CurlRequestBuilder
+    .Get("https://api.example.com/users")
+    .WithHeader("Accept", "application/json")
+    .WithHeader("Authorization", "Bearer token123")
+    .WithTimeout(TimeSpan.FromSeconds(30))
+    .ExecuteAsync();
+
+// Same as: curl -H 'Accept: application/json' -H 'Authorization: Bearer token123' --max-time 30 https://api.example.com/users</code></pre>
+</div>
+  <div class="markdown conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public class CurlRequestBuilder</code></pre>
+  </div>
+
+
+
+
+  <dl class="typelist inheritance">
+    <dt>Inheritance</dt>
+    <dd>
+      <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></div>
+      <div><span class="xref">CurlRequestBuilder</span></div>
+    </dd>
+  </dl>
+
+
+
+  <dl class="typelist inheritedMembers">
+    <dt>Inherited Members</dt>
+    <dd>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)">object.Equals(object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)">object.Equals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gethashcode">object.GetHashCode()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gettype">object.GetType()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone">object.MemberwiseClone()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.referenceequals">object.ReferenceEquals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.tostring">object.ToString()</a>
+    </div>
+  </dd></dl>
+
+
+
+
+  <h2 id="CurlDotNet_Core_CurlRequestBuilder_remarks">Remarks</h2>
+  <div class="markdown level0 remarks"><p>The builder provides a type-safe, IntelliSense-friendly way to build HTTP requests.
+All builder methods return the builder itself for method chaining.</p>
+<p>You can convert a builder to a curl command string using <a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html#CurlDotNet_Core_CurlRequestBuilder_ToCurlCommand">ToCurlCommand()</a>.</p>
+</div>
+
+
+  <h2 class="section" id="methods">Methods
+</h2>
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_Compressed_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Compressed*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_Compressed_System_Boolean_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Compressed(System.Boolean)">
+  Compressed(bool)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L542"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Enable compression (gzip, deflate, etc.).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder Compressed(bool compressed = true)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>compressed</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_Delete_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Delete*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_Delete_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Delete(System.String)">
+  Delete(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L146"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Create a DELETE request builder.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static CurlRequestBuilder Delete(string url)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>url</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_Execute_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Execute*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_Execute" data-uid="CurlDotNet.Core.CurlRequestBuilder.Execute">
+  Execute()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L564"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Execute the request synchronously.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlResult Execute()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_ExecuteAsync_" data-uid="CurlDotNet.Core.CurlRequestBuilder.ExecuteAsync*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_ExecuteAsync_CurlDotNet_Core_CurlSettings_System_Threading_CancellationToken_" data-uid="CurlDotNet.Core.CurlRequestBuilder.ExecuteAsync(CurlDotNet.Core.CurlSettings,System.Threading.CancellationToken)">
+  ExecuteAsync(CurlSettings, CancellationToken)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L589"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Execute the request with custom settings.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Task&lt;CurlResult&gt; ExecuteAsync(CurlSettings settings, CancellationToken cancellationToken = default)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>settings</code> <a class="xref" href="CurlDotNet.Core.CurlSettings.html">CurlSettings</a></dt>
+    <dd></dd>
+    <dt><code>cancellationToken</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken">CancellationToken</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1">Task</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_ExecuteAsync_" data-uid="CurlDotNet.Core.CurlRequestBuilder.ExecuteAsync*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_ExecuteAsync_System_Threading_CancellationToken_" data-uid="CurlDotNet.Core.CurlRequestBuilder.ExecuteAsync(System.Threading.CancellationToken)">
+  ExecuteAsync(CancellationToken)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L572"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Execute the request asynchronously.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Task&lt;CurlResult&gt; ExecuteAsync(CancellationToken cancellationToken = default)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>cancellationToken</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken">CancellationToken</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1">Task</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_FailOnError_" data-uid="CurlDotNet.Core.CurlRequestBuilder.FailOnError*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_FailOnError_System_Boolean_" data-uid="CurlDotNet.Core.CurlRequestBuilder.FailOnError(System.Boolean)">
+  FailOnError(bool)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L524"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Fail on HTTP errors (like curl -f).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder FailOnError(bool fail = true)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>fail</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_FollowRedirects_" data-uid="CurlDotNet.Core.CurlRequestBuilder.FollowRedirects*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_FollowRedirects_System_Boolean_" data-uid="CurlDotNet.Core.CurlRequestBuilder.FollowRedirects(System.Boolean)">
+  FollowRedirects(bool)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L415"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Enable following redirects (301, 302, etc.).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder FollowRedirects(bool follow = true)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>follow</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_Get_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Get*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_Get_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Get(System.String)">
+  Get(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L95"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Create a GET request builder.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static CurlRequestBuilder Get(string url)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>url</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>The URL to GET</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd><p>Builder for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Core_CurlRequestBuilder_Get_System_String__examples">Examples</h4>
+  <pre><code class="lang-csharp">// Simple GET request
+var result = await CurlRequestBuilder
+    .Get("https://api.github.com/users/octocat")
+    .ExecuteAsync();
+
+// GET with headers
+var result = await CurlRequestBuilder
+    .Get("https://api.example.com/data")
+    .WithHeader("Accept", "application/json")
+    .WithHeader("X-API-Key", "your-key")
+    .ExecuteAsync();
+
+// GET with authentication
+var result = await CurlRequestBuilder
+    .Get("https://api.example.com/protected")
+    .WithBearerToken("your-token")
+    .FollowRedirects()
+    .ExecuteAsync();</code></pre>
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_GetOptions_" data-uid="CurlDotNet.Core.CurlRequestBuilder.GetOptions*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_GetOptions" data-uid="CurlDotNet.Core.CurlRequestBuilder.GetOptions">
+  GetOptions()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L710"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Get the underlying options object (for advanced scenarios).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlOptions GetOptions()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlOptions.html">CurlOptions</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_Head_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Head*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_Head_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Head(System.String)">
+  Head(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L162"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Create a HEAD request builder.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static CurlRequestBuilder Head(string url)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>url</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_IncludeHeaders_" data-uid="CurlDotNet.Core.CurlRequestBuilder.IncludeHeaders*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_IncludeHeaders_System_Boolean_" data-uid="CurlDotNet.Core.CurlRequestBuilder.IncludeHeaders(System.Boolean)">
+  IncludeHeaders(bool)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L497"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Include headers in response output (like curl -i).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder IncludeHeaders(bool include = true)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>include</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_Insecure_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Insecure*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_Insecure_System_Boolean_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Insecure(System.Boolean)">
+  Insecure(bool)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L433"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Ignore SSL certificate errors (not recommended for production!).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder Insecure(bool insecure = true)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>insecure</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_Patch_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Patch*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_Patch_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Patch(System.String)">
+  Patch(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L154"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Create a PATCH request builder.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static CurlRequestBuilder Patch(string url)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>url</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_Post_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Post*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_Post_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Post(System.String)">
+  Post(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L130"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Create a POST request builder.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static CurlRequestBuilder Post(string url)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>url</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>The URL to POST to</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd><p>Builder for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Core_CurlRequestBuilder_Post_System_String__examples">Examples</h4>
+  <pre><code class="lang-csharp">// POST with JSON
+var result = await CurlRequestBuilder
+    .Post("https://api.example.com/users")
+    .WithJson(new { name = "John", email = "john@example.com" })
+    .ExecuteAsync();
+
+// POST with form data
+var result = await CurlRequestBuilder
+    .Post("https://api.example.com/login")
+    .WithFormData(new Dictionary&lt;string, string&gt; {
+        { "username", "user123" },
+        { "password", "pass456" }
+    })
+    .ExecuteAsync();
+
+// POST with raw string data
+var result = await CurlRequestBuilder
+    .Post("https://api.example.com/data")
+    .WithData("key1=value1&amp;key2=value2")
+    .WithHeader("Content-Type", "application/x-www-form-urlencoded")
+    .ExecuteAsync();</code></pre>
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_Put_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Put*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_Put_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Put(System.String)">
+  Put(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L138"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Create a PUT request builder.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static CurlRequestBuilder Put(string url)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>url</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_Request_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Request*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_Request_System_String_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Request(System.String,System.String)">
+  Request(string, string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L170"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Create a custom method request builder.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static CurlRequestBuilder Request(string method, string url)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>method</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+    <dt><code>url</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_SaveToFile_" data-uid="CurlDotNet.Core.CurlRequestBuilder.SaveToFile*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_SaveToFile_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.SaveToFile(System.String)">
+  SaveToFile(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L479"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Save response to file (like curl -o).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder SaveToFile(string filePath)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>filePath</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_SaveWithRemoteName_" data-uid="CurlDotNet.Core.CurlRequestBuilder.SaveWithRemoteName*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_SaveWithRemoteName" data-uid="CurlDotNet.Core.CurlRequestBuilder.SaveWithRemoteName">
+  SaveWithRemoteName()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L488"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Use remote filename for output (like curl -O).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder SaveWithRemoteName()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_Silent_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Silent*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_Silent_System_Boolean_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Silent(System.Boolean)">
+  Silent(bool)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L515"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Enable silent mode (like curl -s).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder Silent(bool silent = true)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>silent</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_ToCurlCommand_" data-uid="CurlDotNet.Core.CurlRequestBuilder.ToCurlCommand*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_ToCurlCommand" data-uid="CurlDotNet.Core.CurlRequestBuilder.ToCurlCommand">
+  ToCurlCommand()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L607"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Convert this builder to a curl command string.
+Useful for debugging or logging what will be executed.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string ToCurlCommand()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_Verbose_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Verbose*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_Verbose_System_Boolean_" data-uid="CurlDotNet.Core.CurlRequestBuilder.Verbose(System.Boolean)">
+  Verbose(bool)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L506"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Enable verbose output (like curl -v).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder Verbose(bool verbose = true)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>verbose</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithAuth_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithAuth*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithAuth_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithAuth(System.String)">
+  WithAuth(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L384"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set custom authentication header.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithAuth(string authHeader)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>authHeader</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithBasicAuth_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithBasicAuth*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithBasicAuth_System_String_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithBasicAuth(System.String,System.String)">
+  WithBasicAuth(string, string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L366"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set basic authentication (username:password).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithBasicAuth(string username, string password)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>username</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+    <dt><code>password</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithBearerToken_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithBearerToken*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithBearerToken_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithBearerToken(System.String)">
+  WithBearerToken(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L375"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set bearer token authentication.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithBearerToken(string token)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>token</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithBinaryData_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithBinaryData*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithBinaryData_System_Byte___" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithBinaryData(System.Byte[])">
+  WithBinaryData(byte[])
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L337"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Add binary data for upload.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithBinaryData(byte[] data)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>data</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.byte">byte</a>[]</dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithConnectTimeout_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithConnectTimeout*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithConnectTimeout_System_TimeSpan_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithConnectTimeout(System.TimeSpan)">
+  WithConnectTimeout(TimeSpan)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L406"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set connection timeout.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithConnectTimeout(TimeSpan timeout)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>timeout</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.timespan">TimeSpan</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithCookie_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithCookie*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithCookie_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithCookie(System.String)">
+  WithCookie(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L461"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set cookie string.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithCookie(string cookie)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>cookie</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithCookieJar_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithCookieJar*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithCookieJar_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithCookieJar(System.String)">
+  WithCookieJar(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L470"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set cookie jar file path.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithCookieJar(string cookieJarPath)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>cookieJarPath</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithData_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithData*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithData_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithData(System.String)">
+  WithData(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L252"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Add POST/PUT data as string.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithData(string data)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>data</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithFile_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithFile*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithFile_System_String_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithFile(System.String,System.String)">
+  WithFile(string, string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L348"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Upload a file.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithFile(string fieldName, string filePath)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>fieldName</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+    <dt><code>filePath</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithFormData_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithFormData*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithFormData_System_Collections_Generic_Dictionary_System_String_System_String__" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithFormData(System.Collections.Generic.Dictionary{System.String,System.String})">
+  WithFormData(Dictionary&lt;string, string&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L308"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Add form data (application/x-www-form-urlencoded).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithFormData(Dictionary&lt;string, string&gt; formData)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>formData</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2">Dictionary</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithHeader_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithHeader*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithHeader_System_String_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithHeader(System.String,System.String)">
+  WithHeader(string, string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L209"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Add a header to the request.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithHeader(string name, string value)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>name</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Header name (e.g., &quot;Content-Type&quot;)</p>
+</dd>
+    <dt><code>value</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Header value (e.g., &quot;application/json&quot;)</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd><p>Builder for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Core_CurlRequestBuilder_WithHeader_System_String_System_String__examples">Examples</h4>
+  <pre><code class="lang-csharp">// Add Content-Type header
+var result = await CurlRequestBuilder
+    .Post("https://api.example.com/data")
+    .WithHeader("Content-Type", "application/json")
+    .WithJson(new { key = "value" })
+    .ExecuteAsync();
+
+// Add custom API key header
+var result = await CurlRequestBuilder
+    .Get("https://api.example.com/protected")
+    .WithHeader("X-API-Key", "your-api-key-here")
+    .WithHeader("X-Client-Version", "1.0.0")
+    .ExecuteAsync();
+
+// Add Accept header for API versioning
+var result = await CurlRequestBuilder
+    .Get("https://api.github.com/user")
+    .WithHeader("Accept", "application/vnd.github.v3+json")
+    .WithBearerToken("your-token")
+    .ExecuteAsync();</code></pre>
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithHeaders_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithHeaders*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithHeaders_System_Collections_Generic_Dictionary_System_String_System_String__" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithHeaders(System.Collections.Generic.Dictionary{System.String,System.String})">
+  WithHeaders(Dictionary&lt;string, string&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L218"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Add multiple headers at once.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithHeaders(Dictionary&lt;string, string&gt; headers)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>headers</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2">Dictionary</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithHttpVersion_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithHttpVersion*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithHttpVersion_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithHttpVersion(System.String)">
+  WithHttpVersion(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L533"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set HTTP version (1.0, 1.1, or 2.0).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithHttpVersion(string version)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>version</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithJson_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithJson*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithJson_System_Object_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithJson(System.Object)">
+  WithJson(object)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L292"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Add POST/PUT data as JSON (automatically serializes and sets Content-Type).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithJson(object data)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>data</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></dt>
+    <dd><p>The object to serialize as JSON. Can be any class, anonymous object, or built-in type.</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd><p>Builder for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Core_CurlRequestBuilder_WithJson_System_Object__examples">Examples</h4>
+  <pre><code class="lang-csharp">// POST with anonymous object
+var result = await CurlRequestBuilder
+    .Post("https://api.example.com/users")
+    .WithJson(new { name = "John", email = "john@example.com", age = 30 })
+    .ExecuteAsync();
+
+// POST with typed class
+public class User {
+    public string Name { get; set; }
+    public string Email { get; set; }
+}
+var user = new User { Name = "John", Email = "john@example.com" };
+var result = await CurlRequestBuilder
+    .Post("https://api.example.com/users")
+    .WithJson(user)
+    .ExecuteAsync();
+
+// PUT with JSON update
+var result = await CurlRequestBuilder
+    .Put("https://api.example.com/users/123")
+    .WithJson(new { name = "Jane", email = "jane@example.com" })
+    .WithBearerToken("your-token")
+    .ExecuteAsync();</code></pre>
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithMaxRedirects_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithMaxRedirects*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithMaxRedirects_System_Int32_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithMaxRedirects(System.Int32)">
+  WithMaxRedirects(int)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L424"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set maximum number of redirects to follow.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithMaxRedirects(int maxRedirects)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>maxRedirects</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithMultipartForm_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithMultipartForm*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithMultipartForm_System_Collections_Generic_Dictionary_System_String_System_String__System_Collections_Generic_Dictionary_System_String_System_String__" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithMultipartForm(System.Collections.Generic.Dictionary{System.String,System.String},System.Collections.Generic.Dictionary{System.String,System.String})">
+  WithMultipartForm(Dictionary&lt;string, string&gt;, Dictionary&lt;string, string&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L325"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Add multipart form data with file uploads.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithMultipartForm(Dictionary&lt;string, string&gt; fields, Dictionary&lt;string, string&gt; files = null)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>fields</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2">Dictionary</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>&gt;</dt>
+    <dd></dd>
+    <dt><code>files</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2">Dictionary</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithProxy_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithProxy*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithProxy_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithProxy(System.String)">
+  WithProxy(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L442"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set proxy URL.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithProxy(string proxyUrl)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>proxyUrl</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithProxy_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithProxy*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithProxy_System_String_System_String_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithProxy(System.String,System.String,System.String)">
+  WithProxy(string, string, string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L451"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set proxy with authentication.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithProxy(string proxyUrl, string username, string password)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>proxyUrl</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+    <dt><code>username</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+    <dt><code>password</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithRange_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithRange*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithRange_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithRange(System.String)">
+  WithRange(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L551"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set range for partial downloads (like curl -r).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithRange(string range)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>range</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithReferer_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithReferer*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithReferer_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithReferer(System.String)">
+  WithReferer(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L239"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set the Referer header.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithReferer(string referer)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>referer</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithTimeout_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithTimeout*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithTimeout_System_TimeSpan_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithTimeout(System.TimeSpan)">
+  WithTimeout(TimeSpan)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L397"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set timeout for the entire operation.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithTimeout(TimeSpan timeout)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>timeout</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.timespan">TimeSpan</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlRequestBuilder_WithUserAgent_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithUserAgent*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlRequestBuilder_WithUserAgent_System_String_" data-uid="CurlDotNet.Core.CurlRequestBuilder.WithUserAgent(System.String)">
+  WithUserAgent(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L230"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set the User-Agent header.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlRequestBuilder WithUserAgent(string userAgent)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>userAgent</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlRequestBuilder.cs/#L56" class="edit-link">Edit this page</a>
+        </div>
+
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          Based on curl by Daniel Stenberg and contributors | Sponsored by <a href='https://ironsoftware.com'>IronSoftware</a> | Copyright © 1996-2025 curl authors, 2024-2025 CurlDotNet authors
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

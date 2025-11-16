@@ -74,7 +74,7 @@ Use `Curl.ExecuteAsync` when you literally have a curl command string. Use `Curl
 
 ## Further Reading
 
-- [manual/05-LibCurl-Playbook.md](../../../manual/05-LibCurl-Playbook.md) – step-by-step tutorials, migration tips, and troubleshooting.
+- [Documentation](https://jacob-mellor.github.io/curl-dot-net/) – step-by-step tutorials, migration tips, and troubleshooting.
 - [CurlOptions](../Core/CurlOptions.cs) – the object passed to `PerformAsync`.
-- [docs/ADVANCED.md](../../../docs/ADVANCED.md) – integrate LibCurl with middleware, retries, and protocol handlers.
+- [API Reference](https://jacob-mellor.github.io/curl-dot-net/api/) – complete API documentation including middleware, retries, and protocol handlers.
 

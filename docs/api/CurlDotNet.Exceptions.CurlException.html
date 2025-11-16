@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Class CurlException | CurlDotNet </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Class CurlException | CurlDotNet ">
+      
+      <meta name="description" content="Base exception for all curl operations. This is the base class for all curl-specific exceptions.">
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/jacob-mellor/curl-dot-net/new/main/docs/new?filename=CurlDotNet_Exceptions_CurlException.md&amp;value=---%0Auid%3A%20CurlDotNet.Exceptions.CurlException%0Asummary%3A%20&#39;*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax&#39;%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="ManagedReference">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../images/logo.png" alt="CurlDotNet - Pure .NET curl">
+            CurlDotNet - Pure .NET curl
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="CurlDotNet.Exceptions.CurlException">
+
+
+
+  <h1 id="CurlDotNet_Exceptions_CurlException" data-uid="CurlDotNet.Exceptions.CurlException" class="text-break">
+Class CurlException  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L53"><i class="bi bi-code-slash"></i></a>
+  </h1>
+
+  <div class="facts text-secondary">
+    <dl><dt>Namespace</dt><dd><a class="xref" href="CurlDotNet.html">CurlDotNet</a>.<a class="xref" href="CurlDotNet.Exceptions.html">Exceptions</a></dd></dl>
+  <dl><dt>Assembly</dt><dd>CurlDotNet.dll</dd></dl>
+  </div>
+
+  <div class="markdown summary"><p>Base exception for all curl operations. This is the base class for all curl-specific exceptions.</p>
+</div>
+  <div class="markdown conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">[Serializable]
+public class CurlException : Exception, ISerializable</code></pre>
+  </div>
+
+
+
+
+  <dl class="typelist inheritance">
+    <dt>Inheritance</dt>
+    <dd>
+      <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></div>
+      <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception">Exception</a></div>
+      <div><span class="xref">CurlException</span></div>
+    </dd>
+  </dl>
+
+  <dl class="typelist implements">
+    <dt>Implements</dt>
+    <dd>
+      <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.runtime.serialization.iserializable">ISerializable</a></div>
+    </dd>
+  </dl>
+
+  <dl class="typelist derived">
+    <dt>Derived</dt>
+    <dd>
+      <div><a class="xref" href="CurlDotNet.Core.CurlFtpException.html">CurlFtpException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlAbortedByCallbackException.html">CurlAbortedByCallbackException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlAuthenticationException.html">CurlAuthenticationException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlBadContentEncodingException.html">CurlBadContentEncodingException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlBadDownloadResumeException.html">CurlBadDownloadResumeException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlBadFunctionArgumentException.html">CurlBadFunctionArgumentException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlConnectionException.html">CurlConnectionException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlCookieException.html">CurlCookieException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlCouldntConnectException.html">CurlCouldntConnectException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlCouldntResolveHostException.html">CurlCouldntResolveHostException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlCouldntResolveProxyException.html">CurlCouldntResolveProxyException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlExecutionException.html">CurlExecutionException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlFailedInitException.html">CurlFailedInitException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlFileCouldntReadException.html">CurlFileCouldntReadException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlFileException.html">CurlFileException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlFileSizeExceededException.html">CurlFileSizeExceededException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlFtpAcceptFailedException.html">CurlFtpAcceptFailedException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlFtpException.html">CurlFtpException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlFtpWeirdPassReplyException.html">CurlFtpWeirdPassReplyException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlFunctionNotFoundException.html">CurlFunctionNotFoundException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlGotNothingException.html">CurlGotNothingException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlHttpException.html">CurlHttpException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlHttpPostErrorException.html">CurlHttpPostErrorException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlInterfaceFailedException.html">CurlInterfaceFailedException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlInvalidCommandException.html">CurlInvalidCommandException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlMalformedUrlException.html">CurlMalformedUrlException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlNotBuiltInException.html">CurlNotBuiltInException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlNotSupportedException.html">CurlNotSupportedException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlOutOfMemoryException.html">CurlOutOfMemoryException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlParsingException.html">CurlParsingException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlReadErrorException.html">CurlReadErrorException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlReceiveErrorException.html">CurlReceiveErrorException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlRedirectException.html">CurlRedirectException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlRemoteAccessDeniedException.html">CurlRemoteAccessDeniedException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlRetryException.html">CurlRetryException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlSendErrorException.html">CurlSendErrorException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlSslException.html">CurlSslException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlTimeoutException.html">CurlTimeoutException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlTooManyRedirectsException.html">CurlTooManyRedirectsException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlUnsupportedProtocolException.html">CurlUnsupportedProtocolException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlUploadFailedException.html">CurlUploadFailedException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlWeirdServerReplyException.html">CurlWeirdServerReplyException</a></div>
+      <div><a class="xref" href="CurlDotNet.Exceptions.CurlWriteErrorException.html">CurlWriteErrorException</a></div>
+    </dd>
+  </dl>
+
+  <dl class="typelist inheritedMembers">
+    <dt>Inherited Members</dt>
+    <dd>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception.getbaseexception">Exception.GetBaseException()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception.gettype">Exception.GetType()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception.tostring">Exception.ToString()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception.data">Exception.Data</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception.helplink">Exception.HelpLink</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception.hresult">Exception.HResult</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception.innerexception">Exception.InnerException</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception.message">Exception.Message</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception.source">Exception.Source</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception.stacktrace">Exception.StackTrace</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception.targetsite">Exception.TargetSite</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception.serializeobjectstate">Exception.SerializeObjectState</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)">object.Equals(object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)">object.Equals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gethashcode">object.GetHashCode()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone">object.MemberwiseClone()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.referenceequals">object.ReferenceEquals(object, object)</a>
+    </div>
+  </dd></dl>
+
+
+
+  <h2 id="CurlDotNet_Exceptions_CurlException_examples">Examples</h2>
+  <pre><code class="lang-csharp">try
+{
+    var result = await curl.ExecuteAsync("curl https://api.example.com");
+}
+catch (CurlConnectionException ex)
+{
+    // Handle connection-specific issues
+    Console.WriteLine($"Failed to connect to {ex.Host}:{ex.Port}");
+}
+catch (CurlException ex)
+{
+    // Handle any other curl error
+    Console.WriteLine($"Curl failed: {ex.Message}");
+    Console.WriteLine($"Command: {ex.Command}");
+    Console.WriteLine($"Error code: {ex.CurlErrorCode}");
+}</code></pre>
+
+
+  <h2 id="CurlDotNet_Exceptions_CurlException_remarks">Remarks</h2>
+  <div class="markdown level0 remarks"><p>This exception provides common properties for all curl errors including the command that was executed and the curl error code.</p>
+<p>Curl error codes match the original curl error codes from the C implementation.</p>
+<p>AI-Usage: Catch this exception type to handle any curl-related error generically.</p>
+<p>AI-Pattern: Use specific derived exceptions for targeted error handling.</p>
+</div>
+
+
+  <h2 class="section" id="constructors">Constructors
+</h2>
+
+
+  <a id="CurlDotNet_Exceptions_CurlException__ctor_" data-uid="CurlDotNet.Exceptions.CurlException.#ctor*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException__ctor_System_Runtime_Serialization_SerializationInfo_System_Runtime_Serialization_StreamingContext_" data-uid="CurlDotNet.Exceptions.CurlException.#ctor(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
+  CurlException(SerializationInfo, StreamingContext)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L122"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Initializes a new instance of the <a class="xref" href="CurlDotNet.Exceptions.CurlException.html">CurlException</a> class with serialized data.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">protected CurlException(SerializationInfo info, StreamingContext context)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>info</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.runtime.serialization.serializationinfo">SerializationInfo</a></dt>
+    <dd><p>The serialization information.</p>
+</dd>
+    <dt><code>context</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.runtime.serialization.streamingcontext">StreamingContext</a></dt>
+    <dd><p>The streaming context.</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException__ctor_" data-uid="CurlDotNet.Exceptions.CurlException.#ctor*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException__ctor_System_String_System_Int32_System_String_" data-uid="CurlDotNet.Exceptions.CurlException.#ctor(System.String,System.Int32,System.String)">
+  CurlException(string, int, string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L110"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Initializes a new instance of the <a class="xref" href="CurlDotNet.Exceptions.CurlException.html">CurlException</a> class with a curl error code.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlException(string message, int curlErrorCode, string command = null)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>message</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>The error message that explains the reason for the exception.</p>
+</dd>
+    <dt><code>curlErrorCode</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></dt>
+    <dd><p>The curl error code from the original curl implementation.</p>
+</dd>
+    <dt><code>command</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>The curl command that was executing when the error occurred.</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException__ctor_" data-uid="CurlDotNet.Exceptions.CurlException.#ctor*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException__ctor_System_String_System_String_System_Exception_" data-uid="CurlDotNet.Exceptions.CurlException.#ctor(System.String,System.String,System.Exception)">
+  CurlException(string, string, Exception)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L98"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Initializes a new instance of the <a class="xref" href="CurlDotNet.Exceptions.CurlException.html">CurlException</a> class with a specified error message.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlException(string message, string command = null, Exception innerException = null)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>message</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>The error message that explains the reason for the exception.</p>
+</dd>
+    <dt><code>command</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>The curl command that was executing when the error occurred.</p>
+</dd>
+    <dt><code>innerException</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception">Exception</a></dt>
+    <dd><p>The exception that is the cause of the current exception.</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+  <h2 class="section" id="properties">Properties
+</h2>
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_Command_" data-uid="CurlDotNet.Exceptions.CurlException.Command*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_Command" data-uid="CurlDotNet.Exceptions.CurlException.Command">
+  Command
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L64"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Gets the curl command that was being executed when the exception occurred.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string Command { get; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>The full curl command string, or null if not applicable.</p>
+</dd>
+  </dl>
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Exceptions_CurlException_Command_remarks">Remarks</h4>
+  <div class="markdown level1 remarks"><p>This property contains the exact command that was passed to the Execute method.</p>
+<p>AI-Usage: Use this for logging and debugging to understand what command failed.</p>
+</div>
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_Context_" data-uid="CurlDotNet.Exceptions.CurlException.Context*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_Context" data-uid="CurlDotNet.Exceptions.CurlException.Context">
+  Context
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L80"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Gets additional context information added via fluent methods.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Dictionary&lt;string, object&gt; Context { get; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2">Dictionary</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_CurlErrorCode_" data-uid="CurlDotNet.Exceptions.CurlException.CurlErrorCode*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_CurlErrorCode" data-uid="CurlDotNet.Exceptions.CurlException.CurlErrorCode">
+  CurlErrorCode
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L75"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Gets the curl error code matching the original curl implementation.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int? CurlErrorCode { get; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a>?</dt>
+    <dd><p>The curl error code (e.g., 6 for DNS resolution failure, 28 for timeout), or null if not a curl-specific error.</p>
+</dd>
+  </dl>
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Exceptions_CurlException_CurlErrorCode_remarks">Remarks</h4>
+  <div class="markdown level1 remarks"><p>Error codes match the CURLE_* constants from curl.h</p>
+<p>Common codes: 6=DNS failure, 7=connection failed, 28=timeout, 35=SSL error</p>
+<p>AI-Usage: Use this to determine the specific type of curl error programmatically.</p>
+</div>
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_DiagnosticInfo_" data-uid="CurlDotNet.Exceptions.CurlException.DiagnosticInfo*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_DiagnosticInfo" data-uid="CurlDotNet.Exceptions.CurlException.DiagnosticInfo">
+  DiagnosticInfo
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L90"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Gets or sets custom diagnostic information.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string DiagnosticInfo { get; set; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_Suggestions_" data-uid="CurlDotNet.Exceptions.CurlException.Suggestions*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_Suggestions" data-uid="CurlDotNet.Exceptions.CurlException.Suggestions">
+  Suggestions
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L85"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Gets suggestions for resolving this error.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public List&lt;string&gt; Suggestions { get; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1">List</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <h2 class="section" id="methods">Methods
+</h2>
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_GetCurlErrorName_" data-uid="CurlDotNet.Exceptions.CurlException.GetCurlErrorName*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_GetCurlErrorName" data-uid="CurlDotNet.Exceptions.CurlException.GetCurlErrorName">
+  GetCurlErrorName()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L300"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Get the CURLE_* constant name for the error code.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string GetCurlErrorName()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Curl error constant name</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_GetDiagnosticInfo_" data-uid="CurlDotNet.Exceptions.CurlException.GetDiagnosticInfo*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_GetDiagnosticInfo" data-uid="CurlDotNet.Exceptions.CurlException.GetDiagnosticInfo">
+  GetDiagnosticInfo()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L275"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Get diagnostic information for debugging.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual Dictionary&lt;string, object&gt; GetDiagnosticInfo()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2">Dictionary</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a>&gt;</dt>
+    <dd><p>Diagnostic details</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_GetObjectData_" data-uid="CurlDotNet.Exceptions.CurlException.GetObjectData*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_GetObjectData_System_Runtime_Serialization_SerializationInfo_System_Runtime_Serialization_StreamingContext_" data-uid="CurlDotNet.Exceptions.CurlException.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
+  GetObjectData(SerializationInfo, StreamingContext)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L133"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Sets the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.runtime.serialization.serializationinfo">SerializationInfo</a> with information about the exception.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public override void GetObjectData(SerializationInfo info, StreamingContext context)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>info</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.runtime.serialization.serializationinfo">SerializationInfo</a></dt>
+    <dd><p>The serialization information.</p>
+</dd>
+    <dt><code>context</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.runtime.serialization.streamingcontext">StreamingContext</a></dt>
+    <dd><p>The streaming context.</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_IsRetryable_" data-uid="CurlDotNet.Exceptions.CurlException.IsRetryable*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_IsRetryable" data-uid="CurlDotNet.Exceptions.CurlException.IsRetryable">
+  IsRetryable()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L342"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Check if this error is potentially retryable.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual bool IsRetryable()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
+    <dd><p>True if the error might succeed on retry</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_Log_" data-uid="CurlDotNet.Exceptions.CurlException.Log*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_Log_System_Action_System_String_System_Collections_Generic_Dictionary_System_String_System_Object___" data-uid="CurlDotNet.Exceptions.CurlException.Log(System.Action{System.String,System.Collections.Generic.Dictionary{System.String,System.Object}})">
+  Log(Action&lt;string, Dictionary&lt;string, object&gt;&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L364"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Log this exception with structured data.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void Log(Action&lt;string, Dictionary&lt;string, object&gt;&gt; logger)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>logger</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.action-2">Action</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2">Dictionary</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a>&gt;&gt;</dt>
+    <dd><p>Action to perform logging</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_ToDetailedString_" data-uid="CurlDotNet.Exceptions.CurlException.ToDetailedString*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_ToDetailedString" data-uid="CurlDotNet.Exceptions.CurlException.ToDetailedString">
+  ToDetailedString()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L194"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Get a detailed string representation of the exception.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual string ToDetailedString()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Detailed error information</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_ToJson_" data-uid="CurlDotNet.Exceptions.CurlException.ToJson*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_ToJson" data-uid="CurlDotNet.Exceptions.CurlException.ToJson">
+  ToJson()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L247"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Get the exception as a structured JSON object for logging.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual string ToJson()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>JSON representation of the exception</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_ToUserFriendlyMessage_" data-uid="CurlDotNet.Exceptions.CurlException.ToUserFriendlyMessage*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_ToUserFriendlyMessage" data-uid="CurlDotNet.Exceptions.CurlException.ToUserFriendlyMessage">
+  ToUserFriendlyMessage()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L373"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Create a user-friendly error message.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual string ToUserFriendlyMessage()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Simplified error message for end users</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_WithContext_" data-uid="CurlDotNet.Exceptions.CurlException.WithContext*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_WithContext_System_Collections_Generic_Dictionary_System_String_System_Object__" data-uid="CurlDotNet.Exceptions.CurlException.WithContext(System.Collections.Generic.Dictionary{System.String,System.Object})">
+  WithContext(Dictionary&lt;string, object&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L159"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Add multiple context values (fluent).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlException WithContext(Dictionary&lt;string, object&gt; context)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>context</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2">Dictionary</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a>&gt;</dt>
+    <dd><p>Dictionary of context values</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Exceptions.CurlException.html">CurlException</a></dt>
+    <dd><p>This exception for chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_WithContext_" data-uid="CurlDotNet.Exceptions.CurlException.WithContext*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_WithContext_System_String_System_Object_" data-uid="CurlDotNet.Exceptions.CurlException.WithContext(System.String,System.Object)">
+  WithContext(string, object)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L148"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Add contextual information to the exception (fluent).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlException WithContext(string key, object value)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>key</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Context key</p>
+</dd>
+    <dt><code>value</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></dt>
+    <dd><p>Context value</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Exceptions.CurlException.html">CurlException</a></dt>
+    <dd><p>This exception for chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_WithDiagnostics_" data-uid="CurlDotNet.Exceptions.CurlException.WithDiagnostics*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_WithDiagnostics_System_String_" data-uid="CurlDotNet.Exceptions.CurlException.WithDiagnostics(System.String)">
+  WithDiagnostics(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L184"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Add diagnostic information (fluent).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlException WithDiagnostics(string diagnosticInfo)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>diagnosticInfo</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Diagnostic details</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Exceptions.CurlException.html">CurlException</a></dt>
+    <dd><p>This exception for chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Exceptions_CurlException_WithSuggestion_" data-uid="CurlDotNet.Exceptions.CurlException.WithSuggestion*"></a>
+
+  <h3 id="CurlDotNet_Exceptions_CurlException_WithSuggestion_System_String_" data-uid="CurlDotNet.Exceptions.CurlException.WithSuggestion(System.String)">
+  WithSuggestion(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L173"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Add a suggestion for resolving this error (fluent).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlException WithSuggestion(string suggestion)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>suggestion</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Helpful suggestion text</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Exceptions.CurlException.html">CurlException</a></dt>
+    <dd><p>This exception for chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Exceptions/CurlExceptions.cs/#L53" class="edit-link">Edit this page</a>
+        </div>
+
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          Based on curl by Daniel Stenberg and contributors | Sponsored by <a href='https://ironsoftware.com'>IronSoftware</a> | Copyright © 1996-2025 curl authors, 2024-2025 CurlDotNet authors
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

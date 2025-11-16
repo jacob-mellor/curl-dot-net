@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Class CurlResult | CurlDotNet </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Class CurlResult | CurlDotNet ">
+      
+      <meta name="description" content="&#127919; The response from your curl command - everything you need is here! After running any curl command, you get this object back. It has the status code, response body, headers, and helpful methods to work with the data. The API is designed to be intuitive - just type what you want to do: Want the body? → result.BodyWant JSON? → result.ParseJson&amp;lt;T&amp;gt;() or result.AsJson&amp;lt;T&amp;gt;()Want to save? → result.SaveToFile(&quot;path&quot;)Want headers? → result.Headers[&quot;Content-Type&quot;]Check success? → result.IsSuccess or result.EnsureSuccess() Quick Example: var result = await Curl.Execute(&quot;curl https://api.github.com/users/octocat&quot;);  if (result.IsSuccess)  // Was it 200-299? {     var user = result.ParseJson&amp;lt;User&amp;gt;();  // Parse JSON to your type     result.SaveToFile(&quot;user.json&quot;);       // Save for later }">
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/jacob-mellor/curl-dot-net/new/main/docs/new?filename=CurlDotNet_Core_CurlResult.md&amp;value=---%0Auid%3A%20CurlDotNet.Core.CurlResult%0Asummary%3A%20&#39;*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax&#39;%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="ManagedReference">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../images/logo.png" alt="CurlDotNet - Pure .NET curl">
+            CurlDotNet - Pure .NET curl
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="CurlDotNet.Core.CurlResult">
+
+
+
+  <h1 id="CurlDotNet_Core_CurlResult" data-uid="CurlDotNet.Core.CurlResult" class="text-break">
+Class CurlResult  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L66"><i class="bi bi-code-slash"></i></a>
+  </h1>
+
+  <div class="facts text-secondary">
+    <dl><dt>Namespace</dt><dd><a class="xref" href="CurlDotNet.html">CurlDotNet</a>.<a class="xref" href="CurlDotNet.Core.html">Core</a></dd></dl>
+  <dl><dt>Assembly</dt><dd>CurlDotNet.dll</dd></dl>
+  </div>
+
+  <div class="markdown summary"><p><b>🎯 The response from your curl command - everything you need is here!</b></p>
+<p>After running any curl command, you get this object back. It has the status code,
+response body, headers, and helpful methods to work with the data.</p>
+<p><b>The API is designed to be intuitive - just type what you want to do:</b></p>
+<ul><li>Want the body? → <code>result.Body</code></li><li>Want JSON? → <code>result.ParseJson&lt;T&gt;()</code> or <code>result.AsJson&lt;T&gt;()</code></li><li>Want to save? → <code>result.SaveToFile("path")</code></li><li>Want headers? → <code>result.Headers["Content-Type"]</code></li><li>Check success? → <code>result.IsSuccess</code> or <code>result.EnsureSuccess()</code></li></ul>
+<p><b>Quick Example:</b></p>
+<pre><code class="lang-csharp">var result = await Curl.Execute("curl https://api.github.com/users/octocat");
+
+if (result.IsSuccess)  // Was it 200-299?
+{
+    var user = result.ParseJson&lt;User&gt;();  // Parse JSON to your type
+    result.SaveToFile("user.json");       // Save for later
+}</code></pre>
+</div>
+  <div class="markdown conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public class CurlResult</code></pre>
+  </div>
+
+
+
+
+  <dl class="typelist inheritance">
+    <dt>Inheritance</dt>
+    <dd>
+      <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></div>
+      <div><span class="xref">CurlResult</span></div>
+    </dd>
+  </dl>
+
+
+
+  <dl class="typelist inheritedMembers">
+    <dt>Inherited Members</dt>
+    <dd>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)">object.Equals(object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)">object.Equals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gethashcode">object.GetHashCode()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gettype">object.GetType()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone">object.MemberwiseClone()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.referenceequals">object.ReferenceEquals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.tostring">object.ToString()</a>
+    </div>
+  </dd></dl>
+
+
+
+
+  <h2 id="CurlDotNet_Core_CurlResult_remarks">Remarks</h2>
+  <div class="markdown level0 remarks"><p><b>Design Philosophy:</b> Every method name tells you exactly what it does.
+No surprises. If you guess a method name, it probably exists and does what you expect.</p>
+<p><b>Fluent API:</b> Most methods return 'this' so you can chain operations:</p>
+<pre><code class="lang-csharp">result
+    .EnsureSuccess()           // Throw if not 200-299
+    .SaveToFile("backup.json") // Save a copy
+    .ParseJson&lt;Data&gt;()        // Parse and return data</code></pre>
+</div>
+
+
+  <h2 class="section" id="properties">Properties
+</h2>
+
+
+  <a id="CurlDotNet_Core_CurlResult_BinaryData_" data-uid="CurlDotNet.Core.CurlResult.BinaryData*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_BinaryData" data-uid="CurlDotNet.Core.CurlResult.BinaryData">
+  BinaryData
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L201"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Binary data for files like images, PDFs, downloads.</b></p>
+<p>When you download non-text files, the bytes are here:</p>
+<pre><code class="lang-csharp">// Download an image
+var result = await Curl.Execute("curl https://example.com/logo.png");
+
+if (result.IsBinary)
+{
+    File.WriteAllBytes("logo.png", result.BinaryData);
+    Console.WriteLine($"Saved {result.BinaryData.Length} bytes");
+}</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public byte[] BinaryData { get; set; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.byte">byte</a>[]</dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_Body_" data-uid="CurlDotNet.Core.CurlResult.Body*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_Body" data-uid="CurlDotNet.Core.CurlResult.Body">
+  Body
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L126"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>The response body as a string - this is your data!</b></p>
+<p>Contains whatever the server sent back: JSON, HTML, XML, plain text, etc.</p>
+<p><b>Common patterns:</b></p>
+<pre><code class="lang-csharp">// JSON API response (most common)
+if (result.Body.StartsWith("{"))
+{
+    var data = result.ParseJson&lt;MyClass&gt;();
+}
+
+// HTML webpage
+if (result.Body.Contains("&lt;html"))
+{
+    result.SaveToFile("page.html");
+}
+
+// Plain text
+Console.WriteLine(result.Body);</code></pre>
+<p><b>Note:</b> For binary data (images, PDFs), use <a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_BinaryData">BinaryData</a> instead.</p>
+<p><b>Note:</b> Can be null for 204 No Content or binary responses.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string Body { get; set; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_Command_" data-uid="CurlDotNet.Core.CurlResult.Command*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_Command" data-uid="CurlDotNet.Core.CurlResult.Command">
+  Command
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L227"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>The original curl command that was executed.</b></p>
+<p>Useful for debugging or retrying:</p>
+<pre><code class="lang-csharp">Console.WriteLine($"Executed: {result.Command}");
+
+// Retry the same command
+var retry = await Curl.Execute(result.Command);</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string Command { get; set; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_Exception_" data-uid="CurlDotNet.Core.CurlResult.Exception*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_Exception" data-uid="CurlDotNet.Core.CurlResult.Exception">
+  Exception
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L271"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Any exception if the request failed completely.</b></p>
+<p>Only set for network failures, not HTTP errors:</p>
+<pre><code class="lang-csharp">if (result.Exception != null)
+{
+    // Network/DNS/Timeout failure
+    Console.WriteLine($"Failed: {result.Exception.Message}");
+}
+else if (!result.IsSuccess)
+{
+    // HTTP error (404, 500, etc)
+    Console.WriteLine($"HTTP {result.StatusCode}");
+}</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Exception Exception { get; set; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.exception">Exception</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_Headers_" data-uid="CurlDotNet.Core.CurlResult.Headers*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_Headers" data-uid="CurlDotNet.Core.CurlResult.Headers">
+  Headers
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L164"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>All HTTP headers from the response - contains metadata about the response.</b></p>
+<p>Headers tell you things like content type, cache rules, rate limits, etc.
+Access them like a dictionary (case-insensitive keys).</p>
+<p><b>Get a specific header:</b></p>
+<pre><code class="lang-csharp">// These all work (case-insensitive):
+var type = result.Headers["Content-Type"];
+var type = result.Headers["content-type"];
+var type = result.Headers["CONTENT-TYPE"];
+
+// Or use the helper:
+var type = result.GetHeader("Content-Type");</code></pre>
+<p><b>Check rate limits (common in APIs):</b></p>
+<pre><code class="lang-csharp">if (result.Headers.ContainsKey("X-RateLimit-Remaining"))
+{
+    var remaining = int.Parse(result.Headers["X-RateLimit-Remaining"]);
+    if (remaining &lt; 10)
+        Console.WriteLine("⚠️ Only {0} API calls left!", remaining);
+}</code></pre>
+<p><b>Common headers:</b></p>
+<ul><li><b>Content-Type</b> - Format of the data (application/json, text/html)</li><li><b>Content-Length</b> - Size in bytes</li><li><b>Location</b> - Where you got redirected to</li><li><b>Set-Cookie</b> - Cookies to store</li><li><b>Cache-Control</b> - How long to cache</li></ul>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Dictionary&lt;string, string&gt; Headers { get; set; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2">Dictionary</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_IsBinary_" data-uid="CurlDotNet.Core.CurlResult.IsBinary*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_IsBinary" data-uid="CurlDotNet.Core.CurlResult.IsBinary">
+  IsBinary
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L214"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Is this binary data? (images, PDFs, etc.)</b></p>
+<p>Quick check before accessing BinaryData:</p>
+<pre><code class="lang-csharp">if (result.IsBinary)
+    File.WriteAllBytes("file.bin", result.BinaryData);
+else
+    File.WriteAllText("file.txt", result.Body);</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool IsBinary { get; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_IsSuccess_" data-uid="CurlDotNet.Core.CurlResult.IsSuccess*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_IsSuccess" data-uid="CurlDotNet.Core.CurlResult.IsSuccess">
+  IsSuccess
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L184"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Quick success check - true if status is 200-299.</b></p>
+<p>The easiest way to check if your request worked:</p>
+<pre><code class="lang-csharp">if (result.IsSuccess)
+{
+    // It worked! Do something with result.Body
+}
+else
+{
+    // Something went wrong, check result.StatusCode
+}</code></pre>
+<p>What's considered success: 200 OK, 201 Created, 204 No Content, etc.</p>
+<p>What's NOT success: 404 Not Found, 500 Server Error, etc.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool IsSuccess { get; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_OutputFiles_" data-uid="CurlDotNet.Core.CurlResult.OutputFiles*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_OutputFiles" data-uid="CurlDotNet.Core.CurlResult.OutputFiles">
+  OutputFiles
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L252"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Files that were saved (if using -o flag).</b></p>
+<p>Track what files were created:</p>
+<pre><code class="lang-csharp">foreach (var file in result.OutputFiles)
+{
+    Console.WriteLine($"Saved: {file}");
+}</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public List&lt;string&gt; OutputFiles { get; set; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1">List</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_StatusCode_" data-uid="CurlDotNet.Core.CurlResult.StatusCode*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_StatusCode" data-uid="CurlDotNet.Core.CurlResult.StatusCode">
+  StatusCode
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L98"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>The HTTP status code - tells you what happened.</b></p>
+<p>Common codes you'll see:</p>
+<pre><code class="lang-csharp">200 = OK, it worked!
+201 = Created something new
+204 = Success, but no content returned
+400 = Bad request (you sent something wrong)
+401 = Unauthorized (need to login)
+403 = Forbidden (not allowed)
+404 = Not found
+429 = Too many requests (slow down!)
+500 = Server error (their fault, not yours)
+503 = Service unavailable (try again later)</code></pre>
+<p><b>Example - Handle different statuses:</b></p>
+<pre><code class="lang-csharp">switch (result.StatusCode)
+{
+    case 200: ProcessData(result.Body); break;
+    case 404: Console.WriteLine("Not found"); break;
+    case 401: RedirectToLogin(); break;
+    case &gt;= 500: Console.WriteLine("Server error, retry later"); break;
+}</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int StatusCode { get; set; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_Timings_" data-uid="CurlDotNet.Core.CurlResult.Timings*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_Timings" data-uid="CurlDotNet.Core.CurlResult.Timings">
+  Timings
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L239"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Detailed timing information (like curl -w).</b></p>
+<p>See how long each phase took:</p>
+<pre><code class="lang-csharp">Console.WriteLine($"DNS lookup: {result.Timings.NameLookup}ms");
+Console.WriteLine($"Connect: {result.Timings.Connect}ms");
+Console.WriteLine($"Total: {result.Timings.Total}ms");</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlTimings Timings { get; set; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlTimings.html">CurlTimings</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <h2 class="section" id="methods">Methods
+</h2>
+
+
+  <a id="CurlDotNet_Core_CurlResult_AppendToFile_" data-uid="CurlDotNet.Core.CurlResult.AppendToFile*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_AppendToFile_System_String_" data-uid="CurlDotNet.Core.CurlResult.AppendToFile(System.String)">
+  AppendToFile(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L599"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Append response to an existing file.</b></p>
+<p>Add to a file without overwriting:</p>
+<pre><code class="lang-csharp">// Log all responses
+result.AppendToFile("api-log.txt");
+
+// Build up a file over time
+foreach (var url in urls)
+{
+    var r = await Curl.Execute($"curl {url}");
+    r.AppendToFile("combined.txt");
+}</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlResult AppendToFile(string filePath)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>filePath</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_AsJsonDynamic_" data-uid="CurlDotNet.Core.CurlResult.AsJsonDynamic*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_AsJsonDynamic" data-uid="CurlDotNet.Core.CurlResult.AsJsonDynamic">
+  AsJsonDynamic()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L397"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Parse JSON as dynamic object (when you don't have a class).</b></p>
+<p>Useful for quick exploration or simple JSON structures. This method returns a dynamic object that allows 
+you to access JSON properties without defining a C# class. However, there's no compile-time checking, so prefer 
+<a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_ParseJson__1">ParseJson&lt;T&gt;()</a> with typed classes when possible.</p>
+<p><b>Example:</b></p>
+<pre><code class="lang-csharp">dynamic json = result.AsJsonDynamic();
+Console.WriteLine(json.name);           // Access properties directly
+Console.WriteLine(json.users[0].email); // Navigate arrays
+
+// Iterate dynamic arrays
+foreach (var item in json.items)
+{
+    Console.WriteLine(item.title);
+}</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public dynamic AsJsonDynamic()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><span class="xref">dynamic</span></dt>
+    <dd><p>A dynamic object representing the JSON. In .NET 6+, this is a <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.text.json.jsondocument">JsonDocument</a>.
+In .NET Standard 2.0, this is a <code>JObject</code> from Newtonsoft.Json.</p>
+<p>Access properties like: <code>dynamicObj.propertyName</code> or <code>dynamicObj["propertyName"]</code></p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Core_CurlResult_AsJsonDynamic_remarks">Remarks</h4>
+  <div class="markdown level1 remarks"><p><b>⚠️ Warning:</b> No compile-time checking! If a property doesn't exist, you'll get a runtime exception.</p>
+<p>For production code, prefer <a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_ParseJson__1">ParseJson&lt;T&gt;()</a> with typed classes for better safety and IntelliSense support.</p>
+<p>This method is useful for:</p>
+<ul><li>Quick prototyping and exploration</li><li>Working with highly dynamic JSON structures</li><li>One-off scripts and tools</li></ul>
+</div>
+
+  <h4 class="section">Exceptions</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.argumentnullexception">ArgumentNullException</a></dt>
+    <dd><p>Thrown when <a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Body">Body</a> is null or empty.</p>
+</dd>
+  </dl>
+
+  <dl class="typelist seealso">
+    <dt>See Also</dt>
+    <dd>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_ParseJson__1">ParseJson&lt;T&gt;()</a></div>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AsJson__1">AsJson&lt;T&gt;()</a></div>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Body">Body</a></div>
+    </dd>
+  </dl>
+
+
+  <a id="CurlDotNet_Core_CurlResult_AsJson_" data-uid="CurlDotNet.Core.CurlResult.AsJson*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_AsJson__1" data-uid="CurlDotNet.Core.CurlResult.AsJson``1">
+  AsJson&lt;T&gt;()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L355"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Parse JSON response (alternative name for <a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_ParseJson__1">ParseJson&lt;T&gt;()</a>).</b></p>
+<p>Some people prefer <code>AsJson</code>, some prefer <code>ParseJson</code>. Both methods are identical and produce the same result.</p>
+<pre><code class="lang-csharp">var data = result.AsJson&lt;MyData&gt;();
+// Exactly the same as: result.ParseJson&lt;MyData&gt;()</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public T AsJson&lt;T&gt;()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><span class="xref">T</span></dt>
+    <dd><p>An instance of <code class="typeparamref">T</code> with data from the JSON <a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Body">Body</a>.</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Type Parameters</h4>
+  <dl class="parameters">
+    <dt><code>T</code></dt>
+    <dd><p>The type to deserialize to. See <a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_ParseJson__1">ParseJson&lt;T&gt;()</a> for details.</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Core_CurlResult_AsJson__1_remarks">Remarks</h4>
+  <div class="markdown level1 remarks"><p>This is simply an alias for <a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_ParseJson__1">ParseJson&lt;T&gt;()</a>. Use whichever method name you prefer.</p>
+</div>
+
+  <h4 class="section">Exceptions</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.argumentnullexception">ArgumentNullException</a></dt>
+    <dd><p>Thrown when <a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Body">Body</a> is null or empty.</p>
+</dd>
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.invalidoperationexception">InvalidOperationException</a></dt>
+    <dd><p>Thrown when JSON deserialization fails.</p>
+</dd>
+  </dl>
+
+  <dl class="typelist seealso">
+    <dt>See Also</dt>
+    <dd>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_ParseJson__1">ParseJson&lt;T&gt;()</a></div>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AsJsonDynamic">AsJsonDynamic()</a></div>
+    </dd>
+  </dl>
+
+
+  <a id="CurlDotNet_Core_CurlResult_EnsureContains_" data-uid="CurlDotNet.Core.CurlResult.EnsureContains*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_EnsureContains_System_String_" data-uid="CurlDotNet.Core.CurlResult.EnsureContains(System.String)">
+  EnsureContains(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L817"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Throw if response body doesn't contain expected text.</b></p>
+<p>Validate response content:</p>
+<pre><code class="lang-csharp">// Make sure we got the right response
+result.EnsureContains("success");
+
+// Check for error messages
+if (result.Body.Contains("error"))
+{
+    result.EnsureContains("recoverable");  // Make sure it's recoverable
+}</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlResult EnsureContains(string expectedText)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>expectedText</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_EnsureStatus_" data-uid="CurlDotNet.Core.CurlResult.EnsureStatus*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_EnsureStatus_System_Int32_" data-uid="CurlDotNet.Core.CurlResult.EnsureStatus(System.Int32)">
+  EnsureStatus(int)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L791"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Throw if status doesn't match what you expect.</b></p>
+<p>Validate specific status codes:</p>
+<pre><code class="lang-csharp">// Expect 201 Created
+result.EnsureStatus(201);
+
+// Expect 204 No Content
+result.EnsureStatus(204);</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlResult EnsureStatus(int expectedStatus)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>expectedStatus</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></dt>
+    <dd><p>The status code you expect</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a></dt>
+    <dd><p>This result if status matches (for chaining)</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <h4 class="section">Exceptions</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlHttpException.html">CurlHttpException</a></dt>
+    <dd><p>Thrown if status doesn't match</p>
+</dd>
+  </dl>
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_EnsureSuccess_" data-uid="CurlDotNet.Core.CurlResult.EnsureSuccess*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_EnsureSuccess" data-uid="CurlDotNet.Core.CurlResult.EnsureSuccess">
+  EnsureSuccess()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L763"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Throw an exception if the request wasn't successful (not 200-299).</b></p>
+<p>Use this when you expect success and want to fail fast. This matches curl's <code>-f</code> (fail) flag behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlResult EnsureSuccess()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a></dt>
+    <dd><p>This result if successful (for chaining)</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Core_CurlResult_EnsureSuccess_examples">Examples</h4>
+  <pre><code class="lang-csharp">// Fail fast pattern
+try
+{
+    var data = result
+        .EnsureSuccess()      // Throws if not 200-299
+        .ParseJson&lt;Data&gt;();  // Only runs if successful
+}
+catch (CurlHttpException ex)
+{
+    Console.WriteLine($"HTTP {ex.StatusCode}: {ex.Message}");
+    Console.WriteLine($"Response body: {ex.ResponseBody}");
+}
+
+// Common API pattern - get user data
+var user = (await Curl.ExecuteAsync("curl https://api.example.com/user/123"))
+    .EnsureSuccess()        // Throws on 404, 500, etc.
+    .ParseJson&lt;User&gt;();    // Safe to parse, we know it's 200
+
+// Chain multiple operations
+var response = await Curl.ExecuteAsync("curl https://api.example.com/data");
+var processed = response
+    .EnsureSuccess()           // Ensure 200-299
+    .SaveToFile("backup.json") // Save backup
+    .ParseJson&lt;DataModel&gt;(); // Then parse
+
+// Different handling for different status codes
+try
+{
+    result.EnsureSuccess();
+    ProcessData(result.Body);
+}
+catch (CurlHttpException ex) when (ex.StatusCode == 404)
+{
+    Console.WriteLine("Resource not found");
+}
+catch (CurlHttpException ex) when (ex.StatusCode &gt;= 500)
+{
+    Console.WriteLine("Server error - retry later");
+}</code></pre>
+
+
+
+  <h4 class="section">Exceptions</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlHttpException.html">CurlHttpException</a></dt>
+    <dd><p>Thrown if status is not 200-299. The exception contains <a class="xref" href="CurlDotNet.Core.CurlHttpException.html#CurlDotNet_Core_CurlHttpException_StatusCode">StatusCode</a> and <a class="xref" href="CurlDotNet.Core.CurlHttpException.html#CurlDotNet_Core_CurlHttpException_ResponseBody">ResponseBody</a>.</p>
+</dd>
+  </dl>
+
+  <dl class="typelist seealso">
+    <dt>See Also</dt>
+    <dd>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_EnsureStatus_System_Int32_">EnsureStatus(int)</a></div>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_EnsureContains_System_String_">EnsureContains(string)</a></div>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_IsSuccess">IsSuccess</a></div>
+    </dd>
+  </dl>
+
+
+  <a id="CurlDotNet_Core_CurlResult_FilterLines_" data-uid="CurlDotNet.Core.CurlResult.FilterLines*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_FilterLines_System_Func_System_String_System_Boolean__" data-uid="CurlDotNet.Core.CurlResult.FilterLines(System.Func{System.String,System.Boolean})">
+  FilterLines(Func&lt;string, bool&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L1047"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Extract lines that match a condition.</b></p>
+<p>Filter text responses:</p>
+<pre><code class="lang-csharp">// Keep only error lines
+result.FilterLines(line =&gt; line.Contains("ERROR"));
+
+// Remove empty lines
+result.FilterLines(line =&gt; !string.IsNullOrWhiteSpace(line));
+
+// Keep lines starting with data
+result.FilterLines(line =&gt; line.StartsWith("data:"));</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlResult FilterLines(Func&lt;string, bool&gt; predicate)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>predicate</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-2">Func</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a>, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_GetHeader_" data-uid="CurlDotNet.Core.CurlResult.GetHeader*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_GetHeader_System_String_" data-uid="CurlDotNet.Core.CurlResult.GetHeader(System.String)">
+  GetHeader(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L657"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Get a specific header value (case-insensitive).</b></p>
+<p>Easy header access with null safety. This matches curl's header behavior exactly.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public string GetHeader(string headerName)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>headerName</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Name of the header (case doesn't matter)</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Header value or null if not found</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Core_CurlResult_GetHeader_System_String__examples">Examples</h4>
+  <pre><code class="lang-csharp">// Get content type
+var contentType = result.GetHeader("Content-Type");
+if (contentType?.Contains("json") == true)
+{
+    var data = result.ParseJson&lt;MyData&gt;();
+}
+
+// Check rate limits (common in APIs)
+var remaining = result.GetHeader("X-RateLimit-Remaining");
+if (remaining != null &amp;&amp; int.Parse(remaining) &lt; 10)
+{
+    Console.WriteLine("⚠️ Only {0} API calls left!", remaining);
+}
+
+// Check cache control
+var cacheControl = result.GetHeader("Cache-Control");
+if (cacheControl?.Contains("no-cache") == true)
+{
+    Console.WriteLine("Response should not be cached");
+}
+
+// Get redirect location
+var location = result.GetHeader("Location");
+if (location != null)
+{
+    Console.WriteLine($"Redirected to: {location}");
+}</code></pre>
+
+
+
+
+  <dl class="typelist seealso">
+    <dt>See Also</dt>
+    <dd>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_HasHeader_System_String_">HasHeader(string)</a></div>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Headers">Headers</a></div>
+    </dd>
+  </dl>
+
+
+  <a id="CurlDotNet_Core_CurlResult_HasHeader_" data-uid="CurlDotNet.Core.CurlResult.HasHeader*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_HasHeader_System_String_" data-uid="CurlDotNet.Core.CurlResult.HasHeader(System.String)">
+  HasHeader(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L701"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Check if a header exists.</b></p>
+<p>Test for header presence before accessing. This is case-insensitive, matching curl's behavior.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public bool HasHeader(string headerName)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>headerName</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Name of the header to check (case-insensitive)</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
+    <dd><p>true if the header exists, false otherwise</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Core_CurlResult_HasHeader_System_String__examples">Examples</h4>
+  <pre><code class="lang-csharp">// Check for cookies
+if (result.HasHeader("Set-Cookie"))
+{
+    var cookie = result.GetHeader("Set-Cookie");
+    Console.WriteLine($"Cookie received: {cookie}");
+}
+
+// Check for authentication requirements
+if (result.HasHeader("WWW-Authenticate"))
+{
+    Console.WriteLine("Authentication required");
+}
+
+// Check for custom headers
+if (result.HasHeader("X-Custom-Header"))
+{
+    var value = result.GetHeader("X-Custom-Header");
+    ProcessCustomValue(value);
+}
+
+// Conditional logic based on headers
+if (result.HasHeader("Content-Encoding") &amp;&amp; 
+    result.GetHeader("Content-Encoding").Contains("gzip"))
+{
+    Console.WriteLine("Response is gzip compressed");
+}</code></pre>
+
+
+
+
+  <dl class="typelist seealso">
+    <dt>See Also</dt>
+    <dd>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_GetHeader_System_String_">GetHeader(string)</a></div>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Headers">Headers</a></div>
+    </dd>
+  </dl>
+
+
+  <a id="CurlDotNet_Core_CurlResult_ParseJson_" data-uid="CurlDotNet.Core.CurlResult.ParseJson*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_ParseJson__1" data-uid="CurlDotNet.Core.CurlResult.ParseJson``1">
+  ParseJson&lt;T&gt;()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L317"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Parse the JSON response into your C# class.</b></p>
+<p>The most common operation - turning JSON into objects. This method uses <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.text.json.jsonserializer">JsonSerializer</a> 
+in .NET 6+ and <span class="xref">Newtonsoft.Json.JsonConvert</span> in .NET Standard 2.0 for maximum compatibility.</p>
+<p><b>Example:</b></p>
+<pre><code class="lang-csharp">// Define your class matching the JSON structure
+public class User
+{
+    public string Name { get; set; }
+    public string Email { get; set; }
+    public int Id { get; set; }
+}
+
+// Parse the response
+var user = result.ParseJson&lt;User&gt;();
+Console.WriteLine($"Hello {user.Name}!");
+
+// Or parse arrays
+var users = result.ParseJson&lt;List&lt;User&gt;&gt;();
+Console.WriteLine($"Found {users.Count} users");</code></pre>
+<p><b>Tip:</b> Use https://json2csharp.com to generate C# classes from JSON!</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public T ParseJson&lt;T&gt;()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><span class="xref">T</span></dt>
+    <dd><p>An instance of <code class="typeparamref">T</code> with data from the JSON <a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Body">Body</a>.</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Type Parameters</h4>
+  <dl class="parameters">
+    <dt><code>T</code></dt>
+    <dd><p>The type to deserialize to. Must match the JSON structure. Can be a class, struct, or collection type like <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1">List&lt;T&gt;</a> or <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2">Dictionary&lt;TKey, TValue&gt;</a>.</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Core_CurlResult_ParseJson__1_remarks">Remarks</h4>
+  <div class="markdown level1 remarks"><p>This method automatically detects whether to use System.Text.Json or Newtonsoft.Json based on the target framework.</p>
+<p>For complex JSON structures, consider using <a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AsJsonDynamic">AsJsonDynamic()</a> for exploration, then creating a typed class.</p>
+<p>If <code class="paramref">T</code> doesn't match the JSON structure, properties that don't match will be left at their default values.</p>
+</div>
+
+  <h4 class="section">Exceptions</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.argumentnullexception">ArgumentNullException</a></dt>
+    <dd><p>Thrown when <a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Body">Body</a> is null or empty.</p>
+</dd>
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.invalidoperationexception">InvalidOperationException</a></dt>
+    <dd><p>Thrown when JSON deserialization fails or JSON doesn't match type <code class="typeparamref">T</code>.</p>
+</dd>
+  </dl>
+
+  <dl class="typelist seealso">
+    <dt>See Also</dt>
+    <dd>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AsJson__1">AsJson&lt;T&gt;()</a></div>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AsJsonDynamic">AsJsonDynamic()</a></div>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Body">Body</a></div>
+    </dd>
+  </dl>
+
+
+  <a id="CurlDotNet_Core_CurlResult_Print_" data-uid="CurlDotNet.Core.CurlResult.Print*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_Print" data-uid="CurlDotNet.Core.CurlResult.Print">
+  Print()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L925"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Print status code and body to console.</b></p>
+<p>More detailed debug output:</p>
+<pre><code class="lang-csharp">result.Print();
+// Output:
+// Status: 200
+// {"name":"John","age":30}</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlResult Print()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_PrintBody_" data-uid="CurlDotNet.Core.CurlResult.PrintBody*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_PrintBody" data-uid="CurlDotNet.Core.CurlResult.PrintBody">
+  PrintBody()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L908"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Print the response body to console.</b></p>
+<p>Quick debugging output:</p>
+<pre><code class="lang-csharp">result.PrintBody();  // Just prints the body
+
+// Chain with other operations
+result
+    .PrintBody()           // Debug output
+    .SaveToFile("out.txt") // Also save it
+    .ParseJson&lt;Data&gt;();   // Then parse</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlResult PrintBody()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a></dt>
+    <dd><p>This result (for chaining)</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_PrintVerbose_" data-uid="CurlDotNet.Core.CurlResult.PrintVerbose*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_PrintVerbose" data-uid="CurlDotNet.Core.CurlResult.PrintVerbose">
+  PrintVerbose()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L947"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Print everything - status, headers, and body (like curl -v).</b></p>
+<p>Full debug output:</p>
+<pre><code class="lang-csharp">result.PrintVerbose();
+// Output:
+// Status: 200
+// Headers:
+//   Content-Type: application/json
+//   Content-Length: 123
+// Body:
+// {"name":"John"}</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlResult PrintVerbose()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_Retry_" data-uid="CurlDotNet.Core.CurlResult.Retry*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_Retry" data-uid="CurlDotNet.Core.CurlResult.Retry">
+  Retry()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L853"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Retry the same curl command again.</b></p>
+<p>Simple retry for transient failures:</p>
+<pre><code class="lang-csharp">// First attempt
+var result = await Curl.Execute("curl https://flaky-api.example.com");
+
+// Retry if it failed
+if (!result.IsSuccess)
+{
+    result = await result.Retry();
+}
+
+// Retry with delay
+if (result.StatusCode == 429)  // Too many requests
+{
+    await Task.Delay(5000);
+    result = await result.Retry();
+}</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Task&lt;CurlResult&gt; Retry()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1">Task</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a>&gt;</dt>
+    <dd><p>New result from retrying the command</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_RetryWith_" data-uid="CurlDotNet.Core.CurlResult.RetryWith*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_RetryWith_System_Action_CurlDotNet_Core_CurlSettings__" data-uid="CurlDotNet.Core.CurlResult.RetryWith(System.Action{CurlDotNet.Core.CurlSettings})">
+  RetryWith(Action&lt;CurlSettings&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L879"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Retry with modifications to the original command.</b></p>
+<p>Retry with different settings:</p>
+<pre><code class="lang-csharp">// Retry with longer timeout
+var result = await result.RetryWith(settings =&gt;
+{
+    settings.Timeout = TimeSpan.FromSeconds(60);
+});
+
+// Retry with authentication
+var result = await result.RetryWith(settings =&gt;
+{
+    settings.AddHeader("Authorization", "Bearer " + token);
+});</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Task&lt;CurlResult&gt; RetryWith(Action&lt;CurlSettings&gt; configure)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>configure</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.action-1">Action</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlSettings.html">CurlSettings</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1">Task</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_SaveAsCsv_" data-uid="CurlDotNet.Core.CurlResult.SaveAsCsv*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_SaveAsCsv_System_String_" data-uid="CurlDotNet.Core.CurlResult.SaveAsCsv(System.String)">
+  SaveAsCsv(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L575"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Save JSON response as CSV file (for JSON arrays).</b></p>
+<p>Converts JSON arrays to CSV for Excel:</p>
+<pre><code class="lang-csharp">// JSON: [{"name":"John","age":30}, {"name":"Jane","age":25}]
+result.SaveAsCsv("users.csv");
+
+// Creates CSV:
+// name,age
+// John,30
+// Jane,25
+
+// Open in Excel
+Process.Start("users.csv");</code></pre>
+<p><b>Note:</b> Only works with JSON arrays of objects.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlResult SaveAsCsv(string filePath)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>filePath</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_SaveAsJson_" data-uid="CurlDotNet.Core.CurlResult.SaveAsJson*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_SaveAsJson_System_String_System_Boolean_" data-uid="CurlDotNet.Core.CurlResult.SaveAsJson(System.String,System.Boolean)">
+  SaveAsJson(string, bool)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L529"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Save as formatted JSON file (pretty-printed).</b></p>
+<p>Makes JSON human-readable with indentation:</p>
+<pre><code class="lang-csharp">// Save with nice formatting
+result.SaveAsJson("data.json");           // Pretty-printed
+result.SaveAsJson("data.json", false);    // Minified
+
+// Before: {"name":"John","age":30}
+// After:  {
+//           "name": "John",
+//           "age": 30
+//         }</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlResult SaveAsJson(string filePath, bool indented = true)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>filePath</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Where to save the JSON file</p>
+</dd>
+    <dt><code>indented</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
+    <dd><p>true for pretty formatting (default), false for minified</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a></dt>
+    <dd><p>This result (for chaining)</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_SaveToFile_" data-uid="CurlDotNet.Core.CurlResult.SaveToFile*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_SaveToFile_System_String_" data-uid="CurlDotNet.Core.CurlResult.SaveToFile(System.String)">
+  SaveToFile(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L464"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Save the response to a file - works for both text and binary!</b></p>
+<p>Smart saving - automatically handles text vs binary:</p>
+<pre><code class="lang-csharp">// Save any response
+result.SaveToFile("output.txt");     // Text saved as text
+result.SaveToFile("image.png");      // Binary saved as binary
+
+// Chain operations (returns this)
+result
+    .SaveToFile("backup.json")       // Save a backup
+    .ParseJson&lt;Data&gt;();              // Then parse it</code></pre>
+<p><b>Path examples:</b></p>
+<pre><code class="lang-csharp">result.SaveToFile("file.txt");              // Current directory
+result.SaveToFile("data/file.txt");         // Relative path
+result.SaveToFile(@"C:\temp\file.txt");     // Absolute path
+result.SaveToFile("/home/user/file.txt");   // Linux/Mac path</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public CurlResult SaveToFile(string filePath)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>filePath</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Where to save the file</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a></dt>
+    <dd><p>This result (for chaining)</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Core_CurlResult_SaveToFile_System_String__examples">Examples</h4>
+  <pre><code class="lang-csharp">// Download and save JSON response
+var result = await Curl.ExecuteAsync("curl https://api.example.com/data.json");
+result.SaveToFile("data.json");
+// File is now saved to disk AND still available in result.Body
+
+// Download image and save
+var result = await Curl.ExecuteAsync("curl https://example.com/logo.png");
+result.SaveToFile("logo.png");
+Console.WriteLine($"Saved {result.BinaryData.Length} bytes");
+
+// Chain with parsing
+var result = await Curl.ExecuteAsync("curl https://api.example.com/users");
+var users = result
+    .SaveToFile("backup-users.json")  // Save backup
+    .ParseJson&lt;List&lt;User&gt;&gt;();    // Then parse
+
+// Save with relative path
+result.SaveToFile("downloads/report.pdf");
+
+// Save with absolute path
+result.SaveToFile(@"C:\Temp\output.txt");  // Windows
+result.SaveToFile("/tmp/output.txt");       // Linux/Mac</code></pre>
+
+
+
+
+  <dl class="typelist seealso">
+    <dt>See Also</dt>
+    <dd>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_SaveToFileAsync_System_String_">SaveToFileAsync(string)</a></div>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_SaveAsJson_System_String_System_Boolean_">SaveAsJson(string, bool)</a></div>
+    <div><a class="xref" href="CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AppendToFile_System_String_">AppendToFile(string)</a></div>
+    </dd>
+  </dl>
+
+
+  <a id="CurlDotNet_Core_CurlResult_SaveToFileAsync_" data-uid="CurlDotNet.Core.CurlResult.SaveToFileAsync*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_SaveToFileAsync_System_String_" data-uid="CurlDotNet.Core.CurlResult.SaveToFileAsync(System.String)">
+  SaveToFileAsync(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L488"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Save the response to a file asynchronously.</b></p>
+<p>Same as SaveToFile but doesn't block:</p>
+<pre><code class="lang-csharp">await result.SaveToFileAsync("large-file.json");
+
+// Or chain async operations
+await result
+    .SaveToFileAsync("backup.json")
+    .ContinueWith(_ =&gt; Console.WriteLine("Saved!"));</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Task&lt;CurlResult&gt; SaveToFileAsync(string filePath)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>filePath</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1">Task</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_ToStream_" data-uid="CurlDotNet.Core.CurlResult.ToStream*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_ToStream" data-uid="CurlDotNet.Core.CurlResult.ToStream">
+  ToStream()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L1015"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Convert the response to a Stream for reading.</b></p>
+<p>Useful for streaming or processing data:</p>
+<pre><code class="lang-csharp">using var stream = result.ToStream();
+using var reader = new StreamReader(stream);
+var line = await reader.ReadLineAsync();
+
+// Or for binary data
+using var stream = result.ToStream();
+var buffer = new byte[1024];
+var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Stream ToStream()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.io.stream">Stream</a></dt>
+    <dd><p>A MemoryStream containing the response data</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Core_CurlResult_Transform_" data-uid="CurlDotNet.Core.CurlResult.Transform*"></a>
+
+  <h3 id="CurlDotNet_Core_CurlResult_Transform__1_System_Func_CurlDotNet_Core_CurlResult___0__" data-uid="CurlDotNet.Core.CurlResult.Transform``1(System.Func{CurlDotNet.Core.CurlResult,``0})">
+  Transform&lt;T&gt;(Func&lt;CurlResult, T&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L994"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p><b>Transform the result using your own function.</b></p>
+<p>Extract or convert data however you need:</p>
+<pre><code class="lang-csharp">// Extract just what you need
+var name = result.Transform(r =&gt;
+{
+    var user = r.ParseJson&lt;User&gt;();
+    return user.Name;
+});
+
+// Convert to your own type
+var summary = result.Transform(r =&gt; new
+{
+    Success = r.IsSuccess,
+    Size = r.Body?.Length ?? 0,
+    Type = r.GetHeader("Content-Type")
+});</code></pre>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public T Transform&lt;T&gt;(Func&lt;CurlResult, T&gt; transformer)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>transformer</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-2">Func</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a>, T&gt;</dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><span class="xref">T</span></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Type Parameters</h4>
+  <dl class="parameters">
+    <dt><code>T</code></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Core/CurlResult.cs/#L66" class="edit-link">Edit this page</a>
+        </div>
+
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          Based on curl by Daniel Stenberg and contributors | Sponsored by <a href='https://ironsoftware.com'>IronSoftware</a> | Copyright © 1996-2025 curl authors, 2024-2025 CurlDotNet authors
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
