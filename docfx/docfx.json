@@ -3,9 +3,9 @@
     {
       "src": [
         {
-          "src": "src",
+          "src": "../src",
           "files": ["**/*.csproj"],
-          "exclude": ["**/bin/**", "**/obj/**"]
+          "exclude": ["**/bin/**", "**/obj/**", "**/CurlDotNet.Tests/**", "**/CurlDotNet.Benchmarks/**"]
         }
       ],
       "dest": "api",

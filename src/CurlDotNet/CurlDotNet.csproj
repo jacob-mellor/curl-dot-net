@@ -100,6 +100,7 @@ Repository: https://github.com/jacob-mellor/curl-dot-net</PackageReleaseNotes>
   <ItemGroup>
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="README.txt" Pack="true" PackagePath="\" />
     <None Include="..\..\THANKS" Pack="true" PackagePath="docs\" Condition="Exists('..\..\THANKS')" />
     <None Include="icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
