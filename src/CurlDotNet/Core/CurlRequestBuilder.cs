@@ -678,10 +678,10 @@ namespace CurlDotNet.Core
             if (_options.Compressed)
                 parts.Add("--compressed");
 
-            if (_options.MaxTime > 0)
-                parts.Add($"--max-time {_options.MaxTime}");
-            if (_options.ConnectTimeout > 0)
-                parts.Add($"--connect-timeout {_options.ConnectTimeout}");
+            if (_options.MaxTime.HasValue && _options.MaxTime.Value > 0)
+                parts.Add($"--max-time {_options.MaxTime.Value}");
+            if (_options.ConnectTimeout.HasValue && _options.ConnectTimeout.Value > 0)
+                parts.Add($"--connect-timeout {_options.ConnectTimeout.Value}");
             if (_options.MaxRedirects > 0 && _options.MaxRedirects != 50)
                 parts.Add($"--max-redirs {_options.MaxRedirects}");
 

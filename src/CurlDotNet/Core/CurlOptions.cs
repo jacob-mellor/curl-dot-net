@@ -30,7 +30,7 @@ namespace CurlDotNet.Core
         /// <summary>
         /// HTTP method (GET, POST, PUT, DELETE, etc.).
         /// </summary>
-        public string Method { get; set; } = "GET";
+        public string? Method { get; set; } = "GET";
 
         /// <summary>
         /// Request headers.
@@ -173,12 +173,12 @@ namespace CurlDotNet.Core
         /// <summary>
         /// Maximum time in seconds (--max-time).
         /// </summary>
-        public int MaxTime { get; set; }
+        public int? MaxTime { get; set; }
 
         /// <summary>
         /// Connection timeout in seconds (--connect-timeout).
         /// </summary>
-        public int ConnectTimeout { get; set; }
+        public int? ConnectTimeout { get; set; }
 
         /// <summary>
         /// Speed limit in bytes per second (--limit-rate).

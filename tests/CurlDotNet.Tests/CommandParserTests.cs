@@ -219,10 +219,7 @@ namespace CurlDotNet.Tests
             // Assert
             options.Data.Should().Be(data);
             // If -d is used without explicit method, it should default to POST
-            if (string.IsNullOrEmpty(options.Method) && dataFlag.StartsWith("-d"))
-            {
-                options.Method.Should().Be("POST");
-            }
+            options.Method.Should().Be("POST");
         }
 
         /// <summary>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Namespace CurlDotNet.Core | CurlDotNet </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Namespace CurlDotNet.Core | CurlDotNet ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="ManagedReference">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../images/logo.png" alt="CurlDotNet - Pure .NET curl">
+            CurlDotNet - Pure .NET curl
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="CurlDotNet.Core">
+
+  <h1 id="CurlDotNet_Core" data-uid="CurlDotNet.Core" class="text-break">Namespace CurlDotNet.Core</h1>
+  <div class="markdown level0 summary"></div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="markdown level0 remarks"></div>
+
+    <h3 id="classes">
+Classes
+</h3>
+    <dl class="jumplist">
+      <dt><a class="xref" href="CurlDotNet.Core.CurlFtpException.html">CurlFtpException</a></dt>
+      <dd><p>FTP-specific exception.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="CurlDotNet.Core.CurlHttpException.html">CurlHttpException</a></dt>
+      <dd><p><b>Exception for HTTP errors (4xx, 5xx status codes).</b></p>
+<p>Thrown by EnsureSuccess() when request fails:</p>
+<pre><code class="lang-csharp">try
+{
+    result.EnsureSuccess();
+}
+catch (CurlHttpException ex)
+{
+    Console.WriteLine($"HTTP {ex.StatusCode}: {ex.Message}");
+    Console.WriteLine($"Response was: {ex.ResponseBody}");
+}</code></pre>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="CurlDotNet.Core.CurlOptions.html">CurlOptions</a></dt>
+      <dd><p>Represents parsed curl command options.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="CurlDotNet.Core.CurlRequestBuilder.html">CurlRequestBuilder</a></dt>
+      <dd><p><b>🎨 Fluent Builder API - Build curl requests programmatically!</b></p>
+<p>For developers who prefer a fluent API over curl command strings.
+This builder lets you construct HTTP requests using method chaining,
+perfect for IntelliSense and compile-time checking.</p>
+<p><b>When to use Builder vs Curl String:</b></p>
+<ul><li><b>Use Builder</b> - When building requests dynamically, need IntelliSense, or prefer type safety</li><li><b>Use Curl String</b> - When you have curl commands from docs/examples (paste and go!)</li></ul>
+<p><b>Quick Example:</b></p>
+<pre><code class="lang-csharp">// Build a request fluently
+var result = await CurlRequestBuilder
+    .Get("https://api.example.com/users")
+    .WithHeader("Accept", "application/json")
+    .WithHeader("Authorization", "Bearer token123")
+    .WithTimeout(TimeSpan.FromSeconds(30))
+    .ExecuteAsync();
+
+// Same as: curl -H 'Accept: application/json' -H 'Authorization: Bearer token123' --max-time 30 https://api.example.com/users</code></pre>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a></dt>
+      <dd><p><b>🎯 The response from your curl command - everything you need is here!</b></p>
+<p>After running any curl command, you get this object back. It has the status code,
+response body, headers, and helpful methods to work with the data.</p>
+<p><b>The API is designed to be intuitive - just type what you want to do:</b></p>
+<ul><li>Want the body? → <code>result.Body</code></li><li>Want JSON? → <code>result.ParseJson&lt;T&gt;()</code> or <code>result.AsJson&lt;T&gt;()</code></li><li>Want to save? → <code>result.SaveToFile("path")</code></li><li>Want headers? → <code>result.Headers["Content-Type"]</code></li><li>Check success? → <code>result.IsSuccess</code> or <code>result.EnsureSuccess()</code></li></ul>
+<p><b>Quick Example:</b></p>
+<pre><code class="lang-csharp">var result = await Curl.Execute("curl https://api.github.com/users/octocat");
+
+if (result.IsSuccess)  // Was it 200-299?
+{
+    var user = result.ParseJson&lt;User&gt;();  // Parse JSON to your type
+    result.SaveToFile("user.json");       // Save for later
+}</code></pre>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="CurlDotNet.Core.CurlSettings.html">CurlSettings</a></dt>
+      <dd><p>Fluent builder for .NET-specific curl settings.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="CurlDotNet.Core.CurlTimings.html">CurlTimings</a></dt>
+      <dd><p><b>Detailed timing breakdown of the curl operation.</b></p>
+<p>See where time was spent (like curl -w):</p>
+<pre><code class="lang-csharp">if (result.Timings.Total &gt; 2000)
+{
+    Console.WriteLine("Slow request! Let's see why:");
+    Console.WriteLine($"DNS: {result.Timings.NameLookup}ms");
+    Console.WriteLine($"Connect: {result.Timings.Connect}ms");
+    Console.WriteLine($"SSL: {result.Timings.AppConnect}ms");
+    Console.WriteLine($"Wait: {result.Timings.StartTransfer}ms");
+}</code></pre>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="CurlDotNet.Core.ValidationResult.html">ValidationResult</a></dt>
+      <dd><p>Result of command validation.</p>
+</dd>
+    </dl>
+
+
+</article>
+
+        <div class="contribution d-print-none">
+        </div>
+
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          Based on curl by Daniel Stenberg and contributors | Sponsored by <a href='https://ironsoftware.com'>IronSoftware</a> | Copyright © 1996-2025 curl authors, 2024-2025 CurlDotNet authors
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

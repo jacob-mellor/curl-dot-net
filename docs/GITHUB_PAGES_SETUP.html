@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>GitHub Pages Setup Instructions | CurlDotNet </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="GitHub Pages Setup Instructions | CurlDotNet ">
+      
+      
+      <link rel="icon" href="favicon.ico">
+      <link rel="stylesheet" href="public/docfx.min.css">
+      <link rel="stylesheet" href="public/main.css">
+      <meta name="docfx:navrel" content="toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/jacob-mellor/curl-dot-net/blob/main/build/docfx/GITHUB_PAGES_SETUP.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="index.html">
+            <img id="logo" class="svg" src="images/logo.png" alt="CurlDotNet - Pure .NET curl">
+            CurlDotNet - Pure .NET curl
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="github-pages-setup-instructions">GitHub Pages Setup Instructions</h1>
+
+<h2 id="-documentation-url">🌐 Documentation URL</h2>
+<p>Your CurlDotNet documentation will be available at:
+<strong><a href="https://jacob-mellor.github.io/curl-dot-net/">https://jacob-mellor.github.io/curl-dot-net/</a></strong></p>
+<h2 id="-quick-setup">🚀 Quick Setup</h2>
+<h3 id="step-1-enable-github-pages">Step 1: Enable GitHub Pages</h3>
+<ol>
+<li>Go to your repository settings: <a href="https://github.com/jacob-mellor/curl-dot-net/settings/pages">https://github.com/jacob-mellor/curl-dot-net/settings/pages</a></li>
+<li>Under &quot;Build and deployment&quot;, select <strong>Source: GitHub Actions</strong></li>
+<li>Save the settings</li>
+</ol>
+<h3 id="step-2-deploy-documentation">Step 2: Deploy Documentation</h3>
+<p>The documentation will automatically deploy when you:</p>
+<pre><code class="lang-bash">git add .
+git commit -m &quot;Add comprehensive DocFX documentation&quot;
+git push origin dotnetcurl
+</code></pre>
+<h3 id="step-3-trigger-manual-deployment-optional">Step 3: Trigger Manual Deployment (Optional)</h3>
+<p>You can manually trigger the deployment:</p>
+<ol>
+<li>Go to Actions tab: <a href="https://github.com/jacob-mellor/curl-dot-net/actions">https://github.com/jacob-mellor/curl-dot-net/actions</a></li>
+<li>Select &quot;Deploy DocFX to GitHub Pages&quot; workflow</li>
+<li>Click &quot;Run workflow&quot;</li>
+<li>Select your branch and click &quot;Run workflow&quot;</li>
+</ol>
+<h2 id="-documentation-links">📚 Documentation Links</h2>
+<p>Once deployed, your documentation will be available at:</p>
+<ul>
+<li><strong>Home Page</strong>: <a href="https://jacob-mellor.github.io/curl-dot-net/">https://jacob-mellor.github.io/curl-dot-net/</a></li>
+<li><strong>Getting Started</strong>: <a href="https://jacob-mellor.github.io/curl-dot-net/articles/getting-started.html">https://jacob-mellor.github.io/curl-dot-net/articles/getting-started.html</a></li>
+<li><strong>Installation Guide</strong>: <a href="https://jacob-mellor.github.io/curl-dot-net/articles/installation.html">https://jacob-mellor.github.io/curl-dot-net/articles/installation.html</a></li>
+<li><strong>API Reference</strong>: <a href="https://jacob-mellor.github.io/curl-dot-net/api/">https://jacob-mellor.github.io/curl-dot-net/api/</a></li>
+<li><strong>Examples</strong>: <a href="https://jacob-mellor.github.io/curl-dot-net/articles/examples.html">https://jacob-mellor.github.io/curl-dot-net/articles/examples.html</a></li>
+</ul>
+<h2 id="-local-testing">🔧 Local Testing</h2>
+<p>To test the documentation locally:</p>
+<pre><code class="lang-bash"># Build documentation
+./build/deploy-docs.sh
+
+# Or manually:
+cd docfx
+docfx build
+docfx serve _site -p 8080
+</code></pre>
+<p>Then open http://localhost:8080 in your browser.</p>
+<h2 id="-adding-more-documentation">📝 Adding More Documentation</h2>
+<p>To add more documentation articles:</p>
+<ol>
+<li>Create markdown files in <code>docfx/articles/</code></li>
+<li>Update <code>docfx/toc.yml</code> to include new articles</li>
+<li>Build and test locally</li>
+<li>Commit and push to trigger deployment</li>
+</ol>
+<h2 id="-automatic-updates">🔄 Automatic Updates</h2>
+<p>The documentation automatically updates when:</p>
+<ul>
+<li>You push changes to <code>docfx/**</code> files</li>
+<li>You update source code in <code>src/**</code> (API docs regenerate)</li>
+<li>You modify the workflow file <code>.github/workflows/deploy-docs.yml</code></li>
+</ul>
+<h2 id="-status-check">🎯 Status Check</h2>
+<p>After deployment, check:</p>
+<ol>
+<li><strong>GitHub Actions</strong>: <a href="https://github.com/jacob-mellor/curl-dot-net/actions">https://github.com/jacob-mellor/curl-dot-net/actions</a></li>
+<li><strong>Pages Deployment</strong>: <a href="https://github.com/jacob-mellor/curl-dot-net/deployments">https://github.com/jacob-mellor/curl-dot-net/deployments</a></li>
+<li><strong>Live Site</strong>: <a href="https://jacob-mellor.github.io/curl-dot-net/">https://jacob-mellor.github.io/curl-dot-net/</a></li>
+</ol>
+<h2 id="-troubleshooting">⚠️ Troubleshooting</h2>
+<p>If documentation doesn't appear:</p>
+<ol>
+<li>Ensure GitHub Pages is enabled with &quot;GitHub Actions&quot; as source</li>
+<li>Check Actions tab for build errors</li>
+<li>Wait 5-10 minutes for initial deployment</li>
+<li>Clear browser cache and refresh</li>
+</ol>
+<h2 id="-nuget-package-documentation-link">📦 NuGet Package Documentation Link</h2>
+<p>The NuGet package README already links to the documentation.
+Users will see the documentation link when they visit:
+<a href="https://www.nuget.org/packages/CurlDotNet/">https://www.nuget.org/packages/CurlDotNet/</a></p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/jacob-mellor/curl-dot-net/blob/main/build/docfx/GITHUB_PAGES_SETUP.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          Based on curl by Daniel Stenberg and contributors | Sponsored by <a href='https://ironsoftware.com'>IronSoftware</a> | Copyright © 1996-2025 curl authors, 2024-2025 CurlDotNet authors
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

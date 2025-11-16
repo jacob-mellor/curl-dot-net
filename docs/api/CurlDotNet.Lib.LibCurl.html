@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Class LibCurl | CurlDotNet </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Class LibCurl | CurlDotNet ">
+      
+      <meta name="description" content="&#128295; LibCurl - Object-Oriented API for Programmatic HTTP Provides a libcurl-style object-oriented API for .NET developers who prefer programmatic control over curl command strings. Perfect for building HTTP clients where you need fine-grained control and reusable configurations. When to use LibCurl vs Curl String vs CurlRequestBuilder: LibCurl - When you need persistent configuration, reusable instances, or object-oriented patternsCurlRequestBuilder - When you want fluent method chaining with one-off requestsCurl String - When you have curl commands from docs/examples (paste and go!) Quick Example: using (var curl = new LibCurl()) {     // Configure defaults for all requests     curl.WithHeader(&quot;Accept&quot;, &quot;application/json&quot;)         .WithBearerToken(&quot;your-token&quot;)         .WithTimeout(TimeSpan.FromSeconds(30));      // Make multiple requests with same configuration     var user = await curl.GetAsync(&quot;https://api.example.com/user&quot;);     var posts = await curl.GetAsync(&quot;https://api.example.com/posts&quot;); }">
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/jacob-mellor/curl-dot-net/new/main/docs/new?filename=CurlDotNet_Lib_LibCurl.md&amp;value=---%0Auid%3A%20CurlDotNet.Lib.LibCurl%0Asummary%3A%20&#39;*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax&#39;%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="ManagedReference">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../images/logo.png" alt="CurlDotNet - Pure .NET curl">
+            CurlDotNet - Pure .NET curl
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="CurlDotNet.Lib.LibCurl">
+
+
+
+  <h1 id="CurlDotNet_Lib_LibCurl" data-uid="CurlDotNet.Lib.LibCurl" class="text-break">
+Class LibCurl  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L66"><i class="bi bi-code-slash"></i></a>
+  </h1>
+
+  <div class="facts text-secondary">
+    <dl><dt>Namespace</dt><dd><a class="xref" href="CurlDotNet.html">CurlDotNet</a>.<a class="xref" href="CurlDotNet.Lib.html">Lib</a></dd></dl>
+  <dl><dt>Assembly</dt><dd>CurlDotNet.dll</dd></dl>
+  </div>
+
+  <div class="markdown summary"><p><b>🔧 LibCurl - Object-Oriented API for Programmatic HTTP</b></p>
+<p>Provides a libcurl-style object-oriented API for .NET developers who prefer
+programmatic control over curl command strings. Perfect for building HTTP clients
+where you need fine-grained control and reusable configurations.</p>
+<p><b>When to use LibCurl vs Curl String vs CurlRequestBuilder:</b></p>
+<ul><li><b>LibCurl</b> - When you need persistent configuration, reusable instances, or object-oriented patterns</li><li><b>CurlRequestBuilder</b> - When you want fluent method chaining with one-off requests</li><li><b>Curl String</b> - When you have curl commands from docs/examples (paste and go!)</li></ul>
+<p><b>Quick Example:</b></p>
+<pre><code class="lang-csharp">using (var curl = new LibCurl())
+{
+    // Configure defaults for all requests
+    curl.WithHeader("Accept", "application/json")
+        .WithBearerToken("your-token")
+        .WithTimeout(TimeSpan.FromSeconds(30));
+
+    // Make multiple requests with same configuration
+    var user = await curl.GetAsync("https://api.example.com/user");
+    var posts = await curl.GetAsync("https://api.example.com/posts");
+}</code></pre>
+</div>
+  <div class="markdown conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public class LibCurl : IDisposable</code></pre>
+  </div>
+
+
+
+
+  <dl class="typelist inheritance">
+    <dt>Inheritance</dt>
+    <dd>
+      <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></div>
+      <div><span class="xref">LibCurl</span></div>
+    </dd>
+  </dl>
+
+  <dl class="typelist implements">
+    <dt>Implements</dt>
+    <dd>
+      <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.idisposable">IDisposable</a></div>
+    </dd>
+  </dl>
+
+
+  <dl class="typelist inheritedMembers">
+    <dt>Inherited Members</dt>
+    <dd>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)">object.Equals(object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)">object.Equals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gethashcode">object.GetHashCode()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gettype">object.GetType()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone">object.MemberwiseClone()</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.referenceequals">object.ReferenceEquals(object, object)</a>
+    </div>
+    <div>
+      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.tostring">object.ToString()</a>
+    </div>
+  </dd></dl>
+
+
+
+
+  <h2 id="CurlDotNet_Lib_LibCurl_remarks">Remarks</h2>
+  <div class="markdown level0 remarks"><p>LibCurl provides a stateful, reusable client with default configurations
+that persist across requests. This is ideal for scenarios where you make multiple
+requests to the same API with the same authentication and headers.</p>
+<p>All methods are thread-safe and can be used concurrently.</p>
+<p>Implements IDisposable - always use with <code>using</code> statement or dispose manually.</p>
+</div>
+
+
+  <h2 class="section" id="constructors">Constructors
+</h2>
+
+
+  <a id="CurlDotNet_Lib_LibCurl__ctor_" data-uid="CurlDotNet.Lib.LibCurl.#ctor*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl__ctor" data-uid="CurlDotNet.Lib.LibCurl.#ctor">
+  LibCurl()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L84"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Creates a new LibCurl instance.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LibCurl()</code></pre>
+  </div>
+
+
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Lib_LibCurl__ctor_examples">Examples</h4>
+  <pre><code class="lang-csharp">using (var curl = new LibCurl())
+{
+    var result = await curl.GetAsync("https://api.example.com/data");
+}</code></pre>
+
+
+
+
+
+
+  <h2 class="section" id="methods">Methods
+</h2>
+
+
+  <a id="CurlDotNet_Lib_LibCurl_Configure_" data-uid="CurlDotNet.Lib.LibCurl.Configure*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_Configure_System_Action_CurlDotNet_Core_CurlOptions__" data-uid="CurlDotNet.Lib.LibCurl.Configure(System.Action{CurlDotNet.Core.CurlOptions})">
+  Configure(Action&lt;CurlOptions&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L402"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Configure default options using an action.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LibCurl Configure(Action&lt;CurlOptions&gt; configure)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>configure</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.action-1">Action</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlOptions.html">CurlOptions</a>&gt;</dt>
+    <dd><p>Configuration action</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Lib.LibCurl.html">LibCurl</a></dt>
+    <dd><p>This instance for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Lib_LibCurl_Configure_System_Action_CurlDotNet_Core_CurlOptions___examples">Examples</h4>
+  <pre><code class="lang-csharp">using (var curl = new LibCurl())
+{
+    curl.Configure(opts =&gt; {
+        opts.FollowRedirects = true;
+        opts.MaxTime = 60;
+        opts.Insecure = false;
+    });
+}</code></pre>
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_DeleteAsync_" data-uid="CurlDotNet.Lib.LibCurl.DeleteAsync*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_DeleteAsync_System_String_System_Action_CurlDotNet_Core_CurlOptions__System_Threading_CancellationToken_" data-uid="CurlDotNet.Lib.LibCurl.DeleteAsync(System.String,System.Action{CurlDotNet.Core.CurlOptions},System.Threading.CancellationToken)">
+  DeleteAsync(string, Action&lt;CurlOptions&gt;, CancellationToken)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L207"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Perform a DELETE request.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Task&lt;CurlResult&gt; DeleteAsync(string url, Action&lt;CurlOptions&gt; configure = null, CancellationToken cancellationToken = default)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>url</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>The URL to DELETE</p>
+</dd>
+    <dt><code>configure</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.action-1">Action</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlOptions.html">CurlOptions</a>&gt;</dt>
+    <dd><p>Optional configuration action for this request</p>
+</dd>
+    <dt><code>cancellationToken</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken">CancellationToken</a></dt>
+    <dd><p>Cancellation token</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1">Task</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a>&gt;</dt>
+    <dd><p>The result of the request</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_Dispose_" data-uid="CurlDotNet.Lib.LibCurl.Dispose*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_Dispose" data-uid="CurlDotNet.Lib.LibCurl.Dispose">
+  Dispose()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L486"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Dispose resources.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void Dispose()</code></pre>
+  </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_GetAsync_" data-uid="CurlDotNet.Lib.LibCurl.GetAsync*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_GetAsync_System_String_System_Action_CurlDotNet_Core_CurlOptions__System_Threading_CancellationToken_" data-uid="CurlDotNet.Lib.LibCurl.GetAsync(System.String,System.Action{CurlDotNet.Core.CurlOptions},System.Threading.CancellationToken)">
+  GetAsync(string, Action&lt;CurlOptions&gt;, CancellationToken)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L114"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Perform a GET request.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Task&lt;CurlResult&gt; GetAsync(string url, Action&lt;CurlOptions&gt; configure = null, CancellationToken cancellationToken = default)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>url</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>The URL to GET</p>
+</dd>
+    <dt><code>configure</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.action-1">Action</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlOptions.html">CurlOptions</a>&gt;</dt>
+    <dd><p>Optional configuration action for this request</p>
+</dd>
+    <dt><code>cancellationToken</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken">CancellationToken</a></dt>
+    <dd><p>Cancellation token</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1">Task</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a>&gt;</dt>
+    <dd><p>The result of the request</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Lib_LibCurl_GetAsync_System_String_System_Action_CurlDotNet_Core_CurlOptions__System_Threading_CancellationToken__examples">Examples</h4>
+  <pre><code class="lang-csharp">using (var curl = new LibCurl())
+{
+    // Simple GET
+    var result = await curl.GetAsync("https://api.example.com/users");
+
+    // GET with per-request configuration
+    var result = await curl.GetAsync("https://api.example.com/users", 
+        opts =&gt; opts.FollowRedirects = true);
+}</code></pre>
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_HeadAsync_" data-uid="CurlDotNet.Lib.LibCurl.HeadAsync*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_HeadAsync_System_String_System_Action_CurlDotNet_Core_CurlOptions__System_Threading_CancellationToken_" data-uid="CurlDotNet.Lib.LibCurl.HeadAsync(System.String,System.Action{CurlDotNet.Core.CurlOptions},System.Threading.CancellationToken)">
+  HeadAsync(string, Action&lt;CurlOptions&gt;, CancellationToken)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L222"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Perform a HEAD request.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Task&lt;CurlResult&gt; HeadAsync(string url, Action&lt;CurlOptions&gt; configure = null, CancellationToken cancellationToken = default)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>url</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>The URL to HEAD</p>
+</dd>
+    <dt><code>configure</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.action-1">Action</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlOptions.html">CurlOptions</a>&gt;</dt>
+    <dd><p>Optional configuration action for this request</p>
+</dd>
+    <dt><code>cancellationToken</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken">CancellationToken</a></dt>
+    <dd><p>Cancellation token</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1">Task</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a>&gt;</dt>
+    <dd><p>The result of the request</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_PatchAsync_" data-uid="CurlDotNet.Lib.LibCurl.PatchAsync*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_PatchAsync_System_String_System_Object_System_Action_CurlDotNet_Core_CurlOptions__System_Threading_CancellationToken_" data-uid="CurlDotNet.Lib.LibCurl.PatchAsync(System.String,System.Object,System.Action{CurlDotNet.Core.CurlOptions},System.Threading.CancellationToken)">
+  PatchAsync(string, object, Action&lt;CurlOptions&gt;, CancellationToken)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L187"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Perform a PATCH request.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Task&lt;CurlResult&gt; PatchAsync(string url, object data = null, Action&lt;CurlOptions&gt; configure = null, CancellationToken cancellationToken = default)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>url</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>The URL to PATCH</p>
+</dd>
+    <dt><code>data</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></dt>
+    <dd><p>Data to send (object will be JSON serialized, string sent as-is)</p>
+</dd>
+    <dt><code>configure</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.action-1">Action</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlOptions.html">CurlOptions</a>&gt;</dt>
+    <dd><p>Optional configuration action for this request</p>
+</dd>
+    <dt><code>cancellationToken</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken">CancellationToken</a></dt>
+    <dd><p>Cancellation token</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1">Task</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a>&gt;</dt>
+    <dd><p>The result of the request</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_PerformAsync_" data-uid="CurlDotNet.Lib.LibCurl.PerformAsync*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_PerformAsync_CurlDotNet_Core_CurlOptions_System_Threading_CancellationToken_" data-uid="CurlDotNet.Lib.LibCurl.PerformAsync(CurlDotNet.Core.CurlOptions,System.Threading.CancellationToken)">
+  PerformAsync(CurlOptions, CancellationToken)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L236"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Perform a custom request with full control.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Task&lt;CurlResult&gt; PerformAsync(CurlOptions options, CancellationToken cancellationToken = default)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>options</code> <a class="xref" href="CurlDotNet.Core.CurlOptions.html">CurlOptions</a></dt>
+    <dd><p>Fully configured CurlOptions</p>
+</dd>
+    <dt><code>cancellationToken</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken">CancellationToken</a></dt>
+    <dd><p>Cancellation token</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1">Task</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a>&gt;</dt>
+    <dd><p>The result of the request</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_PostAsync_" data-uid="CurlDotNet.Lib.LibCurl.PostAsync*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_PostAsync_System_String_System_Object_System_Action_CurlDotNet_Core_CurlOptions__System_Threading_CancellationToken_" data-uid="CurlDotNet.Lib.LibCurl.PostAsync(System.String,System.Object,System.Action{CurlDotNet.Core.CurlOptions},System.Threading.CancellationToken)">
+  PostAsync(string, object, Action&lt;CurlOptions&gt;, CancellationToken)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L145"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Perform a POST request.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Task&lt;CurlResult&gt; PostAsync(string url, object data = null, Action&lt;CurlOptions&gt; configure = null, CancellationToken cancellationToken = default)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>url</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>The URL to POST to</p>
+</dd>
+    <dt><code>data</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></dt>
+    <dd><p>Data to send (object will be JSON serialized, string sent as-is)</p>
+</dd>
+    <dt><code>configure</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.action-1">Action</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlOptions.html">CurlOptions</a>&gt;</dt>
+    <dd><p>Optional configuration action for this request</p>
+</dd>
+    <dt><code>cancellationToken</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken">CancellationToken</a></dt>
+    <dd><p>Cancellation token</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1">Task</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a>&gt;</dt>
+    <dd><p>The result of the request</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Lib_LibCurl_PostAsync_System_String_System_Object_System_Action_CurlDotNet_Core_CurlOptions__System_Threading_CancellationToken__examples">Examples</h4>
+  <pre><code class="lang-csharp">using (var curl = new LibCurl())
+{
+    // POST with object (auto-serialized to JSON)
+    var result = await curl.PostAsync("https://api.example.com/users",
+        new { name = "John", email = "john@example.com" });
+
+    // POST with string data
+    var result = await curl.PostAsync("https://api.example.com/data",
+        "key1=value1&amp;key2=value2",
+        opts =&gt; opts.Headers["Content-Type"] = "application/x-www-form-urlencoded");
+}</code></pre>
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_PutAsync_" data-uid="CurlDotNet.Lib.LibCurl.PutAsync*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_PutAsync_System_String_System_Object_System_Action_CurlDotNet_Core_CurlOptions__System_Threading_CancellationToken_" data-uid="CurlDotNet.Lib.LibCurl.PutAsync(System.String,System.Object,System.Action{CurlDotNet.Core.CurlOptions},System.Threading.CancellationToken)">
+  PutAsync(string, object, Action&lt;CurlOptions&gt;, CancellationToken)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L166"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Perform a PUT request.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public Task&lt;CurlResult&gt; PutAsync(string url, object data = null, Action&lt;CurlOptions&gt; configure = null, CancellationToken cancellationToken = default)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>url</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>The URL to PUT to</p>
+</dd>
+    <dt><code>data</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></dt>
+    <dd><p>Data to send (object will be JSON serialized, string sent as-is)</p>
+</dd>
+    <dt><code>configure</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.action-1">Action</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlOptions.html">CurlOptions</a>&gt;</dt>
+    <dd><p>Optional configuration action for this request</p>
+</dd>
+    <dt><code>cancellationToken</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken">CancellationToken</a></dt>
+    <dd><p>Cancellation token</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1">Task</a>&lt;<a class="xref" href="CurlDotNet.Core.CurlResult.html">CurlResult</a>&gt;</dt>
+    <dd><p>The result of the request</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_WithBasicAuth_" data-uid="CurlDotNet.Lib.LibCurl.WithBasicAuth*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_WithBasicAuth_System_String_System_String_" data-uid="CurlDotNet.Lib.LibCurl.WithBasicAuth(System.String,System.String)">
+  WithBasicAuth(string, string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L286"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set basic authentication for all requests.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LibCurl WithBasicAuth(string username, string password)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>username</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Username</p>
+</dd>
+    <dt><code>password</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Password</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Lib.LibCurl.html">LibCurl</a></dt>
+    <dd><p>This instance for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_WithBearerToken_" data-uid="CurlDotNet.Lib.LibCurl.WithBearerToken*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_WithBearerToken_System_String_" data-uid="CurlDotNet.Lib.LibCurl.WithBearerToken(System.String)">
+  WithBearerToken(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L275"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set bearer token authentication for all requests.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LibCurl WithBearerToken(string token)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>token</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Bearer token</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Lib.LibCurl.html">LibCurl</a></dt>
+    <dd><p>This instance for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_WithConnectTimeout_" data-uid="CurlDotNet.Lib.LibCurl.WithConnectTimeout*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_WithConnectTimeout_System_TimeSpan_" data-uid="CurlDotNet.Lib.LibCurl.WithConnectTimeout(System.TimeSpan)">
+  WithConnectTimeout(TimeSpan)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L308"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set connection timeout for all requests.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LibCurl WithConnectTimeout(TimeSpan timeout)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>timeout</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.timespan">TimeSpan</a></dt>
+    <dd><p>Connection timeout duration</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Lib.LibCurl.html">LibCurl</a></dt>
+    <dd><p>This instance for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_WithFollowRedirects_" data-uid="CurlDotNet.Lib.LibCurl.WithFollowRedirects*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_WithFollowRedirects_System_Int32_" data-uid="CurlDotNet.Lib.LibCurl.WithFollowRedirects(System.Int32)">
+  WithFollowRedirects(int)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L319"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Enable following redirects for all requests.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LibCurl WithFollowRedirects(int maxRedirects = 50)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>maxRedirects</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></dt>
+    <dd><p>Maximum number of redirects (default: 50)</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Lib.LibCurl.html">LibCurl</a></dt>
+    <dd><p>This instance for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_WithHeader_" data-uid="CurlDotNet.Lib.LibCurl.WithHeader*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_WithHeader_System_String_System_String_" data-uid="CurlDotNet.Lib.LibCurl.WithHeader(System.String,System.String)">
+  WithHeader(string, string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L264"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set a default header for all requests.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LibCurl WithHeader(string key, string value)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>key</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Header name</p>
+</dd>
+    <dt><code>value</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Header value</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Lib.LibCurl.html">LibCurl</a></dt>
+    <dd><p>This instance for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+  <h4 class="section" id="CurlDotNet_Lib_LibCurl_WithHeader_System_String_System_String__examples">Examples</h4>
+  <pre><code class="lang-csharp">using (var curl = new LibCurl())
+{
+    curl.WithHeader("Accept", "application/json")
+        .WithHeader("X-API-Key", "your-key");
+
+    // All subsequent requests will include these headers
+    var result = await curl.GetAsync("https://api.example.com/data");
+}</code></pre>
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_WithInsecureSsl_" data-uid="CurlDotNet.Lib.LibCurl.WithInsecureSsl*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_WithInsecureSsl" data-uid="CurlDotNet.Lib.LibCurl.WithInsecureSsl">
+  WithInsecureSsl()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L330"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Enable ignoring SSL certificate errors (for testing only).</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LibCurl WithInsecureSsl()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Lib.LibCurl.html">LibCurl</a></dt>
+    <dd><p>This instance for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_WithOutputFile_" data-uid="CurlDotNet.Lib.LibCurl.WithOutputFile*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_WithOutputFile_System_String_" data-uid="CurlDotNet.Lib.LibCurl.WithOutputFile(System.String)">
+  WithOutputFile(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L369"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set default output file for all requests.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LibCurl WithOutputFile(string filePath)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>filePath</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Output file path</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Lib.LibCurl.html">LibCurl</a></dt>
+    <dd><p>This instance for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_WithProxy_" data-uid="CurlDotNet.Lib.LibCurl.WithProxy*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_WithProxy_System_String_System_String_System_String_" data-uid="CurlDotNet.Lib.LibCurl.WithProxy(System.String,System.String,System.String)">
+  WithProxy(string, string, string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L343"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set proxy for all requests.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LibCurl WithProxy(string proxyUrl, string username = null, string password = null)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>proxyUrl</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Proxy URL (e.g., &quot;http://proxy.example.com:8080&quot;)</p>
+</dd>
+    <dt><code>username</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Optional proxy username</p>
+</dd>
+    <dt><code>password</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>Optional proxy password</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Lib.LibCurl.html">LibCurl</a></dt>
+    <dd><p>This instance for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_WithTimeout_" data-uid="CurlDotNet.Lib.LibCurl.WithTimeout*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_WithTimeout_System_TimeSpan_" data-uid="CurlDotNet.Lib.LibCurl.WithTimeout(System.TimeSpan)">
+  WithTimeout(TimeSpan)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L297"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set timeout for all requests.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LibCurl WithTimeout(TimeSpan timeout)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>timeout</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.timespan">TimeSpan</a></dt>
+    <dd><p>Timeout duration</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Lib.LibCurl.html">LibCurl</a></dt>
+    <dd><p>This instance for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_WithUserAgent_" data-uid="CurlDotNet.Lib.LibCurl.WithUserAgent*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_WithUserAgent_System_String_" data-uid="CurlDotNet.Lib.LibCurl.WithUserAgent(System.String)">
+  WithUserAgent(string)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L358"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Set user agent for all requests.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LibCurl WithUserAgent(string userAgent)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>userAgent</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.string">string</a></dt>
+    <dd><p>User agent string</p>
+</dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Lib.LibCurl.html">LibCurl</a></dt>
+    <dd><p>This instance for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+  <a id="CurlDotNet_Lib_LibCurl_WithVerbose_" data-uid="CurlDotNet.Lib.LibCurl.WithVerbose*"></a>
+
+  <h3 id="CurlDotNet_Lib_LibCurl_WithVerbose" data-uid="CurlDotNet.Lib.LibCurl.WithVerbose">
+  WithVerbose()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L379"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Enable verbose output for debugging.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public LibCurl WithVerbose()</code></pre>
+  </div>
+
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="CurlDotNet.Lib.LibCurl.html">LibCurl</a></dt>
+    <dd><p>This instance for method chaining</p>
+</dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/jacob-mellor/curl-dot-net/blob/dotnetcurl/src/CurlDotNet/Lib/LibCurl.cs/#L66" class="edit-link">Edit this page</a>
+        </div>
+
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          Based on curl by Daniel Stenberg and contributors | Sponsored by <a href='https://ironsoftware.com'>IronSoftware</a> | Copyright © 1996-2025 curl authors, 2024-2025 CurlDotNet authors
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

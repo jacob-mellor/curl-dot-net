@@ -57,9 +57,9 @@ namespace CurlDotNet.Core
                 request.EnableSsl = options.FtpSsl || options.Url.StartsWith("ftps://");
                 request.KeepAlive = options.KeepAliveTime.HasValue;
 
-                if (options.ConnectTimeout > 0)
+                if (options.ConnectTimeout.HasValue && options.ConnectTimeout.Value > 0)
                 {
-                    request.Timeout = options.ConnectTimeout * 1000;
+                    request.Timeout = options.ConnectTimeout.Value * 1000;
                 }
 
                 // Set proxy if specified

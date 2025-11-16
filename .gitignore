@@ -42,6 +42,7 @@ Desktop.ini
 
 # macOS
 .DS_Store
+**/.DS_Store
 .AppleDouble
 .LSOverride
 
@@ -66,3 +67,8 @@ BenchmarkDotNet.Artifacts/
 
 # Estimation and planning documents (for now)
 USERLAND_ESTIMATION_TABLE.md
+
+# Promotional content (internal use)
+promotional/
+.env
+promotion.md

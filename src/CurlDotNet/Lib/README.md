@@ -1,79 +1,80 @@
 # LibCurl API
 
-This directory contains the object-oriented, programmatic API similar to libcurl.
+`CurlDotNet.Lib` packages the “libcurl style” API: you instantiate `LibCurl`, set defaults once, and reuse it across multiple requests. Think of it as a typed, reusable client that still speaks curl.
 
-## Purpose
+## Why This Namespace Exists
 
-The LibCurl namespace provides a programmatic, object-oriented API for developers who prefer building requests through code rather than parsing curl command strings. This API is inspired by curl's libcurl C API but adapted for .NET patterns.
+- **Stateful configuration** – Headers, auth, proxy settings, and timeouts live on the instance.
+- **Thread-safe execution** – Under the hood, `CurlEngine` + `HttpClient` are shared, so you can fire concurrent calls.
+- **Parity with curl options** – Every helper (`WithTimeout`, `WithInsecureSsl`, etc.) maps directly to a curl flag.
 
-## Components
+## LibCurl Class Highlights
 
-### LibCurl Class
+### HTTP verbs
+- `Task<CurlResult> GetAsync(string url, Action<CurlOptions>? configure = null, CancellationToken token = default)`
+- `PostAsync`, `PutAsync`, `PatchAsync`, `DeleteAsync`, `HeadAsync`, and `PerformAsync` (fully custom `CurlOptions`)
 
-**`LibCurl.cs`** - Main class providing fluent API for building and executing requests. Provides:
+### Fluent defaults
+- `WithHeader`, `WithBearerToken`, `WithBasicAuth`
+- `WithTimeout`, `WithConnectTimeout`, `WithFollowRedirects`, `WithInsecureSsl`
+- `WithProxy`, `WithUserAgent`, `WithOutputFile`, `WithVerbose`
+- `Configure(Action<CurlOptions>)` for anything not covered by helpers
 
-#### HTTP Methods
-- `GetAsync(string url)` - Execute GET request
-- `PostAsync(string url, object? data = null)` - Execute POST request
-- `PutAsync(string url, object? data = null)` - Execute PUT request
-- `DeleteAsync(string url)` - Execute DELETE request
-- `PatchAsync(string url, object? data = null)` - Execute PATCH request
-- `HeadAsync(string url)` - Execute HEAD request
+Defaults are stored in `_defaultHeaders` and `_defaultOptions`. Each request clones those defaults via `MergeDefaults`, so per-call overrides never mutate the global state.
 
-#### Configuration Methods (Fluent)
-- `WithTimeout(TimeSpan timeout)` - Set request timeout
-- `WithConnectTimeout(TimeSpan timeout)` - Set connection timeout
-- `WithFollowRedirects(bool follow)` - Enable/disable redirect following
-- `WithInsecureSsl(bool insecure)` - Skip SSL certificate validation
-- `WithProxy(string proxyUrl)` - Set proxy server
-- `WithUserAgent(string userAgent)` - Set user agent
-- `WithOutputFile(string filePath)` - Save response to file
-- `WithVerbose(bool verbose)` - Enable verbose logging
-
-#### Advanced Configuration
-- `Configure(Action<CurlOptions> configure)` - Advanced option configuration
-
-#### Execution
-- `ExecuteAsync()` - Execute the configured request
-
-## Design Principles
-
-1. **Fluent Interface** - Method chaining for intuitive API usage
-2. **Type Safety** - Strongly-typed parameters and return values
-3. **IntelliSense Friendly** - Discoverable through autocomplete
-4. **Optional Parameters** - Sensible defaults, complexity hidden
-
-## Usage Examples
+## Usage Patterns
 
 ```csharp
-// Simple GET request
-var result = await LibCurl.GetAsync("https://api.example.com/data");
+using CurlDotNet.Lib;
 
-// POST with JSON data
-var result = await LibCurl
-    .PostAsync("https://api.example.com/users", new { name = "John" })
-    .WithHeader("Authorization", "Bearer token123")
-    .WithTimeout(TimeSpan.FromSeconds(30))
-    .ExecuteAsync();
+await using var curl = new LibCurl();
 
-// Complex request with multiple options
-var result = await LibCurl
-    .GetAsync("https://api.example.com/data")
-    .WithFollowRedirects(true)
-    .WithProxy("http://proxy.example.com:8080")
-    .WithOutputFile("response.json")
-    .ExecuteAsync();
+curl.WithHeader("Accept", "application/json")
+    .WithBearerToken("token123")
+    .WithTimeout(TimeSpan.FromSeconds(20))
+    .WithFollowRedirects();
+
+var users = await curl.GetAsync("https://api.example.com/users");
+
+var report = await curl.PostAsync(
+    "https://api.example.com/reports",
+    new { range = "last_30_days" },
+    opts => opts.Headers["X-Trace"] = Activity.Current?.Id ?? Guid.NewGuid().ToString());
 ```
 
-## When to Use
+### Downloading to Disk
 
-- **Use LibCurl API**: When building requests programmatically in code, when you want type safety and IntelliSense support
-- **Use Curl.ExecuteAsync(string)**: When you have curl commands from documentation or want to copy-paste directly
+```csharp
+curl.WithOutputFile("reports/daily.json");
+var export = await curl.GetAsync("https://reports.example.com/daily");
+Console.WriteLine($"Saved to {export.Options.OutputFile}");
+```
 
-Both APIs provide the same functionality—choose based on your preference and use case.
+### Custom `CurlOptions`
 
-## See Also
+```csharp
+var options = new CurlOptions
+{
+    Url = "https://idp.example.com/token",
+    Method = "POST",
+    Data = "grant_type=client_credentials",
+    Headers = { ["Content-Type"] = "application/x-www-form-urlencoded" }
+};
 
-- [CurlRequestBuilder](../Core/CurlRequestBuilder.cs) - Similar fluent API in Core namespace
-- [Main Curl Class](../Curl.cs) - String-based API
+var result = await curl.PerformAsync(options);
+```
+
+## When to Choose LibCurl
+
+- You need a reusable service client or DI-friendly abstraction.
+- Multiple endpoints share the same auth/headers and you don’t want to repeat yourself.
+- You are porting code from libcurl (C) or HttpClient factories and want equivalent lifecycle semantics.
+
+Use `Curl.ExecuteAsync` when you literally have a curl command string. Use `CurlRequestBuilder` when you need compile-time guidance but not necessarily a shared client.
+
+## Further Reading
+
+- [Documentation](https://jacob-mellor.github.io/curl-dot-net/) – step-by-step tutorials, migration tips, and troubleshooting.
+- [CurlOptions](../Core/CurlOptions.cs) – the object passed to `PerformAsync`.
+- [API Reference](https://jacob-mellor.github.io/curl-dot-net/api/) – complete API documentation including middleware, retries, and protocol handlers.
 

@@ -1,0 +1,6 @@
+- Never release if there's a red test. Always update the README with the testing status and code coverage. On every iteration or commit, try and improve the code coverage even by 1%.
+- Fixing tests is always the priority on a to-do list. If there's any broken test, that is the first item that happens
+- The purpose of an error message is not to tell the user that there's an exception but to help them fix the problem
+- Every error message should link to an appropriate documentation page online
+- This project will only ever use pure C# code. We will never use PINVOKE for our deployable code, so if you can't find something in C# that is compatible, please transpile from C++ and use internet searching to do so
+- Please ensure that every single exception that is thrown will link to an appropriate page within our documentation, either in the Git repo, or doc effects, or GitHub pages docmmentation

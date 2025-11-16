@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -50,7 +51,7 @@ namespace CurlDotNet.Core
         /// <summary>
         /// Create a new CurlEngine with default HttpClient.
         /// </summary>
-        public CurlEngine() : this(new HttpClient())
+        public CurlEngine() : this(CreateDefaultHttpClient())
         {
         }
 
@@ -86,6 +87,12 @@ namespace CurlDotNet.Core
         /// </summary>
         public async Task<CurlResult> ExecuteAsync(string command, CancellationToken cancellationToken)
         {
+            // Validate command
+            if (string.IsNullOrWhiteSpace(command))
+            {
+                throw new ArgumentException("Command cannot be null or empty", nameof(command));
+            }
+
             var options = _parser.Parse(command);
             return await ExecuteAsync(options, cancellationToken);
         }
@@ -146,9 +153,13 @@ namespace CurlDotNet.Core
             {
                 throw new CurlMalformedUrlException($"Invalid URL: {options.Url}");
             }
-            catch (TaskCanceledException ex)
+            catch (TaskCanceledException)
             {
-                throw new CurlOperationTimeoutException(options.MaxTime > 0 ? options.MaxTime : 30, options.OriginalCommand);
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return CreateCancelledResult(options);
+                }
+                return CreateTimeoutResult(options);
             }
             catch (HttpRequestException ex)
             {
@@ -388,6 +399,45 @@ namespace CurlDotNet.Core
             {
                 options.ProgressHandler = settings.OnProgress;
             }
+        }
+
+        private CurlResult CreateTimeoutResult(CurlOptions options)
+        {
+            return new CurlResult
+            {
+                StatusCode = 408,
+                Body = $"Operation timed out after {GetTimeoutSeconds(options)} seconds.",
+                Command = options.OriginalCommand
+            };
+        }
+
+        private CurlResult CreateCancelledResult(CurlOptions options)
+        {
+            return new CurlResult
+            {
+                StatusCode = 499,
+                Body = "Operation cancelled by caller.",
+                Command = options.OriginalCommand
+            };
+        }
+
+        private static int GetTimeoutSeconds(CurlOptions options)
+        {
+            var timeout = options.MaxTime ?? Curl.DefaultMaxTimeSeconds;
+            return timeout > 0 ? timeout : 30;
+        }
+
+        /// <summary>
+        /// Creates an HttpClient configured for curl-like behavior.
+        /// </summary>
+        private static HttpClient CreateDefaultHttpClient()
+        {
+            var handler = new HttpClientHandler
+            {
+                AllowAutoRedirect = false, // We handle redirects manually like curl
+                AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+            };
+            return new HttpClient(handler);
         }
 
         public void Dispose()

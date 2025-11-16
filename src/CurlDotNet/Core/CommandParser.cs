@@ -109,6 +109,45 @@ namespace CurlDotNet.Core
             ["-m"] = "--max-time"
         };
 
+        private static readonly HashSet<string> OptionsRequiringValue = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "--request",
+            "--header",
+            "--data",
+            "--data-raw",
+            "--data-binary",
+            "--data-urlencode",
+            "--form",
+            "--output",
+            "--user-agent",
+            "--referer",
+            "--cookie",
+            "--cookie-jar",
+            "--user",
+            "--proxy",
+            "--proxy-user",
+            "--max-time",
+            "--connect-timeout",
+            "--max-redirs",
+            "--write-out",
+            "--range",
+            "--continue-at",
+            "--cert",
+            "--key",
+            "--cacert",
+            "--interface",
+            "--limit-rate",
+            "--speed-time",
+            "--keepalive-time",
+            "--dns-servers",
+            "--resolve",
+            "--quote",
+            "--socks5",
+            "--retry",
+            "--retry-delay",
+            "--retry-max-time"
+        };
+
         public CurlOptions Parse(string command)
         {
             if (string.IsNullOrWhiteSpace(command))
@@ -137,7 +176,17 @@ namespace CurlDotNet.Core
             command = ExpandEnvironmentVariables(command);
 
             var args = ParseArguments(command);
-            ProcessArguments(args, options);
+            var methodExplicitlySet = ProcessArguments(args, options);
+
+            if (string.IsNullOrEmpty(options.Url))
+            {
+                throw new CurlInvalidCommandException("No URL specified in command.", "URL", options.OriginalCommand);
+            }
+
+            if (!methodExplicitlySet && string.Equals(options.Method, "GET", StringComparison.OrdinalIgnoreCase))
+            {
+                options.Method = null;
+            }
 
             return options;
         }
@@ -318,25 +367,71 @@ namespace CurlDotNet.Core
             return args;
         }
 
-        private void ProcessArguments(List<string> args, CurlOptions options)
+        private bool ProcessArguments(List<string> args, CurlOptions options)
         {
+            var methodSpecified = false;
+
             for (int i = 0; i < args.Count; i++)
             {
                 var arg = args[i];
 
                 if (arg.StartsWith("-"))
                 {
-                    // Handle options
-                    var optionName = NormalizeOption(arg);
-                    var value = "";
-
-                    // Check if this option needs a value
-                    if (NeedsValue(optionName) && i + 1 < args.Count && !args[i + 1].StartsWith("-"))
+                    var inlineValue = "";
+                    var optionToken = arg;
+                    var equalsIndex = arg.IndexOf('=');
+                    if (equalsIndex > 0)
                     {
-                        value = args[++i];
+                        inlineValue = arg.Substring(equalsIndex + 1);
+                        optionToken = arg.Substring(0, equalsIndex);
                     }
 
-                    ProcessOption(optionName, value, options);
+                    // Handle combined short options like -sS, -sSL etc.
+                    if (optionToken.StartsWith("-") && !optionToken.StartsWith("--") && optionToken.Length > 2)
+                    {
+                        // Split into individual options
+                        foreach (char c in optionToken.Substring(1))
+                        {
+                            var singleOption = "-" + c;
+                            var normalizedOption = NormalizeOption(singleOption);
+                            var singleNeedsValue = NeedsValue(normalizedOption);
+
+                            if (singleNeedsValue)
+                            {
+                                // If this short option needs a value, use the inline value or next arg
+                                var singleValue = inlineValue;
+                                if (string.IsNullOrEmpty(inlineValue) && i + 1 < args.Count && !args[i + 1].StartsWith("-"))
+                                {
+                                    singleValue = args[++i];
+                                }
+                                ProcessOption(normalizedOption, singleValue, options, ref methodSpecified);
+                                break; // Stop processing combined options if one needs a value
+                            }
+                            else
+                            {
+                                ProcessOption(normalizedOption, "", options, ref methodSpecified);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var optionName = NormalizeOption(optionToken);
+                        var needsValue = NeedsValue(optionName);
+                        var value = inlineValue;
+
+                        if (needsValue && string.IsNullOrEmpty(inlineValue))
+                        {
+                            if (i + 1 < args.Count && !args[i + 1].StartsWith("-"))
+                            {
+                                value = args[++i];
+                            }
+                        }
+
+                        if (!ProcessOption(optionName, value, options, ref methodSpecified))
+                        {
+                            // Unknown option - ignore but do not consume URL arguments
+                        }
+                    }
                 }
                 else if (string.IsNullOrEmpty(options.Url))
                 {
@@ -349,6 +444,8 @@ namespace CurlDotNet.Core
                     // For simplicity, ignore additional URLs for now
                 }
             }
+
+            return methodSpecified;
         }
 
         private string NormalizeOption(string option)
@@ -375,15 +472,10 @@ namespace CurlDotNet.Core
 
         private bool NeedsValue(string option)
         {
-            var noValueOptions = new[] { "--include", "--head", "--location", "--insecure",
-                "--verbose", "--silent", "--show-error", "--fail", "--compressed",
-                "--remote-name", "--location-trusted", "--disable-epsv", "--disable-eprt",
-                "--ftp-pasv", "--ftp-ssl", "--create-dirs", "--progress-bar" };
-
-            return !noValueOptions.Contains(option);
+            return OptionsRequiringValue.Contains(option);
         }
 
-        private void ProcessOption(string option, string value, CurlOptions options)
+        private bool ProcessOption(string option, string value, CurlOptions options, ref bool methodSpecified)
         {
             switch (option)
             {
@@ -391,142 +483,171 @@ namespace CurlDotNet.Core
                 case "-X":
                     options.Method = value.ToUpper();
                     options.CustomMethod = value.ToUpper();
-                    break;
+                    methodSpecified = true;
+                    return true;
 
                 case "--header":
                 case "-H":
                     ParseHeader(value, options);
-                    break;
+                    return true;
 
                 case "--data":
                 case "-d":
-                    options.Data = value;
-                    if (string.IsNullOrEmpty(options.Method))
+                    AppendData(options, value);
+                    // When data is provided, default to POST unless another method was explicitly specified
+                    if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")
+                    {
                         options.Method = "POST";
-                    break;
+                        methodSpecified = true; // Mark as specified since data implies POST
+                    }
+                    return true;
+
+                case "--data-raw":
+                case "--data-binary":
+                    AppendData(options, value);
+                    if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")
+                    {
+                        options.Method = "POST";
+                        methodSpecified = true;
+                    }
+                    return true;
+
+                case "--data-urlencode":
+                    options.DataUrlEncode = true;
+                    AppendData(options, value);
+                    if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")
+                    {
+                        options.Method = "POST";
+                        methodSpecified = true;
+                    }
+                    return true;
 
                 case "--form":
                 case "-F":
                     ParseFormField(value, options);
-                    if (string.IsNullOrEmpty(options.Method))
+                    if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")
+                    {
                         options.Method = "POST";
-                    break;
+                        methodSpecified = true;
+                    }
+                    return true;
 
                 case "--output":
                 case "-o":
                     options.OutputFile = value;
-                    break;
+                    return true;
 
                 case "--remote-name":
                 case "-O":
-                    options.OutputFile = ""; // Will use filename from URL
                     options.UseRemoteFileName = true;
-                    break;
+                    options.OutputFile = null;
+                    return true;
 
                 case "--include":
                 case "-i":
                     options.IncludeHeaders = true;
-                    break;
+                    return true;
 
                 case "--head":
                 case "-I":
                     options.HeadOnly = true;
                     options.Method = "HEAD";
-                    break;
+                    methodSpecified = true;
+                    return true;
 
                 case "--location":
                 case "-L":
                     options.FollowLocation = true;
-                    break;
+                    return true;
 
                 case "--insecure":
                 case "-k":
                     options.Insecure = true;
-                    break;
+                    return true;
 
                 case "--verbose":
                 case "-v":
                     options.Verbose = true;
-                    break;
+                    return true;
 
                 case "--silent":
                 case "-s":
                     options.Silent = true;
-                    break;
+                    return true;
 
                 case "--show-error":
                 case "-S":
                     options.ShowError = true;
-                    break;
+                    return true;
 
                 case "--fail":
                 case "-f":
                     options.FailOnError = true;
-                    break;
+                    return true;
 
                 case "--user-agent":
                 case "-A":
                     options.UserAgent = value;
-                    break;
+                    return true;
 
                 case "--referer":
                 case "-e":
                     options.Referer = value;
-                    break;
+                    return true;
 
                 case "--cookie":
                 case "-b":
                     options.Cookie = value;
-                    break;
+                    return true;
 
                 case "--cookie-jar":
                 case "-c":
                     options.CookieJar = value;
-                    break;
+                    return true;
 
                 case "--user":
                 case "-u":
                     ParseCredentials(value, options);
-                    break;
+                    return true;
 
                 case "--proxy":
                 case "-x":
                     options.Proxy = value;
-                    break;
+                    return true;
 
                 case "--proxy-user":
                     ParseProxyCredentials(value, options);
-                    break;
+                    return true;
 
                 case "--max-time":
                 case "-m":
                     if (int.TryParse(value, out var maxTime))
                         options.MaxTime = maxTime;
-                    break;
+                    return true;
 
                 case "--connect-timeout":
                     if (int.TryParse(value, out var connectTimeout))
                         options.ConnectTimeout = connectTimeout;
-                    break;
+                    return true;
 
                 case "--max-redirs":
                     if (int.TryParse(value, out var maxRedirects))
                         options.MaxRedirects = maxRedirects;
-                    break;
+                    return true;
 
                 case "--compressed":
                     options.Compressed = true;
-                    break;
+                    return true;
 
                 case "--write-out":
                 case "-w":
                     options.WriteOut = value;
-                    break;
+                    return true;
 
                 case "--range":
                 case "-r":
                     options.Range = value;
-                    break;
+                    return true;
 
                 case "--continue-at":
                 case "-C":
@@ -534,109 +655,111 @@ namespace CurlDotNet.Core
                         options.ResumeFrom = -1; // Auto-resume
                     else if (long.TryParse(value, out var resumeFrom))
                         options.ResumeFrom = resumeFrom;
-                    break;
+                    return true;
 
                 case "--cert":
                     options.CertFile = value;
-                    break;
+                    return true;
 
                 case "--key":
                     options.KeyFile = value;
-                    break;
+                    return true;
 
                 case "--cacert":
                     options.CaCertFile = value;
-                    break;
+                    return true;
 
                 case "--interface":
                     options.Interface = value;
-                    break;
+                    return true;
 
                 case "--http1.0":
                     options.HttpVersion = "1.0";
-                    break;
+                    return true;
 
                 case "--http1.1":
                     options.HttpVersion = "1.1";
-                    break;
+                    return true;
 
                 case "--http2":
                     options.HttpVersion = "2.0";
-                    break;
+                    return true;
 
                 case "--limit-rate":
                     options.SpeedLimit = ParseSize(value);
-                    break;
+                    return true;
 
                 case "--speed-time":
                     if (int.TryParse(value, out var speedTime))
                         options.SpeedTime = speedTime;
-                    break;
+                    return true;
 
                 case "--progress-bar":
                     options.ProgressBar = true;
-                    break;
+                    return true;
 
                 case "--keepalive-time":
                     if (int.TryParse(value, out var keepAliveTime))
                         options.KeepAliveTime = keepAliveTime;
-                    break;
+                    return true;
 
                 case "--dns-servers":
                     options.DnsServers = value;
-                    break;
+                    return true;
 
                 case "--resolve":
                     ParseResolve(value, options);
-                    break;
+                    return true;
 
                 case "--quote":
                     options.Quote.Add(value);
-                    break;
+                    return true;
 
                 case "--create-dirs":
                     options.CreateDirs = true;
-                    break;
+                    return true;
 
                 case "--ftp-pasv":
                     options.FtpPassive = true;
-                    break;
+                    return true;
 
                 case "--ftp-ssl":
                     options.FtpSsl = true;
-                    break;
+                    return true;
 
                 case "--disable-epsv":
                     options.DisableEpsv = true;
-                    break;
+                    return true;
 
                 case "--disable-eprt":
                     options.DisableEprt = true;
-                    break;
+                    return true;
 
                 case "--socks5":
                     options.Socks5Proxy = value;
-                    break;
+                    return true;
 
                 case "--retry":
                     if (int.TryParse(value, out var retry))
                         options.Retry = retry;
-                    break;
+                    return true;
 
                 case "--retry-delay":
                     if (int.TryParse(value, out var retryDelay))
                         options.RetryDelay = retryDelay;
-                    break;
+                    return true;
 
                 case "--retry-max-time":
                     if (int.TryParse(value, out var retryMaxTime))
                         options.RetryMaxTime = retryMaxTime;
-                    break;
+                    return true;
 
                 case "--location-trusted":
                     options.LocationTrusted = true;
-                    break;
+                    return true;
             }
+
+            return false;
         }
 
         private void ParseHeader(string header, CurlOptions options)
@@ -646,6 +769,13 @@ namespace CurlDotNet.Core
             {
                 var key = header.Substring(0, colonIndex).Trim();
                 var value = header.Substring(colonIndex + 1).Trim();
+
+                // Special handling for User-Agent header
+                if (key.Equals("User-Agent", StringComparison.OrdinalIgnoreCase))
+                {
+                    options.UserAgent = value;
+                }
+
                 options.Headers[key] = value;
             }
         }
@@ -735,6 +865,31 @@ namespace CurlDotNet.Core
             }
 
             return 0;
+        }
+
+        private void AppendData(CurlOptions options, string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return;
+            }
+
+            if (string.IsNullOrEmpty(options.Data))
+            {
+                options.Data = value;
+            }
+            else
+            {
+                options.Data = $"{options.Data}&{value}";
+            }
+        }
+
+        private void EnsurePostMethod(CurlOptions options)
+        {
+            if (string.IsNullOrEmpty(options.Method))
+            {
+                options.Method = "POST";
+            }
         }
     }
 }

@@ -434,10 +434,10 @@ namespace CurlDotNet.Lib
             if (options.Credentials == null && _defaultOptions.Credentials != null)
                 options.Credentials = _defaultOptions.Credentials;
 
-            if (options.MaxTime == 0 && _defaultOptions.MaxTime > 0)
+            if (!options.MaxTime.HasValue && _defaultOptions.MaxTime.HasValue)
                 options.MaxTime = _defaultOptions.MaxTime;
 
-            if (options.ConnectTimeout == 0 && _defaultOptions.ConnectTimeout > 0)
+            if (!options.ConnectTimeout.HasValue && _defaultOptions.ConnectTimeout.HasValue)
                 options.ConnectTimeout = _defaultOptions.ConnectTimeout;
 
             if (!options.FollowLocation && _defaultOptions.FollowLocation)
