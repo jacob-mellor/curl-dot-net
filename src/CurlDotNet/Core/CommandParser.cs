@@ -464,25 +464,42 @@ namespace CurlDotNet.Core
                 case "--data":
                 case "-d":
                     AppendData(options, value);
-                    EnsurePostMethod(options);
+                    // When data is provided, default to POST unless another method was explicitly specified
+                    if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")
+                    {
+                        options.Method = "POST";
+                        methodSpecified = true; // Mark as specified since data implies POST
+                    }
                     return true;
 
                 case "--data-raw":
                 case "--data-binary":
                     AppendData(options, value);
-                    EnsurePostMethod(options);
+                    if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")
+                    {
+                        options.Method = "POST";
+                        methodSpecified = true;
+                    }
                     return true;
 
                 case "--data-urlencode":
                     options.DataUrlEncode = true;
                     AppendData(options, value);
-                    EnsurePostMethod(options);
+                    if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")
+                    {
+                        options.Method = "POST";
+                        methodSpecified = true;
+                    }
                     return true;
 
                 case "--form":
                 case "-F":
                     ParseFormField(value, options);
-                    EnsurePostMethod(options);
+                    if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")
+                    {
+                        options.Method = "POST";
+                        methodSpecified = true;
+                    }
                     return true;
 
                 case "--output":

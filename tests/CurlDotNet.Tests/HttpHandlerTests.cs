@@ -36,7 +36,7 @@ namespace CurlDotNet.Tests
         {
             _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
             _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
-            _handler = new HttpHandler();
+            _handler = new HttpHandler(_httpClient, false); // Pass the mocked HttpClient
         }
 
         #region GET Request Tests
@@ -301,7 +301,7 @@ namespace CurlDotNet.Tests
                 .ThrowsAsync(new TaskCanceledException());
 
             // Act & Assert
-            await Assert.ThrowsAsync<CurlTimeoutException>(
+            await Assert.ThrowsAsync<CurlOperationTimeoutException>(
                 () => _handler.ExecuteAsync(options, CancellationToken.None));
         }
 
@@ -405,7 +405,15 @@ namespace CurlDotNet.Tests
             {
                 foreach (var header in headers)
                 {
-                    response.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                    // Content-Type is a special header that belongs to Content
+                    if (header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
+                    {
+                        response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(header.Value);
+                    }
+                    else
+                    {
+                        response.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                    }
                 }
             }
 
