@@ -4,3 +4,4 @@
 - Every error message should link to an appropriate documentation page online
 - This project will only ever use pure C# code. We will never use PINVOKE for our deployable code, so if you can't find something in C# that is compatible, please transpile from C++ and use internet searching to do so
 - Please ensure that every single exception that is thrown will link to an appropriate page within our documentation, either in the Git repo, or doc effects, or GitHub pages docmmentation
+- Learn from what is happening right now with branch pollution and documentation 404s. Documentation directories not having index READMEs and ensure it never happens againI want you to execute that
