@@ -1,0 +1,51 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout master branch
+      uses: actions/checkout@v3
+      with:
+        ref: master
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Install DocFX
+      run: dotnet tool install -g docfx
+
+    - name: Build API Documentation
+      run: |
+        cd build/docfx
+        docfx metadata
+        docfx build
+
+    - name: Copy Markdown Documentation
+      run: |
+        # Copy markdown docs to build output
+        cp -r docs/* build/docfx/_site/
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./build/docfx/_site
+        publish_branch: gh-pages
+        force_orphan: true
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        commit_message: 'Deploy documentation from master branch'
