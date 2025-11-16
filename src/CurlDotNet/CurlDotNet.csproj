@@ -36,7 +36,7 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 • Middleware and DI support
 
 📦 Supported Platforms:
-• .NET 10.0 (latest & greatest!)
+• .NET 10.0 (latest &amp; greatest!)
 • .NET 8.0 (current LTS)
 • .NET Framework 4.7.2+ (Windows)
 • .NET Standard 2.0 (maximum compatibility)
@@ -58,7 +58,7 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <!-- <PackageIcon>icon.png</PackageIcon> -->
-    <PackageReleaseNotes>Version 1.0.1-preview - Performance & Compatibility Update
+    <PackageReleaseNotes>Version 1.0.1-preview - Performance &amp; Compatibility Update
 🆕 .NET 10 Support Added! Future-proof your applications
 📈 Improved test coverage to 95% (228/240 tests passing)
 📚 Comprehensive DocFX documentation with GitHub Pages

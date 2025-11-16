@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -50,7 +51,7 @@ namespace CurlDotNet.Core
         /// <summary>
         /// Create a new CurlEngine with default HttpClient.
         /// </summary>
-        public CurlEngine() : this(new HttpClient())
+        public CurlEngine() : this(CreateDefaultHttpClient())
         {
         }
 
@@ -424,6 +425,19 @@ namespace CurlDotNet.Core
         {
             var timeout = options.MaxTime ?? Curl.DefaultMaxTimeSeconds;
             return timeout > 0 ? timeout : 30;
+        }
+
+        /// <summary>
+        /// Creates an HttpClient configured for curl-like behavior.
+        /// </summary>
+        private static HttpClient CreateDefaultHttpClient()
+        {
+            var handler = new HttpClientHandler
+            {
+                AllowAutoRedirect = false, // We handle redirects manually like curl
+                AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+            };
+            return new HttpClient(handler);
         }
 
         public void Dispose()

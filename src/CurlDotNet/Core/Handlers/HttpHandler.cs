@@ -160,6 +160,14 @@ namespace CurlDotNet.Core
                 request.Headers.Range = ParseRange(options.Range);
             }
 
+            // Set compression acceptance (--compressed flag)
+            if (options.Compressed)
+            {
+                // Tell server we accept compressed content
+                // HttpClient will automatically decompress when AutomaticDecompression is set
+                request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
+            }
+
             // Add content
             if (ShouldHaveContent(method, options))
             {
@@ -514,8 +522,18 @@ namespace CurlDotNet.Core
             var currentResponse = response;
             var currentRequest = initialRequest;
 
+            // Accumulate redirect headers when -i flag is used
+            var redirectHeaders = new StringBuilder();
+
             while (IsRedirect(currentResponse.StatusCode) && redirectCount < options.MaxRedirects)
             {
+                // If -i flag is used, accumulate headers from redirect responses
+                if (options.IncludeHeaders)
+                {
+                    redirectHeaders.AppendLine(BuildHeaderBlock(currentResponse));
+                    redirectHeaders.AppendLine(); // Empty line between responses
+                }
+
                 var location = currentResponse.Headers.Location;
                 if (location == null)
                 {
@@ -542,7 +560,15 @@ namespace CurlDotNet.Core
                 throw new CurlTooManyRedirectsException(redirectCount);
             }
 
-            return await BuildResultAsync(currentRequest, currentResponse, options, timings, startTime, cancellationToken, verboseLog);
+            var result = await BuildResultAsync(currentRequest, currentResponse, options, timings, startTime, cancellationToken, verboseLog);
+
+            // Prepend redirect headers to the body when -i flag is used
+            if (options.IncludeHeaders && redirectHeaders.Length > 0)
+            {
+                result.Body = redirectHeaders.ToString() + result.Body;
+            }
+
+            return result;
         }
 
         private bool IsRedirect(HttpStatusCode statusCode)
