@@ -31,8 +31,7 @@
           "**/**.md",
           "!_site/**"
         ],
-        "src": "../../docs",
-        "dest": "articles"
+        "src": "../../docs"
       },
       {
         "files": [
@@ -92,11 +91,11 @@
       "priority": 0.5,
       "changefreq": "weekly",
       "fileOptions": {
-        "**/articles/getting-started/**": {
+        "**/getting-started/**": {
           "priority": 0.8,
           "changefreq": "weekly"
         },
-        "**/articles/tutorials/**": {
+        "**/tutorials/**": {
           "priority": 0.7,
           "changefreq": "weekly"
         },
