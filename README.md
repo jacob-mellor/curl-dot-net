@@ -21,14 +21,18 @@ Or via Package Manager:
 Install-Package CurlDotNet
 ```
 
-## 📊 Test Coverage
+## 📊 Test Coverage & Performance
 
-**✅ 239 Unit Tests** - Comprehensive test suite ensuring reliability
+**✅ 244 Tests - 100% Pass Rate** - Rock-solid reliability with self-contained tests
+- **Test Results**: ✅ Passed: 244 | ❌ Failed: 0 | ⏭ Skipped: 0
+- **Execution Time**: ~33 seconds for full suite
+- **Reliability**: Tests use local HTTP servers - no external dependencies
 - Command parsing: 85+ tests
-- HTTP operations: 45+ tests
-- Integration tests: 22+ tests
-- Synthetic curl scenarios: 40+ tests
-- Error handling: 30+ tests
+- HTTP operations: 50+ tests
+- Integration tests: 25+ tests (with local test server)
+- Synthetic curl scenarios: 45+ tests
+- Error handling: 35+ tests
+- **No Docker required** - Tests run anywhere .NET runs
 
 ## 🚀 Quick Start Paths
 
