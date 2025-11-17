@@ -45,14 +45,19 @@ namespace CurlDotNet.Tests
 
         public CommandLineComparisonTests(ITestOutputHelper output) : base(output)
         {
+            // Note: We can't skip in constructor - need to check in each test method
+        }
+
+        private void SkipIfNeeded()
+        {
             if (!IsUnix)
             {
-                throw new SkipException("Command line comparison tests require Unix (macOS/Linux)");
+                Assert.Skip("Command line comparison tests require Unix (macOS/Linux)");
             }
 
             if (IsCI)
             {
-                throw new SkipException("Command line comparison tests are skipped in CI due to curl binary variations");
+                Assert.Skip("Command line comparison tests are skipped in CI due to curl binary variations");
             }
         }
 
@@ -166,6 +171,7 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task GetWithHeaders_CompareWithCurl()
         {
+            SkipIfNeeded();
             // Arrange
             var curlCommand = "-H 'Accept: application/json' -H 'User-Agent: CurlDotNet/1.0' https://httpbin.org/headers";
 
@@ -194,6 +200,7 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task PostWithJson_CompareWithCurl()
         {
+            SkipIfNeeded();
             // Arrange
             var jsonData = "{\"name\":\"test\",\"value\":123}";
             var escapedJson = jsonData.Replace("\"", "\\\"");
@@ -224,6 +231,7 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task SilentMode_CompareWithCurl()
         {
+            SkipIfNeeded();
             // Arrange
             var curlCommand = "-s https://httpbin.org/get";
 
@@ -244,6 +252,7 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task VerboseMode_CompareWithCurl()
         {
+            SkipIfNeeded();
             // Arrange
             var curlCommand = "-v https://httpbin.org/get";
 
@@ -265,6 +274,7 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task FollowRedirects_CompareWithCurl()
         {
+            SkipIfNeeded();
             // Arrange
             // httpbin.org redirects to /redirect/1 -> /get
             var curlCommand = "-L https://httpbin.org/redirect/1";
@@ -291,6 +301,7 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task BasicAuth_CompareWithCurl()
         {
+            SkipIfNeeded();
             // Arrange
             var curlCommand = "-u 'testuser:testpass' https://httpbin.org/basic-auth/testuser/testpass";
 
@@ -324,6 +335,7 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task NotFoundError_CompareWithCurl()
         {
+            SkipIfNeeded();
             // Arrange
             var curlCommand = "https://httpbin.org/status/404";
 
@@ -346,6 +358,7 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task FailOnError_CompareWithCurl()
         {
+            SkipIfNeeded();
             // Arrange
             var curlCommand = "-f https://httpbin.org/status/404";
 
