@@ -487,8 +487,8 @@ namespace CurlDotNet.Core
         /// </summary>
         public async Task<CurlResult> SaveToFileAsync(string filePath)
         {
-#if NETSTANDARD2_0
-            // .NET Standard 2.0 doesn't have async file methods
+#if NETSTANDARD2_0 || NET472 || NET48
+            // .NET Framework and .NET Standard 2.0 don't have async file methods
             await Task.Run(() =>
             {
                 if (BinaryData != null)
