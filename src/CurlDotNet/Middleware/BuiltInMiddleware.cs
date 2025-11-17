@@ -373,6 +373,8 @@ namespace CurlDotNet.Middleware
 
         private async Task WaitIfNeeded(CancellationToken cancellationToken)
         {
+            TimeSpan waitTime = TimeSpan.Zero;
+
             lock (_lock)
             {
                 // Remove old requests outside the window
@@ -386,12 +388,14 @@ namespace CurlDotNet.Middleware
                 if (_requestTimes.Count >= _requestsPerSecond)
                 {
                     var oldestRequest = _requestTimes.Peek();
-                    var waitTime = oldestRequest.AddSeconds(1) - DateTime.UtcNow;
-                    if (waitTime > TimeSpan.Zero)
-                    {
-                        await Task.Delay(waitTime, cancellationToken);
-                    }
+                    waitTime = oldestRequest.AddSeconds(1) - DateTime.UtcNow;
                 }
+            }
+
+            // Wait outside the lock to avoid CS1996 error
+            if (waitTime > TimeSpan.Zero)
+            {
+                await Task.Delay(waitTime, cancellationToken);
             }
         }
 
