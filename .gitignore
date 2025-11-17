@@ -6,9 +6,12 @@ obj/
 x64/
 x86/
 build/
-# Exception for build documentation and icon
+# Exception for build documentation, icon, and DocFX configuration
 !build/README.md
 !build/icon-128.png
+!build/docfx/
+build/docfx/_site/
+build/docfx/obj/
 bld/
 [Bb]in/
 [Oo]bj/

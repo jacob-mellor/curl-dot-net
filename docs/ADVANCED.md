@@ -336,7 +336,7 @@ See the [Migration Guide](https://jacob-mellor.github.io/curl-dot-net/articles/m
 ## Further Resources
 
 - [API Reference](https://jacob-mellor.github.io/curl-dot-net/api/)
-- [Examples](../examples/README.md)
+- [Examples](../samples/README.md)
 - [Troubleshooting](troubleshooting/README.md)
-- [Performance Benchmarks](../benchmarks/README.md)
-- [Contributing Guide](../CONTRIBUTING.md)
+- [Performance Benchmarks](https://github.com/jacob-mellor/curl-dot-net/tree/master/benchmarks)
+- [Contributing Guide](https://github.com/jacob-mellor/curl-dot-net/blob/master/CONTRIBUTING.md)

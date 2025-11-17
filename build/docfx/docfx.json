@@ -47,6 +47,11 @@
           "favicon.ico"
         ],
         "src": "../../docs"
+      },
+      {
+        "files": [
+          "icon.png"
+        ]
       }
     ],
     "overwrite": [
@@ -77,9 +82,10 @@
       "_appName": "CurlDotNet",
       "_appTitle": "CurlDotNet - Pure .NET curl for C#",
       "_appFooter": "Copyright © 2024 CurlDotNet | <a href='https://www.nuget.org/packages/CurlDotNet/'>NuGet</a> | <a href='https://github.com/jacob-mellor/curl-dot-net'>GitHub</a>",
-      "_appLogoPath": "logo.svg",
-      "_appFaviconPath": "favicon.ico",
+      "_appLogoPath": "icon.png",
+      "_appFaviconPath": "icon.png",
       "_enableSearch": true,
+      "_enableNewTab": false,
       "_gitContribute": {
         "repo": "https://github.com/jacob-mellor/curl-dot-net",
         "branch": "master",
