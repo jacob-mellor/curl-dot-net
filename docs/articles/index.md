@@ -5,37 +5,31 @@ Welcome to the CurlDotNet documentation! This section contains comprehensive gui
 ## 📚 Documentation Sections
 
 ### Getting Started
-- [Installation Guide](getting-started/installation.md) - Get CurlDotNet up and running
-- [Quick Start Guide](getting-started/README.md) - Your first steps with CurlDotNet
+- [Installation Guide](../getting-started/installation.md) - Get CurlDotNet up and running
+- [Quick Start Guide](../getting-started/README.md) - Your first steps with CurlDotNet
 
 ### Tutorials
-- [Complete Tutorial Series](tutorials/README.md) - Step-by-step learning path
-- [What is .NET?](tutorials/01-what-is-dotnet.md) - For beginners new to .NET
-- [What is curl?](tutorials/02-what-is-curl.md) - Understanding curl fundamentals
-- [Your First Request](tutorials/04-your-first-request.md) - Make your first HTTP request
+- [Complete Tutorial Series](../tutorials/README.md) - Step-by-step learning path
+- [What is .NET?](../tutorials/01-what-is-dotnet.md) - For beginners new to .NET
+- [What is curl?](../tutorials/02-what-is-curl.md) - Understanding curl fundamentals
+- [Your First Request](../tutorials/04-your-first-request.md) - Make your first HTTP request
 
 ### API Guide
-- [Complete API Reference](api-guide/README.md) - Detailed API documentation
+- [Complete API Reference](../api-guide/README.md) - Detailed API documentation
 - String API - Simple curl command execution
 - Builder API - Fluent interface for request building
 - LibCurl API - Low-level curl implementation
 
 ### Cookbook
-- [Cookbook](cookbook/README.md) - Practical recipes and examples
-- [Simple GET Request](cookbook/beginner/simple-get.md) - Basic HTTP GET
-- [POST JSON Data](cookbook/beginner/send-json.md) - Sending JSON payloads
-- [File Upload/Download](cookbook/beginner/upload-file.md) - File operations
-- [Error Handling](cookbook/beginner/handle-errors.md) - Handling errors gracefully
-
-### Advanced Topics
-- Performance optimization
-- Custom middleware
-- Integration with ASP.NET Core
-- Testing strategies
+- [Cookbook](../cookbook/README.md) - Practical recipes and examples
+- [Simple GET Request](../cookbook/beginner/simple-get.md) - Basic HTTP GET
+- [POST JSON Data](../cookbook/beginner/send-json.md) - Sending JSON payloads
+- [File Upload/Download](../cookbook/beginner/upload-file.md) - File operations
+- [Error Handling](../cookbook/beginner/handle-errors.md) - Handling errors gracefully
 
 ### Troubleshooting
-- [Common Issues](troubleshooting/common-issues.md) - Solutions to frequent problems
-- [FAQ](troubleshooting/README.md) - Frequently asked questions
+- [Common Issues](../troubleshooting/common-issues.md) - Solutions to frequent problems
+- [FAQ](../troubleshooting/README.md) - Frequently asked questions
 
 ## Quick Examples
 
@@ -71,10 +65,10 @@ var result = await new CurlRequestBuilder()
 
 ## Navigation
 
-- **Beginners**: Start with [Tutorials](tutorials/README.md)
-- **Quick Reference**: Check the [Cookbook](cookbook/README.md)
-- **API Details**: See the [API Guide](api-guide/README.md)
-- **Having Issues?**: Visit [Troubleshooting](troubleshooting/README.md)
+- **Beginners**: Start with [Tutorials](../tutorials/README.md)
+- **Quick Reference**: Check the [Cookbook](../cookbook/README.md)
+- **API Details**: See the [API Guide](../api-guide/README.md)
+- **Having Issues?**: Visit [Troubleshooting](../troubleshooting/README.md)
 
 ## Why CurlDotNet?
 

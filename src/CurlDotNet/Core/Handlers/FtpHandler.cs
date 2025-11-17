@@ -202,8 +202,16 @@ namespace CurlDotNet.Core
     /// </summary>
     public class CurlFtpException : CurlException
     {
+        /// <summary>
+        /// Gets the FTP status code.
+        /// </summary>
         public int FtpStatusCode { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the CurlFtpException class.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <param name="ftpStatusCode">The FTP status code.</param>
         public CurlFtpException(string message, int ftpStatusCode)
             : base(message, 9) // CURLE_FTP_WEIRD_SERVER_REPLY
         {

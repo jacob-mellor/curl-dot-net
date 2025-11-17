@@ -526,8 +526,7 @@ Now that you can send JSON:
 
 1. Learn to [Handle API Responses](handle-errors.md)
 2. Try [Uploading Files](upload-file.md)
-3. Explore [Authentication](../../authentication/README.md)
-4. Build an [API Client Class](../intermediate/api-client-class.md)
+3. Check the [API Guide](../../api-guide/README.md) for bearer tokens and authentication
 
 ## 📚 Related Recipes
 
@@ -546,4 +545,4 @@ Now that you can send JSON:
 
 ---
 
-**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.md) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check [Troubleshooting](../../troubleshooting/README.md) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)

@@ -459,7 +459,7 @@ if (fileInfo.Length > maxSize)
 }
 ```
 
-For more details, see our [file size troubleshooting guide](../../troubleshooting/common-issues.md#file-size-errors).
+For more details, see the [troubleshooting guide](../../troubleshooting/README.md).
 
 ### Problem: Upload Timeout
 
@@ -473,7 +473,7 @@ var result = await Curl.ExecuteAsync($@"
 ");
 ```
 
-For more details, see our [timeout troubleshooting guide](../../troubleshooting/common-issues.md#timeout-errors).
+For more details, see the [troubleshooting guide](../../troubleshooting/README.md).
 
 ### Problem: Authentication Required
 

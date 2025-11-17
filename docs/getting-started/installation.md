@@ -459,7 +459,7 @@ dotnet add package CurlDotNet
 3. Add to PATH: `export PATH=$PATH:/usr/local/share/dotnet`
 4. Add to shell profile: `echo 'export PATH=$PATH:/usr/local/share/dotnet' >> ~/.bashrc`
 
-For more details, see our [PATH troubleshooting guide](../troubleshooting/common-issues.md#environment-setup).
+For more details, see the [troubleshooting guide](../troubleshooting/README.md).
 
 ### Problem: "Package 'CurlDotNet' not found"
 
@@ -477,7 +477,7 @@ dotnet restore
 dotnet add package CurlDotNet
 ```
 
-For more details, see our [NuGet troubleshooting guide](../troubleshooting/common-issues.md#package-installation).
+For more details, see the [troubleshooting guide](../troubleshooting/README.md).
 
 ### Problem: "The target framework 'netX.X' is not supported"
 
@@ -503,7 +503,7 @@ dotnet --version
 2. Check installed SDKs: `dotnet --list-sdks`
 3. If empty, reinstall .NET SDK from [dotnet.microsoft.com](https://dotnet.microsoft.com/)
 
-For more details, see our [SDK troubleshooting guide](../troubleshooting/common-issues.md#sdk-issues).
+For more details, see the [troubleshooting guide](../troubleshooting/README.md).
 
 ### Problem: SSL/TLS Errors on First Run
 
@@ -526,7 +526,7 @@ sudo apt-get update
 sudo apt-get install --reinstall ca-certificates
 ```
 
-For more details, see our [SSL troubleshooting guide](../troubleshooting/common-issues.md#ssl-errors).
+For more details, see the [troubleshooting guide](../troubleshooting/README.md).
 
 ### Problem: Permission Errors
 
@@ -546,8 +546,8 @@ sudo chown -R $USER ~/.nuget
 Now that CurlDotNet is installed:
 
 1. **Try it out** → [Your First Request](../tutorials/04-your-first-request.md)
-2. **Learn the basics** → [Simple GET Request](../cookbook/beginner/simple-get.md)
-3. **Explore examples** → [Cookbook](../cookbook/README.md)
+2. **Learn the basics** → [Tutorials](../tutorials/README.md)
+3. **Explore recipes** → [Cookbook](../cookbook/README.md)
 4. **Read API docs** → [API Guide](../api-guide/README.md)
 
 ## 📚 Additional Resources
@@ -567,8 +567,8 @@ Now that CurlDotNet is installed:
 ### Learning Resources
 
 - [Tutorial Series](../tutorials/README.md) - Step-by-step learning
-- [Code Examples](../../examples/README.md) - Ready-to-use samples
-- [API Reference](https://jacob-mellor.github.io/curl-dot-net/api/) - Complete API docs
+- [Cookbook Recipes](../cookbook/README.md) - Ready-to-use samples
+- [API Reference](../api-guide/README.md) - Complete API reference
 
 ## 🎯 Quick Reference
 

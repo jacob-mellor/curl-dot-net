@@ -491,9 +491,9 @@ CurlSslException: SSL certificate problem: unable to get local issuer certificat
 
 - **[Common Issues Guide](common-issues.md)** - Detailed solutions
 - **[Installation Guide](../getting-started/installation.md)** - Setup help
-- **[API Reference](https://jacob-mellor.github.io/curl-dot-net/api/)** - Complete API docs
+- **[API Guide](../api-guide/README.md)** - Complete API reference
 - **[Tutorials](../tutorials/README.md)** - Step-by-step learning
-- **[Examples](../../examples/README.md)** - Working code samples
+- **[Cookbook](../cookbook/README.md)** - Ready-to-use recipes
 
 ## 🎯 Quick Reference
 

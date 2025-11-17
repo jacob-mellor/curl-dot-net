@@ -1,31 +1,25 @@
-- name: User Manual
-  href: manual/
-  homepage: manual/index.html
+- name: Documentation
+  href: ../../docs/
+  homepage: ../../docs/README.md
   items:
     - name: Getting Started
-      href: manual/getting-started/
-      homepage: manual/getting-started/index.html
+      href: ../../docs/getting-started/
+      homepage: ../../docs/getting-started/README.md
     - name: Tutorials
-      href: manual/tutorials/
-      homepage: manual/tutorials/index.html
+      href: ../../docs/tutorials/
+      homepage: ../../docs/tutorials/README.md
     - name: Cookbook
-      href: manual/cookbook/
-      homepage: manual/cookbook/index.html
+      href: ../../docs/cookbook/
+      homepage: ../../docs/cookbook/README.md
     - name: API Guide
-      href: manual/api-guide/
-      homepage: manual/api-guide/index.html
-    - name: Authentication
-      href: manual/authentication/
-      homepage: manual/authentication/index.html
+      href: ../../docs/api-guide/
+      homepage: ../../docs/api-guide/README.md
     - name: Troubleshooting
-      href: manual/troubleshooting/
-      homepage: manual/troubleshooting/index.html
-    - name: Advanced Topics
-      href: manual/advanced/
-      homepage: manual/advanced/index.html
-    - name: Migration Guides
-      href: manual/migration/
-      homepage: manual/migration/index.html
+      href: ../../docs/troubleshooting/
+      homepage: ../../docs/troubleshooting/README.md
+    - name: Articles
+      href: ../../docs/articles/
+      homepage: ../../docs/articles/index.md
 
 - name: API Reference
   href: api/
