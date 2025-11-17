@@ -61,6 +61,12 @@
     <priority>0.5</priority>
   </url>
   <url>
+    <loc>https://jacob-mellor.github.io/curl-dot-net/manual/ADVANCED.html</loc>
+    <lastmod>2025-11-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://jacob-mellor.github.io/curl-dot-net/manual/articles/index.html</loc>
     <lastmod>2025-11-17</lastmod>
     <changefreq>weekly</changefreq>
