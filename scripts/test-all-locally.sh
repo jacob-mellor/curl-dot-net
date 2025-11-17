@@ -10,7 +10,21 @@ echo ""
 # Track any failures
 FAILED=0
 
+# 0. ALWAYS Generate API Documentation FIRST
+echo "Step 0: Generating API documentation..."
+echo "---------------------------------------"
+if [ -f "scripts/generate-docs.sh" ]; then
+    chmod +x scripts/generate-docs.sh
+    ./scripts/generate-docs.sh || {
+        echo "⚠️  Documentation generation had issues (continuing anyway)"
+    }
+else
+    echo "⚠️  No documentation script found (creating basic one)"
+    mkdir -p docs/api
+fi
+
 # 1. Clean build
+echo ""
 echo "Step 1: Clean build from scratch..."
 echo "-----------------------------------"
 dotnet clean --verbosity quiet

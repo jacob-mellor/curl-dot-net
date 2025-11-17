@@ -1,0 +1,61 @@
+name: Deploy Documentation to GitHub Pages
+
+on:
+  push:
+    branches: [ dev, master, main ]
+  pull_request:
+    branches: [ master, main ]
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  deploy-docs:
+    name: Deploy Documentation
+    runs-on: ubuntu-latest
+    # Only deploy on push or merged PRs
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Make scripts executable
+      run: chmod +x scripts/*.sh
+
+    - name: Generate documentation
+      run: ./scripts/generate-docs.sh
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./gh-pages
+        publish_branch: gh-pages
+        force_orphan: true
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        commit_message: |
+          📚 Deploy documentation from ${{ github.ref_name }}
+
+          Commit: ${{ github.sha }}
+          Timestamp: ${{ github.event.head_commit.timestamp }}
+        enable_jekyll: true
+        cname: ''  # Add your custom domain here if you have one
+
+# Notes:
+# - Documentation is generated locally into gh-pages folder
+# - Workflow deploys from gh-pages folder to gh-pages branch
+# - Main branch stays clean - no Jekyll files
+# - GitHub Pages serves from gh-pages branch automatically

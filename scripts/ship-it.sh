@@ -16,9 +16,18 @@ sed -i.bak "s/<AssemblyVersion>$CURRENT_VERSION.0<\/AssemblyVersion>/<AssemblyVe
 sed -i.bak "s/<FileVersion>$CURRENT_VERSION.0<\/FileVersion>/<FileVersion>$NEW_VERSION.0<\/FileVersion>/" $CSPROJ
 rm $CSPROJ.bak
 
+# Generate documentation FIRST (part of every commit)
+echo "📚 Generating API documentation..."
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+if [ -f "$DIR/generate-docs.sh" ]; then
+    chmod +x $DIR/generate-docs.sh
+    $DIR/generate-docs.sh || {
+        echo "⚠️  Documentation generation had issues"
+    }
+fi
+
 # Run comprehensive testing (required before every commit)
 echo "🧪 Running comprehensive tests..."
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 $DIR/test-all-locally.sh || {
     echo "❌ Comprehensive tests failed - fix all issues before shipping!"
     exit 1

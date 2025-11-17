@@ -1,0 +1,21 @@
+# Jekyll configuration for CurlDotNet
+title: CurlDotNet
+description: Pure .NET implementation of curl for C#
+baseurl: "/curl-dot-net"
+url: "https://jacob-mellor.github.io"
+
+# Theme
+theme: jekyll-theme-cayman
+
+# Plugins supported by GitHub Pages
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Exclude files
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor

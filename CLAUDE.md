@@ -2,6 +2,13 @@
 
 ## 🚨 CRITICAL WORKFLOW RULES 🚨
 
+### ALWAYS Generate API Documentation
+- **Every build**: Run `./scripts/generate-docs.sh` after EVERY build
+- **Before tests**: Generate docs BEFORE running unit tests
+- **Before commits**: Ensure docs are regenerated before committing
+- **Automated**: API docs must be current with code changes
+- **Command**: Always run `./scripts/generate-docs.sh && ./scripts/test-all-locally.sh`
+
 ### 1. ALWAYS Work in Dev Branch
 - **Default branch**: Always work in `dev` branch unless explicitly told otherwise
 - **Release flow**: dev → PR → master (triggers NuGet release & docs deployment)

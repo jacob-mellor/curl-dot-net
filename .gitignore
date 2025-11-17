@@ -57,11 +57,18 @@ TestResults/
 *.trx
 *.coverage
 
-# DocFX
+# DocFX / Documentation
 _site/
 _api/
 *.log
 jacob/
+docs/_site/
+sitemap.xml
+gh-pages/  # Generated documentation folder
+# Prevent built HTML files in docs
+docs/**/*.html
+docs/api/*.html
+docs/articles/*.html
 
 # Benchmark Results
 BenchmarkDotNet.Artifacts/
