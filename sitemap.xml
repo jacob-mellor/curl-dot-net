@@ -97,6 +97,12 @@
     <priority>0.5</priority>
   </url>
   <url>
+    <loc>https://jacob-mellor.github.io/curl-dot-net/manual/tutorials/index.html</loc>
+    <lastmod>2025-11-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://jacob-mellor.github.io/curl-dot-net/manual/cookbook/beginner/download-file.html</loc>
     <lastmod>2025-11-17</lastmod>
     <changefreq>weekly</changefreq>
@@ -140,6 +146,12 @@
   </url>
   <url>
     <loc>https://jacob-mellor.github.io/curl-dot-net/manual/cookbook/beginner/send-json.html</loc>
+    <lastmod>2025-11-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://jacob-mellor.github.io/curl-dot-net/manual/cookbook/index.html</loc>
     <lastmod>2025-11-17</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
