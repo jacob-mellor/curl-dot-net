@@ -14,28 +14,6 @@ Perfect for getting started
 - [Call an API](beginner/call-api.md)
 - [Handle Errors Gracefully](beginner/handle-errors.md)
 
-### 🚀 [Intermediate Recipes](intermediate/)
-Level up your skills
-- [Build a Reusable API Client](intermediate/api-client-class.md)
-- [Add Retry Logic](intermediate/retry-logic.md)
-- [Track Upload/Download Progress](intermediate/progress-tracking.md)
-- [Manage Sessions with Cookies](intermediate/session-cookies.md)
-- [Handle Rate Limiting](intermediate/rate-limiting.md)
-
-### 🌍 [Real-World Examples](real-world/)
-Complete working examples
-- [Weather App with OpenWeather](real-world/weather-api.md)
-- [GitHub Integration](real-world/github-integration.md)
-- [Stripe Payment Processing](real-world/stripe-payments.md)
-- [Slack Notifications](real-world/slack-notifications.md)
-- [OAuth 2.0 Flow](real-world/oauth-flow.md)
-
-### 🎨 [Common Patterns](patterns/)
-Reusable patterns and techniques
-- [Handle Paginated APIs](patterns/pagination.md)
-- [Implement Polling](patterns/polling.md)
-- [Webhook Handling](patterns/webhooks.md)
-- [Batch Processing](patterns/batch-processing.md)
 
 ## 🔍 Quick Recipe Finder
 
@@ -46,38 +24,22 @@ Reusable patterns and techniques
 #### Download Something
 - [Download a webpage](beginner/simple-get.md)
 - [Download a file](beginner/download-file.md)
-- [Download with progress bar](intermediate/progress-tracking.md)
-- [Download multiple files](patterns/batch-processing.md)
 
 #### Upload Something
 - [Upload a file](beginner/upload-file.md)
 - [Upload with form data](beginner/post-form.md)
-- [Upload with progress tracking](intermediate/progress-tracking.md)
 
 #### Work with APIs
 - [Call a REST API](beginner/call-api.md)
 - [Send JSON data](beginner/send-json.md)
 - [Handle API errors](beginner/handle-errors.md)
-- [Build an API client](intermediate/api-client-class.md)
+- Check the API Guide for advanced patterns
 
 #### Authentication
-- [Basic authentication](real-world/github-integration.md#basic-auth)
-- [Bearer tokens](real-world/github-integration.md#token-auth)
-- [OAuth flow](real-world/oauth-flow.md)
-- [API keys](beginner/call-api.md#with-api-key)
+- [API keys and bearer tokens](beginner/call-api.md)
 
 #### Error Handling
 - [Basic error handling](beginner/handle-errors.md)
-- [Retry failed requests](intermediate/retry-logic.md)
-- [Handle rate limits](intermediate/rate-limiting.md)
-
-### By Service
-
-#### Popular APIs
-- [GitHub API](real-world/github-integration.md)
-- [Stripe API](real-world/stripe-payments.md)
-- [Slack API](real-world/slack-notifications.md)
-- [Weather APIs](real-world/weather-api.md)
 
 ## 📝 Recipe Format
 
@@ -148,8 +110,8 @@ Console.WriteLine(result.Body);
 ## 🆘 Getting Help
 
 ### Can't Find a Recipe?
-- Check [Examples](../examples/README.md)
 - Browse [API Guide](../api-guide/README.md)
+- Check [Tutorials](../tutorials/README.md)
 - Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
 
 ### Recipe Not Working?
@@ -170,7 +132,6 @@ Have a great recipe? We'd love to include it!
 
 - [Tutorials](../tutorials/README.md) - Learn the basics
 - [API Guide](../api-guide/README.md) - Detailed reference
-- [Examples](../examples/README.md) - More code samples
 - [Troubleshooting](../troubleshooting/README.md) - Fix common issues
 
 ---

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Using project reference for development, switch to NuGet package for external use -->
+    <ProjectReference Include="..\..\src\CurlDotNet\CurlDotNet.csproj" />
+    <!-- For NuGet package reference, comment the line above and uncomment below: -->
+    <!-- <PackageReference Include="CurlDotNet" Version="1.2.0" /> -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+</Project>

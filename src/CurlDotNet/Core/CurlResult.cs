@@ -1199,6 +1199,11 @@ namespace CurlDotNet.Core
         /// <summary>The response headers</summary>
         public Dictionary<string, string> ResponseHeaders { get; set; }
 
+        /// <summary>
+        /// Initializes a new instance of the CurlHttpException class.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <param name="statusCode">The HTTP status code.</param>
         public CurlHttpException(string message, int statusCode) : base(message)
         {
             StatusCode = statusCode;

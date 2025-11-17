@@ -704,8 +704,17 @@ namespace CurlDotNet.Exceptions
     /// </summary>
     public class CurlAuthenticationException : CurlException
     {
+        /// <summary>
+        /// Gets the authentication method that failed.
+        /// </summary>
         public string AuthMethod { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the CurlAuthenticationException class.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <param name="authMethod">The authentication method that failed.</param>
+        /// <param name="command">The curl command that caused the error.</param>
         public CurlAuthenticationException(string message, string authMethod = null, string command = null)
             : base(message, 67, command) // CURLE_LOGIN_DENIED = 67
         {
@@ -718,11 +727,34 @@ namespace CurlDotNet.Exceptions
     /// </summary>
     public class CurlHttpException : CurlException
     {
+        /// <summary>
+        /// Gets the HTTP status code of the response.
+        /// </summary>
         public int StatusCode { get; }
+
+        /// <summary>
+        /// Gets the HTTP status text of the response.
+        /// </summary>
         public string StatusText { get; }
+
+        /// <summary>
+        /// Gets the response body content.
+        /// </summary>
         public string ResponseBody { get; }
+
+        /// <summary>
+        /// Gets or sets the response headers.
+        /// </summary>
         public Dictionary<string, string> ResponseHeaders { get; set; } = new Dictionary<string, string>();
 
+        /// <summary>
+        /// Initializes a new instance of the CurlHttpException class.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <param name="statusCode">The HTTP status code.</param>
+        /// <param name="statusText">The HTTP status text.</param>
+        /// <param name="responseBody">The response body content.</param>
+        /// <param name="command">The curl command that caused the error.</param>
         public CurlHttpException(string message, int statusCode, string statusText = null, string responseBody = null, string command = null)
             : base(message, command)
         {
@@ -827,6 +859,10 @@ namespace CurlDotNet.Exceptions
             }
         }
 
+        /// <summary>
+        /// Returns a detailed string representation of the exception including HTTP status information.
+        /// </summary>
+        /// <returns>A detailed string representation of the exception.</returns>
         public override string ToDetailedString()
         {
             var details = base.ToDetailedString();
@@ -853,6 +889,10 @@ namespace CurlDotNet.Exceptions
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Determines whether the HTTP error is retryable.
+        /// </summary>
+        /// <returns>true if the error is retryable (429 or 5xx status codes); otherwise, false.</returns>
         public override bool IsRetryable()
         {
             // Server errors and rate limits are typically retryable
@@ -865,16 +905,44 @@ namespace CurlDotNet.Exceptions
     /// </summary>
     public class CurlFileException : CurlException
     {
+        /// <summary>
+        /// Gets the file path that caused the error.
+        /// </summary>
         public string FilePath { get; }
+
+        /// <summary>
+        /// Gets the file operation that failed.
+        /// </summary>
         public FileOperation Operation { get; }
 
+        /// <summary>
+        /// Specifies the type of file operation.
+        /// </summary>
         public enum FileOperation
         {
+            /// <summary>
+            /// Reading from a file.
+            /// </summary>
             Read,
+            /// <summary>
+            /// Writing to a file.
+            /// </summary>
             Write,
+            /// <summary>
+            /// Creating a file.
+            /// </summary>
             Create,
+            /// <summary>
+            /// Deleting a file.
+            /// </summary>
             Delete,
+            /// <summary>
+            /// Uploading a file.
+            /// </summary>
             Upload,
+            /// <summary>
+            /// Downloading a file.
+            /// </summary>
             Download
         }
 

@@ -1,0 +1,49 @@
+{
+  "branch_protection_rules": {
+    "master": {
+      "description": "Protection rules for master branch",
+      "required_status_checks": {
+        "strict": true,
+        "contexts": [
+          "branch-validator",
+          "no-build-artifacts",
+          "tests-passing"
+        ]
+      },
+      "enforce_admins": false,
+      "required_pull_request_reviews": {
+        "dismiss_stale_reviews": true,
+        "require_code_owner_reviews": false
+      },
+      "restrictions": null,
+      "allow_force_pushes": false,
+      "allow_deletions": false,
+      "required_conversation_resolution": true,
+      "lock_branch": false,
+      "allow_fork_syncing": false
+    },
+    "gh-pages": {
+      "description": "Protection rules for gh-pages branch",
+      "required_status_checks": {
+        "strict": true,
+        "contexts": [
+          "documentation-only-check"
+        ]
+      },
+      "enforce_admins": false,
+      "required_pull_request_reviews": null,
+      "restrictions": {
+        "users": [],
+        "teams": [],
+        "apps": ["github-actions"]
+      },
+      "allow_force_pushes": true,
+      "allow_deletions": false,
+      "required_conversation_resolution": false,
+      "lock_branch": false,
+      "allow_fork_syncing": false
+    }
+  },
+  "implementation_note": "Apply these rules using GitHub Settings > Branches > Add rule",
+  "automation_note": "These rules can be applied via GitHub API or terraform-github-provider"
+}

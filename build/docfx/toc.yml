@@ -1,0 +1,30 @@
+- name: Home
+  href: index.md
+
+- name: Getting Started
+  href: ../../docs/getting-started/
+  homepage: ../../docs/getting-started/README.md
+
+- name: Tutorials
+  href: ../../docs/tutorials/
+  homepage: ../../docs/tutorials/index.md
+
+- name: Cookbook
+  href: ../../docs/cookbook/
+  homepage: ../../docs/cookbook/index.md
+
+- name: Articles
+  href: ../../docs/articles/
+  homepage: ../../docs/articles/index.md
+
+- name: API Reference
+  href: api/
+  homepage: api/index.html
+
+- name: Troubleshooting
+  href: ../../docs/troubleshooting/
+  homepage: ../../docs/troubleshooting/README.md
+
+- name: Examples
+  href: ../../samples/
+  homepage: ../../samples/README.md

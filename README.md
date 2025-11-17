@@ -32,6 +32,7 @@ Every developer has faced this problem: you find a perfect curl command in API d
 ### The Killer Feature: Universal curl Command Support
 
 ```csharp
+// NuGet: https://www.nuget.org/packages/CurlDotNet/
 using CurlDotNet;
 
 // From GitHub API documentation - paste it directly!
@@ -95,6 +96,7 @@ CurlDotNet provides three distinct APIs, each optimized for different use cases:
 Perfect when you have curl commands from documentation or want to paste commands directly:
 
 ```csharp
+// NuGet: https://www.nuget.org/packages/CurlDotNet/
 using CurlDotNet;
 
 // Works with or without "curl" prefix
@@ -120,6 +122,8 @@ var result3 = await Curl.ExecuteAsync(@"
 Build requests programmatically with full IntelliSense support and compile-time checking:
 
 ```csharp
+// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
 using CurlDotNet.Core;
 
 // Fluent method chaining with IntelliSense

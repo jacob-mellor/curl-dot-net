@@ -444,15 +444,13 @@ Now that you can call APIs:
 
 1. Try [Sending JSON Data](send-json.md)
 2. Learn about [Error Handling](handle-errors.md)
-3. Build an [API Client Class](../intermediate/api-client-class.md)
-4. Add [Retry Logic](../intermediate/retry-logic.md)
+3. Build reusable API clients with [CurlRequestBuilder](../../api-guide/README.md)
 
 ## 📚 Related Recipes
 
 - [Simple GET Request](simple-get.md)
 - [POST JSON Data](send-json.md)
 - [Handle Errors](handle-errors.md)
-- [GitHub API Integration](../real-world/github-integration.md)
 
 ## 🎓 Key Takeaways
 

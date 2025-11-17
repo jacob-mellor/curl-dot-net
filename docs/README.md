@@ -1,6 +1,23 @@
 # 📚 CurlDotNet Documentation Hub
 
-Welcome to CurlDotNet! Whether you're new to programming or an experienced developer, we've got you covered.
+Welcome to **CurlDotNet** - the pure .NET implementation of curl that allows C# developers to execute curl commands directly in their applications!
+
+## What is CurlDotNet?
+
+CurlDotNet eliminates the friction of translating curl commands to C# code. Simply paste any curl command from API documentation, Stack Overflow, or bash scripts directly into your .NET application, and it works immediately.
+
+## Installation
+
+Install CurlDotNet from NuGet: **[CurlDotNet on NuGet](https://www.nuget.org/packages/CurlDotNet/)**
+
+```bash
+dotnet add package CurlDotNet
+```
+
+Or via Package Manager:
+```powershell
+Install-Package CurlDotNet
+```
 
 ## 🚀 Quick Start Paths
 
@@ -8,7 +25,7 @@ Welcome to CurlDotNet! Whether you're new to programming or an experienced devel
 **"I'm new to .NET and programming"**
 1. Start here → [What is .NET and C#?](tutorials/01-what-is-dotnet.md)
 2. Then → [Your First Request](tutorials/04-your-first-request.md)
-3. Next → [Understanding Results](tutorials/05-understanding-results.md)
+3. Next → [Explore Recipes](cookbook/README.md)
 
 ### 💼 Experienced Developer?
 **"I know .NET, just show me how to use CurlDotNet"**
@@ -18,9 +35,7 @@ Welcome to CurlDotNet! Whether you're new to programming or an experienced devel
 
 ### 🔄 Migrating from Another Library?
 **"I'm switching from HttpClient/RestSharp/etc."**
-- See → [Migration Guides](migration/README.md)
-- [From HttpClient](migration/from-httpclient.md)
-- [From RestSharp](migration/from-restsharp.md)
+- See the [API Guide](api-guide/README.md) to understand CurlDotNet
 
 ## 📖 Documentation Structure
 
@@ -45,12 +60,12 @@ Welcome to CurlDotNet! Whether you're new to programming or an experienced devel
 - Best practices included
 - [Explore API →](api-guide/README.md)
 
-### [💡 Examples](examples/README.md)
-**Learn by doing**
-- Basic to advanced examples
-- Integration with popular services
-- Complete working applications
-- [View Examples →](examples/README.md)
+### [👨‍💻 Advanced Features](api-guide/README.md)
+**Advanced topics and techniques**
+- Working with middleware
+- Custom HTTP clients
+- Performance optimization
+- Testing strategies
 
 ## 🎯 Common Tasks
 
@@ -62,22 +77,18 @@ Welcome to CurlDotNet! Whether you're new to programming or an experienced devel
 - [Handle errors](cookbook/beginner/handle-errors.md)
 
 ### Authentication
-- [Basic authentication](authentication/basic-auth.md)
-- [Bearer tokens](authentication/bearer-tokens.md)
-- [API keys](authentication/api-keys.md)
-- [OAuth flow](cookbook/real-world/oauth-flow.md)
+- [Bearer tokens](cookbook/beginner/call-api.md)
+- [API keys](cookbook/beginner/call-api.md)
 
 ### Working with APIs
 - [Call a REST API](cookbook/beginner/call-api.md)
-- [Parse JSON responses](tutorials/07-json-for-beginners.md)
-- [Handle pagination](cookbook/patterns/pagination.md)
-- [Retry failed requests](cookbook/intermediate/retry-logic.md)
+- [Build API clients](api-guide/README.md)
+- [Error handling](cookbook/beginner/handle-errors.md)
 
 ### Advanced Features
-- [Use middleware](advanced/middleware/README.md)
-- [Parallel requests](tutorials/13-parallel-requests.md)
-- [Progress tracking](cookbook/intermediate/progress-tracking.md)
-- [Custom HTTP clients](advanced/custom-http-client.md)
+- [API Reference](api-guide/README.md)
+- [Curl String API](api-guide/README.md)
+- [Builder API](api-guide/README.md)
 
 ## 🔍 Quick Reference
 
@@ -112,22 +123,22 @@ var result = await curl.GetAsync("https://api.example.com");
 2. [What is curl?](tutorials/02-what-is-curl.md)
 3. [Understanding async/await](tutorials/03-what-is-async.md)
 4. [Your first request](tutorials/04-your-first-request.md)
-5. [Understanding results](tutorials/05-understanding-results.md)
-6. [Handling errors](tutorials/06-handling-errors.md)
+5. [API Guide](api-guide/README.md)
+6. [Cookbook](cookbook/README.md)
 
 ### Path 2: Web Developer
 1. [Installation](getting-started/installation.md)
-2. [HTTP methods](http-methods/README.md)
-3. [Working with JSON](tutorials/07-json-for-beginners.md)
-4. [Authentication](authentication/README.md)
-5. [Building API clients](cookbook/intermediate/api-client-class.md)
+2. [Cookbook](cookbook/README.md)
+3. [API Guide](api-guide/README.md)
+4. [Error handling](cookbook/beginner/handle-errors.md)
+5. [API client patterns](cookbook/beginner/call-api.md)
 
 ### Path 3: Enterprise Developer
-1. [Architecture overview](advanced/README.md)
-2. [Middleware system](advanced/middleware/README.md)
-3. [Error handling strategies](error-handling/error-handling-patterns.md)
-4. [Performance optimization](advanced/performance.md)
-5. [Testing strategies](advanced/testing.md)
+1. [API Reference](api-guide/README.md)
+2. [Error handling](cookbook/beginner/handle-errors.md)
+3. [API Guide](api-guide/README.md)
+4. [Troubleshooting](troubleshooting/README.md)
+5. [Best practices](cookbook/README.md)
 
 ## 🆘 Getting Help
 

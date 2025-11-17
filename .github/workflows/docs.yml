@@ -1,0 +1,72 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: master
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Install DocFX
+      run: dotnet tool install -g docfx
+
+    - name: Make scripts executable
+      run: chmod +x scripts/*.sh
+
+    - name: Build Documentation
+      run: ./scripts/build-docs.sh
+
+    - name: Verify Build Output
+      run: |
+        echo "📋 Checking documentation output..."
+        if [ ! -d "docs/_site" ]; then
+          echo "❌ Documentation output directory not found!"
+          exit 1
+        fi
+
+        echo "📂 Documentation structure:"
+        ls -la docs/_site/
+
+        HTML_COUNT=$(find docs/_site -name "*.html" | wc -l)
+        echo "✅ Generated $HTML_COUNT HTML files"
+
+        if [ $HTML_COUNT -eq 0 ]; then
+          echo "❌ No HTML files generated!"
+          exit 1
+        fi
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/_site
+        publish_branch: gh-pages
+        force_orphan: true
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        commit_message: 'Deploy documentation from ${{ github.sha }}
+
+        Deployed by workflow run ${{ github.run_id }}
+        Commit: ${{ github.event.head_commit.message }}'
+        enable_jekyll: false
+        cname:
