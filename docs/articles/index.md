@@ -1,12 +1,37 @@
 # CurlDotNet Documentation Articles
 
-Welcome to the CurlDotNet documentation! This section contains comprehensive guides and articles to help you get the most out of CurlDotNet.
+Welcome to **CurlDotNet** - the pure .NET implementation of curl that allows C# developers to execute curl commands directly in their applications!
 
-## 📚 Documentation Sections
+## What is CurlDotNet?
 
-### Getting Started
-- [Installation Guide](../getting-started/installation.md) - Get CurlDotNet up and running
-- [Quick Start Guide](../getting-started/README.md) - Your first steps with CurlDotNet
+CurlDotNet brings the power of curl to .NET. Simply paste any curl command from API documentation, Stack Overflow, or bash scripts directly into your C# code, and it works immediately. No translation required, no shell execution, just pure .NET performance.
+
+## Installation
+
+Install CurlDotNet from NuGet: **[CurlDotNet on NuGet](https://www.nuget.org/packages/CurlDotNet/)**
+
+```bash
+dotnet add package CurlDotNet
+```
+
+Or via Package Manager:
+```powershell
+Install-Package CurlDotNet
+```
+
+## 📚 Articles in This Section
+
+### Available Articles
+- **[Getting Started](getting-started.html)** - Complete guide to getting started with CurlDotNet, from installation to your first request
+- **[Installation Guide](installation.html)** - Detailed installation instructions for all platforms and environments
+
+## 📂 Documentation Sections
+
+### Getting Started Guide
+- **[Complete Getting Started Section](../getting-started/)** - Comprehensive getting started documentation
+  - [Installation Guide](../getting-started/installation.md) - Detailed setup instructions
+  - [Quick Start](../getting-started/quickstart.md) - Make your first request in 5 minutes
+  - [Full Guide](../getting-started/README.md) - Complete getting started documentation
 
 ### Tutorials
 - [Complete Tutorial Series](../tutorials/README.md) - Step-by-step learning path

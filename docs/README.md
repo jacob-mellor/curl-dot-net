@@ -1,6 +1,23 @@
 # 📚 CurlDotNet Documentation Hub
 
-Welcome to CurlDotNet! Whether you're new to programming or an experienced developer, we've got you covered.
+Welcome to **CurlDotNet** - the pure .NET implementation of curl that allows C# developers to execute curl commands directly in their applications!
+
+## What is CurlDotNet?
+
+CurlDotNet eliminates the friction of translating curl commands to C# code. Simply paste any curl command from API documentation, Stack Overflow, or bash scripts directly into your .NET application, and it works immediately.
+
+## Installation
+
+Install CurlDotNet from NuGet: **[CurlDotNet on NuGet](https://www.nuget.org/packages/CurlDotNet/)**
+
+```bash
+dotnet add package CurlDotNet
+```
+
+Or via Package Manager:
+```powershell
+Install-Package CurlDotNet
+```
 
 ## 🚀 Quick Start Paths
 

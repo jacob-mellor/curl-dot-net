@@ -2,11 +2,11 @@
 
 ## 🎯 What You'll Build
 
-A program that fetches data from a web API using a GET request - the most common HTTP operation.
+A program that fetches data from a web API using a GET request - the most common HTTP operation using **CurlDotNet**, the pure .NET implementation of curl.
 
 ## 🥘 Ingredients
 
-- CurlDotNet package
+- CurlDotNet package - Install from [NuGet](https://www.nuget.org/packages/CurlDotNet/): `dotnet add package CurlDotNet`
 - 5 minutes
 - Internet connection
 
@@ -417,7 +417,7 @@ if (result.StatusCode == 404)
 }
 ```
 
-For more details, see our [HTTP error troubleshooting guide](../../troubleshooting/common-issues.md#http-errors).
+For more details, see our [HTTP error troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.html#http-errors).
 
 ### Problem: "403 Forbidden"
 
@@ -432,7 +432,7 @@ var result = await Curl.ExecuteAsync(@"
 ");
 ```
 
-For more details, see our [authentication troubleshooting guide](../../troubleshooting/common-issues.md#authentication-errors).
+For more details, see our [authentication troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.html#authentication-errors).
 
 ### Problem: Response is Empty
 
@@ -467,7 +467,7 @@ catch (System.Text.Json.JsonException ex)
 }
 ```
 
-For more details, see our [JSON troubleshooting guide](../../troubleshooting/common-issues.md#json-parsing-errors).
+For more details, see our [JSON troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.html#json-parsing-errors).
 
 ### Problem: Timeout
 
@@ -483,7 +483,7 @@ var result = await Curl.ExecuteAsync(@"
 ");
 ```
 
-For more details, see our [timeout troubleshooting guide](../../troubleshooting/common-issues.md#timeout-errors).
+For more details, see our [timeout troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.html#timeout-errors).
 
 ## 📊 Query Parameters Guide
 
@@ -564,17 +564,17 @@ try
 catch (CurlDnsException ex)
 {
     Console.WriteLine($"DNS error: {ex.Message}");
-    // See: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/common-issues.md#dns-errors
+    // See: https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.html#dns-errors
 }
 catch (CurlTimeoutException ex)
 {
     Console.WriteLine($"Timeout: {ex.Message}");
-    // See: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/common-issues.md#timeout-errors
+    // See: https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.html#timeout-errors
 }
 catch (CurlException ex)
 {
     Console.WriteLine($"Curl error: {ex.Message}");
-    // See: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/
+    // See: https://jacob-mellor.github.io/curl-dot-net/troubleshooting/
 }
 ```
 

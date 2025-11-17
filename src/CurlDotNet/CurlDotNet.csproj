@@ -11,9 +11,9 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>1.2.0</Version>
-    <AssemblyVersion>1.2.0.0</AssemblyVersion>
-    <FileVersion>1.2.0.0</FileVersion>
+    <Version>1.2.1</Version>
+    <AssemblyVersion>1.2.1.0</AssemblyVersion>
+    <FileVersion>1.2.1.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
@@ -58,17 +58,18 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 1.0.1-preview - Performance &amp; Compatibility Update
-🆕 .NET 10 Support Added! Future-proof your applications
-📈 Improved test coverage to 95% (228/240 tests passing)
-📚 Comprehensive DocFX documentation with GitHub Pages
-🔧 Enhanced command parser for combined options (-sS, -sSL)
-🌐 Better header handling with -i flag
-✅ All 300+ curl options supported
+    <PackageReleaseNotes>Version 1.2.1 - Documentation &amp; Usability Improvements
+📚 Enhanced documentation with NuGet package context on every page
+🔗 Fixed all documentation URLs to use GitHub Pages links
+📝 Added index pages for Tutorials and Cookbook sections (fixes 404s)
+✨ Improved developer onboarding experience
+🎯 Every documentation page now explains what CurlDotNet is and how to install
+📈 Test coverage maintained at 95% (228/240 tests passing)
 💎 Sponsored by IronSoftware
 
 Documentation: https://jacob-mellor.github.io/curl-dot-net/
-Repository: https://github.com/jacob-mellor/curl-dot-net</PackageReleaseNotes>
+Repository: https://github.com/jacob-mellor/curl-dot-net
+NuGet: https://www.nuget.org/packages/CurlDotNet/</PackageReleaseNotes>
 
     <!-- Output and Build -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

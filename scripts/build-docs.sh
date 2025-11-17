@@ -104,6 +104,20 @@ if [ ! -f "docs/_site/index.html" ]; then
     exit 1
 fi
 
+# Fix GitHub Pages directory indexes - rename README.html to index.html everywhere
+echo "🔗 Converting README.html to index.html for GitHub Pages..."
+find docs/_site -name "README.html" | while read readme; do
+    dir=$(dirname "$readme")
+    # If index.html doesn't already exist from an index.md file, rename README.html to index.html
+    if [ ! -f "$dir/index.html" ]; then
+        mv "$readme" "$dir/index.html"
+        echo "   Renamed $(basename "$dir")/README.html to index.html"
+    else
+        # If index.html exists, keep README.html as backup
+        echo "   Kept both index.html and README.html in $(basename "$dir")/"
+    fi
+done
+
 # Count HTML files generated
 HTML_COUNT=$(find docs/_site -name "*.html" | wc -l)
 
