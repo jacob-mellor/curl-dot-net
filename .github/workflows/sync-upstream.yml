@@ -1,0 +1,37 @@
+name: Sync with Upstream
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Sync upstream changes
+      run: |
+        # Add upstream remote
+        git remote add upstream https://github.com/UserlandDotNet/curl-dot-net.git || true
+
+        # Fetch upstream
+        git fetch upstream
+
+        # Checkout master
+        git checkout master
+
+        # Merge upstream
+        git merge upstream/master --no-edit || {
+          echo "Merge conflicts detected. Creating issue..."
+          exit 1
+        }
+
+        # Push to origin
+        git push origin master
