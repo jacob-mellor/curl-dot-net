@@ -18,13 +18,14 @@
     <!-- Suppress CS0672: Override of obsolete member (for GetObjectData serialization) -->
     <!-- Suppress SYSLIB0051: Obsolete formatter-based serialization -->
     <!-- Suppress SYSLIB0014: WebRequest is obsolete (needed for FTP support) -->
-    <NoWarn>$(NoWarn);NU5104;CS8625;CS0672;SYSLIB0051;SYSLIB0014</NoWarn>
+    <!-- Suppress nullable reference warnings for compatibility -->
+    <NoWarn>$(NoWarn);NU5104;CS8625;CS0672;SYSLIB0051;SYSLIB0014;CS8603;CS8604;CS8618;CS8601;CS8602;CS8600;CS8619;CS8620;CS8714;CS8762</NoWarn>
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>1.2.21</Version>
-    <AssemblyVersion>1.2.21.0</AssemblyVersion>
-    <FileVersion>1.2.21.0</FileVersion>
+    <Version>1.2.22</Version>
+    <AssemblyVersion>1.2.22.0</AssemblyVersion>
+    <FileVersion>1.2.22.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
