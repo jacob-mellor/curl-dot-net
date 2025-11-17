@@ -34,9 +34,24 @@ jobs:
       - name: Make scripts executable
         run: chmod +x scripts/*.sh
 
-      - name: Build and Pack
+      - name: Build and Test
         run: |
+          echo "🔨 Building project..."
           dotnet build src/CurlDotNet/CurlDotNet.csproj -c Release
+
+          echo "🧪 Running all tests..."
+          dotnet test tests/CurlDotNet.Tests/CurlDotNet.Tests.csproj -c Release --no-build --verbosity minimal
+
+          if [ $? -ne 0 ]; then
+            echo "❌ Tests failed! Aborting release."
+            exit 1
+          fi
+
+          echo "✅ All tests passed!"
+
+      - name: Pack NuGet Package
+        run: |
+          echo "📦 Creating NuGet package..."
           dotnet pack src/CurlDotNet/CurlDotNet.csproj -c Release -o nupkg --no-build
 
       - name: Run NuGet publish (Dry Run)
