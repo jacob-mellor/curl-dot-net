@@ -27,18 +27,18 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    # Step 3: Restore dependencies
+    # Step 3: Restore dependencies (CI-specific frameworks only)
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore -p:CIBuild=true
 
-    # Step 4: Build solution in Release configuration
+    # Step 4: Build solution in Release configuration (CI-specific frameworks only)
     - name: Build solution (Release)
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Release --no-restore -p:CIBuild=true
 
     # Step 5: Run smoke/integration tests only
     # NOTE: This workflow runs ONLY smoke/integration tests - full unit test suite runs locally before push
     - name: Run Smoke & Integration Tests
-      run: dotnet test --configuration Release --no-build --filter "Category=Smoke|Category=Integration"
+      run: dotnet test --configuration Release --no-build --filter "Category=Smoke|Category=Integration" -p:CIBuild=true
       continue-on-error: false  # Explicitly fail the workflow if tests fail
 
     # Optional: Report test results summary

@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Default target frameworks -->
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IncludeNet10)' != 'true'">netstandard2.0;net472;net8.0;net9.0</TargetFrameworks>
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IncludeNet10)' != 'true'">netstandard2.0;net8.0;net9.0</TargetFrameworks>
+    <!-- Default target frameworks including .NET 10 -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' != 'true'">netstandard2.0;net472;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' != 'true'">netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
 
-    <!-- Optional .NET 10 support (set IncludeNet10=true to enable) -->
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IncludeNet10)' == 'true'">netstandard2.0;net472;net8.0;net9.0;net10.0</TargetFrameworks>
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IncludeNet10)' == 'true'">netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
-    <!-- .NET 10 support is promotional/future-proofing - enable with: dotnet build -p:IncludeNet10=true -->
+    <!-- CI target frameworks (GitHub runners don't have .NET 10 yet) -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' == 'true'">netstandard2.0;net472;net8.0</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' == 'true'">netstandard2.0;net8.0</TargetFrameworks>
+    <!-- .NET 10 is released! GitHub CI runners don't have it yet, so CI uses CIBuild=true flag -->
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -16,9 +16,9 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>1.2.10</Version>
-    <AssemblyVersion>1.2.10.0</AssemblyVersion>
-    <FileVersion>1.2.10.0</FileVersion>
+    <Version>1.2.11</Version>
+    <AssemblyVersion>1.2.11.0</AssemblyVersion>
+    <FileVersion>1.2.11.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
