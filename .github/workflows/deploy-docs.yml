@@ -80,6 +80,21 @@ jobs:
         exclude:
           - README.md
           - .gitignore
+
+        # Author information
+        author:
+          name: Jacob Mellor
+          url: https://github.com/jacob-mellor
+          github: jacob-mellor
+          linkedin: jacob-mellor-iron-software
+
+        # SEO and social
+        social:
+          name: Jacob Mellor
+          links:
+            - https://github.com/jacob-mellor
+            - https://linkedin.com/in/jacob-mellor-iron-software
+            - https://ironsoftware.com/about-us/authors/jacobmellor/
         EOF
 
         # Create main index

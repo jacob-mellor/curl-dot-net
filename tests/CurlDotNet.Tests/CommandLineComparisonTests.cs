@@ -16,6 +16,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 using FluentAssertions;
 using CurlDotNet;
 using CurlDotNet.Core;
@@ -52,12 +53,12 @@ namespace CurlDotNet.Tests
         {
             if (!IsUnix)
             {
-                Assert.Skip("Command line comparison tests require Unix (macOS/Linux)");
+                throw new SkipException("Command line comparison tests require Unix (macOS/Linux)");
             }
 
             if (IsCI)
             {
-                Assert.Skip("Command line comparison tests are skipped in CI due to curl binary variations");
+                throw new SkipException("Command line comparison tests are skipped in CI due to curl binary variations");
             }
         }
 

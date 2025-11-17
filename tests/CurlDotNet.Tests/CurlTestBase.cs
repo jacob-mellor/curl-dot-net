@@ -192,11 +192,4 @@ namespace CurlDotNet.Tests
         }
     }
 
-    /// <summary>
-    /// Custom exception for skipping tests
-    /// </summary>
-    public class SkipException : Exception
-    {
-        public SkipException(string message) : base(message) { }
-    }
 }
