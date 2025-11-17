@@ -17,9 +17,14 @@ sed -i.bak "s/<FileVersion>$CURRENT_VERSION.0<\/FileVersion>/<FileVersion>$NEW_V
 rm $CSPROJ.bak
 
 # Build, test, pack
-dotnet build -c Release
-dotnet test
-dotnet pack -c Release -o nupkg
+echo "🔨 Building..."
+dotnet build -c Release --verbosity quiet || { echo "❌ Build failed"; exit 1; }
+
+echo "🧪 Running tests locally (faster than waiting for CI)..."
+dotnet test --no-build -c Release --verbosity minimal || { echo "❌ Tests failed - fix locally before pushing"; exit 1; }
+
+echo "📦 Packing..."
+dotnet pack -c Release -o nupkg --no-build --verbosity quiet
 
 echo "
 ✅ Version bumped: $NEW_VERSION

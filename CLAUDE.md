@@ -15,8 +15,11 @@
 ## Core Development Principles
 
 ### Testing & Quality
-- Never release if there's a red test. Always update the README with the testing status and code coverage. On every iteration or commit, try and improve the code coverage even by 1%.
-- Fixing tests is always the priority on a to-do list. If there's any broken test, that is the first item that happens
+- **TEST LOCALLY FIRST** - Run `./test-local.sh` or `./ship-it.sh` before pushing
+- Don't wait for CI/CD to tell you tests failed - that's slow and wasteful
+- Never release if there's a red test. Fix it locally immediately.
+- Workflows are just a safety net, not your primary testing
+- If tests pass locally, they should pass in CI. If not, the CI is wrong.
 
 ### Error Handling & Documentation
 - The purpose of an error message is not to tell the user that there's an exception but to help them fix the problem

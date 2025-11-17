@@ -84,8 +84,30 @@ That's 10 lines, not 1000.
 ## The 80/20 Rule Fixed
 
 - **80%**: Writing actual code that provides value
-- **15%**: Testing and documentation
+- **15%**: Testing LOCALLY and fixing immediately
 - **5%**: Deployment (run one script)
+
+## Why Local Testing Wins
+
+### The Stupid Way (CI/CD Testing)
+1. Push broken code
+2. Wait 5-10 minutes for CI
+3. CI fails
+4. Look at cryptic logs
+5. Guess what's wrong
+6. Fix maybe the right thing
+7. Push again
+8. Wait again...
+9. Still broken?
+10. Repeat until insane
+
+### The Smart Way (Local Testing)
+1. Run `./test-local.sh`
+2. See failure immediately
+3. Fix it RIGHT NOW with Claude
+4. Test again
+5. Push working code
+6. CI just confirms what you already know
 
 ## Emergency Deployment
 
