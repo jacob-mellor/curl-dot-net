@@ -204,7 +204,11 @@ namespace CurlDotNet.Tests
             result.OutputFiles.Should().Contain(outputFile);
             File.Exists(outputFile).Should().BeTrue();
 
+#if NETSTANDARD2_0 || NET472 || NET48
+            var content = await Task.Run(() => File.ReadAllText(outputFile));
+#else
             var content = await File.ReadAllTextAsync(outputFile);
+#endif
             content.Should().Contain("test");
         }
 
@@ -236,7 +240,11 @@ namespace CurlDotNet.Tests
             // Arrange
             var testFile = Path.Combine(_tempDirectory, "test.txt");
             var testContent = "Local file content";
+#if NETSTANDARD2_0 || NET472 || NET48
+            await Task.Run(() => File.WriteAllText(testFile, testContent));
+#else
             await File.WriteAllTextAsync(testFile, testContent);
+#endif
 
             var curl = new CurlEngine();
 

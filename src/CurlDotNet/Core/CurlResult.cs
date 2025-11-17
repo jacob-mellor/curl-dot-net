@@ -305,11 +305,11 @@ namespace CurlDotNet.Core
         /// <returns>An instance of <typeparamref name="T"/> with data from the JSON <see cref="Body"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <see cref="Body"/> is null or empty.</exception>
         /// <exception cref="InvalidOperationException">Thrown when JSON deserialization fails or JSON doesn't match type <typeparamref name="T"/>.</exception>
-        /// <exception cref="JsonException">Thrown when the JSON syntax is invalid. See <see cref="Exception.InnerException"/> for details.</exception>
+        /// <exception cref="System.Exception">Thrown when the JSON syntax is invalid. See <see cref="Exception.InnerException"/> for details.</exception>
         /// <remarks>
         /// <para>This method automatically detects whether to use System.Text.Json or Newtonsoft.Json based on the target framework.</para>
         /// <para>For complex JSON structures, consider using <see cref="AsJsonDynamic"/> for exploration, then creating a typed class.</para>
-        /// <para>If <paramref name="T"/> doesn't match the JSON structure, properties that don't match will be left at their default values.</para>
+        /// <para>If <typeparamref name="T"/> doesn't match the JSON structure, properties that don't match will be left at their default values.</para>
         /// </remarks>
         /// <seealso cref="AsJson{T}">Alternative method name for parsing JSON</seealso>
         /// <seealso cref="AsJsonDynamic">Parse JSON as dynamic object without a class</seealso>
@@ -346,7 +346,7 @@ namespace CurlDotNet.Core
         /// <returns>An instance of <typeparamref name="T"/> with data from the JSON <see cref="Body"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <see cref="Body"/> is null or empty.</exception>
         /// <exception cref="InvalidOperationException">Thrown when JSON deserialization fails.</exception>
-        /// <exception cref="JsonException">Thrown when the JSON syntax is invalid.</exception>
+        /// <exception cref="System.Exception">Thrown when the JSON syntax is invalid.</exception>
         /// <remarks>
         /// <para>This is simply an alias for <see cref="ParseJson{T}"/>. Use whichever method name you prefer.</para>
         /// </remarks>
@@ -380,7 +380,7 @@ namespace CurlDotNet.Core
         /// <para>Access properties like: <c>dynamicObj.propertyName</c> or <c>dynamicObj["propertyName"]</c></para>
         /// </returns>
         /// <exception cref="ArgumentNullException">Thrown when <see cref="Body"/> is null or empty.</exception>
-        /// <exception cref="JsonException">Thrown when the JSON syntax is invalid.</exception>
+        /// <exception cref="System.Exception">Thrown when the JSON syntax is invalid.</exception>
         /// <remarks>
         /// <para><b>⚠️ Warning:</b> No compile-time checking! If a property doesn't exist, you'll get a runtime exception.</para>
         /// <para>For production code, prefer <see cref="ParseJson{T}"/> with typed classes for better safety and IntelliSense support.</para>
@@ -487,8 +487,8 @@ namespace CurlDotNet.Core
         /// </summary>
         public async Task<CurlResult> SaveToFileAsync(string filePath)
         {
-#if NETSTANDARD2_0
-            // .NET Standard 2.0 doesn't have async file methods
+#if NETSTANDARD2_0 || NET472 || NET48
+            // .NET Framework and .NET Standard 2.0 don't have async file methods
             await Task.Run(() =>
             {
                 if (BinaryData != null)

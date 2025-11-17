@@ -149,7 +149,7 @@ namespace CurlDotNet.Core
 
                 return result;
             }
-            catch (UriFormatException ex)
+            catch (UriFormatException)
             {
                 throw new CurlMalformedUrlException($"Invalid URL: {options.Url}");
             }
@@ -161,7 +161,7 @@ namespace CurlDotNet.Core
                 }
                 return CreateTimeoutResult(options);
             }
-            catch (HttpRequestException ex)
+            catch (HttpRequestException)
             {
                 var uri = new Uri(options.Url);
                 throw new CurlCouldntConnectException(uri.Host, uri.Port > 0 ? uri.Port : (uri.Scheme == "https" ? 443 : 80), options.OriginalCommand);

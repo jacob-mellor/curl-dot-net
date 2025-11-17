@@ -1,19 +1,31 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">netstandard2.0;net472;net8.0;net10.0</TargetFrameworks>
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows'))">netstandard2.0;net8.0;net10.0</TargetFrameworks>
-    <!-- .NET 10 support added for promotional and future-proofing purposes -->
+    <!-- Default target frameworks including .NET 10 -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' != 'true'">netstandard2.0;net472;net48;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' != 'true'">netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+
+    <!-- CI target frameworks (GitHub runners don't have .NET 10 yet) -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' == 'true'">netstandard2.0;net472;net48;net8.0</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' == 'true'">netstandard2.0;net8.0</TargetFrameworks>
+    <!-- .NET 10 is released! GitHub CI runners don't have it yet, so CI uses CIBuild=true flag -->
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Suppress NU5104: System.CommandLine doesn't have a stable release yet, only beta versions -->
+    <!-- Suppress CS8625: Cannot convert null literal to non-nullable reference type -->
+    <!-- Suppress CS0672: Override of obsolete member (for GetObjectData serialization) -->
+    <!-- Suppress SYSLIB0051: Obsolete formatter-based serialization -->
+    <!-- Suppress SYSLIB0014: WebRequest is obsolete (needed for FTP support) -->
+    <!-- Suppress nullable reference warnings for compatibility -->
+    <NoWarn>$(NoWarn);NU5104;CS8625;CS0672;SYSLIB0051;SYSLIB0014;CS8603;CS8604;CS8618;CS8601;CS8602;CS8600;CS8619;CS8620;CS8714;CS8762</NoWarn>
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>1.2.1</Version>
-    <AssemblyVersion>1.2.1.0</AssemblyVersion>
-    <FileVersion>1.2.1.0</FileVersion>
+    <Version>1.2.23</Version>
+    <AssemblyVersion>1.2.23.0</AssemblyVersion>
+    <FileVersion>1.2.23.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
@@ -36,7 +48,8 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 • Middleware and DI support
 
 📦 Supported Platforms:
-• .NET 10.0 (latest &amp; greatest!)
+• .NET 10.0 (future-ready, opt-in support!)
+• .NET 9.0 (latest &amp; greatest!)
 • .NET 8.0 (current LTS)
 • .NET Framework 4.7.2+ (Windows)
 • .NET Standard 2.0 (maximum compatibility)
@@ -58,13 +71,15 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 1.2.1 - Documentation &amp; Usability Improvements
-📚 Enhanced documentation with NuGet package context on every page
-🔗 Fixed all documentation URLs to use GitHub Pages links
-📝 Added index pages for Tutorials and Cookbook sections (fixes 404s)
-✨ Improved developer onboarding experience
-🎯 Every documentation page now explains what CurlDotNet is and how to install
-📈 Test coverage maintained at 95% (228/240 tests passing)
+    <PackageReleaseNotes>Version 1.2.7 - Streamlined Repository Structure
+🚀 Simplified deployment with single-script solution (deploy-simple.sh)
+📋 Added comprehensive examples based on cookbook recipes
+🔄 Implemented continuous delivery: every commit = new version
+✅ Added version bump rule: all changes trigger releases
+🛠️ New PR-based workflow: dev branch → PR → merge → auto-release
+📝 Created CONTRIBUTING.md and DEPLOY.md for clear workflows
+🧪 Added test-all-scripts.sh for local validation
+💡 Philosophy: Spend 80% coding, 20% deploying (not vice versa)
 💎 Sponsored by IronSoftware
 
 Documentation: https://jacob-mellor.github.io/curl-dot-net/
@@ -97,6 +112,34 @@ NuGet: https://www.nuget.org/packages/CurlDotNet/</PackageReleaseNotes>
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
   </ItemGroup>
+
+  <!-- Conditional package references for .NET Framework 4.7.2 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+  </ItemGroup>
+
+  <!-- Conditional package references for .NET Framework 4.8 -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+  </ItemGroup>
+
+  <!-- Suppress nullable warnings for .NET Standard 2.0 -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <NoWarn>$(NoWarn);CS8618;CS8603;CS8625;CS8601;CS8604;CS8602;CS8600;CS8619;CS8620;CS8714;CS8762</NoWarn>
+    <DefineConstants>$(DefineConstants);NETSTANDARD2_0</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Explicitly define constants for .NET Framework 4.7.2 -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
+    <DefineConstants>$(DefineConstants);NET472;NETFRAMEWORK</DefineConstants>
+    <NoWarn>$(NoWarn);CS8618;CS8603;CS8625;CS8601;CS8604;CS8602;CS8600;CS8619;CS8620;CS8714;CS8762</NoWarn>
+  </PropertyGroup>
+
+  <!-- Explicitly define constants for .NET Framework 4.8 -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net48'">
+    <DefineConstants>$(DefineConstants);NET48;NETFRAMEWORK</DefineConstants>
+    <NoWarn>$(NoWarn);CS8618;CS8603;CS8625;CS8601;CS8604;CS8602;CS8600;CS8619;CS8620;CS8714;CS8762</NoWarn>
+  </PropertyGroup>
 
   <ItemGroup>
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />

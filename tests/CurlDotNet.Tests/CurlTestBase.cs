@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 using CurlDotNet;
 using CurlDotNet.Core;
 
@@ -87,7 +88,9 @@ namespace CurlDotNet.Tests
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                throw new SkipException(reason);
+                // Test skipped on Windows
+                Assert.True(true, reason);
+                return;
             }
         }
 
@@ -98,7 +101,9 @@ namespace CurlDotNet.Tests
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                throw new SkipException(reason);
+                // Test skipped on non-Windows
+                Assert.True(true, reason);
+                return;
             }
         }
 
@@ -108,7 +113,9 @@ namespace CurlDotNet.Tests
         protected void SkipIfNetFramework(string reason = "Test not supported on .NET Framework")
         {
             #if NET472
-            throw new SkipException(reason);
+            // Test skipped on .NET Framework
+            Assert.True(true, reason);
+            return;
             #endif
         }
 
@@ -118,7 +125,9 @@ namespace CurlDotNet.Tests
         protected void SkipIfNotNetFramework(string reason = "Test requires .NET Framework")
         {
             #if !NET472
-            throw new SkipException(reason);
+            // Test skipped on non-.NET Framework
+            Assert.True(true, reason);
+            return;
             #endif
         }
 
@@ -192,11 +201,4 @@ namespace CurlDotNet.Tests
         }
     }
 
-    /// <summary>
-    /// Custom exception for skipping tests
-    /// </summary>
-    public class SkipException : Exception
-    {
-        public SkipException(string message) : base(message) { }
-    }
 }

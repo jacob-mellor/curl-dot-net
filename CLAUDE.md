@@ -1,56 +1,139 @@
 # CurlDotNet Project Guidelines for Claude
 
+## 🚨 CRITICAL WORKFLOW RULES 🚨
+
+### ALWAYS Generate API Documentation
+- **Every build**: Run `./scripts/generate-docs.sh` after EVERY build
+- **Before tests**: Generate docs BEFORE running unit tests
+- **Before commits**: Ensure docs are regenerated before committing
+- **Automated**: API docs must be current with code changes
+- **Command**: Always run `./scripts/generate-docs.sh && ./scripts/test-all-locally.sh`
+
+### 1. ALWAYS Work in Dev Branch
+- **Default branch**: Always work in `dev` branch unless explicitly told otherwise
+- **Release flow**: dev → PR → master (triggers NuGet release & docs deployment)
+- **Repository**: We work in https://github.com/jacob-mellor/curl-dot-net
+
+### 2. Version Bumping (MANDATORY)
+- **Every commit** MUST increment the version in `src/CurlDotNet/CurlDotNet.csproj`
+- **No exceptions**: This includes documentation, typos, comments, examples - EVERYTHING
+- **Format**: Increment patch number (1.2.3 → 1.2.4 → 1.2.5)
+- **When**: Version bump happens BEFORE committing, not after
+- **Purpose**: Ensures continuous delivery - every change is immediately releasable
+
+### 3. Testing Requirements
+- **Run comprehensive tests** at these times:
+  - Start of every todo list
+  - End of every todo list
+  - Before EVERY git commit
+- **NuGet Package Validation** (MANDATORY before commits):
+  - Run: `./scripts/test-nuget-package.sh`
+  - Ensures package builds correctly
+  - Verifies public API is accessible
+  - Tests basic functionality
+  - Returns proper error codes for CI/CD integration
+- **Commands**:
+  - `./scripts/test-all-locally.sh` - Full test suite
+  - `./scripts/test-nuget-package.sh` - NuGet package validation (run BEFORE commit)
+  - `./scripts/test-framework-compatibility.sh` - Test .NET Standard 2.0 compatibility (validates .NET Framework 4.7.2)
+- **.NET Framework Testing**:
+  - Use .NET Standard 2.0 build to verify .NET Framework 4.7.2 compatibility
+  - Run framework compatibility script before deployment
+  - Windows CI provides authoritative .NET Framework test results
+- **Philosophy**: Test locally, fix immediately with Claude, push working code
+- **CI/CD**: GitHub workflows are just a safety net, not primary testing
+
 ## Core Development Principles
 
-### Testing & Quality
-- Never release if there's a red test. Always update the README with the testing status and code coverage. On every iteration or commit, try and improve the code coverage even by 1%.
-- Fixing tests is always the priority on a to-do list. If there's any broken test, that is the first item that happens
+### Testing Philosophy
+- **Local First**: Never wait for CI/CD to discover failures
+- **Immediate Fixes**: When tests fail locally, fix them RIGHT NOW
+- **Zero Tolerance**: Never release with failing tests
+- **Fast Feedback**: If it works locally, it should work in CI
 
-### Error Handling & Documentation
-- The purpose of an error message is not to tell the user that there's an exception but to help them fix the problem
-- Every error message should link to an appropriate documentation page online
-- Please ensure that every single exception that is thrown will link to an appropriate page within our documentation, either in the Git repo, or DocFX, or GitHub pages documentation
+### Error Messages
+- **Purpose**: Help users fix problems, not just report exceptions
+- **Documentation**: Every exception MUST link to relevant documentation
+- **Resources**: Links should point to GitHub repo, DocFX, or GitHub Pages
 
 ### Code Standards
-- This project will only ever use pure C# code. We will never use PINVOKE for our deployable code, so if you can't find something in C# that is compatible, please transpile from C++ and use internet searching to do so
+- **Pure C# Only**: Never use P/Invoke in deployable code
+- **Compatibility**: If C# lacks functionality, transpile from C++ instead
+- **Research**: Use internet resources to find C# equivalents
 
-## Documentation Management Lessons
+## Repository Organization
 
-### Preventing Broken Links (Learned 2025-11-17)
-- **Always verify link targets exist** before creating documentation links
-- **Use consistent relative paths** - avoid mixing `~/` prefix with `../` navigation
-- **Create placeholder files** for planned content rather than linking to non-existent files
-- **Run DocFX build locally** before committing documentation changes to catch broken links early
-- **Maintain an index README** in every documentation directory to prevent 404s
+### Clean Structure
+- **Root directory**: Keep it human-friendly and organized
+- **Scripts**: All shell scripts go in `scripts/` directory
+- **Non-essential files**: Place in meaningful subdirectories or exclude entirely
+- **No pollution**: Never clutter the root with temporary or build files
 
-### DocFX Build Management
-- **Clean obj/bin directories** when DocFX shows compilation errors - corrupted build artifacts are common
-- **Build the project first** (`dotnet build -c Release`) before running DocFX to ensure XML docs are generated
-- **Use the correct working directory** - DocFX must be run from where docfx.json is located
-- **Monitor for warnings** - DocFX warnings about broken links should be treated as errors
+### Essential Scripts
+- `scripts/ship-it.sh` - Main deployment with auto-version bump
+- `scripts/test-all-locally.sh` - Comprehensive testing (run before commits)
+- `scripts/test-nuget-package.sh` - NuGet package validation (run before commits)
+- `scripts/smoke-test.sh` - Quick validation (30 seconds)
+- `scripts/test-local.sh` - Basic test runner
+- `scripts/sync-upstream.sh` - Sync with upstream fork
 
-### Branch Strategy for Documentation
-- **Maintain strict separation** between source (master) and built docs (gh-pages)
-- **Never mix source code and built HTML** in the same branch
-- **Use GitHub Actions validation** to enforce branch separation rules
-- **Document the separation clearly** in README files to prevent confusion
+## Documentation Best Practices
 
-### Documentation Structure Best Practices
-- **Every directory needs an index** - Either README.md or index.md to prevent navigation issues
-- **Keep documentation close to code** - API documentation should be generated from XML comments
-- **Provide multiple navigation paths** - Users should find content through search, TOC, and cross-links
-- **Test documentation like code** - Broken links are bugs that need fixing
+### Preventing Broken Links
+- **Verify existence**: Always check link targets exist before creating links
+- **Consistent paths**: Use relative paths consistently (avoid mixing styles)
+- **Placeholder files**: Create stubs for planned content instead of dead links
+- **Local validation**: Run DocFX build locally before committing
+- **Index files**: Every directory needs README.md or index.md
 
-### Common Documentation Issues to Avoid
-1. **Orphaned links** - Links to files that were planned but never created
-2. **Incorrect anchor links** - Bookmarks (#section) that don't exist in target files
-3. **Path confusion** - Mixing absolute and relative paths inconsistently
-4. **Missing intermediate directories** - Creating deep links without the directory structure
-5. **Assuming file existence** - Always verify files exist before linking to them
+### DocFX Management
+- **Clean builds**: Delete obj/bin when DocFX shows compilation errors
+- **Build order**: Run `dotnet build -c Release` before DocFX
+- **Working directory**: Always run DocFX from where docfx.json is located
+- **Treat warnings as errors**: Fix all DocFX warnings immediately
+
+### Branch Strategy
+- **Separation**: Keep source (master) and built docs (gh-pages) strictly separate
+- **Never mix**: Don't combine source code and built HTML in same branch
+- **Automation**: Use GitHub Actions to enforce branch rules
+- **Clear documentation**: Explain branch strategy in README
+
+### Quality Standards
+- **Every directory needs an index**: Prevents navigation confusion
+- **API docs from code**: Generate from XML comments in source
+- **Multiple navigation paths**: Support search, TOC, and cross-links
+- **Test like code**: Treat broken links as bugs requiring fixes
+
+## Common Pitfalls to Avoid
+
+1. **Orphaned links**: Don't link to files that don't exist yet
+2. **Broken anchors**: Verify #section bookmarks exist in target files
+3. **Path inconsistency**: Don't mix absolute and relative paths
+4. **Missing directories**: Create full directory structure before deep linking
+5. **Assumption errors**: Always verify file existence before linking
 
 ## Continuous Improvement
-- Learn from what is happening right now with branch pollution and documentation 404s
-- Documentation directories not having index READMEs causes user confusion - ensure it never happens again
-- Treat documentation with the same rigor as code - test it, validate it, and maintain it
-- Remember before publishing when DocFX builds it creates static HTML in the _site directory which you can crawl and check for 404s. Check the quality of your own documentation, making sure every MD file from the doc section is accessible and crawlable from within there, and that you have a sitemap.xml file to match
-- We are working in https://github.com/jacob-mellor/curl-dot-net not https://github.com/UserlandDotNet/curl-dot-net/
+
+### Learning from Issues
+- Branch pollution and 404s teach us to maintain cleaner structure
+- Missing index files cause user confusion - prevent proactively
+- Treat documentation with same rigor as code
+- Validate built HTML in _site directory for broken links
+- Ensure all markdown files are accessible and crawlable
+- Maintain an up-to-date sitemap.xml
+
+### Workflow Optimization
+- Spend 80% time coding, 20% on deployment (not vice versa)
+- Use simple scripts over complex CI/CD
+- Fix issues locally with Claude for immediate resolution
+- Keep feedback loops as short as possible
+- never ignore CS1591: Missing XML comment for publicly visible type or member
+- Always fix it to the best of your ability doing the best job of documentation humanly possible
+- never  suppress  CS1591 warnings: And always fix on every single build cycle
+- Run final test suite to verify all tests pass no errors or skips or 
+  exceptions -> final todo
+  Run all examples too Fixing any warning or exceptions or buuild errors 
+  You will have to rebuild the documentation after too  because the XML 
+  surface has changed 
+
+As is the general instruction before finishing any to-do list

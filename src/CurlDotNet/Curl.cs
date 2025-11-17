@@ -297,30 +297,30 @@ namespace CurlDotNet
         /// await Curl.Execute("   ");
         /// </code>
         /// </exception>
-        /// <exception cref="CurlParseException">
+        /// <exception cref="Exceptions.CurlParsingException">
         /// <para>Thrown when the curl command can't be understood. Usually means typo or unsupported option.</para>
         /// <code>
-        /// // ❌ This will throw CurlParseException:
+        /// // ❌ This will throw CurlParsingException:
         /// await Curl.Execute("curl --invalid-option https://example.com");
         /// </code>
         /// <para>Error codes: CURLE_URL_MALFORMAT (3), CURLE_UNSUPPORTED_PROTOCOL (1)</para>
         /// <para>See: <see href="https://curl.se/libcurl/c/libcurl-errors.html">curl error codes</see></para>
         /// </exception>
-        /// <exception cref="CurlDnsException">
+        /// <exception cref="Exceptions.CurlCouldntResolveHostException">
         /// <para>Thrown when the hostname cannot be resolved (DNS failure).</para>
         /// <code>
         /// try
         /// {
         ///     await Curl.Execute("curl https://this-domain-does-not-exist.com");
         /// }
-        /// catch (CurlDnsException ex)
+        /// catch (Exceptions.CurlCouldntResolveHostException ex)
         /// {
         ///     Console.WriteLine($"Could not find server: {ex.Hostname}");
         /// }
         /// </code>
         /// <para>Error code: CURLE_COULDNT_RESOLVE_HOST (6)</para>
         /// </exception>
-        /// <exception cref="CurlTimeoutException">
+        /// <exception cref="Exceptions.CurlTimeoutException">
         /// <para>Thrown when the operation takes longer than the timeout specified by <paramref name="command"/> (via <c>--max-time</c>) 
         /// or <see cref="DefaultMaxTimeSeconds"/>.</para>
         /// <code language="csharp">
@@ -328,7 +328,7 @@ namespace CurlDotNet
         /// {
         ///     await Curl.ExecuteAsync("curl --max-time 5 https://very-slow-api.com");
         /// }
-        /// catch (CurlTimeoutException ex)
+        /// catch (Exceptions.CurlTimeoutException ex)
         /// {
         ///     Console.WriteLine($"Timed out after {ex.Timeout} seconds");
         /// }
@@ -336,15 +336,15 @@ namespace CurlDotNet
         /// <para>Error code: <c>CURLE_OPERATION_TIMEDOUT</c> (28)</para>
         /// <para>To cancel operations without waiting for timeout, use the <see cref="M:CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)">overload with <see cref="CancellationToken"/></see>.</para>
         /// </exception>
-        /// <exception cref="CurlSslException">
-        /// <para>Thrown for SSL/TLS certificate problems. This can occur when certificates are self-signed, expired, 
-        /// or don't match the domain. Check <see cref="CurlSslException.CertificateError"/> for details.</para>
+        /// <exception cref="Exceptions.CurlSslException">
+        /// <para>Thrown for SSL/TLS certificate problems. This can occur when certificates are self-signed, expired,
+        /// or don't match the domain. Check <see cref="Exceptions.CurlSslException.CertificateError"/> for details.</para>
         /// <code language="csharp">
         /// try
         /// {
         ///     await Curl.ExecuteAsync("curl https://self-signed-cert.example.com");
         /// }
-        /// catch (CurlSslException ex)
+        /// catch (Exceptions.CurlSslException ex)
         /// {
         ///     Console.WriteLine($"SSL problem: {ex.Message}");
         ///     if (ex.CertificateError != null)
@@ -355,9 +355,9 @@ namespace CurlDotNet
         /// <para>Error codes: <c>CURLE_SSL_CONNECT_ERROR</c> (35), <c>CURLE_PEER_FAILED_VERIFICATION</c> (60)</para>
         /// <para><b>⚠️ WARNING:</b> Using <c>-k</c> or <c>--insecure</c> disables certificate validation and makes you vulnerable to man-in-the-middle attacks. Only use in development!</para>
         /// </exception>
-        /// <exception cref="CurlException">
-        /// <para>Base exception for all curl-related errors. All specific exceptions inherit from this. 
-        /// See <see cref="CurlException.ErrorCode"/> for the specific curl error code.</para>
+        /// <exception cref="Exceptions.CurlException">
+        /// <para>Base exception for all curl-related errors. All specific exceptions inherit from this.
+        /// See <see cref="Exceptions.CurlException.CurlErrorCode"/> for the specific curl error code.</para>
         /// <para>Common error codes:</para>
         /// <list type="table">
         /// <listheader>
@@ -378,11 +378,11 @@ namespace CurlDotNet
         /// </item>
         /// <item>
         /// <term>28 - CURLE_OPERATION_TIMEDOUT</term>
-        /// <description>Operation timed out (see <see cref="CurlTimeoutException"/>)</description>
+        /// <description>Operation timed out (see <see cref="Exceptions.CurlTimeoutException"/>)</description>
         /// </item>
         /// <item>
         /// <term>60 - CURLE_PEER_FAILED_VERIFICATION</term>
-        /// <description>SSL certificate verification failed (see <see cref="CurlSslException"/>)</description>
+        /// <description>SSL certificate verification failed (see <see cref="Exceptions.CurlSslException"/>)</description>
         /// </item>
         /// </list>
         /// <para>For a complete list of all curl error codes, see <see href="https://curl.se/libcurl/c/libcurl-errors.html">curl error codes</see>.</para>

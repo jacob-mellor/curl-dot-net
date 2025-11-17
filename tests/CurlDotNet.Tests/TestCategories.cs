@@ -76,5 +76,16 @@ namespace CurlDotNet.Tests
         /// Tests that verify Xamarin compatibility
         /// </summary>
         public const string Xamarin = "Xamarin";
+
+        /// <summary>
+        /// DevOps category for CI/CD - Fast, reliable tests that verify compilation and basic operation
+        /// These tests should NEVER depend on external services or network connectivity
+        /// </summary>
+        public const string DevOps = "DevOps";
+
+        /// <summary>
+        /// Smoke tests - Quick verification that the system is basically operational
+        /// </summary>
+        public const string Smoke = "Smoke";
     }
 }

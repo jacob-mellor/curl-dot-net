@@ -417,7 +417,7 @@ namespace CurlDotNet.Lib
             // Merge default headers
             foreach (var header in _defaultHeaders)
             {
-#if NETSTANDARD2_0 || NET48
+#if NETSTANDARD2_0 || NET472 || NET48
                 if (!options.Headers.ContainsKey(header.Key))
                 {
                     options.Headers[header.Key] = header.Value;

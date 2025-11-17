@@ -1,3 +1,6 @@
+# Private documentation
+JACOB.md
+
 # Build results
 bin/
 obj/
@@ -57,11 +60,18 @@ TestResults/
 *.trx
 *.coverage
 
-# DocFX
+# DocFX / Documentation
 _site/
 _api/
 *.log
 jacob/
+docs/_site/
+sitemap.xml
+gh-pages/  # Generated documentation folder
+# Prevent built HTML files in docs
+docs/**/*.html
+docs/api/*.html
+docs/articles/*.html
 
 # Benchmark Results
 BenchmarkDotNet.Artifacts/
@@ -82,3 +92,7 @@ promotion.md
 # Work planning documents (internal use)
 work.md
 ACHIEVED.md
+nupkg/
+*.nupkg
+*.snupkg
+build_output.txt

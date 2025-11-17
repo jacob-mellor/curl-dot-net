@@ -37,6 +37,8 @@ namespace CurlDotNet.Tests
         /// Tests parsing of a simple URL without any options.
         /// </summary>
         [Fact]
+        [Trait("Category", TestCategories.DevOps)]
+        [Trait("Category", TestCategories.Smoke)]
         public void Parse_SimpleUrl_ShouldSetUrl()
         {
             // Arrange
@@ -142,6 +144,7 @@ namespace CurlDotNet.Tests
         /// Tests parsing of custom headers.
         /// </summary>
         [Fact]
+        [Trait("Category", TestCategories.DevOps)]
         public void Parse_SingleHeader_ShouldAddToHeaders()
         {
             // Arrange

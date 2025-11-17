@@ -598,7 +598,9 @@ namespace CurlDotNet.Exceptions
         /// <param name="hostname">The hostname that could not be resolved.</param>
         /// <param name="command">The curl command that was executing.</param>
         public CurlDnsException(string hostname, string command = null)
-            : base($"Could not resolve host: {hostname}", 6, hostname, null, command)
+            : base($"Could not resolve host: {hostname}\n" +
+                   $"For DNS troubleshooting, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md",
+                   6, hostname, null, command)
         {
             // CURLE_COULDNT_RESOLVE_HOST = 6
         }
@@ -655,7 +657,8 @@ namespace CurlDotNet.Exceptions
         /// <param name="command">The curl command that was executing.</param>
         /// <param name="timeout">The timeout duration that was exceeded.</param>
         public CurlTimeoutException(string message, string command = null, TimeSpan? timeout = null)
-            : base(message, 28, command) // CURLE_OPERATION_TIMEDOUT = 28
+            : base($"{message}\nFor timeout configuration, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/timeout-errors.md",
+                   28, command) // CURLE_OPERATION_TIMEDOUT = 28
         {
             Timeout = timeout;
         }
@@ -693,7 +696,8 @@ namespace CurlDotNet.Exceptions
         /// <param name="certError">Details about the certificate error.</param>
         /// <param name="command">The curl command that failed.</param>
         public CurlSslException(string message, string? certError = null, string? command = null)
-            : base(message, 60, command) // CURLE_PEER_FAILED_VERIFICATION = 60
+            : base($"{message}\nFor SSL/TLS troubleshooting, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md",
+                   60, command) // CURLE_PEER_FAILED_VERIFICATION = 60
         {
             CertificateError = certError;
         }
@@ -716,7 +720,8 @@ namespace CurlDotNet.Exceptions
         /// <param name="authMethod">The authentication method that failed.</param>
         /// <param name="command">The curl command that caused the error.</param>
         public CurlAuthenticationException(string message, string authMethod = null, string command = null)
-            : base(message, 67, command) // CURLE_LOGIN_DENIED = 67
+            : base($"{message}\nFor authentication help, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/auth-errors.md",
+                   67, command) // CURLE_LOGIN_DENIED = 67
         {
             AuthMethod = authMethod;
         }
@@ -756,7 +761,8 @@ namespace CurlDotNet.Exceptions
         /// <param name="responseBody">The response body content.</param>
         /// <param name="command">The curl command that caused the error.</param>
         public CurlHttpException(string message, int statusCode, string statusText = null, string responseBody = null, string command = null)
-            : base(message, command)
+            : base($"{message}\nFor HTTP error handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md",
+                   command)
         {
             StatusCode = statusCode;
             StatusText = statusText;
@@ -946,6 +952,14 @@ namespace CurlDotNet.Exceptions
             Download
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CurlFileException"/> class
+        /// </summary>
+        /// <param name="message">The error message describing the file operation failure</param>
+        /// <param name="filePath">The path to the file that caused the error</param>
+        /// <param name="operation">The type of file operation that failed</param>
+        /// <param name="command">The original curl command that was executed</param>
+        /// <param name="innerException">The underlying exception that caused this error</param>
         public CurlFileException(string message, string filePath, FileOperation operation, string command = null, Exception innerException = null)
             : base(message, command, innerException)
         {
@@ -959,9 +973,22 @@ namespace CurlDotNet.Exceptions
     /// </summary>
     public class CurlRetryException : CurlException
     {
+        /// <summary>
+        /// Gets the number of retry attempts that were made before failing
+        /// </summary>
         public int RetryCount { get; }
+        /// <summary>
+        /// Gets the exception from the last retry attempt
+        /// </summary>
         public Exception LastAttemptException { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CurlRetryException"/> class
+        /// </summary>
+        /// <param name="message">The error message describing the retry failure</param>
+        /// <param name="command">The original curl command that was executed</param>
+        /// <param name="retryCount">The number of retry attempts that were made</param>
+        /// <param name="lastException">The exception from the final retry attempt</param>
         public CurlRetryException(string message, string command, int retryCount, Exception lastException)
             : base(message, command, lastException)
         {
@@ -975,8 +1002,17 @@ namespace CurlDotNet.Exceptions
     /// </summary>
     public class CurlFtpException : CurlException
     {
+        /// <summary>
+        /// Gets the FTP response code that caused the error
+        /// </summary>
         public int FtpCode { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CurlFtpException"/> class
+        /// </summary>
+        /// <param name="message">The error message describing the FTP failure</param>
+        /// <param name="ftpCode">The FTP response code</param>
+        /// <param name="command">The original curl command that was executed</param>
         public CurlFtpException(string message, int ftpCode, string command = null)
             : base(message, 9, command) // CURLE_FTP_ACCESS_DENIED = 9
         {
@@ -989,9 +1025,22 @@ namespace CurlDotNet.Exceptions
     /// </summary>
     public class CurlProxyException : CurlConnectionException
     {
+        /// <summary>
+        /// Gets the proxy hostname or IP address that failed to connect
+        /// </summary>
         public string ProxyHost { get; }
+        /// <summary>
+        /// Gets the proxy port number, if specified
+        /// </summary>
         public int? ProxyPort { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CurlProxyException"/> class
+        /// </summary>
+        /// <param name="message">The error message describing the proxy connection failure</param>
+        /// <param name="proxyHost">The proxy hostname or IP address</param>
+        /// <param name="proxyPort">The proxy port number, if applicable</param>
+        /// <param name="command">The original curl command that was executed</param>
         public CurlProxyException(string message, string proxyHost, int? proxyPort = null, string command = null)
             : base(message, 5, proxyHost, proxyPort, command)
         {
@@ -1006,9 +1055,23 @@ namespace CurlDotNet.Exceptions
     /// </summary>
     public class CurlParsingException : CurlException
     {
+        /// <summary>
+        /// Gets the content type of the data that failed to parse
+        /// </summary>
         public string ContentType { get; }
+        /// <summary>
+        /// Gets the expected type that the content could not be parsed into
+        /// </summary>
         public Type ExpectedType { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CurlParsingException"/> class
+        /// </summary>
+        /// <param name="message">The error message describing the parsing failure</param>
+        /// <param name="contentType">The content type of the unparseable data</param>
+        /// <param name="expectedType">The type that was expected</param>
+        /// <param name="command">The original curl command that was executed</param>
+        /// <param name="innerException">The underlying parsing exception</param>
         public CurlParsingException(string message, string contentType, Type expectedType, string command = null, Exception innerException = null)
             : base(message, command, innerException)
         {
@@ -1022,9 +1085,22 @@ namespace CurlDotNet.Exceptions
     /// </summary>
     public class CurlRateLimitException : CurlHttpException
     {
+        /// <summary>
+        /// Gets the time to wait before retrying, if provided by the server
+        /// </summary>
         public TimeSpan? RetryAfter { get; }
+        /// <summary>
+        /// Gets the number of remaining requests allowed, if provided
+        /// </summary>
         public int? RemainingLimit { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CurlRateLimitException"/> class
+        /// </summary>
+        /// <param name="message">The error message describing the rate limit</param>
+        /// <param name="retryAfter">The time to wait before retrying</param>
+        /// <param name="remainingLimit">The number of requests remaining</param>
+        /// <param name="command">The original curl command that was executed</param>
         public CurlRateLimitException(string message, TimeSpan? retryAfter = null, int? remainingLimit = null, string command = null)
             : base(message, 429, "Too Many Requests", null, command)
         {
@@ -1038,6 +1114,12 @@ namespace CurlDotNet.Exceptions
     /// </summary>
     public class CurlExecutionException : CurlException
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CurlExecutionException"/> class
+        /// </summary>
+        /// <param name="message">The error message describing the execution failure</param>
+        /// <param name="command">The original curl command that was executed</param>
+        /// <param name="innerException">The underlying exception that caused the failure</param>
         public CurlExecutionException(string message, string command = null, Exception innerException = null)
             : base(message, command, innerException)
         {
@@ -1049,8 +1131,16 @@ namespace CurlDotNet.Exceptions
     /// </summary>
     public class CurlNotSupportedException : CurlException
     {
+        /// <summary>
+        /// Gets the name of the feature that is not supported
+        /// </summary>
         public string Feature { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CurlNotSupportedException"/> class
+        /// </summary>
+        /// <param name="feature">The name of the unsupported feature</param>
+        /// <param name="command">The original curl command that was executed</param>
         public CurlNotSupportedException(string feature, string command = null)
             : base($"Feature not supported: {feature}", 1, command)
         {
@@ -1060,29 +1150,117 @@ namespace CurlDotNet.Exceptions
     }
 
     /// <summary>
-    /// Thrown when cookie operations fail
+    /// Thrown when cookie operations fail during HTTP requests.
     /// </summary>
+    /// <remarks>
+    /// <para>This exception indicates problems with cookie handling, including cookie jar file access, cookie parsing, or cookie storage.</para>
+    /// <para>Common causes: invalid cookie jar path, file permissions, malformed cookies, or disk space issues.</para>
+    /// <para>AI-Usage: Catch this to handle cookie-related failures separately from other HTTP errors.</para>
+    /// <para>AI-Pattern: Check CookieJarPath property to identify file access issues.</para>
+    /// <para>For more information, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/cookie-errors.md</para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// try
+    /// {
+    ///     var result = await curl.ExecuteAsync("curl --cookie-jar cookies.txt https://example.com");
+    /// }
+    /// catch (CurlCookieException ex)
+    /// {
+    ///     Console.WriteLine($"Cookie error: {ex.Message}");
+    ///     if (!string.IsNullOrEmpty(ex.CookieJarPath))
+    ///     {
+    ///         Console.WriteLine($"Cookie jar path: {ex.CookieJarPath}");
+    ///         // Check file permissions or try alternative path
+    ///     }
+    /// }
+    /// </code>
+    /// </example>
     public class CurlCookieException : CurlException
     {
+        /// <summary>
+        /// Gets the path to the cookie jar file that caused the error, if applicable.
+        /// </summary>
+        /// <value>The file path to the cookie jar, or null if not file-related.</value>
+        /// <remarks>
+        /// <para>This property helps identify file access issues with cookie storage.</para>
+        /// <para>AI-Usage: Use this to check file permissions or suggest alternative paths.</para>
+        /// </remarks>
         public string CookieJarPath { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CurlCookieException"/> class.
+        /// </summary>
+        /// <param name="message">The error message describing the cookie operation failure.</param>
+        /// <param name="cookieJarPath">The path to the cookie jar file, if applicable.</param>
+        /// <param name="command">The curl command that was executing.</param>
+        /// <param name="innerException">The underlying exception that caused this error.</param>
         public CurlCookieException(string message, string cookieJarPath = null, string command = null, Exception innerException = null)
-            : base(message, command, innerException)
+            : base($"{message}\nFor cookie handling help, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/cookie-errors.md", command, innerException)
         {
             CookieJarPath = cookieJarPath;
         }
     }
 
     /// <summary>
-    /// Thrown when redirect limit is exceeded
+    /// Thrown when redirect limit is exceeded during HTTP requests.
     /// </summary>
+    /// <remarks>
+    /// <para>This exception indicates that the maximum number of HTTP redirects has been exceeded.</para>
+    /// <para>Curl error code: CURLE_TOO_MANY_REDIRECTS (47)</para>
+    /// <para>Common causes: redirect loops, misconfigured servers, or intentional redirect chains.</para>
+    /// <para>AI-Usage: Catch this to handle redirect issues separately from other HTTP errors.</para>
+    /// <para>AI-Pattern: Check RedirectCount and LastUrl to debug redirect chains.</para>
+    /// <para>For more information, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/redirect-errors.md</para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// try
+    /// {
+    ///     // Default limit is usually 50 redirects
+    ///     var result = await curl.ExecuteAsync("curl -L https://example.com/redirect-loop");
+    /// }
+    /// catch (CurlRedirectException ex)
+    /// {
+    ///     Console.WriteLine($"Too many redirects: {ex.RedirectCount}");
+    ///     Console.WriteLine($"Last URL attempted: {ex.LastUrl}");
+    ///
+    ///     // Try again with limited redirects
+    ///     result = await curl.ExecuteAsync("curl --max-redirs 5 https://example.com/redirect-loop");
+    /// }
+    /// </code>
+    /// </example>
     public class CurlRedirectException : CurlException
     {
+        /// <summary>
+        /// Gets the number of redirects that were followed before the limit was exceeded.
+        /// </summary>
+        /// <value>The count of redirects attempted.</value>
+        /// <remarks>
+        /// <para>This helps identify potential redirect loops or excessive redirect chains.</para>
+        /// <para>AI-Usage: If count is high, suspect a redirect loop.</para>
+        /// </remarks>
         public int RedirectCount { get; }
+
+        /// <summary>
+        /// Gets the last URL that was attempted before the redirect limit was exceeded.
+        /// </summary>
+        /// <value>The final URL in the redirect chain, or null if not available.</value>
+        /// <remarks>
+        /// <para>This URL can help identify where the redirect loop or chain ends.</para>
+        /// <para>AI-Usage: Use this to debug redirect chains and identify problematic URLs.</para>
+        /// </remarks>
         public string LastUrl { get; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CurlRedirectException"/> class.
+        /// </summary>
+        /// <param name="message">The error message describing the redirect limit exceeded.</param>
+        /// <param name="redirectCount">The number of redirects that were attempted.</param>
+        /// <param name="lastUrl">The last URL in the redirect chain.</param>
+        /// <param name="command">The curl command that was executing.</param>
         public CurlRedirectException(string message, int redirectCount, string lastUrl = null, string command = null)
-            : base(message, 47, command) // CURLE_TOO_MANY_REDIRECTS = 47
+            : base($"{message}\nFor redirect handling help, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/redirect-errors.md", 47, command) // CURLE_TOO_MANY_REDIRECTS = 47
         {
             RedirectCount = redirectCount;
             LastUrl = lastUrl;

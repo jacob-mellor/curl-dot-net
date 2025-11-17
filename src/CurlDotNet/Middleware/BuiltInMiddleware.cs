@@ -31,11 +31,21 @@ namespace CurlDotNet.Middleware
     {
         private readonly Action<string> _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LoggingMiddleware"/> class.
+        /// </summary>
+        /// <param name="logger">Optional custom logger. If null, uses Console.WriteLine.</param>
         public LoggingMiddleware(Action<string> logger = null)
         {
             _logger = logger ?? Console.WriteLine;
         }
 
+        /// <summary>
+        /// Executes the middleware, logging the request and response.
+        /// </summary>
+        /// <param name="context">The curl execution context.</param>
+        /// <param name="next">The next middleware in the pipeline.</param>
+        /// <returns>The curl result.</returns>
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
             _logger($"[CURL] Executing: {context.Command}");
@@ -65,12 +75,23 @@ namespace CurlDotNet.Middleware
         private readonly int _maxRetries;
         private readonly TimeSpan _initialDelay;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RetryMiddleware"/> class.
+        /// </summary>
+        /// <param name="maxRetries">Maximum number of retry attempts. Defaults to 3.</param>
+        /// <param name="initialDelay">Initial delay before the first retry. Defaults to 1 second.</param>
         public RetryMiddleware(int maxRetries = 3, TimeSpan? initialDelay = null)
         {
             _maxRetries = maxRetries;
             _initialDelay = initialDelay ?? TimeSpan.FromSeconds(1);
         }
 
+        /// <summary>
+        /// Executes the middleware with retry logic and exponential backoff.
+        /// </summary>
+        /// <param name="context">The curl execution context.</param>
+        /// <param name="next">The next middleware in the pipeline.</param>
+        /// <returns>The curl result.</returns>
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
             Exception lastException = null;
@@ -117,6 +138,12 @@ namespace CurlDotNet.Middleware
     /// </summary>
     public class TimingMiddleware : ICurlMiddleware
     {
+        /// <summary>
+        /// Executes the middleware, tracking the execution time.
+        /// </summary>
+        /// <param name="context">The curl execution context.</param>
+        /// <param name="next">The next middleware in the pipeline.</param>
+        /// <returns>The curl result with timing information.</returns>
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
             var startTime = DateTime.UtcNow;
@@ -150,11 +177,21 @@ namespace CurlDotNet.Middleware
         private static readonly ConcurrentDictionary<string, CacheEntry> _cache = new ConcurrentDictionary<string, CacheEntry>();
         private readonly TimeSpan _ttl;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CachingMiddleware"/> class.
+        /// </summary>
+        /// <param name="ttl">Time-to-live for cached entries. Defaults to 5 minutes.</param>
         public CachingMiddleware(TimeSpan? ttl = null)
         {
             _ttl = ttl ?? TimeSpan.FromMinutes(5);
         }
 
+        /// <summary>
+        /// Executes the middleware, caching GET request results.
+        /// </summary>
+        /// <param name="context">The curl execution context.</param>
+        /// <param name="next">The next middleware in the pipeline.</param>
+        /// <returns>The curl result, either from cache or fresh execution.</returns>
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
             // Only cache GET requests
@@ -248,11 +285,21 @@ namespace CurlDotNet.Middleware
     {
         private readonly Func<CurlContext, Task<string>> _tokenProvider;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AuthenticationMiddleware"/> class.
+        /// </summary>
+        /// <param name="tokenProvider">A function that provides authentication tokens.</param>
         public AuthenticationMiddleware(Func<CurlContext, Task<string>> tokenProvider)
         {
             _tokenProvider = tokenProvider ?? throw new ArgumentNullException(nameof(tokenProvider));
         }
 
+        /// <summary>
+        /// Executes the middleware, adding authentication headers to the request.
+        /// </summary>
+        /// <param name="context">The curl execution context.</param>
+        /// <param name="next">The next middleware in the pipeline.</param>
+        /// <returns>The curl result.</returns>
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
             // Get token
@@ -294,12 +341,22 @@ namespace CurlDotNet.Middleware
         private readonly Queue<DateTime> _requestTimes = new Queue<DateTime>();
         private readonly object _lock = new object();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RateLimitMiddleware"/> class.
+        /// </summary>
+        /// <param name="requestsPerSecond">Maximum number of requests allowed per second.</param>
         public RateLimitMiddleware(int requestsPerSecond)
         {
             _requestsPerSecond = requestsPerSecond;
             _semaphore = new SemaphoreSlim(requestsPerSecond, requestsPerSecond);
         }
 
+        /// <summary>
+        /// Executes the middleware, enforcing rate limits on requests.
+        /// </summary>
+        /// <param name="context">The curl execution context.</param>
+        /// <param name="next">The next middleware in the pipeline.</param>
+        /// <returns>The curl result.</returns>
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
             await WaitIfNeeded(context.CancellationToken);
@@ -316,6 +373,8 @@ namespace CurlDotNet.Middleware
 
         private async Task WaitIfNeeded(CancellationToken cancellationToken)
         {
+            TimeSpan waitTime = TimeSpan.Zero;
+
             lock (_lock)
             {
                 // Remove old requests outside the window
@@ -329,12 +388,14 @@ namespace CurlDotNet.Middleware
                 if (_requestTimes.Count >= _requestsPerSecond)
                 {
                     var oldestRequest = _requestTimes.Peek();
-                    var waitTime = oldestRequest.AddSeconds(1) - DateTime.UtcNow;
-                    if (waitTime > TimeSpan.Zero)
-                    {
-                        Task.Delay(waitTime, cancellationToken).Wait(cancellationToken);
-                    }
+                    waitTime = oldestRequest.AddSeconds(1) - DateTime.UtcNow;
                 }
+            }
+
+            // Wait outside the lock to avoid CS1996 error
+            if (waitTime > TimeSpan.Zero)
+            {
+                await Task.Delay(waitTime, cancellationToken);
             }
         }
 
@@ -361,11 +422,21 @@ namespace CurlDotNet.Middleware
     {
         private readonly Action<CurlContext> _modifier;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RequestModifierMiddleware"/> class.
+        /// </summary>
+        /// <param name="modifier">An action that modifies the request context before execution.</param>
         public RequestModifierMiddleware(Action<CurlContext> modifier)
         {
             _modifier = modifier ?? throw new ArgumentNullException(nameof(modifier));
         }
 
+        /// <summary>
+        /// Executes the middleware, modifying the request before passing it to the next middleware.
+        /// </summary>
+        /// <param name="context">The curl execution context.</param>
+        /// <param name="next">The next middleware in the pipeline.</param>
+        /// <returns>The curl result.</returns>
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
             _modifier(context);
@@ -380,11 +451,21 @@ namespace CurlDotNet.Middleware
     {
         private readonly Func<CurlResult, Task<CurlResult>> _modifier;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ResponseModifierMiddleware"/> class.
+        /// </summary>
+        /// <param name="modifier">A function that modifies the response after execution.</param>
         public ResponseModifierMiddleware(Func<CurlResult, Task<CurlResult>> modifier)
         {
             _modifier = modifier ?? throw new ArgumentNullException(nameof(modifier));
         }
 
+        /// <summary>
+        /// Executes the middleware, modifying the response after the next middleware completes.
+        /// </summary>
+        /// <param name="context">The curl execution context.</param>
+        /// <param name="next">The next middleware in the pipeline.</param>
+        /// <returns>The modified curl result.</returns>
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
             var result = await next();

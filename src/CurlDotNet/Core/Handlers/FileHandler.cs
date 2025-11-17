@@ -59,7 +59,7 @@ namespace CurlDotNet.Core
                 // Determine if binary or text
                 if (IsBinaryFile(filePath))
                 {
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET472 || NET48
                     binaryContent = await Task.Run(() => File.ReadAllBytes(filePath), cancellationToken);
 #else
                     binaryContent = await File.ReadAllBytesAsync(filePath, cancellationToken);
@@ -68,7 +68,7 @@ namespace CurlDotNet.Core
                 }
                 else
                 {
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET472 || NET48
                     textContent = await Task.Run(() => File.ReadAllText(filePath), cancellationToken);
 #else
                     textContent = await File.ReadAllTextAsync(filePath, cancellationToken);
@@ -96,7 +96,7 @@ namespace CurlDotNet.Core
 
                 return result;
             }
-            catch (UnauthorizedAccessException ex)
+            catch (UnauthorizedAccessException)
             {
                 throw new CurlFileCouldntReadException($"Permission denied: {filePath}");
             }
@@ -130,7 +130,7 @@ namespace CurlDotNet.Core
 
             if (binaryContent != null)
             {
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET472 || NET48
                 await Task.Run(() => File.WriteAllBytes(destination, binaryContent), cancellationToken);
 #else
                 await File.WriteAllBytesAsync(destination, binaryContent, cancellationToken);
@@ -139,7 +139,7 @@ namespace CurlDotNet.Core
             else
             {
                 var content = textContent ?? string.Empty;
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NET472 || NET48
                 await Task.Run(() => File.WriteAllText(destination, content), cancellationToken);
 #else
                 await File.WriteAllTextAsync(destination, content, cancellationToken);

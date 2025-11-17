@@ -99,7 +99,7 @@ namespace CurlDotNet.Core
                     throw new CurlAbortedByCallbackException("Operation cancelled");
                 throw new CurlOperationTimeoutException(GetTimeoutSeconds(options), options.OriginalCommand);
             }
-            catch (HttpRequestException ex)
+            catch (HttpRequestException)
             {
                 var uri = new Uri(options.Url);
                 throw new CurlCouldntConnectException(uri.Host, uri.Port > 0 ? uri.Port : (uri.Scheme == "https" ? 443 : 80), options.OriginalCommand);
@@ -337,7 +337,7 @@ namespace CurlDotNet.Core
         {
             if (binary != null)
             {
-#if NETSTANDARD2_0 || NET48
+#if NETSTANDARD2_0 || NET472 || NET48
                 await Task.Run(() => File.WriteAllBytes(outputFile, binary), cancellationToken);
 #else
                 await File.WriteAllBytesAsync(outputFile, binary, cancellationToken);
@@ -345,7 +345,7 @@ namespace CurlDotNet.Core
             }
             else if (!string.IsNullOrEmpty(body))
             {
-#if NETSTANDARD2_0 || NET48
+#if NETSTANDARD2_0 || NET472 || NET48
                 await Task.Run(() => File.WriteAllText(outputFile, body), cancellationToken);
 #else
                 await File.WriteAllTextAsync(outputFile, body, cancellationToken);
@@ -577,7 +577,7 @@ namespace CurlDotNet.Core
                    statusCode == HttpStatusCode.Found ||
                    statusCode == HttpStatusCode.SeeOther ||
                    statusCode == HttpStatusCode.TemporaryRedirect ||
-#if NETSTANDARD2_0 || NET48
+#if NETSTANDARD2_0 || NET472 || NET48
                    statusCode == (HttpStatusCode)308; // PermanentRedirect
 #else
                    statusCode == HttpStatusCode.PermanentRedirect;
