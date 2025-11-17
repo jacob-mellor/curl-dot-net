@@ -18,7 +18,10 @@
     <Nullable>enable</Nullable>
     <!-- Generate documentation for test methods -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Suppress CS1591: Missing XML documentation -->
+    <!-- Suppress nullable reference warnings for test code -->
+    <!-- Suppress xUnit warnings for test parameters -->
+    <NoWarn>$(NoWarn);CS1591;CS8625;CS8618;CS8602;CS8600;CS8603;CS8604;CS8601;xUnit1012;xUnit1026</NoWarn>
     <!-- Platform-specific settings -->
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
