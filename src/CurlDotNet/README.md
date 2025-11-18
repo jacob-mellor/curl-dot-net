@@ -4,7 +4,7 @@
 [![Downloads](https://img.shields.io/nuget/dt/CurlDotNet.svg)](https://www.nuget.org/packages/CurlDotNet/)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/jacob-mellor/curl-dot-net/ci-smoke.yml?branch=master)](https://github.com/jacob-mellor/curl-dot-net/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/jacob-mellor/curl-dot-net/blob/master/LICENSE)
-![Coverage](https://img.shields.io/badge/coverage-43.25%25-yellow)
+![Coverage](https://img.shields.io/badge/coverage-65.9%25-yellow)
 
 ![CurlDotNet - Why .NET Needs a POSIX/GNU Userland](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/1o4hlr4tbp6b8k86ew6c.jpg)
 
@@ -64,7 +64,7 @@ Install-Package CurlDotNet
 
 ### Pure .NET Implementation
 - **No native dependencies** - 100% managed C# code
-- **Cross-platform** - Windows, Linux, macOS, Docker, cloud
+- **Universal compatibility** - Runs anywhere .NET runs: Windows, Linux, macOS, iOS, Android, IoT devices, Docker, cloud
 - **Safe and secure** - No P/Invoke, no unmanaged memory
 
 ## 🎯 Key Features
@@ -236,9 +236,12 @@ await Curl.GetAsync("https://example.com")
 | Windows | 10, 11, Server 2016+ | ✅ Native |
 | Linux | Ubuntu, Debian, RHEL, Alpine | ✅ Native |
 | macOS | 10.14+, Apple Silicon | ✅ Native |
+| iOS | 12+ | ✅ via .NET Standard/MAUI |
+| Android | API 21+ | ✅ via .NET Standard/MAUI |
+| IoT | Raspberry Pi, Arduino | ✅ via .NET IoT |
 | Docker | All .NET images | ✅ Optimized |
-| Azure | Functions, App Service | ✅ Cloud Ready |
-| AWS | Lambda, ECS | ✅ Cloud Ready |
+| Azure | Functions, App Service, IoT Hub | ✅ Cloud Ready |
+| AWS | Lambda, ECS, IoT Core | ✅ Cloud Ready |
 
 ## 🧰 Cross-Platform Shell Compatibility
 
@@ -371,6 +374,11 @@ That's it! You're now using the power of curl in C# and .NET.
 - **CI/CD Integration Guide** – https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/articles/ci-cd-integration.md
 - **Logging & Observability Guide** – https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/guides/logging-observability.md
 - **Shell Compatibility Guide** – https://jacob-mellor.github.io/curl-dot-net/reference/curl-cli-compatibility
+
+## 📖 Our Story
+
+Read about how CurlDotNet is bringing curl superpowers to every corner of the .NET 10 & C# stack:
+**[📰 Featured Article: CurlDotNet - Bringing curl Superpowers to Every Corner of the .NET 10 & C# Stack](https://dev.to/iron-software/curldotnet-bringing-curl-superpowers-to-every-corner-of-the-net-10-c-stack-1ol2)**
 
 ## 🌐 Part of UserLand.NET
 

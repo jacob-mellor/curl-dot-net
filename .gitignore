@@ -73,6 +73,9 @@ coverage.*.xml
 lcov.info
 .nyc_output/
 
+# Test Packages (should use release packages)
+test-packages/
+
 # DocFX / Documentation
 _site/
 _api/

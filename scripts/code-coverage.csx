@@ -25,7 +25,8 @@ using Spectre.Console;
 // Configuration
 var rootDir = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), ".."));
 var testsProject = Path.Combine(rootDir, "tests", "CurlDotNet.Tests", "CurlDotNet.Tests.csproj");
-var coverageDir = Path.Combine(rootDir, "coverage-report");
+// Store coverage reports in temp directory, NOT in project root
+var coverageDir = Path.Combine(Path.GetTempPath(), $"curl-coverage-{DateTime.Now:yyyyMMdd-HHmmss}");
 var mainReadme = Path.Combine(rootDir, "README.md");
 var nugetReadme = Path.Combine(rootDir, "src", "CurlDotNet", "README.md");
 var projectFile = Path.Combine(rootDir, "src", "CurlDotNet", "CurlDotNet.csproj");
