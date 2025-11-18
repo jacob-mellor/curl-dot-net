@@ -5,6 +5,10 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/jacob-mellor/curl-dot-net/ci-smoke.yml?branch=master)](https://github.com/jacob-mellor/curl-dot-net/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/jacob-mellor/curl-dot-net/blob/master/LICENSE)
 
+## 🆕 New to curl? Start Here!
+
+**[📖 Complete Beginner's Guide to curl in C# →](https://jacob-mellor.github.io/curl-dot-net/new-to-curl)**
+
 ## The Industry Standard curl Experience for C# and .NET Developers
 
 CurlDotNet brings the power and simplicity of curl to the .NET ecosystem. Execute curl commands directly in C#, make HTTP requests with curl's battle-tested reliability, and leverage decades of curl development - all with pure .NET code.
