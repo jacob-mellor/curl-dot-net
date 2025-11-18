@@ -401,7 +401,7 @@ var response = await Curl.GetAsync(apiUrl)
   "auth": "oauth2",
   "client": "GatewaySyncJob",
   "traceId": "00-...",
-
+```
 
 
 
@@ -410,31 +410,10 @@ var response = await Curl.GetAsync(apiUrl)
 > ✅ Walkthrough code for each tutorial lives in `docs/articles/userland-tutorials.md` (rendered at [jacob-mellor.github.io/curl-dot-net/articles/userland-tutorials](https://jacob-mellor.github.io/curl-dot-net/articles/userland-tutorials/)), so you can lift the exact CurlDotNet snippets that pair with the instructions below.
 
 ### Tutorial 1: Building a Self-Service API Explorer (25 Steps)
-1. Create a new `dotnet new web` project dedicated to the explorer.
-2. Add CurlDotNet and your logging library of choice.
-3. Scaffold Razor Pages or minimal APIs that capture user input (URL, method, headers, body).
-4. Validate inputs against allowlists to avoid SSRF attacks.
-5. Persist favorite requests in a lightweight database such as SQLite or LiteDB.
-6. Implement authentication via your company’s single sign-on to limit access.
-7. Build a form component that previews the curl command equivalent for educational value.
-8. Translate user input into a CurlDotNet builder instance.
-9. Inject governance defaults—timeouts, proxy rules, correlation IDs.
-10. Execute the request and capture status, headers, latency, and body previews.
-11. Redact sensitive header values and payload fields automatically.
-12. Stream large responses to disk and allow downloads rather than loading everything into memory.
-13. Record each execution in an audit table with user ID and reason code.
-14. Add a tagging system so teams can categorize requests (e.g., "billing", "auth")
-15. Provide one-click sharing that generates a link referencing the saved request template.
-16. Integrate OpenTelemetry to emit spans for every execution, linking them to backend services.
-17. Surface rate-limit headers prominently to educate users about vendor constraints.
-18. Offer diffing between two requests to highlight header or body changes.
-19. Embed markdown documentation alongside each saved request for context.
-20. Schedule nightly jobs that re-run featured requests and notify owners if behavior changes.
-21. Add health indicators that show which upstream APIs are currently degraded.
-22. Apply RBAC to restrict who can edit versus only execute saved templates.
-23. Implement version history so changes to a template can be rolled back.
-24. Add export/import functionality for disaster recovery and collaboration across regions.
-25. Host the explorer behind SSL, monitor it like any production service, and treat it as a real product.
+
+Begin by spinning up a fresh ASP.NET Core project (`dotnet new web -n CurlExplorer`), adding CurlDotNet plus whichever structured logging stack your team uses. Expose Minimal API endpoints that accept authenticated input (URL, method, headers, payload), then immediately layer on security: validate destination hosts against approved domains, block loopback/RFC1918 addresses, and plug into corporate SSO so only trusted developers can create or edit templates. Persist submissions in lightweight storage (SQLite, LiteDB, or Cosmos DB) so explorers survive restarts, and show a live preview of the final `curl …` command so Linux-native teammates know exactly what will run. Translate the form into `CurlRequestBuilder` calls inside a single helper so you can enforce organization-wide defaults (timeouts, proxies, correlation IDs) and redact secrets before results ever hit disk.
+
+Once the basics work, invest in the features that make the explorer feel like a first-class internal product: capture latency, headers, and bodies for each run; stream large downloads directly to disk so memory stays flat; tag templates (“billing”, “auth”) for quick filtering; and log every execution (user, timestamp, status code) for compliance. Add niceties such as Markdown notes, diff views between revisions, and one-click sharing/export so teams can collaborate. Integrate OpenTelemetry spans and rate-limit header surfacing so explorers show up in your existing observability stack. Finally, harden the service for production by scheduling nightly replays of critical templates, checking upstream health before execution, versioning templates, gating edits via RBAC, and deploying behind TLS-terminated, probe-enabled infrastructure—exactly the way you deploy any other .NET microservice.
 
 
 #### Sample Implementation
@@ -494,26 +473,10 @@ public sealed class ApiExplorerStore
 ```
 
 ### Tutorial 2: Crafting a Disaster Recovery Runbook (20 Steps)
-1. Identify the critical API workflows required to restore service after an outage.
-2. Write CurlDotNet scenarios for each workflow, ensuring they run idempotently.
-3. Annotate scenarios with metadata: business owner, recovery time objective, dependencies.
-4. Bundle scenarios into a `dotnet tool` so operators can install and run them quickly.
-5. Implement environment selection flags (production, staging, DR region).
-6. Validate configuration files before execution to catch typos early.
-7. Add dry-run mode that prints planned actions without executing them.
-8. Integrate with ticketing systems to log each run automatically.
-9. Emit structured logs to a central location for auditability.
-10. Provide console prompts that confirm destructive actions.
-11. Wrap each CurlDotNet request in retry/circuit policies suited to disaster conditions.
-12. Attach progress bars or status indicators for long-running operations.
-13. Capture outputs and store them in time-stamped folders for post-incident analysis.
-14. Include rollback commands for each step where possible.
-15. Run quarterly game days where the runbook executes end-to-end in a sandbox.
-16. Update the tool with lessons learned after every drill.
-17. Version the runbook tool and tag releases so teams can reference historical behavior.
-18. Document prerequisites (network access, credentials) in `README` files packaged with the tool.
-19. Keep a lightweight quick-start guide for executives or non-engineers who may need to trigger the runbook in emergencies.
-20. Automate notifications to stakeholders whenever the runbook completes successfully or fails.
+
+Treat disaster recovery as real software. Start by mapping every API workflow needed to restore your platform—cache warmers, feature toggles, third-party failovers—and encode each one as an idempotent CurlDotNet scenario annotated with metadata (business owner, RTO, dependencies). Package those scenarios inside a `dotnet tool` so operators anywhere in the company can `dotnet run` the same binary. Add switches for environment selection (prod, staging, DR region), configuration validation, and a dry-run mode that prints the tasks without executing them so reviewers can double-check destructive steps.
+
+Next, layer on the guardrails: integrate the tool with ticketing systems so each execution logs a change request, emit structured logs to your SIEM, prompt for confirmation before risky actions, and wrap CurlDotNet calls in resilience policies tuned for DR conditions. Provide progress indicators for long-running operations, capture outputs (responses, metrics, artifacts) in timestamped directories, and bundle rollback commands wherever possible. Finally, institutionalize the runbook—run quarterly game days, tag each release, document prerequisites in `README`s, create an executive-friendly quick-start guide, and wire notifications so stakeholders know when the run succeeds or fails. CurlDotNet keeps the HTTP heavy lifting deterministic; your job is to build the operational muscle around it.
 
 
 #### Sample Implementation
@@ -549,28 +512,10 @@ await runbook.InvokeAsync(args);
 ```
 
 ### Tutorial 3: Building a Compliance Evidence Generator (22 Steps)
-1. Define which regulations (SOC 2, HIPAA, PCI) the generator must satisfy.
-2. List the API workflows that auditors care about: data export, deletion, encryption.
-3. Create CurlDotNet scenarios for each workflow with deterministic inputs.
-4. Design an evidence schema that includes request metadata, redacted payloads, and signatures.
-5. Implement a serializer that writes evidence bundles to encrypted storage.
-6. Generate unique identifiers for each bundle to simplify tracking.
-7. Include references to tickets or change requests associated with the workflow.
-8. Capture system context: git commit, build number, environment variables, feature flags.
-9. Hash request and response bodies to prove integrity without storing sensitive data in plain text.
-10. Sign the bundle with a service-specific certificate or access key to prevent tampering.
-11. Store bundles in WORM-compliant storage with lifecycle policies.
-12. Build a viewer application that lets auditors browse bundles with proper access controls.
-13. Implement search features (by endpoint, date range, operator) inside the viewer.
-14. Automate bundle generation on schedules (monthly) or triggers (deployments, incidents).
-15. Alert compliance officers when new bundles are available for review.
-16. Provide APIs so other governance systems can query bundle status programmatically.
-17. Run integration tests that verify bundle creation under simulated outages.
-18. Version the evidence schema and support migrations when fields change.
-19. Document the generator’s architecture, threat model, and maintenance plan.
-20. Train engineers on how to request bundles or troubleshoot failures.
-21. Conduct annual tabletop exercises with auditors using real bundles.
-22. Continuously refine the generator as regulations evolve, keeping CurlDotNet flows in lockstep.
+
+Start by defining the regulatory scope (SOC 2, HIPAA, PCI) and enumerating every API workflow auditors expect you to prove—data exports, deletions, encryption key rotations. For each workflow, build a deterministic CurlDotNet scenario that captures request metadata, redacted payloads, and contextual information (git commit, build number, feature flags). Serialize the result into signed bundles written to encrypted, WORM-compliant storage so auditors can see exactly what happened without exposing sensitive data. Include hashes of requests/responses, ticket references, and unique bundle IDs to keep tracking simple.
+
+From there, deliver a viewer experience that makes auditors love you: build a secure UI (or API) that lets them search bundles by endpoint/date/operator, emit alerts when new evidence is available, and expose programmatic hooks so governance platforms can query status automatically. Automate bundle generation on schedules (monthly attestations) and event triggers (deployments, incidents), run integration tests that stress the generator during outages, and version the schema so you can evolve fields without breaking historical data. Document the architecture, threat model, and maintenance plan; train engineers on how to request bundles; and rehearse tabletop exercises so you’re ready when audit season hits.
 
 
 #### Sample Implementation
