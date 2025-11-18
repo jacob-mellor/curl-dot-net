@@ -11,7 +11,7 @@ using Spectre.Console;
 // .NET-friendly NuGet README converter for CurlDotNet
 
 AnsiConsole.Write(new FigletText("NuGet README")
-    .Color(Color.Magenta));
+    .Color(Color.Magenta1));
 
 AnsiConsole.MarkupLine("[magenta]📄 Preparing README for NuGet package...[/]");
 AnsiConsole.Write(new Rule("[blue]README Conversion[/]").LeftJustified());

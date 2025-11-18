@@ -14,14 +14,14 @@ using Spectre.Console;
 // .NET-friendly NuGet package validator for CurlDotNet
 
 AnsiConsole.Write(new FigletText("NuGet Validator")
-    .Color(Color.Cyan));
+    .Color(Color.Cyan1));
 
 AnsiConsole.MarkupLine("[cyan]🧪 NuGet Package Validation Test[/]");
 AnsiConsole.Write(new Rule("[blue]Package Testing[/]").LeftJustified());
 
 // Find the latest .nupkg file
-var projectRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), ".."));
-if (Directory.GetCurrentDirectory().EndsWith("scripts"))
+var projectRoot = Directory.GetCurrentDirectory();
+if (projectRoot.EndsWith("scripts"))
 {
     projectRoot = Path.GetFullPath("..");
 }

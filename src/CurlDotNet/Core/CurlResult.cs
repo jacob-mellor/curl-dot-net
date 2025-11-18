@@ -279,8 +279,7 @@ namespace CurlDotNet.Core
         ///
         /// <para>The most common operation - turning JSON into objects. This method uses <see cref="System.Text.Json.JsonSerializer"/> 
         /// in .NET 6+ and <see cref="Newtonsoft.Json.JsonConvert"/> in .NET Standard 2.0 for maximum compatibility.</para>
-        ///
-        /// <para><b>Example:</b></para>
+        /// <example>
         /// <code language="csharp">
         /// // Define your class matching the JSON structure
         /// public class User
@@ -290,14 +289,16 @@ namespace CurlDotNet.Core
         ///     public int Id { get; set; }
         /// }
         ///
-        /// // Parse the response
-        /// var user = result.ParseJson&lt;User&gt;();
+        /// var response = await Curl.ExecuteAsync("curl https://api.example.com/users/42");
+        /// var user = response.ParseJson&lt;User&gt;();
         /// Console.WriteLine($"Hello {user.Name}!");
         ///
         /// // Or parse arrays
-        /// var users = result.ParseJson&lt;List&lt;User&gt;&gt;();
+        /// var listResponse = await Curl.ExecuteAsync("curl https://api.example.com/users");
+        /// var users = listResponse.ParseJson&lt;List&lt;User&gt;&gt;();
         /// Console.WriteLine($"Found {users.Count} users");
         /// </code>
+        /// </example>
         ///
         /// <para><b>Tip:</b> Use https://json2csharp.com to generate C# classes from JSON!</para>
         /// </summary>

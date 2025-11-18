@@ -28,7 +28,7 @@ if (await RunCommand("dotnet", "build -c Release") != 0)
 }
 else
 {
-    await RunCommand("csharp", "scripts/generate-docs.csx");
+    await RunCommand("dotnet", "script scripts/generate-docs.csx");
 }
 
 // Step 1: Clean and build
@@ -66,7 +66,7 @@ AnsiConsole.MarkupLine("\n[yellow]Step 3: Checking test coverage...[/]");
 AnsiConsole.Write(new Rule("[blue]Coverage Analysis[/]").LeftJustified());
 
 // Check if coverlet is installed
-var coverletCheck = await RunCommand("dotnet", "tool list -g", silent: true);
+var coverletCheck = await RunCommandWithOutput("dotnet", "tool list -g");
 if (!coverletCheck.Contains("coverlet.console"))
 {
     AnsiConsole.MarkupLine("[dim]ℹ️  Coverage tool not installed (install with: dotnet tool install -g coverlet.console)[/]");

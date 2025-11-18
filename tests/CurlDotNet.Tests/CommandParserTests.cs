@@ -91,6 +91,73 @@ namespace CurlDotNet.Tests
 
         #endregion
 
+        #region Cross-Platform Compatibility
+
+        /// <summary>
+        /// PowerShell-style commands using backticks and $env:VAR should parse like Ubuntu commands.
+        /// </summary>
+        [Fact]
+        public void Parse_PowerShellContinuationAndEnv_ShouldNormalizeCommand()
+        {
+            const string token = "ps-secret";
+            var original = Environment.GetEnvironmentVariable("API_TOKEN");
+            Environment.SetEnvironmentVariable("API_TOKEN", token);
+
+            const string command = "curl https://example.com/api `\n" +
+                                   "  -H 'Authorization: Bearer $env:API_TOKEN' `\n" +
+                                   "  -d '{\"name\":\"cli\"}'";
+
+            var options = _parser.Parse(command);
+
+            options.Url.Should().Be("https://example.com/api");
+            options.Headers.Should().ContainKey("Authorization");
+            options.Headers["Authorization"].Should().Be($"Bearer {token}");
+            options.Data.Should().Contain("\"name\"");
+
+            Environment.SetEnvironmentVariable("API_TOKEN", original);
+        }
+
+        /// <summary>
+        /// Windows CMD commands using ^ continuations and %VAR% should be supported.
+        /// </summary>
+        [Fact]
+        public void Parse_CmdContinuationAndEnv_ShouldNormalizeCommand()
+        {
+            const string token = "cmd-secret";
+            var original = Environment.GetEnvironmentVariable("TOKEN");
+            Environment.SetEnvironmentVariable("TOKEN", token);
+
+            const string command = "curl https://example.com/api ^\n" +
+                                   "  -H \"Authorization: Bearer %TOKEN%\" ^\n" +
+                                   "  --data '{\"mode\":\"cmd\"}'";
+
+            var options = _parser.Parse(command);
+
+            options.Headers.Should().ContainKey("Authorization");
+            options.Headers["Authorization"].Should().Be($"Bearer {token}");
+            options.Data.Should().Contain("cmd");
+
+            Environment.SetEnvironmentVariable("TOKEN", original);
+        }
+
+        /// <summary>
+        /// DNS and resolve options should populate CurlOptions properties.
+        /// </summary>
+        [Fact]
+        public void Parse_DnsAndResolveOptions_ShouldSetProperties()
+        {
+            const string command = "curl --dns-servers 8.8.8.8,1.1.1.1 " +
+                                   "--resolve example.com:443:93.184.216.34 https://example.com";
+
+            var options = _parser.Parse(command);
+
+            options.DnsServers.Should().Be("8.8.8.8,1.1.1.1");
+            options.Resolve.Should().ContainKey("example.com:443");
+            options.Resolve["example.com:443"].Should().Be("93.184.216.34");
+        }
+
+        #endregion
+
         #region HTTP Method Tests
 
         /// <summary>

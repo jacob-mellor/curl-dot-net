@@ -33,12 +33,20 @@ namespace CurlDotNet
     /// <para>This class lets you run ANY curl command in C# by just copying and pasting it as a string.
     /// No translation needed. No learning curve. If it works in curl, it works here.</para>
     ///
-    /// <para><b>Quick Start:</b></para>
-    /// <code>
+    /// <example>
+    /// <code language="csharp">
     /// // Just paste any curl command as a string:
-    /// var response = await Curl.Execute("curl https://api.github.com");
+    /// var response = await Curl.ExecuteAsync("curl https://api.github.com");
     /// Console.WriteLine(response.Body);  // That's it! You're done!
+    ///
+    /// // Apply CurlSettings for retries/timeouts
+    /// var settings = new CurlSettings()
+    ///     .WithTimeout(seconds: 10)
+    ///     .WithRetries(count: 2, delayMs: 500);
+    /// var json = await Curl.ExecuteAsync("curl https://httpbin.org/json", settings);
+    /// json.EnsureSuccess();
     /// </code>
+    /// </example>
     ///
     /// <para><b>What is curl?</b> curl is the universal tool for making HTTP requests from the command line.
     /// Every API documentation uses it. Now you can use those exact same commands in your C# code.</para>
@@ -200,16 +208,24 @@ namespace CurlDotNet
         /// <para>Just paste ANY curl command as a string. It works exactly like running curl from the command line,
         /// but returns the result as a nice C# object you can work with.</para>
         ///
-        /// <para><b>Simple Example:</b></para>
+        /// <example>
         /// <code language="csharp">
         /// // Copy any curl command from documentation and paste it here:
-        /// var response = await Curl.Execute("curl https://api.github.com/users/octocat");
+        /// var response = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
         ///
         /// // Work with the response:
         /// Console.WriteLine($"Status: {response.StatusCode}");  // 200
         /// Console.WriteLine($"Body: {response.Body}");          // JSON data
         /// var user = response.ParseJson&lt;GitHubUser&gt;();        // Parse to object
+        ///
+        /// // Use CurlSettings for retries/timeouts:
+        /// var settings = new CurlSettings()
+        ///     .WithTimeout(seconds: 10)
+        ///     .WithRetries(count: 2, delayMs: 250);
+        /// var resilient = await Curl.ExecuteAsync("curl --max-time 5 https://httpbin.org/json", settings);
+        /// resilient.EnsureSuccess();
         /// </code>
+        /// </example>
         ///
         /// <para><b>Real-World Example from Stripe Docs:</b></para>
         /// <code language="csharp">
