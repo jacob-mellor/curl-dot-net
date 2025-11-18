@@ -562,24 +562,10 @@ public sealed class EvidenceGenerator
 ```
 
 ### Tutorial 4: Migrating from Shell Scripts to CurlDotNet (18 Steps)
-1. Inventory all shell scripts invoking curl across repos.
-2. Categorize them by risk, frequency, and ownership.
-3. Prioritize migration candidates starting with high-risk automation.
-4. For each script, capture environment assumptions (PATH, env vars, dependencies).
-5. Translate commands into CurlDotNet builders, preserving comments that explain intent.
-6. Introduce configuration files to replace inline credentials.
-7. Add logging and telemetry wrappers around the new flows.
-8. Write unit tests to cover branching logic previously hidden in shell constructs.
-9. Validate outputs against the original scripts using golden files.
-10. Package the rewritten flows as reusable libraries or CLI tools.
-11. Update documentation and remove references to the old scripts.
-12. Host knowledge-sharing sessions to demo the new approach.
-13. Set deprecation timelines for the shell scripts with clear owners.
-14. Monitor production metrics to ensure parity after cutover.
-15. Archive the shell scripts in a historical folder for posterity.
-16. Celebrate the migration in engineering newsletters to reinforce positive change.
-17. Iterate on tooling based on feedback from teams who adopted the new flows.
-18. Establish a lightweight review process for future automation so shell scripts never creep back in.
+
+Take a census of every `curl` invocation hiding in Bash, PowerShell, and CI pipelines, categorize them by risk/frequency, and prioritize the ones that break most often or touch production data. For each script, document environment assumptions (PATH, env vars, proxy settings) and port the logic to CurlDotNet—ideally via shared libraries or CLI tools so multiple teams can reuse the same code. Replace inline credentials with configuration providers, attach logging/telemetry so you can see what the new automation is doing, and back the port with unit tests that mirror the branching logic previously buried in shell conditionals. Validate outputs against golden files from the original scripts to prove behavioral parity.
+
+Once the new flows behave, do the organizational cleanup: publish documentation, host brown-bag sessions demonstrating the new CLI, deprecate the shell versions with clear deadlines, and monitor production metrics during the cutover. Archive the old scripts for forensic reference, celebrate the migration so teams see the benefit, and institute a lightweight review process requiring future automation to use CurlDotNet instead of ad-hoc shelling. Iterate based on adopter feedback until migrating curl scripts to C# becomes a predictable, repeatable process.
 
 
 #### Sample Implementation
@@ -608,30 +594,10 @@ foreach (var command in commands)
 ```
 
 ### Tutorial 5: Building a Full-Fidelity Mock Server (24 Steps)
-1. Choose a lightweight web framework (Minimal APIs) for the mock server.
-2. Define the endpoints you need to simulate, including query parameters and headers.
-3. Store canonical sample responses as JSON files alongside the server code.
-4. Implement request validation to mimic production behavior closely.
-5. Use CurlDotNet within integration tests to ensure the mock matches real services.
-6. Add dynamic behaviors such as pagination, filtering, or field masking.
-7. Provide toggles that inject delays, errors, or schema changes for testing resilience.
-8. Expose a control API to configure the mock at runtime (e.g., switch to error mode).
-9. Containerize the server for reproducible deployments.
-10. Publish Docker images to an internal registry.
-11. Document how to run the mock locally and in CI pipelines.
-12. Integrate the mock into automated test suites, replacing brittle external dependencies.
-13. Track version numbers so clients know which mock behavior they depend on.
-14. Build dashboards showing mock usage across teams.
-15. Schedule health checks to ensure the mock is available before tests run.
-16. Offer sample `dotnet test` templates that wire the mock automatically.
-17. Provide extension points for teams to add custom routes without forking the project.
-18. Implement access controls if the mock includes sensitive sample data.
-19. Support playback of recorded production traffic for lifelike scenarios.
-20. Log every request and response for debugging test failures quickly.
-21. Emit metrics about error codes, payload sizes, and response times.
-22. Include synthetic monitoring that alerts maintainers when the mock drifts from reality.
-23. Host office hours for teams adopting the mock to gather feedback.
-24. Continuously align the mock with upstream API changes using contract tests.
+
+Pick an ASP.NET Core Minimal API or similar lightweight framework and define the endpoints you need to emulate, complete with query parameters, headers, and canonical JSON fixtures stored alongside the code. Validate requests the same way production does, use CurlDotNet integration tests to ensure responses match the real service, and add knobs for pagination/filtering, artificial delays, or schema changes so teams can test resilience. Expose a control API that toggles between success/error modes, containerize everything, and publish images to your internal registry so CI can spin up the mock on demand. Document local/CI usage, provide sample `dotnet test` templates that wire it in, and version the mock so consumers know which behavior they rely on.
+
+Operationalize the mock like any other service: instrument requests/responses, emit metrics, store logs for debugging failed tests, and add synthetic monitoring that alerts maintainers when behavior drifts from reality. Offer extension points so product teams can add custom routes without forking; guard access if sample data is sensitive; and support playback of recorded production traffic so reproductions feel real. Finally, run contract tests whenever the upstream API changes and hold office hours so consumers can ask questions—your goal is to make the mock a trusted dependency, not an afterthought.
 
 
 #### Sample Implementation
@@ -662,23 +628,10 @@ public sealed record Order(int Id, decimal Total);
 ```
 
 ### Tutorial 6: Integrating CurlDotNet with Message Buses (17 Steps)
-1. Identify workflows where HTTP requests trigger downstream messaging events.
-2. Create a service that encapsulates CurlDotNet requests and publishes events to Kafka, RabbitMQ, or Azure Service Bus.
-3. Define event schemas describing the request metadata and outcomes.
-4. Implement idempotency to avoid duplicate messages when retries occur.
-5. Attach tracing headers so downstream consumers can correlate events with originating requests.
-6. Handle partial successes by emitting compensating events.
-7. Write integration tests that spin up ephemeral message brokers.
-8. Monitor queue depth to ensure the new service keeps up under load.
-9. Configure dead-letter queues for failed events with clear remediation steps.
-10. Provide dashboards that show request volume versus event volume to detect mismatches.
-11. Document consumption patterns for other services.
-12. Add alerting for event schema evolution so consumers can update promptly.
-13. Secure message channels with encryption and access control lists.
-14. Run load tests to validate throughput and latency expectations.
-15. Offer SDKs or helper libraries that simplify consuming the emitted events.
-16. Conduct game days simulating downstream outages to test backpressure strategies.
-17. Continuously refine retry and batching configurations based on telemetry.
+
+For workflows where HTTP calls trigger downstream events (Kafka, RabbitMQ, Azure Service Bus), wrap CurlDotNet inside a small service that publishes request metadata/results onto the bus. Define explicit event schemas (status, payload hash, correlation IDs), implement idempotency so retries don’t duplicate messages, and carry tracing headers so downstream consumers can correlate the entire journey. Handle partial successes gracefully by emitting compensating events, write integration tests with ephemeral brokers, and monitor queue depth/dead-letter queues to ensure the new service keeps up under load.
+
+Operationally, treat the integration like any other streaming pipeline: secure channels with encryption/ACLs, document consumption patterns, add alerts for schema evolution, and provision dashboards that compare HTTP volume vs. emitted events. Run load tests and chaos drills (downstream outages) to validate backpressure strategies, offer helper libraries so other teams can consume the events effortlessly, and continuously tune retry/batching based on telemetry.
 
 
 #### Sample Implementation
@@ -710,25 +663,10 @@ await sender.SendMessageAsync(message);
 ```
 
 ### Tutorial 7: Observability-First Mobile Backends (19 Steps)
-1. Recognize that mobile backends often proxy requests to third-party APIs.
-2. Adopt CurlDotNet within the backend to standardize outbound calls.
-3. Instrument every request with device-specific metadata (app version, platform).
-4. Apply adaptive throttling to protect mobile sessions from vendor outages.
-5. Cache responses aggressively when APIs allow it, tagging cache entries per device cohort.
-6. Inject feature flag states into outbound headers for A/B testing.
-7. Capture screenshot-quality logs with redacted user data for debugging support tickets.
-8. Build dashboards comparing regions, carriers, and device types.
-9. Implement fallback flows that return cached results when vendors flake.
-10. Use CurlDotNet snapshots to reproduce issues reported by QA or beta testers.
-11. Integrate Crashlytics or App Center signals with backend telemetry.
-12. Provide a developer portal where mobile engineers can run curated CurlDotNet flows.
-13. Document expectations for latency and payload sizes per endpoint.
-14. Run chaos experiments simulating carrier packet loss.
-15. Collaborate with vendor support teams by sharing precise CurlDotNet logs.
-16. Automate release gates that block mobile app rollout if backend integrations are unhealthy.
-17. Add synthetic tests that mimic key mobile journeys overnight.
-18. Track user impact metrics (sessions affected) for each backend incident.
-19. Continuously educate mobile teams about CurlDotNet patterns to keep communication crisp.
+
+Mobile backends frequently proxy third-party APIs, so standardize everything through CurlDotNet: attach device metadata (app version, platform, carrier) to each request, cache responses per cohort, and use adaptive throttling so vendor outages don’t take down the app. Inject feature-flag context into headers for A/B tests, capture redacted “screenshot-level” logs to help support debug tickets, and build dashboards that compare latency across regions/carriers so product teams see the impact. When vendors flake, fall back to cached data, and leverage CurlDotNet snapshots to reproduce QA or beta issues.
+
+Tie observability together by integrating Crashlytics/App Center signals with backend telemetry, offering a developer portal where mobile engineers can trigger curated CurlDotNet flows, and documenting expected latency/payload sizes per endpoint. Run chaos experiments (carrier packet loss), share precise CurlDotNet logs with vendor support, automate release gates that block app rollouts if integrations misbehave, and run nightly synthetic tests that mimic key journeys. Track user impact metrics for each incident and keep educating mobile teams about CurlDotNet patterns so debugging conversations stay crisp.
 
 
 #### Sample Implementation
@@ -760,27 +698,10 @@ public sealed record MobileRequest(string UpstreamUrl, string AppVersion, string
 ```
 
 ### Tutorial 8: Multi-Cloud Disaster Recovery Bridges (21 Steps)
-1. Determine which APIs must remain reachable even if an entire cloud provider experiences issues.
-2. Deploy CurlDotNet-based bridges in each cloud (Azure, AWS, GCP) with identical configs.
-3. Keep configuration state synchronized through GitOps or secret replication.
-4. Implement health checks that monitor cross-cloud latency and certificate validity.
-5. Use DNS or service mesh routing to direct traffic to the healthiest bridge automatically.
-6. Include failover scripts that re-point downstream services within minutes.
-7. Store telemetry in a central, provider-agnostic datastore for unified visibility.
-8. Practice failovers quarterly, updating runbooks with measured recovery times.
-9. Automate artifact promotion across clouds to avoid configuration drift.
-10. Harden identity management so bridges can authenticate securely in each provider.
-11. Encrypt configuration bundles at rest and in transit.
-12. Expose manual override controls for operations teams.
-13. Document dependencies unique to each cloud (firewall rules, IAM policies).
-14. Maintain cost dashboards to justify standby infrastructure spend.
-15. Integrate with incident management tooling to broadcast failover status.
-16. Validate logging pipelines during failovers to ensure no data loss.
-17. Provide developer sandboxes to rehearse cross-cloud debugging.
-18. Capture lessons learned after each drill and update checklists.
-19. Monitor vendor announcements for breaking changes that could impact the bridges.
-20. Keep diagrams fresh so stakeholders understand routing paths.
-21. Reassess the architecture annually to incorporate new platform capabilities.
+
+If you rely on third-party APIs that must stay reachable even when an entire cloud provider hiccups, build CurlDotNet “bridges” in every region—Azure, AWS, GCP—with identical configuration pulled via GitOps/secret replication. Add health checks that measure cross-cloud latency and TLS validity, wire DNS or service-mesh routing to whichever bridge is healthy, and keep failover scripts ready to repoint downstream services within minutes. Centralize telemetry in a provider-agnostic datastore so you can see what each bridge is doing, rehearse failovers quarterly, and automatically promote artifacts across clouds to avoid drift. Harden IAM for every provider, encrypt configs everywhere, document cloud-specific dependencies (firewalls, IAM policies), and expose manual overrides for operations teams.
+
+Operational excellence matters as much as the code: maintain cost dashboards for standby capacity, integrate with incident management tooling so failover status broadcasts automatically, and validate logging pipelines during drills to ensure no data loss. Provide sandboxes where developers can practice cross-cloud debugging, capture lessons after each exercise, monitor vendor announcements for breaking changes, keep architecture diagrams current, and reassess the entire approach annually as cloud capabilities evolve—all while relying on CurlDotNet to keep the HTTP semantics identical.
 
 
 #### Sample Implementation
@@ -808,22 +729,10 @@ foreach (var target in targets)
 ```
 
 ### Tutorial 9: Streaming Analytics Pipelines (16 Steps)
-1. Identify streaming sources (SSE, WebSockets, chunked responses) that your system consumes.
-2. Use CurlDotNet’s streaming APIs to read data incrementally without buffering entire payloads.
-3. Pipe chunks into channels or reactive streams for downstream processing.
-4. Implement schema validation per chunk to catch corruption early.
-5. Add backpressure so slow consumers do not crash the pipeline.
-6. Persist checkpoints so the pipeline can resume after failures.
-7. Integrate with analytics engines (Flink, Spark, Azure Stream Analytics) via connectors.
-8. Enforce authentication renewal for long-running streams.
-9. Emit metrics for throughput, latency, and error counts.
-10. Simulate network partitions and validate reconnection logic.
-11. Provide dashboards showing per-stream health.
-12. Offer tooling for replaying historical slices through CurlDotNet replays.
-13. Secure the pipeline with TLS and token rotation.
-14. Document data retention policies and privacy considerations.
-15. Automate cost monitoring because streaming endpoints can generate huge bandwidth bills.
-16. Continuously tune buffer sizes and retry intervals based on production telemetry.
+
+List every streaming source (SSE, WebSockets, chunked HTTP) your system consumes and refactor each one to use CurlDotNet’s streaming APIs so you can process data incrementally without buffering entire payloads. Feed chunks into `Channel<T>` or reactive streams, validate schemas per chunk, apply backpressure so slow consumers don’t explode memory, and persist checkpoints so the pipeline resumes cleanly after failures. Integrate with Flink/Spark/Azure Stream Analytics via connectors, handle auth renewal for long-running streams, and emit metrics for throughput/latency/error counts to keep operators in the loop.
+
+Make the pipeline production-ready by simulating network partitions, validating reconnection logic, building dashboards that show per-stream health, and providing tooling to replay historical slices via CurlDotNet replays. Secure everything with TLS/token rotation, document retention/privacy policies, monitor costs (streaming endpoints can burn bandwidth quickly), and continuously tune buffer sizes plus retry intervals based on real telemetry. CurlDotNet gives you deterministic streaming semantics; your job is to wrap them in the resiliency and observability layers analytics teams expect.
 
 
 #### Sample Implementation
