@@ -767,29 +767,10 @@ await streamingTask;
 ```
 
 ### Tutorial 10: Customer Support Troubleshooting Toolkit (23 Steps)
-1. Interview support agents to understand common API-related tickets.
-2. Build a desktop or web app that exposes curated CurlDotNet scenarios aligned with those tickets.
-3. Authenticate agents using SSO and enforce least privilege.
-4. Provide dropdowns for selecting customers, environments, or product SKUs.
-5. Pre-fill safe default values to reduce manual typing errors.
-6. Display instructions and warnings for each scenario.
-7. Execute CurlDotNet requests with read-only credentials wherever possible.
-8. Redact sensitive response fields before showing them to agents.
-9. Offer buttons to copy sanitized results into support tickets.
-10. Log every execution with agent ID and case number.
-11. Include guardrails that block actions outside business hours unless escalated.
-12. Provide inline education explaining what each header or parameter does.
-13. Embed charts that visualize historical metrics relevant to the scenario.
-14. Allow agents to attach screenshots or notes that travel with the execution log.
-15. Integrate with chat tools for real-time collaboration with engineers.
-16. Offer a safe mode that uses mocks for training new hires.
-17. Expose APIs so quality teams can audit agent usage programmatically.
-18. Support localization for global support centers.
-19. Run regular usability tests to keep the toolkit intuitive.
-20. Measure deflection rates: tickets resolved by support without engineering intervention.
-21. Update playbooks based on new product launches or incident learnings.
-22. Provide dashboards for leadership showing toolkit adoption and impact.
-23. Celebrate success stories to reinforce the value of investing in tooling.
+
+Interview support agents to understand which API-related tickets consume the most time, then build a simple desktop or web app that exposes curated CurlDotNet scenarios for those workflows. Require SSO, enforce least privilege, and give agents guardrails: dropdowns for customer/environment/SKU, safe default values, inline warnings, and read-only credentials whenever possible. Redact sensitive fields before displaying responses, provide buttons that copy sanitized payloads into support tickets, and log every execution with agent ID plus case number so QA teams can audit usage.
+
+Add the touches that make the toolkit genuinely useful: inline education explaining each header/parameter, charts that visualize historical metrics, screenshot/note attachments that travel with execution logs, chat-tool integrations for live collaboration with engineers, and a safe training mode backed by mocks. Support localization for global centers, run usability tests, track deflection rates (tickets resolved without engineering), and publish dashboards so leadership sees the impact. Continue updating playbooks as products evolve and celebrate success stories so agents stay excited about using the tool.
 
 
 #### Sample Implementation

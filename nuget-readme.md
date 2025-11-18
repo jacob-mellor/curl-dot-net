@@ -11,6 +11,10 @@
 
 **[📖 Complete Beginner's Guide to curl in C# →](https://jacob-mellor.github.io/curl-dot-net/new-to-curl)**
 
+## 📰 Featured Article
+
+**[CurlDotNet: Bringing Curl Superpowers to Every Corner of the .NET 10 C# Stack](https://dev.to/iron-software/curldotnet-bringing-curl-superpowers-to-every-corner-of-the-net-10-c-stack-1ol2)** - Read the full story on Dev.to
+
 ## The Industry Standard curl Experience for C# and .NET Developers
 
 CurlDotNet brings the power and simplicity of curl to the .NET ecosystem. Execute curl commands directly in C#, make HTTP requests with curl's battle-tested reliability, and leverage decades of curl development - all with pure .NET code.

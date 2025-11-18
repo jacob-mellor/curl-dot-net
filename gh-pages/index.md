@@ -23,6 +23,10 @@ Console.WriteLine(response.Body);
 
 Learn what curl is, how it works, and how to use curl commands in C# with comprehensive examples.
 
+## 📰 Featured Article
+
+**[CurlDotNet: Bringing Curl Superpowers to Every Corner of the .NET 10 C# Stack](https://dev.to/iron-software/curldotnet-bringing-curl-superpowers-to-every-corner-of-the-net-10-c-stack-1ol2)** - Read the full story on Dev.to
+
 ## 💜 Thank You .NET Foundation!
 
 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 12px; margin: 30px 0; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
