@@ -181,7 +181,17 @@ async Task<string> RunCommandWithOutput(string command, string args)
     };
 
     using var process = Process.Start(startInfo);
-    var output = await process.StandardOutput.ReadToEndAsync();
+    if (process == null)
+    {
+        return string.Empty;
+    }
+
+    var outputTask = process.StandardOutput.ReadToEndAsync();
+    var errorTask = process.StandardError.ReadToEndAsync();
     await process.WaitForExitAsync();
-    return output;
+
+    var output = await outputTask;
+    var error = await errorTask;
+
+    return string.IsNullOrEmpty(error) ? output : $"{output}\n{error}";
 }

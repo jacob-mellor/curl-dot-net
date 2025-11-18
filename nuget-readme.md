@@ -257,6 +257,13 @@ When in doubt, author the command in an Ubuntu shell (or WSL), then copy it into
 - **[🎓 Tutorials](https://jacob-mellor.github.io/curl-dot-net/tutorials/)** - Step-by-step learning
 - **[🔄 Migration Guides](https://jacob-mellor.github.io/curl-dot-net/guides/)** - Move from HttpClient/RestSharp
 
+## ✅ Tests & Coverage
+
+- `dotnet test` (net8.0): **255 tests passed** – parser, CurlResult, builder, middleware, and integration coverage.
+- Parser suite includes Ubuntu, PowerShell, and Windows CMD quoting/env patterns, keeping shell compatibility near 100%.
+- Regenerate docs with `dotnet script scripts/generate-docs.csx` so NuGet + GitHub Pages share the same `<example>` snippets.
+- Framework compatibility: `./scripts/test-framework-compatibility.sh` validates .NET Standard 2.0 & .NET 8 builds.
+
 ## 🎯 Common Use Cases
 
 ### REST API Integration
