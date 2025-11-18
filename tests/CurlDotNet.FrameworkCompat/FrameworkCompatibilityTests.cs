@@ -2,7 +2,6 @@ using System;
 using System.Net;
 using System.Threading.Tasks;
 using CurlDotNet;
-using CurlDotNet.Core;
 using FluentAssertions;
 using Xunit;
 
@@ -17,11 +16,8 @@ namespace CurlDotNet.FrameworkCompat
         [Fact]
         public async Task BasicCurlCommand_WorksInFramework()
         {
-            // Arrange
-            var curl = new Curl();
-
             // Act - using a simple echo service
-            var result = await curl.ExecuteAsync("curl https://httpbin.org/get");
+            var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
 
             // Assert
             result.Should().NotBeNull();
@@ -32,11 +28,8 @@ namespace CurlDotNet.FrameworkCompat
         [Fact]
         public void SyncExecution_WorksInFramework()
         {
-            // Arrange
-            var curl = new Curl();
-
             // Act - Framework often uses sync methods
-            var result = curl.Execute("curl https://httpbin.org/status/200");
+            var result = Curl.Execute("curl https://httpbin.org/status/200");
 
             // Assert
             result.Should().NotBeNull();
@@ -46,17 +39,8 @@ namespace CurlDotNet.FrameworkCompat
         [Fact]
         public async Task PostData_WorksInFramework()
         {
-            // Arrange
-            var options = new CurlOptions
-            {
-                Url = "https://httpbin.org/post",
-                Method = "POST",
-                Data = "test=data"
-            };
-
-            // Act
-            var engine = new CurlEngine();
-            var result = await engine.ExecuteAsync(options);
+            // Act - Test POST with data
+            var result = await Curl.ExecuteAsync("curl -X POST -d 'test=data' https://httpbin.org/post");
 
             // Assert
             result.Should().NotBeNull();
@@ -74,8 +58,7 @@ namespace CurlDotNet.FrameworkCompat
             request.Method = "GET";
 
             // Our library should work in the same app
-            var curl = new Curl();
-            var result = curl.Execute("curl https://httpbin.org/get");
+            var result = Curl.Execute("curl https://httpbin.org/get");
 
             result.Should().NotBeNull();
             result.IsSuccess.Should().BeTrue();
@@ -85,8 +68,7 @@ namespace CurlDotNet.FrameworkCompat
         public async Task HttpClientHandler_WorksInFramework()
         {
             // Ensure we're compatible with Framework's HttpClient limitations
-            var engine = new CurlEngine();
-            var result = await engine.ExecuteAsync("curl -X GET https://httpbin.org/headers");
+            var result = await Curl.ExecuteAsync("curl -X GET https://httpbin.org/headers");
 
             result.Should().NotBeNull();
             result.StatusCode.Should().Be(200);
@@ -101,10 +83,38 @@ namespace CurlDotNet.FrameworkCompat
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             ServicePointManager.DefaultConnectionLimit = 10;
 
-            var curl = new Curl();
-            var result = curl.Execute("curl https://httpbin.org/get");
+            var result = Curl.Execute("curl https://httpbin.org/get");
 
             result.Should().NotBeNull();
+            result.IsSuccess.Should().BeTrue();
+        }
+
+        [Fact]
+        public void NetStandard20_ApiSurface()
+        {
+            // Verify we expose the expected API surface for .NET Standard 2.0
+
+            // Static methods should be available
+            var type = typeof(Curl);
+            type.Should().NotBeNull();
+
+            var executeMethod = type.GetMethod("Execute", new[] { typeof(string) });
+            executeMethod.Should().NotBeNull("Execute method should be available");
+
+            var executeAsyncMethod = type.GetMethod("ExecuteAsync", new[] { typeof(string) });
+            executeAsyncMethod.Should().NotBeNull("ExecuteAsync method should be available");
+        }
+
+        [Fact]
+        public async Task JsonSerialization_WorksInFramework()
+        {
+            // Framework apps might not have System.Text.Json built-in
+            // but we bundle it via NuGet for netstandard2.0
+
+            var result = await Curl.ExecuteAsync("curl https://httpbin.org/json");
+
+            result.Should().NotBeNull();
+            result.Body.Should().Contain("slideshow");
             result.IsSuccess.Should().BeTrue();
         }
     }
