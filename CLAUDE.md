@@ -161,3 +161,4 @@
 
 As is the general instruction before finishing any to-do list
 - Update the readme and NuGet readme making sure all of the links are up to date and all of the information is up to date. Rewriting as necessary before making a major commit
+- Never bypass GitHub workflows by trying to push everything live yourself
