@@ -94,7 +94,7 @@ else
 AnsiConsole.MarkupLine("\n[yellow]Step 5: Creating NuGet package...[/]");
 AnsiConsole.Write(new Rule("[blue]NuGet Package[/]").LeftJustified());
 
-var packagesDir = Path.Combine(Directory.GetCurrentDirectory(), "test-packages");
+var packagesDir = Path.Combine(Path.GetTempPath(), $"curl-packages-{DateTime.Now:yyyyMMdd-HHmmss}");
 if (!Directory.Exists(packagesDir))
 {
     Directory.CreateDirectory(packagesDir);

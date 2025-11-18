@@ -23,9 +23,9 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>1.2.27</Version>
-    <AssemblyVersion>1.2.27.0</AssemblyVersion>
-    <FileVersion>1.2.27.0</FileVersion>
+    <Version>1.2.33</Version>
+    <AssemblyVersion>1.2.33.0</AssemblyVersion>
+    <FileVersion>1.2.33.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
@@ -71,14 +71,14 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 1.2.27 - Windows/.NET-Friendly Development Experience
-🎯 CSX Scripts: Migrated to C# scripts (.csx) for Windows/.NET-friendly development
-🖼️ Promotional Materials: Integrated featured image and branding
-💜 .NET Foundation: Added thank you section with C# evolution history
-🛠️ Script Improvements: Fixed test-all-locally.csx process handling
-📚 Documentation: Enhanced with 88 generated API docs and improved structure
-✅ Testing: 255 tests passing across all platforms
-🔧 Developer Experience: CSX scripts with Spectre.Console for rich terminal UI
+    <PackageReleaseNotes>Version 1.2.33 - Continued Easy Win Coverage Improvements
+🎯 Test Coverage: Added 60 more tests focusing on zero-coverage classes
+📊 Total Tests: Increased from 644 to 704 tests (60 new tests added)
+✅ Passing Tests: Improved from 618 to 672 passing tests (54 more passing)
+🔍 Coverage Areas: FtpHandler, Extension Methods, Static Methods
+🚀 Easy Wins: Targeted 0% coverage classes for quick gains
+📈 Expected Coverage: Approaching 75%+ line coverage (up from 65.9%)
+🛠️ Test Categories: Added Synthetic tests for better organization
 💎 Sponsored by IronSoftware
 
 Documentation: https://jacob-mellor.github.io/curl-dot-net/
