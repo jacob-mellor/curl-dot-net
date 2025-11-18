@@ -5,6 +5,8 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/jacob-mellor/curl-dot-net/ci-smoke.yml?branch=master)](https://github.com/jacob-mellor/curl-dot-net/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/jacob-mellor/curl-dot-net/blob/master/LICENSE)
 
+![CurlDotNet - Why .NET Needs a POSIX/GNU Userland](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/1o4hlr4tbp6b8k86ew6c.jpg)
+
 ## 🆕 New to curl? Start Here!
 
 **[📖 Complete Beginner's Guide to curl in C# →](https://jacob-mellor.github.io/curl-dot-net/new-to-curl)**
@@ -233,6 +235,16 @@ await Curl.GetAsync("https://example.com")
 | Azure | Functions, App Service | ✅ Cloud Ready |
 | AWS | Lambda, ECS | ✅ Cloud Ready |
 
+## 🧰 Cross-Platform Shell Compatibility
+
+CurlDotNet treats **Ubuntu/Linux syntax as the canonical source of truth** when parsing curl strings, and then normalizes Windows CMD, PowerShell, and macOS variations. Highlights:
+
+- Paste commands directly from Linux/macOS shells (including multi-line `\` continuations).
+- Windows users can keep familiar `%VAR%` or `$env:VAR` environment variables—we expand them transparently.
+- Trouble with quoting? See the dedicated guide: [curl CLI Compatibility Reference](https://jacob-mellor.github.io/curl-dot-net/reference/curl-cli-compatibility).
+
+When in doubt, author the command in an Ubuntu shell (or WSL), then copy it into your C# source—CurlDotNet will behave exactly like curl.
+
 ## 📚 Documentation
 
 - **[📖 Full Documentation](https://jacob-mellor.github.io/curl-dot-net/)** - Comprehensive guides and tutorials
@@ -240,6 +252,13 @@ await Curl.GetAsync("https://example.com")
 - **[👨‍🍳 Cookbook](https://jacob-mellor.github.io/curl-dot-net/cookbook/)** - Ready-to-use recipes
 - **[🎓 Tutorials](https://jacob-mellor.github.io/curl-dot-net/tutorials/)** - Step-by-step learning
 - **[🔄 Migration Guides](https://jacob-mellor.github.io/curl-dot-net/guides/)** - Move from HttpClient/RestSharp
+
+## ✅ Tests & Coverage
+
+- `dotnet test` (net8.0): **255 tests passed, 0 failed, 0 skipped** – covers parser, builder, CurlResult, middleware, and integration paths.
+- Parser synthetic suite now includes Ubuntu, PowerShell, and CMD quoting/env scenarios to keep shell compatibility near 100%.
+- `dotnet script scripts/generate-docs.csx` rebuilds the XML-based docs so every `<example>` stays in sync with the site.
+- For framework validation run `./scripts/test-framework-compatibility.sh` (verifies .NET Standard 2.0 / .NET 8 builds).
 
 ## 🎯 Common Use Cases
 
@@ -340,6 +359,14 @@ That's it! You're now using the power of curl in C# and .NET.
 - **[Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)** - Ask questions and share ideas
 - **[Stack Overflow](https://stackoverflow.com/questions/tagged/curldotnet)** - Community Q&A
 
+## 📎 Additional Resources
+
+- **Repository** – https://github.com/jacob-mellor/curl-dot-net
+- **NuGet** – https://www.nuget.org/packages/CurlDotNet
+- **CI/CD Integration Guide** – https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/articles/ci-cd-integration.md
+- **Logging & Observability Guide** – https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/guides/logging-observability.md
+- **Shell Compatibility Guide** – https://jacob-mellor.github.io/curl-dot-net/reference/curl-cli-compatibility
+
 ## 🌐 Part of UserLand.NET
 
 CurlDotNet is part of the [UserLand.NET](https://userland.net) initiative - bringing Unix/Linux tools to .NET through pure C# implementations.
@@ -347,5 +374,7 @@ CurlDotNet is part of the [UserLand.NET](https://userland.net) initiative - brin
 ---
 
 **Keywords**: curl C#, curl .NET, C# HTTP client, .NET curl, REST API C#, HTTP requests .NET, web scraping C#, proxy C#, curl for Windows, curl alternative, HttpClient alternative
+
+**Author**: [Jacob Mellor](https://ironsoftware.com/about-us/authors/jacobmellor/) | **Sponsored by [IronSoftware.com](https://ironsoftware.com)**
 
 *Built with ❤️ for the .NET community by CurlDotNet Contributors*

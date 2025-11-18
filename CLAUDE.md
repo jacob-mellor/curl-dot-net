@@ -9,13 +9,16 @@
 - **Author Metadata**: Ensure Jacob Mellor's author info is present
 - **Index Files**: Always update directory index files when adding new content
 - **Never Create Broken Links**: Verify all linked files exist before creating links
+- **Promotional Image**: Uses external URL: https://dev-to-uploads.s3.amazonaws.com/uploads/articles/1o4hlr4tbp6b8k86ew6c.jpg
+- **Promotional Materials**: Maintain gh-pages/promotional-materials.md with press kit info
 
 ### ALWAYS Generate API Documentation
-- **Every build**: Run `./scripts/generate-docs.sh` after EVERY build
+- **Every build**: Run `dotnet script scripts/generate-docs.csx` after EVERY build
 - **Before tests**: Generate docs BEFORE running unit tests
 - **Before commits**: Ensure docs are regenerated before committing
 - **Automated**: API docs must be current with code changes
-- **Command**: Always run `./scripts/generate-docs.sh && ./scripts/test-all-locally.sh`
+- **Command**: Always run `dotnet script scripts/generate-docs.csx && dotnet script scripts/test-all-locally.csx`
+- **Note**: Prefer CSX scripts over SH scripts for .NET-native development
 
 ### 1. ALWAYS Work in Dev Branch
 - **Default branch**: Always work in `dev` branch unless explicitly told otherwise
@@ -35,15 +38,16 @@
   - End of every todo list
   - Before EVERY git commit
 - **NuGet Package Validation** (MANDATORY before commits):
-  - Run: `./scripts/test-nuget-package.sh`
+  - Run: `dotnet script scripts/test-nuget-package.csx`
   - Ensures package builds correctly
   - Verifies public API is accessible
   - Tests basic functionality
   - Returns proper error codes for CI/CD integration
-- **Commands**:
-  - `./scripts/test-all-locally.sh` - Full test suite
-  - `./scripts/test-nuget-package.sh` - NuGet package validation (run BEFORE commit)
-  - `./scripts/test-framework-compatibility.sh` - Test .NET Standard 2.0 compatibility (validates .NET Framework 4.7.2)
+- **Commands (CSX Scripts - PREFERRED)**:
+  - `dotnet script scripts/test-all-locally.csx` - Full test suite with UI
+  - `dotnet script scripts/test-nuget-package.csx` - NuGet package validation (run BEFORE commit)
+  - `dotnet script scripts/smoke-test.csx` - Quick smoke test (30 seconds)
+  - `./scripts/test-framework-compatibility.sh` - Test .NET Standard 2.0 compatibility (keeps shell for CI)
 - **.NET Framework Testing**:
   - Use .NET Standard 2.0 build to verify .NET Framework 4.7.2 compatibility
   - Run framework compatibility script before deployment
@@ -77,13 +81,24 @@
 - **Non-essential files**: Place in meaningful subdirectories or exclude entirely
 - **No pollution**: Never clutter the root with temporary or build files
 
-### Essential Scripts
-- `scripts/ship-it.sh` - Main deployment with auto-version bump
-- `scripts/test-all-locally.sh` - Comprehensive testing (run before commits)
-- `scripts/test-nuget-package.sh` - NuGet package validation (run before commits)
-- `scripts/smoke-test.sh` - Quick validation (30 seconds)
-- `scripts/test-local.sh` - Basic test runner
+### Essential Scripts (.NET-Friendly CSX - PREFERRED)
+- `scripts/test-all-locally.csx` - Comprehensive testing with Spectre.Console UI (run before commits)
+- `scripts/generate-docs.csx` - Documentation generator in C#
+- `scripts/smoke-test.csx` - Quick validation with rich output (30 seconds)
+- `scripts/test-nuget-package.csx` - NuGet package validator with progress indicators
+- `scripts/prepare-nuget-readme.csx` - README converter for NuGet packages
+
+### GitHub Workflow Scripts (Shell Scripts - KEEP FOR CI/CD)
+- `scripts/ship-it.sh` - Main deployment with auto-version bump (GitHub Actions)
+- `scripts/publish-nuget.sh` - NuGet publishing (GitHub Actions)
 - `scripts/sync-upstream.sh` - Sync with upstream fork
+
+### DEPRECATED Shell Scripts (Use CSX instead)
+- ~~`scripts/test-all-locally.sh`~~ → Use `test-all-locally.csx`
+- ~~`scripts/test-nuget-package.sh`~~ → Use `test-nuget-package.csx`
+- ~~`scripts/smoke-test.sh`~~ → Use `smoke-test.csx`
+- ~~`scripts/generate-docs.sh`~~ → Use `generate-docs.csx`
+- ~~`scripts/prepare-nuget-readme.sh`~~ → Use `prepare-nuget-readme.csx`
 
 ## Documentation Best Practices
 

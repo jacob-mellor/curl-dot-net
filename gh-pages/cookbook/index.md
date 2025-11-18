@@ -31,28 +31,29 @@ Perfect for getting started with CurlDotNet:
 - **[POST Forms](beginner/post-form.md)** - Submit form data
 - **[Call APIs](beginner/call-api.md)** - Build API client applications
 
-### 🥘 Intermediate Recipes
-Take your skills to the next level with our [C# curl Commands Guide](../csharp-curl-commands-complete-guide.md) and [curl for Beginners](../new-to-curl.md).
+### 🥘 Intermediate Recipes (Coming Soon)
+Take your skills to the next level:
+- API Client Class - Build reusable API clients
+- Retry Logic - Handle transient failures
+- Progress Tracking - Monitor upload/download progress
+- Session Cookies - Maintain session state
+- Rate Limiting - Respect API limits
+- File Management - Advanced file operations
 
-Advanced patterns are covered in:
-- **[C# curl Commands Complete Guide](../csharp-curl-commands-complete-guide.md)** - Master all curl commands in C#
-- **[New to curl? Complete Guide](../new-to-curl.md)** - Understand curl fundamentals
-- **[UserLand.NET Clean Room Development](../userland-dotnet-clean-room-development.md)** - Learn about our development approach
-- **[REST APIs in C#](../rest-apis-csharp/)** - Complete REST API implementation guide
+### 🍱 Advanced Patterns (Coming Soon)
+Master complex scenarios:
+- Pagination - Handle paginated API responses
+- Polling - Implement efficient polling
+- Webhooks - Build webhook handlers
+- Batch Processing - Process multiple requests efficiently
 
-### 🍱 Advanced Patterns
-Master complex scenarios with these comprehensive guides:
-- **Authentication** - See [Authentication Methods](../csharp-curl-commands-complete-guide.md#authentication-methods-in-c-curl)
-- **Error Handling** - See [Error Handling Guide](../csharp-curl-commands-complete-guide.md#error-handling)
-- **Performance Optimization** - See [Performance Guide](../csharp-curl-commands-complete-guide.md#performance-optimization)
-- **Testing** - See [Testing with curl](../csharp-curl-commands-complete-guide.md#testing-with-curl-commands)
-
-### 🌍 Real World Examples
-Complete implementations are available in our guides:
-- **GitHub API** - See [GitHub API Example](../csharp-curl-commands-complete-guide.md#github-api-integration)
-- **REST API Client** - See [REST API Client](../csharp-curl-commands-complete-guide.md#rest-api-client)
-- **Web Scraping** - See [Web Scraping](../csharp-curl-commands-complete-guide.md#web-scraping)
-- **Migration Guides** - See [Migration from HttpClient/RestSharp](../csharp-curl-commands-complete-guide.md#migration-guide)
+### 🌍 Real World Examples (Coming Soon)
+Complete implementations for popular services:
+- GitHub Integration
+- Slack Notifications
+- Weather API Client
+- OAuth Flow Implementation
+- Stripe Payments Integration
 
 ## Quick Examples
 

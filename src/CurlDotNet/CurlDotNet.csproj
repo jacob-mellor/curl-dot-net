@@ -23,9 +23,9 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>1.2.25</Version>
-    <AssemblyVersion>1.2.25.0</AssemblyVersion>
-    <FileVersion>1.2.25.0</FileVersion>
+    <Version>1.2.27</Version>
+    <AssemblyVersion>1.2.27.0</AssemblyVersion>
+    <FileVersion>1.2.27.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
@@ -71,15 +71,14 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 1.2.7 - Streamlined Repository Structure
-🚀 Simplified deployment with single-script solution (deploy-simple.sh)
-📋 Added comprehensive examples based on cookbook recipes
-🔄 Implemented continuous delivery: every commit = new version
-✅ Added version bump rule: all changes trigger releases
-🛠️ New PR-based workflow: dev branch → PR → merge → auto-release
-📝 Created CONTRIBUTING.md and DEPLOY.md for clear workflows
-🧪 Added test-all-scripts.sh for local validation
-💡 Philosophy: Spend 80% coding, 20% deploying (not vice versa)
+    <PackageReleaseNotes>Version 1.2.27 - Windows/.NET-Friendly Development Experience
+🎯 CSX Scripts: Migrated to C# scripts (.csx) for Windows/.NET-friendly development
+🖼️ Promotional Materials: Integrated featured image and branding
+💜 .NET Foundation: Added thank you section with C# evolution history
+🛠️ Script Improvements: Fixed test-all-locally.csx process handling
+📚 Documentation: Enhanced with 88 generated API docs and improved structure
+✅ Testing: 255 tests passing across all platforms
+🔧 Developer Experience: CSX scripts with Spectre.Console for rich terminal UI
 💎 Sponsored by IronSoftware
 
 Documentation: https://jacob-mellor.github.io/curl-dot-net/
@@ -143,7 +142,7 @@ NuGet: https://www.nuget.org/packages/CurlDotNet/</PackageReleaseNotes>
 
   <ItemGroup>
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
-    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="README.txt" Pack="true" PackagePath="\" />
     <None Include="..\..\THANKS" Pack="true" PackagePath="docs\" Condition="Exists('..\..\THANKS')" />
     <None Include="icon.png" Pack="true" PackagePath="\" />

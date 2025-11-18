@@ -8,3 +8,7 @@
   href: migration-guide.html
 - name: Examples
   href: examples.html
+- name: Implementation Patterns
+  href: userland-patterns.md
+- name: Tutorial Implementations
+  href: userland-tutorials.md
