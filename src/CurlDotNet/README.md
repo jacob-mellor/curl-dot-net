@@ -375,4 +375,6 @@ CurlDotNet is part of the [UserLand.NET](https://userland.net) initiative - brin
 
 **Keywords**: curl C#, curl .NET, C# HTTP client, .NET curl, REST API C#, HTTP requests .NET, web scraping C#, proxy C#, curl for Windows, curl alternative, HttpClient alternative
 
+**Author**: [Jacob Mellor](https://ironsoftware.com/about-us/authors/jacobmellor/) | **Sponsored by [IronSoftware.com](https://ironsoftware.com)**
+
 *Built with ❤️ for the .NET community by CurlDotNet Contributors*
