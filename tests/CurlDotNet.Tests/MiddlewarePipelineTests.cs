@@ -141,13 +141,13 @@ namespace CurlDotNet.Tests
         public async Task ExecuteAsync_MiddlewareCanShortCircuit()
         {
             // Arrange
-            var pipeline = new CurlMiddlewarePipeline(async (ctx) => new CurlResult());
+            var pipeline = new CurlMiddlewarePipeline(async (ctx) => await Task.FromResult(new CurlResult()));
             var secondMiddlewareExecuted = false;
 
             pipeline.Use(async (context, next) =>
             {
                 // Short-circuit without calling next
-                return new CurlResult { Body = "Short-circuited" };
+                return await Task.FromResult(new CurlResult { Body = "Short-circuited" });
             });
 
             pipeline.Use(async (context, next) =>
@@ -257,7 +257,7 @@ namespace CurlDotNet.Tests
             var builder = CurlMiddlewarePipeline.CreateBuilder();
 
             // Act
-            var result = builder.UseAuthentication(async (ctx) => "token123");
+            var result = builder.UseAuthentication(async (ctx) => await Task.FromResult("token123"));
 
             // Assert
             result.Should().BeSameAs(builder);
@@ -281,7 +281,7 @@ namespace CurlDotNet.Tests
         {
             // Arrange
             var builder = CurlMiddlewarePipeline.CreateBuilder();
-            Func<CurlContext, Task<CurlResult>> handler = async (ctx) => new CurlResult();
+            Func<CurlContext, Task<CurlResult>> handler = async (ctx) => await Task.FromResult(new CurlResult());
 
             // Act
             var result = builder.WithHandler(handler);
@@ -297,7 +297,7 @@ namespace CurlDotNet.Tests
             var builder = CurlMiddlewarePipeline.CreateBuilder()
                 .UseLogging(msg => { })
                 .UseRetry(3)
-                .WithHandler(async (ctx) => new CurlResult());
+                .WithHandler(async (ctx) => await Task.FromResult(new CurlResult()));
 
             // Act
             var pipeline = builder.Build();
@@ -405,7 +405,7 @@ namespace CurlDotNet.Tests
                 .UseLogging(msg => { })
                 .UseTiming()
                 .UseRetry(2)
-                .WithHandler(async (ctx) => new CurlResult { Body = "Success" })
+                .WithHandler(async (ctx) => await Task.FromResult(new CurlResult { Body = "Success" }))
                 .Build();
 
             var context = new CurlContext { Options = new CurlOptions { Url = "https://api.example.com" } };
@@ -425,7 +425,7 @@ namespace CurlDotNet.Tests
             var pipeline = new CurlMiddlewarePipeline(async (ctx) =>
             {
                 var step2 = ctx.GetProperty<bool>("step2");
-                return new CurlResult { Body = step2.ToString() };
+                return await Task.FromResult(new CurlResult { Body = step2.ToString() });
             });
 
             pipeline.Use(async (context, next) =>
