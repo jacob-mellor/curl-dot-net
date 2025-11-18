@@ -204,7 +204,6 @@ class Program
 
 Working with a complete REST API:
 
-{% raw %}
 ```csharp
 using System;
 using System.Threading.Tasks;
@@ -295,7 +294,6 @@ class BlogApiClient
     }
 }
 ```
-{% endraw %}
 
 ## 🎨 Variations
 

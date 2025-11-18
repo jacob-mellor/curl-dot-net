@@ -2,6 +2,14 @@
 
 ## 🚨 CRITICAL WORKFLOW RULES 🚨
 
+### README Maintenance Requirements
+- **Main README.md**: Always update when adding new features or documentation
+- **NuGet README**: Update nuget-readme.md and run `./scripts/prepare-nuget-readme.sh`
+- **New to curl Section**: Keep prominent at the top for beginners
+- **Author Metadata**: Ensure Jacob Mellor's author info is present
+- **Index Files**: Always update directory index files when adding new content
+- **Never Create Broken Links**: Verify all linked files exist before creating links
+
 ### ALWAYS Generate API Documentation
 - **Every build**: Run `./scripts/generate-docs.sh` after EVERY build
 - **Before tests**: Generate docs BEFORE running unit tests
@@ -137,3 +145,4 @@
   surface has changed 
 
 As is the general instruction before finishing any to-do list
+- Update the readme and NuGet readme making sure all of the links are up to date and all of the information is up to date. Rewriting as necessary before making a major commit

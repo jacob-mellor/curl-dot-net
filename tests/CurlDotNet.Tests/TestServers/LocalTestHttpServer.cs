@@ -81,6 +81,10 @@ namespace CurlDotNet.Tests.TestServers
                 {
                     await HandlePut(request, response);
                 }
+                else if (path == "/delete")
+                {
+                    await HandleDelete(request, response);
+                }
                 else if (path == "/headers")
                 {
                     await HandleHeaders(request, response);
@@ -88,6 +92,30 @@ namespace CurlDotNet.Tests.TestServers
                 else if (path == "/cookies")
                 {
                     await HandleCookies(request, response);
+                }
+                else if (path == "/bearer")
+                {
+                    await HandleBearer(request, response);
+                }
+                else if (path == "/user-agent")
+                {
+                    await HandleUserAgent(request, response);
+                }
+                else if (path == "/gzip")
+                {
+                    await HandleGzip(request, response);
+                }
+                else if (path.StartsWith("/status/"))
+                {
+                    await HandleStatus(request, response);
+                }
+                else if (path.StartsWith("/redirect/"))
+                {
+                    await HandleRedirect(request, response);
+                }
+                else if (path.StartsWith("/delay/"))
+                {
+                    await HandleDelay(request, response);
                 }
                 else if (path == "/anything" || path.StartsWith("/anything"))
                 {
@@ -182,17 +210,39 @@ namespace CurlDotNet.Tests.TestServers
         {
             var cookies = new Dictionary<string, string>();
 
-            // Parse cookie header
-            var cookieHeader = request.Headers["Cookie"];
+            // Parse cookie header - handle both "Cookie" and "cookie" (case-insensitive)
+            string cookieHeader = null;
+            foreach (string header in request.Headers.AllKeys)
+            {
+                if (string.Equals(header, "Cookie", StringComparison.OrdinalIgnoreCase))
+                {
+                    cookieHeader = request.Headers[header];
+                    break;
+                }
+            }
+
             if (!string.IsNullOrEmpty(cookieHeader))
             {
-                var pairs = cookieHeader.Split(';');
+                // Handle both semicolon and comma separators
+                var pairs = cookieHeader.Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var pair in pairs)
                 {
-                    var parts = pair.Trim().Split('=');
-                    if (parts.Length == 2)
+                    var trimmedPair = pair.Trim();
+                    var equalsIndex = trimmedPair.IndexOf('=');
+                    if (equalsIndex > 0)
                     {
-                        cookies[parts[0]] = parts[1];
+                        var key = trimmedPair.Substring(0, equalsIndex).Trim();
+                        var value = equalsIndex < trimmedPair.Length - 1
+                            ? trimmedPair.Substring(equalsIndex + 1).Trim()
+                            : string.Empty;
+
+                        // Remove quotes if present
+                        if (value.StartsWith("\"") && value.EndsWith("\""))
+                        {
+                            value = value.Substring(1, value.Length - 2);
+                        }
+
+                        cookies[key] = value;
                     }
                 }
             }
@@ -256,6 +306,155 @@ namespace CurlDotNet.Tests.TestServers
                 }
             }
             return result;
+        }
+
+        private async Task HandleDelete(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            string body = "";
+            if (request.HasEntityBody)
+            {
+                using (var reader = new StreamReader(request.InputStream))
+                {
+                    body = await reader.ReadToEndAsync();
+                }
+            }
+
+            var result = new Dictionary<string, object>
+            {
+                ["url"] = request.Url.ToString(),
+                ["args"] = ParseQueryString(request.Url.Query),
+                ["headers"] = GetHeaders(request),
+                ["data"] = body
+            };
+
+            await SendJsonResponse(response, result);
+        }
+
+        private async Task HandleBearer(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            var authHeader = request.Headers["Authorization"];
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            {
+                response.StatusCode = 401;
+                response.StatusDescription = "Unauthorized";
+                return;
+            }
+
+            var token = authHeader.Substring("Bearer ".Length);
+            var result = new Dictionary<string, object>
+            {
+                ["authenticated"] = true,
+                ["token"] = token
+            };
+
+            await SendJsonResponse(response, result);
+        }
+
+        private async Task HandleUserAgent(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            var userAgent = request.Headers["User-Agent"] ?? "";
+            var result = new Dictionary<string, object>
+            {
+                ["user-agent"] = userAgent
+            };
+
+            await SendJsonResponse(response, result);
+        }
+
+        private async Task HandleGzip(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            var result = new Dictionary<string, object>
+            {
+                ["gzipped"] = true,
+                ["method"] = request.HttpMethod,
+                ["headers"] = GetHeaders(request)
+            };
+
+            await SendJsonResponse(response, result);
+        }
+
+        private async Task HandleStatus(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            var path = request.Url.AbsolutePath;
+            var statusCodeStr = path.Substring("/status/".Length);
+            if (int.TryParse(statusCodeStr, out var statusCode))
+            {
+                response.StatusCode = statusCode;
+                response.StatusDescription = GetStatusDescription(statusCode);
+            }
+            else
+            {
+                response.StatusCode = 400;
+                response.StatusDescription = "Bad Request";
+            }
+            await Task.CompletedTask;
+        }
+
+        private async Task HandleRedirect(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            var path = request.Url.AbsolutePath;
+            var redirectCountStr = path.Substring("/redirect/".Length);
+            if (int.TryParse(redirectCountStr, out var redirectCount) && redirectCount > 0)
+            {
+                if (redirectCount == 1)
+                {
+                    // Final redirect
+                    response.StatusCode = 302;
+                    response.Headers.Add("Location", $"{BaseUrl}/get");
+                }
+                else
+                {
+                    // Continue redirecting
+                    response.StatusCode = 302;
+                    response.Headers.Add("Location", $"{BaseUrl}/redirect/{redirectCount - 1}");
+                }
+            }
+            else
+            {
+                // No more redirects
+                await HandleGet(request, response);
+            }
+        }
+
+        private async Task HandleDelay(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            var path = request.Url.AbsolutePath;
+            var delayStr = path.Substring("/delay/".Length);
+            if (int.TryParse(delayStr, out var delaySeconds))
+            {
+                await Task.Delay(delaySeconds * 1000);
+                var result = new Dictionary<string, object>
+                {
+                    ["delayed"] = delaySeconds,
+                    ["url"] = request.Url.ToString()
+                };
+                await SendJsonResponse(response, result);
+            }
+            else
+            {
+                response.StatusCode = 400;
+                response.StatusDescription = "Bad Request";
+            }
+        }
+
+        private string GetStatusDescription(int statusCode)
+        {
+            return statusCode switch
+            {
+                200 => "OK",
+                201 => "Created",
+                204 => "No Content",
+                301 => "Moved Permanently",
+                302 => "Found",
+                304 => "Not Modified",
+                400 => "Bad Request",
+                401 => "Unauthorized",
+                403 => "Forbidden",
+                404 => "Not Found",
+                500 => "Internal Server Error",
+                503 => "Service Unavailable",
+                _ => "Unknown"
+            };
         }
 
         private async Task SendJsonResponse(HttpListenerResponse response, object data)

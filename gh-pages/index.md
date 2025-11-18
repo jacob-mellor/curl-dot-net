@@ -15,12 +15,25 @@ var response = await Curl.GetAsync("https://api.example.com/data");
 Console.WriteLine(response.Body);
 ```
 
+## 🆕 New to curl?
+
+**[Start Here: New to curl? Complete Guide →](new-to-curl.md)**
+
+Learn what curl is, how it works, and how to use curl commands in C# with comprehensive examples.
+
 ## Documentation
 
+### Essential Guides
+- **[New to curl? Complete Guide](new-to-curl.md)** - Start here if you're new to curl
+- **[C# curl Commands Complete Guide](csharp-curl-commands-complete-guide.md)** - Master curl in C#
+- **[UserLand.NET Clean Room Development](userland-dotnet-clean-room-development.md)** - Our development philosophy
+- **[Iron Software's Microsoft Commitment](iron-software-microsoft-dotnet-commitment.md)** - Enterprise ecosystem
+
+### Technical Documentation
 - [API Reference](api/) - Complete API documentation
 - [Getting Started](getting-started/) - Installation and first steps
 - [Tutorials](tutorials/) - Step-by-step guides
-- [Cookbook](cookbook/) - Common recipes
+- [Cookbook](cookbook/) - Common recipes and patterns
 - [Guides](guides/) - Advanced topics
 - [Reference](reference/) - Technical reference
 - [Exception Documentation](exceptions/) - Detailed error handling guides

@@ -42,7 +42,29 @@ namespace CurlDotNet.Tests
         {
             if (Directory.Exists(_tempDirectory))
             {
-                Directory.Delete(_tempDirectory, true);
+                // Restore original directory if we changed it
+                var currentDir = Directory.GetCurrentDirectory();
+                if (currentDir == _tempDirectory || currentDir.StartsWith(_tempDirectory))
+                {
+                    Directory.SetCurrentDirectory(Path.GetTempPath());
+                }
+
+                // On Windows, give OS time to release file handles
+                if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                {
+                    System.Threading.Thread.Sleep(100);
+                }
+
+                try
+                {
+                    Directory.Delete(_tempDirectory, true);
+                }
+                catch (IOException)
+                {
+                    // Retry once after a longer delay
+                    System.Threading.Thread.Sleep(500);
+                    Directory.Delete(_tempDirectory, true);
+                }
             }
         }
 
@@ -216,22 +238,30 @@ namespace CurlDotNet.Tests
         public async Task Execute_UseRemoteFileName_CreatesFileWithCorrectName()
         {
             // Arrange
-            Directory.SetCurrentDirectory(_tempDirectory);
-            var mockHandler = CreateMockHttpHandler(
-                HttpStatusCode.OK,
-                "File content",
-                "text/plain");
+            var originalDir = Directory.GetCurrentDirectory();
+            try
+            {
+                Directory.SetCurrentDirectory(_tempDirectory);
+                var mockHandler = CreateMockHttpHandler(
+                    HttpStatusCode.OK,
+                    "File content",
+                    "text/plain");
 
-            var httpClient = new HttpClient(mockHandler.Object);
-            var curl = new CurlEngine(httpClient);
+                var httpClient = new HttpClient(mockHandler.Object);
+                var curl = new CurlEngine(httpClient);
 
-            // Act
-            var result = await curl.ExecuteAsync("curl -O https://example.com/document.txt");
+                // Act
+                var result = await curl.ExecuteAsync("curl -O https://example.com/document.txt");
 
-            // Assert
-            result.OutputFiles.Should().NotBeEmpty();
-            var expectedFile = Path.Combine(_tempDirectory, "document.txt");
-            File.Exists(expectedFile).Should().BeTrue();
+                // Assert
+                result.OutputFiles.Should().NotBeEmpty();
+                var expectedFile = Path.Combine(_tempDirectory, "document.txt");
+                File.Exists(expectedFile).Should().BeTrue();
+            }
+            finally
+            {
+                Directory.SetCurrentDirectory(originalDir);
+            }
         }
 
         [Fact]

@@ -28,8 +28,9 @@ bld/
 *.userprefs
 
 # NuGet
-*.nupkg
-*.snupkg
+# Commented out to keep nupkg folder in repo for simplified deployment
+# *.nupkg
+# *.snupkg
 packages/
 .nuget/
 
@@ -92,8 +93,9 @@ promotion.md
 # Work planning documents (internal use)
 work.md
 ACHIEVED.md
-nupkg/
-*.nupkg
-*.snupkg
+# Keep nupkg folder in repo for simplified deployment
+# nupkg/
+# *.nupkg
+# *.snupkg
 build_output.txt
 *.lock
