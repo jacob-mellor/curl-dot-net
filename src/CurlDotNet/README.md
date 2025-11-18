@@ -11,10 +11,6 @@
 
 **[📖 Complete Beginner's Guide to curl in C# →](https://jacob-mellor.github.io/curl-dot-net/new-to-curl)**
 
-## 📰 Featured Article
-
-**[CurlDotNet: Bringing Curl Superpowers to Every Corner of the .NET 10 C# Stack](https://dev.to/iron-software/curldotnet-bringing-curl-superpowers-to-every-corner-of-the-net-10-c-stack-1ol2)** - Read the full story on Dev.to
-
 ## The Industry Standard curl Experience for C# and .NET Developers
 
 CurlDotNet brings the power and simplicity of curl to the .NET ecosystem. Execute curl commands directly in C#, make HTTP requests with curl's battle-tested reliability, and leverage decades of curl development - all with pure .NET code.
@@ -256,6 +252,13 @@ When in doubt, author the command in an Ubuntu shell (or WSL), then copy it into
 - **[👨‍🍳 Cookbook](https://jacob-mellor.github.io/curl-dot-net/cookbook/)** - Ready-to-use recipes
 - **[🎓 Tutorials](https://jacob-mellor.github.io/curl-dot-net/tutorials/)** - Step-by-step learning
 - **[🔄 Migration Guides](https://jacob-mellor.github.io/curl-dot-net/guides/)** - Move from HttpClient/RestSharp
+
+## ✅ Tests & Coverage
+
+- `dotnet test` (net8.0): **255 tests passed** – parser, CurlResult, builder, middleware, and integration coverage.
+- Parser suite includes Ubuntu, PowerShell, and Windows CMD quoting/env patterns, keeping shell compatibility near 100%.
+- Regenerate docs with `dotnet script scripts/generate-docs.csx` so NuGet + GitHub Pages share the same `<example>` snippets.
+- Framework compatibility: `./scripts/test-framework-compatibility.sh` validates .NET Standard 2.0 & .NET 8 builds.
 
 ## 🎯 Common Use Cases
 

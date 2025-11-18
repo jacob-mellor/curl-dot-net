@@ -71,17 +71,19 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 1.2.27 - Parser coverage & docs examples
-⚙️ Added PowerShell/CMD parser tests for env vars + line continuations
-🧪 New CurlResult/CurlRequestBuilder unit tests (JSON parsing, file saving, fluent builder)
-📄 Added XML + README examples for Curl.ExecuteAsync and CurlResult helpers
-📘 Regenerated documentation via DefaultDocumentation (gh-pages)
-✅ dotnet test (net8.0): 255 passed
+    <PackageReleaseNotes>Version 1.2.27 - Windows/.NET-Friendly Development Experience
+🎯 CSX Scripts: Migrated to C# scripts (.csx) for Windows/.NET-friendly development
+🖼️ Promotional Materials: Integrated featured image and branding
+💜 .NET Foundation: Added thank you section with C# evolution history
+🛠️ Script Improvements: Fixed test-all-locally.csx process handling
+📚 Documentation: Enhanced with 88 generated API docs and improved structure
+✅ Testing: 255 tests passing across all platforms
+🔧 Developer Experience: CSX scripts with Spectre.Console for rich terminal UI
+💎 Sponsored by IronSoftware
 
 Documentation: https://jacob-mellor.github.io/curl-dot-net/
 Repository: https://github.com/jacob-mellor/curl-dot-net
-NuGet: https://www.nuget.org/packages/CurlDotNet/
-Article: https://dev.to/iron-software/curldotnet-bringing-curl-superpowers-to-every-corner-of-the-net-10-c-stack-1ol2</PackageReleaseNotes>
+NuGet: https://www.nuget.org/packages/CurlDotNet/</PackageReleaseNotes>
 
     <!-- Output and Build -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -140,7 +142,7 @@ Article: https://dev.to/iron-software/curldotnet-bringing-curl-superpowers-to-ev
 
   <ItemGroup>
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
-    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="README.txt" Pack="true" PackagePath="\" />
     <None Include="..\..\THANKS" Pack="true" PackagePath="docs\" Condition="Exists('..\..\THANKS')" />
     <None Include="icon.png" Pack="true" PackagePath="\" />
