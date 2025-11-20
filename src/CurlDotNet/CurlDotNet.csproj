@@ -1,14 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Default target frameworks including .NET 10 -->
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' != 'true'">netstandard2.0;net472;net48;net8.0;net9.0;net10.0</TargetFrameworks>
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' != 'true'">netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <!-- Target frameworks - GitHub Actions doesn't have .NET 10 SDK yet -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">netstandard2.0;net472;net48;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows'))">netstandard2.0;net8.0;net9.0</TargetFrameworks>
 
-    <!-- CI target frameworks (GitHub runners don't have .NET 10 yet) -->
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' == 'true'">netstandard2.0;net472;net48;net8.0</TargetFrameworks>
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' == 'true'">netstandard2.0;net8.0</TargetFrameworks>
-    <!-- .NET 10 is released! GitHub CI runners don't have it yet, so CI uses CIBuild=true flag -->
+    <!-- NOTE: .NET 10 is NOT included until GitHub Actions supports it -->
+    <!-- DO NOT ADD net10.0 until GitHub runners have .NET 10 SDK installed -->
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
