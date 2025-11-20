@@ -1,0 +1,30 @@
+### YamlMime:ManagedReference
+items:
+- uid: CurlDotNet.Extensions
+  commentId: N:CurlDotNet.Extensions
+  id: CurlDotNet.Extensions
+  children:
+  - CurlDotNet.Extensions.FluentExtensions
+  - CurlDotNet.Extensions.StringExtensions
+  langs:
+  - csharp
+  - vb
+  name: CurlDotNet.Extensions
+  nameWithType: CurlDotNet.Extensions
+  fullName: CurlDotNet.Extensions
+  type: Namespace
+  assemblies:
+  - CurlDotNet
+references:
+- uid: CurlDotNet.Extensions.StringExtensions
+  commentId: T:CurlDotNet.Extensions.StringExtensions
+  href: CurlDotNet.Extensions.StringExtensions.html
+  name: StringExtensions
+  nameWithType: StringExtensions
+  fullName: CurlDotNet.Extensions.StringExtensions
+- uid: CurlDotNet.Extensions.FluentExtensions
+  commentId: T:CurlDotNet.Extensions.FluentExtensions
+  href: CurlDotNet.Extensions.FluentExtensions.html
+  name: FluentExtensions
+  nameWithType: FluentExtensions
+  fullName: CurlDotNet.Extensions.FluentExtensions

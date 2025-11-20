@@ -1,0 +1,51 @@
+### YamlMime:ManagedReference
+items:
+- uid: CurlDotNet
+  commentId: N:CurlDotNet
+  id: CurlDotNet
+  children:
+  - CurlDotNet.Curl
+  - CurlDotNet.CurlApiClient
+  - CurlDotNet.DotNetCurl
+  - CurlDotNet.ErgonomicExtensions
+  langs:
+  - csharp
+  - vb
+  name: CurlDotNet
+  nameWithType: CurlDotNet
+  fullName: CurlDotNet
+  type: Namespace
+  assemblies:
+  - CurlDotNet
+references:
+- uid: CurlDotNet.Curl
+  commentId: T:CurlDotNet.Curl
+  href: CurlDotNet.Curl.html
+  name: Curl
+  nameWithType: Curl
+  fullName: CurlDotNet.Curl
+- uid: CurlDotNet.DotNetCurl
+  commentId: T:CurlDotNet.DotNetCurl
+  href: CurlDotNet.DotNetCurl.html
+  name: DotNetCurl
+  nameWithType: DotNetCurl
+  fullName: CurlDotNet.DotNetCurl
+- uid: CurlDotNet.ErgonomicExtensions
+  commentId: T:CurlDotNet.ErgonomicExtensions
+  parent: CurlDotNet
+  href: CurlDotNet.ErgonomicExtensions.html
+  name: ErgonomicExtensions
+  nameWithType: ErgonomicExtensions
+  fullName: CurlDotNet.ErgonomicExtensions
+- uid: CurlDotNet.CurlApiClient
+  commentId: T:CurlDotNet.CurlApiClient
+  href: CurlDotNet.CurlApiClient.html
+  name: CurlApiClient
+  nameWithType: CurlApiClient
+  fullName: CurlDotNet.CurlApiClient
+- uid: CurlDotNet
+  commentId: N:CurlDotNet
+  href: CurlDotNet.html
+  name: CurlDotNet
+  nameWithType: CurlDotNet
+  fullName: CurlDotNet

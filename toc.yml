@@ -1,0 +1,78 @@
+- name: Home
+  href: index.md
+  homepage: index.md
+
+- name: Getting Started
+  href: docs/getting-started/
+  items:
+    - name: New to curl?
+      href: docs/new-to-curl.md
+    - name: Quick Start
+      href: docs/getting-started/quick-start.md
+    - name: Installation
+      href: docs/getting-started/installation.md
+    - name: First Request
+      href: docs/getting-started/first-request.md
+
+- name: API Reference
+  href: api/
+  homepage: api/index.md
+
+- name: Tutorials
+  href: docs/tutorials/
+  items:
+    - name: Basic Usage
+      href: docs/tutorials/basic-usage.md
+    - name: Authentication
+      href: docs/tutorials/authentication.md
+    - name: File Operations
+      href: docs/tutorials/file-operations.md
+    - name: Advanced Features
+      href: docs/tutorials/advanced-features.md
+
+- name: Cookbook
+  href: docs/cookbook/
+  items:
+    - name: REST APIs
+      href: docs/cookbook/rest-apis.md
+    - name: GraphQL
+      href: docs/cookbook/graphql.md
+    - name: WebSockets
+      href: docs/cookbook/websockets.md
+    - name: File Downloads
+      href: docs/cookbook/file-downloads.md
+
+- name: Articles
+  href: docs/articles/
+  items:
+    - name: Why curl in .NET?
+      href: docs/articles/why-curl-dotnet.md
+    - name: curl vs HttpClient
+      href: docs/articles/curl-vs-httpclient.md
+    - name: Performance Guide
+      href: docs/articles/performance.md
+    - name: Security Best Practices
+      href: docs/articles/security.md
+
+- name: Migration Guide
+  href: docs/migration/
+  items:
+    - name: From HttpClient
+      href: docs/migration/from-httpclient.md
+    - name: From RestSharp
+      href: docs/migration/from-restsharp.md
+    - name: From curl CLI
+      href: docs/migration/from-curl-cli.md
+
+- name: Troubleshooting
+  href: docs/troubleshooting/
+  items:
+    - name: Common Issues
+      href: docs/troubleshooting/common-issues.md
+    - name: Debugging Tips
+      href: docs/troubleshooting/debugging.md
+    - name: Error Reference
+      href: docs/exceptions/
+
+- name: GitHub
+  href: https://github.com/jacob-mellor/curl-dot-net

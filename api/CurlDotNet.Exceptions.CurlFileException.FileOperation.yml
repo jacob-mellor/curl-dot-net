@@ -1,0 +1,250 @@
+### YamlMime:ManagedReference
+items:
+- uid: CurlDotNet.Exceptions.CurlFileException.FileOperation
+  commentId: T:CurlDotNet.Exceptions.CurlFileException.FileOperation
+  id: CurlFileException.FileOperation
+  parent: CurlDotNet.Exceptions
+  children:
+  - CurlDotNet.Exceptions.CurlFileException.FileOperation.Create
+  - CurlDotNet.Exceptions.CurlFileException.FileOperation.Delete
+  - CurlDotNet.Exceptions.CurlFileException.FileOperation.Download
+  - CurlDotNet.Exceptions.CurlFileException.FileOperation.Read
+  - CurlDotNet.Exceptions.CurlFileException.FileOperation.Upload
+  - CurlDotNet.Exceptions.CurlFileException.FileOperation.Write
+  langs:
+  - csharp
+  - vb
+  name: CurlFileException.FileOperation
+  nameWithType: CurlFileException.FileOperation
+  fullName: CurlDotNet.Exceptions.CurlFileException.FileOperation
+  type: Enum
+  source:
+    remote:
+      path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: FileOperation
+    path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+    startLine: 926
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Exceptions
+  summary: Specifies the type of file operation.
+  example: []
+  syntax:
+    content: public enum CurlFileException.FileOperation
+    content.vb: Public Enum CurlFileException.FileOperation
+- uid: CurlDotNet.Exceptions.CurlFileException.FileOperation.Read
+  commentId: F:CurlDotNet.Exceptions.CurlFileException.FileOperation.Read
+  id: Read
+  parent: CurlDotNet.Exceptions.CurlFileException.FileOperation
+  langs:
+  - csharp
+  - vb
+  name: Read
+  nameWithType: CurlFileException.FileOperation.Read
+  fullName: CurlDotNet.Exceptions.CurlFileException.FileOperation.Read
+  type: Field
+  source:
+    remote:
+      path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Read
+    path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+    startLine: 931
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Exceptions
+  summary: Reading from a file.
+  example: []
+  syntax:
+    content: Read = 0
+    return:
+      type: CurlDotNet.Exceptions.CurlFileException.FileOperation
+- uid: CurlDotNet.Exceptions.CurlFileException.FileOperation.Write
+  commentId: F:CurlDotNet.Exceptions.CurlFileException.FileOperation.Write
+  id: Write
+  parent: CurlDotNet.Exceptions.CurlFileException.FileOperation
+  langs:
+  - csharp
+  - vb
+  name: Write
+  nameWithType: CurlFileException.FileOperation.Write
+  fullName: CurlDotNet.Exceptions.CurlFileException.FileOperation.Write
+  type: Field
+  source:
+    remote:
+      path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Write
+    path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+    startLine: 935
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Exceptions
+  summary: Writing to a file.
+  example: []
+  syntax:
+    content: Write = 1
+    return:
+      type: CurlDotNet.Exceptions.CurlFileException.FileOperation
+- uid: CurlDotNet.Exceptions.CurlFileException.FileOperation.Create
+  commentId: F:CurlDotNet.Exceptions.CurlFileException.FileOperation.Create
+  id: Create
+  parent: CurlDotNet.Exceptions.CurlFileException.FileOperation
+  langs:
+  - csharp
+  - vb
+  name: Create
+  nameWithType: CurlFileException.FileOperation.Create
+  fullName: CurlDotNet.Exceptions.CurlFileException.FileOperation.Create
+  type: Field
+  source:
+    remote:
+      path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Create
+    path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+    startLine: 939
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Exceptions
+  summary: Creating a file.
+  example: []
+  syntax:
+    content: Create = 2
+    return:
+      type: CurlDotNet.Exceptions.CurlFileException.FileOperation
+- uid: CurlDotNet.Exceptions.CurlFileException.FileOperation.Delete
+  commentId: F:CurlDotNet.Exceptions.CurlFileException.FileOperation.Delete
+  id: Delete
+  parent: CurlDotNet.Exceptions.CurlFileException.FileOperation
+  langs:
+  - csharp
+  - vb
+  name: Delete
+  nameWithType: CurlFileException.FileOperation.Delete
+  fullName: CurlDotNet.Exceptions.CurlFileException.FileOperation.Delete
+  type: Field
+  source:
+    remote:
+      path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Delete
+    path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+    startLine: 943
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Exceptions
+  summary: Deleting a file.
+  example: []
+  syntax:
+    content: Delete = 3
+    return:
+      type: CurlDotNet.Exceptions.CurlFileException.FileOperation
+- uid: CurlDotNet.Exceptions.CurlFileException.FileOperation.Upload
+  commentId: F:CurlDotNet.Exceptions.CurlFileException.FileOperation.Upload
+  id: Upload
+  parent: CurlDotNet.Exceptions.CurlFileException.FileOperation
+  langs:
+  - csharp
+  - vb
+  name: Upload
+  nameWithType: CurlFileException.FileOperation.Upload
+  fullName: CurlDotNet.Exceptions.CurlFileException.FileOperation.Upload
+  type: Field
+  source:
+    remote:
+      path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Upload
+    path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+    startLine: 947
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Exceptions
+  summary: Uploading a file.
+  example: []
+  syntax:
+    content: Upload = 4
+    return:
+      type: CurlDotNet.Exceptions.CurlFileException.FileOperation
+- uid: CurlDotNet.Exceptions.CurlFileException.FileOperation.Download
+  commentId: F:CurlDotNet.Exceptions.CurlFileException.FileOperation.Download
+  id: Download
+  parent: CurlDotNet.Exceptions.CurlFileException.FileOperation
+  langs:
+  - csharp
+  - vb
+  name: Download
+  nameWithType: CurlFileException.FileOperation.Download
+  fullName: CurlDotNet.Exceptions.CurlFileException.FileOperation.Download
+  type: Field
+  source:
+    remote:
+      path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Download
+    path: src/CurlDotNet/Exceptions/CurlExceptions.cs
+    startLine: 951
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Exceptions
+  summary: Downloading a file.
+  example: []
+  syntax:
+    content: Download = 5
+    return:
+      type: CurlDotNet.Exceptions.CurlFileException.FileOperation
+references:
+- uid: CurlDotNet.Exceptions
+  commentId: N:CurlDotNet.Exceptions
+  href: CurlDotNet.html
+  name: CurlDotNet.Exceptions
+  nameWithType: CurlDotNet.Exceptions
+  fullName: CurlDotNet.Exceptions
+  spec.csharp:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Exceptions
+    name: Exceptions
+    href: CurlDotNet.Exceptions.html
+  spec.vb:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Exceptions
+    name: Exceptions
+    href: CurlDotNet.Exceptions.html
+- uid: CurlDotNet.Exceptions.CurlFileException.FileOperation
+  commentId: T:CurlDotNet.Exceptions.CurlFileException.FileOperation
+  parent: CurlDotNet.Exceptions
+  href: CurlDotNet.Exceptions.CurlFileException.html
+  name: CurlFileException.FileOperation
+  nameWithType: CurlFileException.FileOperation
+  fullName: CurlDotNet.Exceptions.CurlFileException.FileOperation
+  spec.csharp:
+  - uid: CurlDotNet.Exceptions.CurlFileException
+    name: CurlFileException
+    href: CurlDotNet.Exceptions.CurlFileException.html
+  - name: .
+  - uid: CurlDotNet.Exceptions.CurlFileException.FileOperation
+    name: FileOperation
+    href: CurlDotNet.Exceptions.CurlFileException.FileOperation.html
+  spec.vb:
+  - uid: CurlDotNet.Exceptions.CurlFileException
+    name: CurlFileException
+    href: CurlDotNet.Exceptions.CurlFileException.html
+  - name: .
+  - uid: CurlDotNet.Exceptions.CurlFileException.FileOperation
+    name: FileOperation
+    href: CurlDotNet.Exceptions.CurlFileException.FileOperation.html

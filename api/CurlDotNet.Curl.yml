@@ -1,0 +1,2984 @@
+### YamlMime:ManagedReference
+items:
+- uid: CurlDotNet.Curl
+  commentId: T:CurlDotNet.Curl
+  id: Curl
+  parent: CurlDotNet
+  children:
+  - CurlDotNet.Curl.DefaultConnectTimeoutSeconds
+  - CurlDotNet.Curl.DefaultFollowRedirects
+  - CurlDotNet.Curl.DefaultInsecure
+  - CurlDotNet.Curl.DefaultMaxTimeSeconds
+  - CurlDotNet.Curl.Download(System.String,System.String)
+  - CurlDotNet.Curl.DownloadAsync(System.String,System.String)
+  - CurlDotNet.Curl.Execute(System.String)
+  - CurlDotNet.Curl.Execute(System.String,CurlDotNet.Core.CurlSettings)
+  - CurlDotNet.Curl.Execute(System.String,System.Threading.CancellationToken)
+  - CurlDotNet.Curl.ExecuteAsync(System.String)
+  - CurlDotNet.Curl.ExecuteAsync(System.String,CurlDotNet.Core.CurlSettings)
+  - CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)
+  - CurlDotNet.Curl.ExecuteManyAsync(System.String[])
+  - CurlDotNet.Curl.Get(System.String)
+  - CurlDotNet.Curl.GetAsync(System.String)
+  - CurlDotNet.Curl.Post(System.String,System.String)
+  - CurlDotNet.Curl.PostAsync(System.String,System.String)
+  - CurlDotNet.Curl.PostJson(System.String,System.Object)
+  - CurlDotNet.Curl.PostJsonAsync(System.String,System.Object)
+  - CurlDotNet.Curl.ToFetch(System.String)
+  - CurlDotNet.Curl.ToHttpClient(System.String)
+  - CurlDotNet.Curl.ToPowershellCode(System.String)
+  - CurlDotNet.Curl.ToPythonRequests(System.String)
+  - CurlDotNet.Curl.Validate(System.String)
+  langs:
+  - csharp
+  - vb
+  name: Curl
+  nameWithType: Curl
+  fullName: CurlDotNet.Curl
+  type: Class
+  source:
+    remote:
+      path: src/CurlDotNet/Curl_SyncAsync.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Curl
+    path: src/CurlDotNet/Curl_SyncAsync.cs
+    startLine: 23
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>🚀 THE MAIN CURLDOTNET CLASS - Start here!</b></p>
+
+
+    <p>This class lets you run ANY curl command in C# by just copying and pasting it as a string.
+
+    No translation needed. No learning curve. If it works in curl, it works here.</p>
+
+
+    <example>
+
+
+    <pre><code class="lang-csharp">// Just paste any curl command as a string:
+
+    var response = await Curl.ExecuteAsync("curl https://api.github.com");
+
+    Console.WriteLine(response.Body);  // That's it! You're done!
+
+
+    // Apply CurlSettings for retries/timeouts
+
+    var settings = new CurlSettings()
+        .WithTimeout(seconds: 10)
+        .WithRetries(count: 2, delayMs: 500);
+    var json = await Curl.ExecuteAsync("curl https://httpbin.org/json", settings);
+
+    json.EnsureSuccess();</code></pre>
+
+    </example>
+
+
+    <p><b>What is curl?</b> curl is the universal tool for making HTTP requests from the command line.
+
+    Every API documentation uses it. Now you can use those exact same commands in your C# code.</p>
+
+
+    <p><b>Learn more:</b></p>
+
+    <ul><li>📖 curl documentation: <a href="https://curl.se/docs/">https://curl.se/docs/</a></li><li>📚 curl tutorial: <a href="https://curl.se/docs/tutorial.html">https://curl.se/docs/tutorial.html</a></li><li>⌨️ curl command generator: <a href="https://curlbuilder.com/">https://curlbuilder.com/</a></li></ul>
+  remarks: >-
+    <p><b>Why use CurlDotNet instead of HttpClient?</b></p>
+
+    <ol><li>✂️ <b>Copy &amp; Paste</b> - Use commands directly from API docs without translation</li><li>🎓 <b>No Learning Curve</b> - If you know curl (everyone does), you know this</li><li>🔄 <b>Easy Migration</b> - Move from bash scripts to C# without rewriting</li><li>📦 <b>All Features</b> - Supports all 300+ curl options out of the box</li></ol>
+
+
+    <p><b>Thread Safety:</b> All methods are thread-safe. You can call them from multiple threads simultaneously.</p>
+
+
+    <p><b>Memory Efficiency:</b> Responses are streamed, not loaded into memory all at once. Perfect for large files.</p>
+
+
+    <p><b>Sponsored by</b> <a href="https://ironsoftware.com">IronSoftware</a> - creators of IronPDF, IronOCR, IronXL, and IronBarcode.</p>
+
+
+    <p><b>Two Ways to Use CurlDotNet:</b></p>
+
+    <ol><li>
+
+    <b>Paste curl commands:</b> Just copy/paste any curl command string - it works!
+
+    <pre><code class="lang-csharp">var result = await Curl.ExecuteAsync("curl -X POST https://api.example.com/data -H 'Content-Type: application/json' -d '{\"key\":\"value\"}'");</code></pre>
+
+    </li><li>
+
+    <b>Use fluent builder:</b> For programmatic API with IntelliSense
+
+    <pre><code class="lang-csharp">var result = await CurlRequestBuilder.Post("https://api.example.com/data").WithHeader("Content-Type", "application/json").WithJson(new { key = "value" }).ExecuteAsync();</code></pre>
+
+    </li></ol>
+  example: []
+  syntax:
+    content: public static class Curl
+    content.vb: Public Module Curl
+  inheritance:
+  - System.Object
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: CurlDotNet.Curl.DefaultMaxTimeSeconds
+  commentId: P:CurlDotNet.Curl.DefaultMaxTimeSeconds
+  id: DefaultMaxTimeSeconds
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: DefaultMaxTimeSeconds
+  nameWithType: Curl.DefaultMaxTimeSeconds
+  fullName: CurlDotNet.Curl.DefaultMaxTimeSeconds
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: DefaultMaxTimeSeconds
+    path: src/CurlDotNet/Curl.cs
+    startLine: 118
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Sets a global timeout for all curl operations (in seconds).</b></p>
+
+
+    <p>This is like adding <code>--max-time</code> to every curl command automatically.
+
+    Set to 0 (default) for no timeout. Individual commands can still override this.</p>
+
+
+    <p><b>Example:</b></p>
+
+
+    <pre><code class="lang-csharp">// Set 30 second timeout for all operations
+
+    Curl.DefaultMaxTimeSeconds = 30;
+
+
+    // Now all commands timeout after 30 seconds
+
+    await Curl.Execute("curl https://slow-api.example.com");  // Times out after 30s
+
+
+    // Override for specific command
+
+    await Curl.Execute("curl --max-time 60 https://very-slow-api.example.com");  // 60s timeout</code></pre>
+
+
+    <p><b>Learn more:</b> <a href="https://curl.se/docs/manpage.html#-m">curl --max-time documentation</a></p>
+  example: []
+  syntax:
+    content: public static int DefaultMaxTimeSeconds { get; set; }
+    parameters: []
+    return:
+      type: System.Int32
+      description: Timeout in seconds. 0 = no timeout (wait forever). Default is 0.
+    content.vb: Public Shared Property DefaultMaxTimeSeconds As Integer
+  overload: CurlDotNet.Curl.DefaultMaxTimeSeconds*
+- uid: CurlDotNet.Curl.DefaultConnectTimeoutSeconds
+  commentId: P:CurlDotNet.Curl.DefaultConnectTimeoutSeconds
+  id: DefaultConnectTimeoutSeconds
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: DefaultConnectTimeoutSeconds
+  nameWithType: Curl.DefaultConnectTimeoutSeconds
+  fullName: CurlDotNet.Curl.DefaultConnectTimeoutSeconds
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: DefaultConnectTimeoutSeconds
+    path: src/CurlDotNet/Curl.cs
+    startLine: 143
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Sets how long to wait for a connection to be established (in seconds).</b></p>
+
+
+    <p>This is different from the total timeout - it only applies to making the initial connection.
+
+    Like adding <code>--connect-timeout</code> to every curl command.</p>
+
+
+    <p><b>Example:</b></p>
+
+
+    <pre><code class="lang-csharp">// Give servers 10 seconds to accept connection
+
+    Curl.DefaultConnectTimeoutSeconds = 10;
+
+
+    // If server doesn't respond in 10 seconds, fails fast
+
+    await Curl.Execute("curl https://overloaded-server.example.com");</code></pre>
+
+
+    <p><b>Tip:</b> Set this lower than DefaultMaxTimeSeconds to fail fast on dead servers.</p>
+
+    <p><b>Learn more:</b> <a href="https://curl.se/docs/manpage.html#--connect-timeout">curl --connect-timeout documentation</a></p>
+  example: []
+  syntax:
+    content: public static int DefaultConnectTimeoutSeconds { get; set; }
+    parameters: []
+    return:
+      type: System.Int32
+      description: Connection timeout in seconds. 0 = no timeout. Default is 0.
+    content.vb: Public Shared Property DefaultConnectTimeoutSeconds As Integer
+  overload: CurlDotNet.Curl.DefaultConnectTimeoutSeconds*
+- uid: CurlDotNet.Curl.DefaultFollowRedirects
+  commentId: P:CurlDotNet.Curl.DefaultFollowRedirects
+  id: DefaultFollowRedirects
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: DefaultFollowRedirects
+  nameWithType: Curl.DefaultFollowRedirects
+  fullName: CurlDotNet.Curl.DefaultFollowRedirects
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: DefaultFollowRedirects
+    path: src/CurlDotNet/Curl.cs
+    startLine: 171
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Controls whether curl automatically follows HTTP redirects (301, 302, etc).</b></p>
+
+
+    <p>When true, acts like adding <code>-L</code> or <code>--location</code> to every command.
+
+    Many APIs use redirects, so you often want this enabled.</p>
+
+
+    <p><b>Example:</b></p>
+
+
+    <pre><code class="lang-csharp">// Enable redirect following globally
+
+    Curl.DefaultFollowRedirects = true;
+
+
+    // Now shortened URLs work automatically
+
+    var response = await Curl.Execute("curl https://bit.ly/example");  // Follows to final destination
+
+
+    // Or use -L flag per command
+
+    var response = await Curl.Execute("curl -L https://bit.ly/example");</code></pre>
+
+
+    <p><b>Security note:</b> Be careful following redirects to untrusted sources.</p>
+
+    <p><b>Learn more:</b> <a href="https://curl.se/docs/manpage.html#-L">curl -L documentation</a></p>
+  example: []
+  syntax:
+    content: public static bool DefaultFollowRedirects { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+      description: true to follow redirects, false to stop at first response. Default is false.
+    content.vb: Public Shared Property DefaultFollowRedirects As Boolean
+  overload: CurlDotNet.Curl.DefaultFollowRedirects*
+- uid: CurlDotNet.Curl.DefaultInsecure
+  commentId: P:CurlDotNet.Curl.DefaultInsecure
+  id: DefaultInsecure
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: DefaultInsecure
+  nameWithType: Curl.DefaultInsecure
+  fullName: CurlDotNet.Curl.DefaultInsecure
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: DefaultInsecure
+    path: src/CurlDotNet/Curl.cs
+    startLine: 198
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>⚠️ WARNING: Disables SSL certificate validation - ONLY use for development/testing!</b></p>
+
+
+    <p>When true, acts like adding <code>-k</code> or <code>--insecure</code> to every command.
+
+    This accepts any SSL certificate, even self-signed or expired ones.</p>
+
+
+    <p><b>Example (DEVELOPMENT ONLY):</b></p>
+
+
+    <pre><code class="lang-csharp">#if DEBUG
+
+    // Only in debug builds for local testing
+
+    Curl.DefaultInsecure = true;
+
+
+    // Now works with self-signed certificates
+
+    await Curl.Execute("curl https://localhost:5001");  // Works even with invalid cert
+
+    #endif</code></pre>
+
+
+    <p><b>🔴 NEVER use this in production!</b> It makes you vulnerable to man-in-the-middle attacks.</p>
+
+    <p><b>Learn more:</b> <a href="https://curl.se/docs/manpage.html#-k">curl -k documentation</a></p>
+  example: []
+  syntax:
+    content: public static bool DefaultInsecure { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+      description: true to skip SSL validation (DANGEROUS), false to validate (safe). Default is false.
+    content.vb: Public Shared Property DefaultInsecure As Boolean
+  overload: CurlDotNet.Curl.DefaultInsecure*
+- uid: CurlDotNet.Curl.ExecuteAsync(System.String)
+  commentId: M:CurlDotNet.Curl.ExecuteAsync(System.String)
+  id: ExecuteAsync(System.String)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: ExecuteAsync(string)
+  nameWithType: Curl.ExecuteAsync(string)
+  fullName: CurlDotNet.Curl.ExecuteAsync(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ExecuteAsync
+    path: src/CurlDotNet/Curl.cs
+    startLine: 413
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>🎯 THE MAIN METHOD - Executes any curl command and returns the response.</b></p>
+
+
+    <p>Just paste ANY curl command as a string. It works exactly like running curl from the command line,
+
+    but returns the result as a nice C# object you can work with.</p>
+
+
+    <example>
+
+
+    <pre><code class="lang-csharp">// Copy any curl command from documentation and paste it here:
+
+    var response = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
+
+
+    // Work with the response:
+
+    Console.WriteLine($"Status: {response.StatusCode}");  // 200
+
+    Console.WriteLine($"Body: {response.Body}");          // JSON data
+
+    var user = response.ParseJson&lt;GitHubUser&gt;();        // Parse to object
+
+
+    // Use CurlSettings for retries/timeouts:
+
+    var settings = new CurlSettings()
+        .WithTimeout(seconds: 10)
+        .WithRetries(count: 2, delayMs: 250);
+    var resilient = await Curl.ExecuteAsync("curl --max-time 5 https://httpbin.org/json", settings);
+
+    resilient.EnsureSuccess();</code></pre>
+
+    </example>
+
+
+    <p><b>Real-World Example from Stripe Docs:</b></p>
+
+
+    <pre><code class="lang-csharp">// Paste the exact command from Stripe's documentation:
+
+    var response = await Curl.Execute(@"
+        curl https://api.stripe.com/v1/charges \
+          -u sk_test_4eC39HqLyjWDarjtT1zdp7dc: \
+          -d amount=2000 \
+          -d currency=usd \
+          -d source=tok_mastercard \
+          -d description='My First Test Charge'
+    ");
+
+
+    if (response.IsSuccess)
+
+    {
+        var charge = response.ParseJson&lt;StripeCharge&gt;();
+        Console.WriteLine($"Payment successful! ID: {charge.Id}");
+    }</code></pre>
+
+
+    <p><b>All HTTP Methods Supported:</b></p>
+
+
+    <pre><code class="lang-csharp">await Curl.Execute("curl -X GET https://api.example.com/users");     // GET (default)
+
+    await Curl.Execute("curl -X POST https://api.example.com/users");    // POST
+
+    await Curl.Execute("curl -X PUT https://api.example.com/users/123"); // PUT
+
+    await Curl.Execute("curl -X DELETE https://api.example.com/users/123"); // DELETE
+
+    await Curl.Execute("curl -X PATCH https://api.example.com/users/123"); // PATCH</code></pre>
+
+
+    <p><b>Common Options:</b></p>
+
+
+    <pre><code class="lang-csharp">// Headers
+
+    await Curl.Execute("curl -H 'Authorization: Bearer token123' https://api.example.com");
+
+
+    // POST data
+
+    await Curl.Execute("curl -d '{\"name\":\"John\"}' https://api.example.com");
+
+
+    // Save to file
+
+    await Curl.Execute("curl -o download.pdf https://example.com/file.pdf");
+
+
+    // Follow redirects
+
+    await Curl.Execute("curl -L https://short.link/abc");
+
+
+    // Basic auth
+
+    await Curl.Execute("curl -u username:password https://api.example.com");
+
+
+    // Timeout
+
+    await Curl.Execute("curl --max-time 30 https://slow-api.example.com");</code></pre>
+  example: []
+  syntax:
+    content: public static Task<CurlResult> ExecuteAsync(string command)
+    parameters:
+    - id: command
+      type: System.String
+      description: >-
+        <p>Any valid curl command as a string. You can literally copy and paste from:</p>
+
+        <ul><li>📖 API documentation (Stripe, Twilio, GitHub, etc.)</li><li>💬 Stack Overflow answers</li><li>📝 Blog posts and tutorials</li><li>🖥️ Your terminal history</li><li>🔧 Postman's "Code" export feature</li><li>🌐 Browser DevTools "Copy as cURL"</li></ul>
+
+        <p>The "curl" prefix is optional - both work:</p>
+
+
+        <pre><code class="lang-csharp">await Curl.Execute("curl https://api.example.com");  // With "curl"
+
+        await Curl.Execute("https://api.example.com");       // Without "curl"</code></pre>
+    return:
+      type: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+      description: >-
+        <p>A <xref href="CurlDotNet.Core.CurlResult" data-throw-if-not-resolved="false"></xref> object containing everything from the HTTP response:</p>
+
+        <ul><li><b>StatusCode</b> - HTTP status (200, 404, 500, etc.)</li><li><b>Body</b> - Response body as string</li><li><b>Headers</b> - All response headers as dictionary</li><li><b>IsSuccess</b> - True if status is 200-299</li><li><b>ParseJson&lt;T&gt;()</b> - Parse JSON response to your class</li><li><b>SaveToFile()</b> - Save response to disk</li></ul>
+
+        <p>See <xref href="CurlDotNet.Core.CurlResult" data-throw-if-not-resolved="false"></xref> for all available properties and methods.</p>
+    content.vb: Public Shared Function ExecuteAsync(command As String) As Task(Of CurlResult)
+  overload: CurlDotNet.Curl.ExecuteAsync*
+  exceptions:
+  - type: System.ArgumentNullException
+    commentId: T:System.ArgumentNullException
+    description: >-
+      <p>Thrown when command is null or empty.</p>
+
+
+      <pre><code class="lang-csharp">// ❌ These will throw:
+
+      await Curl.Execute(null);
+
+      await Curl.Execute("");
+
+      await Curl.Execute("   ");</code></pre>
+  - type: CurlDotNet.Exceptions.CurlParsingException
+    commentId: T:CurlDotNet.Exceptions.CurlParsingException
+    description: >-
+      <p>Thrown when the curl command can't be understood. Usually means typo or unsupported option.</p>
+
+
+      <pre><code class="lang-csharp">// ❌ This will throw CurlParsingException:
+
+      await Curl.Execute("curl --invalid-option https://example.com");</code></pre>
+
+      <p>Error codes: CURLE_URL_MALFORMAT (3), CURLE_UNSUPPORTED_PROTOCOL (1)</p>
+
+      <p>See: <a href="https://curl.se/libcurl/c/libcurl-errors.html">curl error codes</a></p>
+  - type: CurlDotNet.Exceptions.CurlCouldntResolveHostException
+    commentId: T:CurlDotNet.Exceptions.CurlCouldntResolveHostException
+    description: >-
+      <p>Thrown when the hostname cannot be resolved (DNS failure).</p>
+
+
+      <pre><code class="lang-csharp">try
+
+      {
+          await Curl.Execute("curl https://this-domain-does-not-exist.com");
+      }
+
+      catch (Exceptions.CurlCouldntResolveHostException ex)
+
+      {
+          Console.WriteLine($"Could not find server: {ex.Hostname}");
+      }</code></pre>
+
+      <p>Error code: CURLE_COULDNT_RESOLVE_HOST (6)</p>
+  - type: CurlDotNet.Exceptions.CurlTimeoutException
+    commentId: T:CurlDotNet.Exceptions.CurlTimeoutException
+    description: >-
+      <p>Thrown when the operation takes longer than the timeout specified by <code class="paramref">command</code> (via <code>--max-time</code>) 
+
+      or <xref href="CurlDotNet.Curl.DefaultMaxTimeSeconds" data-throw-if-not-resolved="false"></xref>.</p>
+
+
+      <pre><code class="lang-csharp">try
+
+      {
+          await Curl.ExecuteAsync("curl --max-time 5 https://very-slow-api.com");
+      }
+
+      catch (Exceptions.CurlTimeoutException ex)
+
+      {
+          Console.WriteLine($"Timed out after {ex.Timeout} seconds");
+      }</code></pre>
+
+      <p>Error code: <code>CURLE_OPERATION_TIMEDOUT</code> (28)</p>
+
+      <p>To cancel operations without waiting for timeout, use the <xref href="CurlDotNet.Curl.ExecuteAsync(System.String%2cSystem.Threading.CancellationToken)?text=overload+with+" data-throw-if-not-resolved="false"></xref>.</p>
+  - type: CurlDotNet.Exceptions.CurlSslException
+    commentId: T:CurlDotNet.Exceptions.CurlSslException
+    description: >-
+      <p>Thrown for SSL/TLS certificate problems. This can occur when certificates are self-signed, expired,
+
+      or don't match the domain. Check <xref href="CurlDotNet.Exceptions.CurlSslException.CertificateError" data-throw-if-not-resolved="false"></xref> for details.</p>
+
+
+      <pre><code class="lang-csharp">try
+
+      {
+          await Curl.ExecuteAsync("curl https://self-signed-cert.example.com");
+      }
+
+      catch (Exceptions.CurlSslException ex)
+
+      {
+          Console.WriteLine($"SSL problem: {ex.Message}");
+          if (ex.CertificateError != null)
+              Console.WriteLine($"Certificate error: {ex.CertificateError}");
+          // In development only, you could use: curl -k (insecure)
+      }</code></pre>
+
+      <p>Error codes: <code>CURLE_SSL_CONNECT_ERROR</code> (35), <code>CURLE_PEER_FAILED_VERIFICATION</code> (60)</p>
+
+      <p><b>⚠️ WARNING:</b> Using <code>-k</code> or <code>--insecure</code> disables certificate validation and makes you vulnerable to man-in-the-middle attacks. Only use in development!</p>
+  - type: CurlDotNet.Exceptions.CurlException
+    commentId: T:CurlDotNet.Exceptions.CurlException
+    description: >-
+      <p>Base exception for all curl-related errors. All specific exceptions inherit from this.
+
+      See <xref href="CurlDotNet.Exceptions.CurlException.CurlErrorCode" data-throw-if-not-resolved="false"></xref> for the specific curl error code.</p>
+
+      <p>Common error codes:</p>
+
+      <table><thead><tr><th class="term">Error Code</th><th class="description">Meaning</th></tr></thead><tbody><tr><td class="term">1 - CURLE_UNSUPPORTED_PROTOCOL</td><td class="description">The URL uses an unsupported protocol (not http, https, ftp, or file)</td></tr><tr><td class="term">3 - CURLE_URL_MALFORMAT</td><td class="description">The URL is malformed (missing protocol, invalid characters, etc.)</td></tr><tr><td class="term">6 - CURLE_COULDNT_RESOLVE_HOST</td><td class="description">DNS lookup failed - hostname doesn't exist</td></tr><tr><td class="term">28 - CURLE_OPERATION_TIMEDOUT</td><td class="description">Operation timed out (see <xref href="CurlDotNet.Exceptions.CurlTimeoutException" data-throw-if-not-resolved="false"></xref>)</td></tr><tr><td class="term">60 - CURLE_PEER_FAILED_VERIFICATION</td><td class="description">SSL certificate verification failed (see <xref href="CurlDotNet.Exceptions.CurlSslException" data-throw-if-not-resolved="false"></xref>)</td></tr></tbody></table>
+
+      <p>For a complete list of all curl error codes, see <a href="https://curl.se/libcurl/c/libcurl-errors.html">curl error codes</a>.</p>
+  seealso:
+  - linkId: CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)
+    commentId: M:CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)
+    altText: Execute with cancellation support
+  - linkId: CurlDotNet.Curl.ExecuteAsync(System.String[])
+    commentId: M:CurlDotNet.Curl.ExecuteAsync(System.String[])
+    altText: Execute multiple commands in parallel
+  - linkId: CurlDotNet.Core.CurlResult
+    commentId: T:CurlDotNet.Core.CurlResult
+    altText: The response object returned containing <xref href="CurlDotNet.Core.CurlResult.StatusCode" data-throw-if-not-resolved="false"></xref>, <xref href="CurlDotNet.Core.CurlResult.Body" data-throw-if-not-resolved="false"></xref>, <xref href="CurlDotNet.Core.CurlResult.Headers" data-throw-if-not-resolved="false"></xref>, etc.
+  - linkId: CurlDotNet.Core.CurlRequestBuilder
+    commentId: T:CurlDotNet.Core.CurlRequestBuilder
+    altText: Fluent API alternative for building requests programmatically
+  - linkId: CurlDotNet.Curl.DefaultMaxTimeSeconds
+    commentId: P:CurlDotNet.Curl.DefaultMaxTimeSeconds
+    altText: Set a default timeout for all operations
+  - linkId: CurlDotNet.Curl.DefaultFollowRedirects
+    commentId: P:CurlDotNet.Curl.DefaultFollowRedirects
+    altText: Enable redirect following globally
+  - linkType: HRef
+    linkId: https://curl.se/docs/manpage.html
+    altText: Complete curl documentation
+  - linkType: HRef
+    linkId: https://curl.se/docs/manpage.html#OPTIONS
+    altText: All curl options
+  nameWithType.vb: Curl.ExecuteAsync(String)
+  fullName.vb: CurlDotNet.Curl.ExecuteAsync(String)
+  name.vb: ExecuteAsync(String)
+- uid: CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)
+  commentId: M:CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)
+  id: ExecuteAsync(System.String,System.Threading.CancellationToken)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: ExecuteAsync(string, CancellationToken)
+  nameWithType: Curl.ExecuteAsync(string, CancellationToken)
+  fullName: CurlDotNet.Curl.ExecuteAsync(string, System.Threading.CancellationToken)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ExecuteAsync
+    path: src/CurlDotNet/Curl.cs
+    startLine: 531
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Execute a curl command with cancellation support - perfect for long-running operations.</b></p>
+
+
+    <p>This lets you cancel the HTTP request if it's taking too long or if the user cancels.
+
+    Essential for good user experience in desktop and mobile apps.</p>
+
+
+    <p><b>Basic Example:</b></p>
+
+
+    <pre><code class="lang-csharp">// Create a cancellation token that times out after 30 seconds
+
+    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+
+    try
+
+    {
+        var response = await Curl.Execute(
+            "curl https://slow-api.example.com/large-file",
+            cts.Token
+        );
+        Console.WriteLine("Download complete!");
+    }
+
+    catch (OperationCanceledException)
+
+    {
+        Console.WriteLine("Download cancelled or timed out after 30 seconds");
+    }</code></pre>
+
+
+    <p><b>User-Cancellable Download:</b></p>
+
+
+    <pre><code class="lang-csharp">private CancellationTokenSource _downloadCts;
+
+
+    // Start download
+
+    async Task StartDownload()
+
+    {
+        _downloadCts = new CancellationTokenSource();
+
+        try
+        {
+            var result = await Curl.Execute(
+                "curl -o large-file.zip https://example.com/huge-file.zip",
+                _downloadCts.Token
+            );
+            MessageBox.Show("Download complete!");
+        }
+        catch (OperationCanceledException)
+        {
+            MessageBox.Show("Download cancelled by user");
+        }
+    }
+
+
+    // Cancel button click
+
+    void CancelButton_Click()
+
+    {
+        _downloadCts?.Cancel();  // This stops the download
+    }</code></pre>
+
+
+    <p><b>Web API with Request Timeout:</b></p>
+
+
+    <pre><code class="lang-csharp">[HttpGet]
+
+    public async Task&lt;IActionResult&gt; ProxyRequest(CancellationToken cancellationToken)
+
+    {
+        // ASP.NET Core passes cancellation token that triggers when:
+        // - Client disconnects
+        // - Request timeout is reached
+        // - Server is shutting down
+
+        var result = await Curl.Execute(
+            "curl https://external-api.example.com/data",
+            cancellationToken  // Pass it through!
+        );
+
+        return Ok(result.Body);
+    }</code></pre>
+  remarks: >-
+    <p><b>Best Practices:</b></p>
+
+    <ol><li>Always dispose CancellationTokenSource when done: <code>using var cts = new...</code></li><li>Check <code>token.IsCancellationRequested</code> before starting expensive operations</li><li>Pass tokens through your entire async call chain</li><li>Combine multiple tokens with CreateLinkedTokenSource for complex scenarios</li></ol>
+  example: []
+  syntax:
+    content: public static Task<CurlResult> ExecuteAsync(string command, CancellationToken cancellationToken)
+    parameters:
+    - id: command
+      type: System.String
+      description: Any curl command string. See <xref href="CurlDotNet.Curl.Execute(System.String)" data-throw-if-not-resolved="false"></xref> for full documentation.
+    - id: cancellationToken
+      type: System.Threading.CancellationToken
+      description: >-
+        <p>Token to cancel the operation. Get this from:</p>
+
+        <ul><li>⏱️ <code>new CancellationTokenSource(TimeSpan.FromSeconds(30))</code> - Timeout</li><li>🔘 <code>CancellationTokenSource</code> linked to Cancel button - User cancellation</li><li>🌐 ASP.NET Core action parameter - Web request cancellation</li><li>🔗 <code>CancellationTokenSource.CreateLinkedTokenSource()</code> - Multiple conditions</li></ul>
+
+        <p>Learn more: <a href="https://docs.microsoft.com/en-us/dotnet/standard/threading/cancellation-in-managed-threads">Cancellation in .NET</a></p>
+    return:
+      type: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+      description: Same as <xref href="CurlDotNet.Curl.Execute(System.String)" data-throw-if-not-resolved="false"></xref> - a <xref href="CurlDotNet.Core.CurlResult" data-throw-if-not-resolved="false"></xref> with the response.
+    content.vb: Public Shared Function ExecuteAsync(command As String, cancellationToken As CancellationToken) As Task(Of CurlResult)
+  overload: CurlDotNet.Curl.ExecuteAsync*
+  exceptions:
+  - type: System.OperationCanceledException
+    commentId: T:System.OperationCanceledException
+    description: >-
+      <p>Thrown when the operation is cancelled via the token.</p>
+
+
+      <pre><code class="lang-csharp">try
+
+      {
+          await Curl.Execute("curl https://api.example.com", cancelToken);
+      }
+
+      catch (OperationCanceledException)
+
+      {
+          // Handle cancellation gracefully
+          Console.WriteLine("Request was cancelled");
+      }</code></pre>
+  nameWithType.vb: Curl.ExecuteAsync(String, CancellationToken)
+  fullName.vb: CurlDotNet.Curl.ExecuteAsync(String, System.Threading.CancellationToken)
+  name.vb: ExecuteAsync(String, CancellationToken)
+- uid: CurlDotNet.Curl.ExecuteAsync(System.String,CurlDotNet.Core.CurlSettings)
+  commentId: M:CurlDotNet.Curl.ExecuteAsync(System.String,CurlDotNet.Core.CurlSettings)
+  id: ExecuteAsync(System.String,CurlDotNet.Core.CurlSettings)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: ExecuteAsync(string, CurlSettings)
+  nameWithType: Curl.ExecuteAsync(string, CurlSettings)
+  fullName: CurlDotNet.Curl.ExecuteAsync(string, CurlDotNet.Core.CurlSettings)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ExecuteAsync
+    path: src/CurlDotNet/Curl.cs
+    startLine: 581
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Execute with advanced settings - for when you need more control.</b></p>
+
+
+    <p>Use this overload when you need features beyond what curl command strings provide,
+
+    like progress callbacks, custom HTTP handlers, or retry policies.</p>
+
+
+    <p><b>Example with Progress Reporting:</b></p>
+
+
+    <pre><code class="lang-csharp">var settings = new CurlSettings
+
+    {
+        OnProgress = (bytes, total) =&gt;
+        {
+            var percent = (bytes * 100.0) / total;
+            Console.WriteLine($"Downloaded: {percent:F1}%");
+        }
+    };
+
+
+    await Curl.Execute("curl -O https://example.com/large-file.zip", settings);</code></pre>
+
+
+    <p><b>Example with Custom Retry Policy:</b></p>
+
+
+    <pre><code class="lang-csharp">var settings = new CurlSettings
+
+    {
+        RetryCount = 3,
+        RetryDelay = TimeSpan.FromSeconds(2),
+        RetryOn = new[] { 500, 502, 503, 504 }  // Retry on server errors
+    };
+
+
+    await Curl.Execute("curl https://unstable-api.example.com", settings);</code></pre>
+  example: []
+  syntax:
+    content: public static Task<CurlResult> ExecuteAsync(string command, CurlSettings settings)
+    parameters:
+    - id: command
+      type: System.String
+      description: Any curl command string.
+    - id: settings
+      type: CurlDotNet.Core.CurlSettings
+      description: >-
+        <p>Advanced settings including:</p>
+
+        <ul><li><b>OnProgress</b> - Callback for download/upload progress</li><li><b>RetryCount</b> - Number of retry attempts</li><li><b>RetryDelay</b> - Delay between retries</li><li><b>CustomHttpMessageHandler</b> - Use your own HttpMessageHandler</li><li><b>Middleware</b> - Add custom processing pipeline</li></ul>
+
+        <p>See <xref href="CurlDotNet.Core.CurlSettings" data-throw-if-not-resolved="false"></xref> for all options.</p>
+    return:
+      type: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+      description: A <xref href="CurlDotNet.Core.CurlResult" data-throw-if-not-resolved="false"></xref> with the response.
+    content.vb: Public Shared Function ExecuteAsync(command As String, settings As CurlSettings) As Task(Of CurlResult)
+  overload: CurlDotNet.Curl.ExecuteAsync*
+  nameWithType.vb: Curl.ExecuteAsync(String, CurlSettings)
+  fullName.vb: CurlDotNet.Curl.ExecuteAsync(String, CurlDotNet.Core.CurlSettings)
+  name.vb: ExecuteAsync(String, CurlSettings)
+- uid: CurlDotNet.Curl.GetAsync(System.String)
+  commentId: M:CurlDotNet.Curl.GetAsync(System.String)
+  id: GetAsync(System.String)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: GetAsync(string)
+  nameWithType: Curl.GetAsync(string)
+  fullName: CurlDotNet.Curl.GetAsync(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: GetAsync
+    path: src/CurlDotNet/Curl.cs
+    startLine: 615
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Quick GET request - simpler syntax for basic GET operations.</b></p>
+
+
+    <p>When you just need to GET a URL without any options, use this shortcut method.</p>
+
+
+    <p><b>Example:</b></p>
+
+
+    <pre><code class="lang-csharp">// Instead of:
+
+    await Curl.Execute("curl https://api.github.com/users/octocat");
+
+
+    // You can use:
+
+    var response = await Curl.Get("https://api.github.com/users/octocat");
+
+
+    // Work with response
+
+    var user = response.ParseJson&lt;GitHubUser&gt;();
+
+    Console.WriteLine($"Followers: {user.Followers}");</code></pre>
+  remarks: >-
+    <p>This is equivalent to: <code>Curl.Execute($"curl {url}")</code></p>
+
+    <p>For GET requests with headers or auth, use the full <xref href="CurlDotNet.Curl.Execute(System.String)" data-throw-if-not-resolved="false"></xref> method.</p>
+  example: []
+  syntax:
+    content: public static Task<CurlResult> GetAsync(string url)
+    parameters:
+    - id: url
+      type: System.String
+      description: >-
+        The URL to GET. Can be HTTP or HTTPS. Query parameters can be included.
+
+        <pre><code class="lang-csharp">await Curl.Get("https://api.example.com/users?page=1&amp;limit=10");</code></pre>
+    return:
+      type: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+      description: A <xref href="CurlDotNet.Core.CurlResult" data-throw-if-not-resolved="false"></xref> with the response.
+    content.vb: Public Shared Function GetAsync(url As String) As Task(Of CurlResult)
+  overload: CurlDotNet.Curl.GetAsync*
+  nameWithType.vb: Curl.GetAsync(String)
+  fullName.vb: CurlDotNet.Curl.GetAsync(String)
+  name.vb: GetAsync(String)
+- uid: CurlDotNet.Curl.PostAsync(System.String,System.String)
+  commentId: M:CurlDotNet.Curl.PostAsync(System.String,System.String)
+  id: PostAsync(System.String,System.String)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: PostAsync(string, string)
+  nameWithType: Curl.PostAsync(string, string)
+  fullName: CurlDotNet.Curl.PostAsync(string, string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: PostAsync
+    path: src/CurlDotNet/Curl.cs
+    startLine: 652
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Quick POST request - simpler syntax for posting data.</b></p>
+
+
+    <p>Convenient method for simple POST requests with string data.</p>
+
+
+    <p><b>Example:</b></p>
+
+
+    <pre><code class="lang-csharp">// Post form data
+
+    var response = await Curl.Post(
+        "https://api.example.com/login",
+        "username=john&amp;password=secret123"
+    );
+
+
+    // Post JSON data
+
+    var json = "{\"name\":\"John\",\"age\":30}";
+
+    var result = await Curl.Post("https://api.example.com/users", json);</code></pre>
+  remarks: >-
+    <p>This is equivalent to: <code>Curl.Execute($"curl -X POST -d '{data}' {url}")</code></p>
+
+    <p>For POST with headers, use <xref href="CurlDotNet.Curl.PostJson(System.String%2cSystem.Object)" data-throw-if-not-resolved="false"></xref> or the full <xref href="CurlDotNet.Curl.Execute(System.String)" data-throw-if-not-resolved="false"></xref> method.</p>
+  example: []
+  syntax:
+    content: public static Task<CurlResult> PostAsync(string url, string data)
+    parameters:
+    - id: url
+      type: System.String
+      description: The URL to POST to.
+    - id: data
+      type: System.String
+      description: >-
+        The data to send in the POST body. Can be:
+
+        <ul><li>JSON string: <code>"{\"key\":\"value\"}"</code></li><li>Form data: <code>"key1=value1&amp;key2=value2"</code></li><li>XML or any other string content</li></ul>
+    return:
+      type: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+      description: A <xref href="CurlDotNet.Core.CurlResult" data-throw-if-not-resolved="false"></xref> with the response.
+    content.vb: Public Shared Function PostAsync(url As String, data As String) As Task(Of CurlResult)
+  overload: CurlDotNet.Curl.PostAsync*
+  nameWithType.vb: Curl.PostAsync(String, String)
+  fullName.vb: CurlDotNet.Curl.PostAsync(String, String)
+  name.vb: PostAsync(String, String)
+- uid: CurlDotNet.Curl.PostJsonAsync(System.String,System.Object)
+  commentId: M:CurlDotNet.Curl.PostJsonAsync(System.String,System.Object)
+  id: PostJsonAsync(System.String,System.Object)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: PostJsonAsync(string, object)
+  nameWithType: Curl.PostJsonAsync(string, object)
+  fullName: CurlDotNet.Curl.PostJsonAsync(string, object)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: PostJsonAsync
+    path: src/CurlDotNet/Curl.cs
+    startLine: 714
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>POST with JSON data - automatically serializes objects to JSON.</b></p>
+
+
+    <p>The easiest way to POST JSON data. Pass any object and it's automatically
+
+    serialized to JSON with the correct Content-Type header.</p>
+
+
+    <p><b>Example:</b></p>
+
+
+    <pre><code class="lang-csharp">// Create your data object
+
+    var newUser = new
+
+    {
+        name = "John Smith",
+        email = "john@example.com",
+        age = 30
+    };
+
+
+    // Post it as JSON automatically
+
+    var response = await Curl.PostJson("https://api.example.com/users", newUser);
+
+
+    // Check if successful
+
+    if (response.IsSuccess)
+
+    {
+        var created = response.ParseJson&lt;User&gt;();
+        Console.WriteLine($"User created with ID: {created.Id}");
+    }</code></pre>
+
+
+    <p><b>Works with any object:</b></p>
+
+
+    <pre><code class="lang-csharp">// Anonymous objects
+
+    await Curl.PostJson(url, new { key = "value" });
+
+
+    // Your classes
+
+    await Curl.PostJson(url, myUserObject);
+
+
+    // Collections
+
+    await Curl.PostJson(url, new[] { item1, item2, item3 });
+
+
+    // Dictionaries
+
+    await Curl.PostJson(url, new Dictionary&lt;string, object&gt; { ["key"] = "value" });</code></pre>
+  remarks: >-
+    <p>Automatically adds: <code>Content-Type: application/json</code> header</p>
+
+    <p>Uses System.Text.Json on .NET 6+ or Newtonsoft.Json on older frameworks</p>
+  example: []
+  syntax:
+    content: public static Task<CurlResult> PostJsonAsync(string url, object data)
+    parameters:
+    - id: url
+      type: System.String
+      description: The URL to POST to.
+    - id: data
+      type: System.Object
+      description: >-
+        Any object to serialize as JSON. Can be:
+
+        <ul><li>Anonymous objects: <code>new { name = "John" }</code></li><li>Your classes: <code>new User { Name = "John" }</code></li><li>Collections: <code>new[] { 1, 2, 3 }</code></li><li>Dictionaries: <code>Dictionary&lt;string, object&gt;</code></li></ul>
+    return:
+      type: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+      description: A <xref href="CurlDotNet.Core.CurlResult" data-throw-if-not-resolved="false"></xref> with the response.
+    content.vb: Public Shared Function PostJsonAsync(url As String, data As Object) As Task(Of CurlResult)
+  overload: CurlDotNet.Curl.PostJsonAsync*
+  nameWithType.vb: Curl.PostJsonAsync(String, Object)
+  fullName.vb: CurlDotNet.Curl.PostJsonAsync(String, Object)
+  name.vb: PostJsonAsync(String, Object)
+- uid: CurlDotNet.Curl.DownloadAsync(System.String,System.String)
+  commentId: M:CurlDotNet.Curl.DownloadAsync(System.String,System.String)
+  id: DownloadAsync(System.String,System.String)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: DownloadAsync(string, string)
+  nameWithType: Curl.DownloadAsync(string, string)
+  fullName: CurlDotNet.Curl.DownloadAsync(string, string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: DownloadAsync
+    path: src/CurlDotNet/Curl.cs
+    startLine: 773
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Download a file from a URL and save it to disk.</b></p>
+
+
+    <p>Downloads any file and saves it to the specified path. Shows progress if the file is large.</p>
+
+
+    <p><b>Example:</b></p>
+
+
+    <pre><code class="lang-csharp">// Download a PDF
+
+    await Curl.Download(
+        "https://example.com/manual.pdf",
+        @"C:\Downloads\manual.pdf"
+    );
+
+
+    // Download with original filename
+
+    await Curl.Download(
+        "https://example.com/installer.exe",
+        @"C:\Downloads\installer.exe"
+    );
+
+
+    Console.WriteLine("Download complete!");</code></pre>
+
+
+    <p><b>With Error Handling:</b></p>
+
+
+    <pre><code class="lang-csharp">try
+
+    {
+        await Curl.Download(url, "output.zip");
+        Console.WriteLine("✅ Download successful");
+    }
+
+    catch (CurlHttpException ex) when (ex.StatusCode == 404)
+
+    {
+        Console.WriteLine("❌ File not found");
+    }
+
+    catch (Exception ex)
+
+    {
+        Console.WriteLine($"❌ Download failed: {ex.Message}");
+    }</code></pre>
+  remarks: >-
+    <p>This is equivalent to: <code>Curl.Execute($"curl -o {outputPath} {url}")</code></p>
+
+    <p>For large files with progress, use <xref href="CurlDotNet.Curl.Execute(System.String%2cCurlDotNet.Core.CurlSettings)" data-throw-if-not-resolved="false"></xref> with OnProgress callback.</p>
+  example: []
+  syntax:
+    content: public static Task<CurlResult> DownloadAsync(string url, string outputPath)
+    parameters:
+    - id: url
+      type: System.String
+      description: The URL of the file to download.
+    - id: outputPath
+      type: System.String
+      description: >-
+        Where to save the file. Can be:
+
+        <ul><li>Full path: <code>@"C:\Downloads\file.pdf"</code></li><li>Relative path: <code>"downloads/file.pdf"</code></li><li>Just filename: <code>"file.pdf"</code> (saves to current directory)</li></ul>
+    return:
+      type: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+      description: A <xref href="CurlDotNet.Core.CurlResult" data-throw-if-not-resolved="false"></xref> with download information.
+    content.vb: Public Shared Function DownloadAsync(url As String, outputPath As String) As Task(Of CurlResult)
+  overload: CurlDotNet.Curl.DownloadAsync*
+  nameWithType.vb: Curl.DownloadAsync(String, String)
+  fullName.vb: CurlDotNet.Curl.DownloadAsync(String, String)
+  name.vb: DownloadAsync(String, String)
+- uid: CurlDotNet.Curl.ExecuteManyAsync(System.String[])
+  commentId: M:CurlDotNet.Curl.ExecuteManyAsync(System.String[])
+  id: ExecuteManyAsync(System.String[])
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: ExecuteManyAsync(params string[])
+  nameWithType: Curl.ExecuteManyAsync(params string[])
+  fullName: CurlDotNet.Curl.ExecuteManyAsync(params string[])
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ExecuteManyAsync
+    path: src/CurlDotNet/Curl.cs
+    startLine: 853
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Execute multiple curl commands in parallel - great for performance!</b></p>
+
+
+    <p>Runs multiple HTTP requests at the same time, which is much faster than running them one by one.
+
+    Perfect for fetching data from multiple APIs or endpoints simultaneously.</p>
+
+
+    <p><b>Example - Fetch Multiple APIs:</b></p>
+
+
+    <pre><code class="lang-csharp">// These all run at the same time (parallel), not one after another
+
+    var results = await Curl.ExecuteMany(
+        "curl https://api.github.com/users/microsoft",
+        "curl https://api.github.com/users/dotnet",
+        "curl https://api.github.com/users/azure"
+    );
+
+
+    // Process results - array order matches command order
+
+    Console.WriteLine($"Microsoft: {results[0].Body}");
+
+    Console.WriteLine($"DotNet: {results[1].Body}");
+
+    Console.WriteLine($"Azure: {results[2].Body}");</code></pre>
+
+
+    <p><b>Example - Aggregate Data:</b></p>
+
+
+    <pre><code class="lang-csharp">// Fetch from multiple services simultaneously
+
+    var results = await Curl.ExecuteMany(
+        "curl https://api.weather.com/temperature",
+        "curl https://api.weather.com/humidity",
+        "curl https://api.weather.com/forecast"
+    );
+
+
+    // Check if all succeeded
+
+    if (results.All(r =&gt; r.IsSuccess))
+
+    {
+        var temp = results[0].ParseJson&lt;Temperature&gt;();
+        var humidity = results[1].ParseJson&lt;Humidity&gt;();
+        var forecast = results[2].ParseJson&lt;Forecast&gt;();
+
+        DisplayWeatherDashboard(temp, humidity, forecast);
+    }</code></pre>
+
+
+    <p><b>Error Handling - Some May Fail:</b></p>
+
+
+    <pre><code class="lang-csharp">var results = await Curl.ExecuteMany(commands);
+
+
+    for (int i = 0; i &lt; results.Length; i++)
+
+    {
+        if (results[i].IsSuccess)
+        {
+            Console.WriteLine($"✅ Command {i} succeeded");
+        }
+        else
+        {
+            Console.WriteLine($"❌ Command {i} failed: {results[i].StatusCode}");
+        }
+    }</code></pre>
+  remarks: >-
+    <p><b>Performance Note:</b> If you have 10 commands that each take 1 second,
+
+    running them in parallel takes ~1 second total instead of 10 seconds sequentially!</p>
+
+    <p><b>Limit:</b> Be respectful of APIs - don't send hundreds of parallel requests.</p>
+  example: []
+  syntax:
+    content: public static Task<CurlResult[]> ExecuteManyAsync(params string[] commands)
+    parameters:
+    - id: commands
+      type: System.String[]
+      description: >-
+        Array of curl command strings to execute. Can pass as:
+
+        <ul><li>Multiple parameters: <code>ExecuteMany(cmd1, cmd2, cmd3)</code></li><li>Array: <code>ExecuteMany(commandArray)</code></li><li>List: <code>ExecuteMany(commandList.ToArray())</code></li></ul>
+    return:
+      type: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult[]}
+      description: >-
+        Array of <xref href="CurlDotNet.Core.CurlResult" data-throw-if-not-resolved="false"></xref> objects in the same order as the commands.
+
+        Even if some fail, you still get results for all commands.
+    content.vb: Public Shared Function ExecuteManyAsync(ParamArray commands As String()) As Task(Of CurlResult())
+  overload: CurlDotNet.Curl.ExecuteManyAsync*
+  nameWithType.vb: Curl.ExecuteManyAsync(ParamArray String())
+  fullName.vb: CurlDotNet.Curl.ExecuteManyAsync(ParamArray String())
+  name.vb: ExecuteManyAsync(ParamArray String())
+- uid: CurlDotNet.Curl.Validate(System.String)
+  commentId: M:CurlDotNet.Curl.Validate(System.String)
+  id: Validate(System.String)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: Validate(string)
+  nameWithType: Curl.Validate(string)
+  fullName: CurlDotNet.Curl.Validate(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Validate
+    path: src/CurlDotNet/Curl.cs
+    startLine: 913
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Check if a curl command is valid without executing it.</b></p>
+
+
+    <p>Useful for validating user input or checking commands before running them.
+
+    This only checks syntax, not whether the URL actually exists.</p>
+
+
+    <p><b>Example:</b></p>
+
+
+    <pre><code class="lang-csharp">// Check if command is valid
+
+    var validation = Curl.Validate("curl -X POST https://api.example.com");
+
+
+    if (validation.IsValid)
+
+    {
+        Console.WriteLine("✅ Command is valid!");
+        // Safe to execute
+        var result = await Curl.Execute(command);
+    }
+
+    else
+
+    {
+        Console.WriteLine($"❌ Invalid command: {validation.ErrorMessage}");
+        Console.WriteLine($"Problem at position {validation.ErrorPosition}");
+    }</code></pre>
+
+
+    <p><b>Validate User Input:</b></p>
+
+
+    <pre><code class="lang-csharp">Console.Write("Enter curl command: ");
+
+    var userCommand = Console.ReadLine();
+
+
+    var validation = Curl.Validate(userCommand);
+
+    if (!validation.IsValid)
+
+    {
+        Console.WriteLine($"Error: {validation.ErrorMessage}");
+        if (validation.Suggestions.Any())
+        {
+            Console.WriteLine("Did you mean:");
+            foreach (var suggestion in validation.Suggestions)
+            {
+                Console.WriteLine($"  - {suggestion}");
+            }
+        }
+    }</code></pre>
+  example: []
+  syntax:
+    content: public static ValidationResult Validate(string command)
+    parameters:
+    - id: command
+      type: System.String
+      description: The curl command string to validate.
+    return:
+      type: CurlDotNet.Core.ValidationResult
+      description: >-
+        A <xref href="CurlDotNet.Core.ValidationResult" data-throw-if-not-resolved="false"></xref> containing:
+
+        <ul><li><b>IsValid</b> - true if command is valid</li><li><b>ErrorMessage</b> - Description of what's wrong (if invalid)</li><li><b>ErrorPosition</b> - Character position of error</li><li><b>Suggestions</b> - Possible fixes for common mistakes</li></ul>
+    content.vb: Public Shared Function Validate(command As String) As ValidationResult
+  overload: CurlDotNet.Curl.Validate*
+  nameWithType.vb: Curl.Validate(String)
+  fullName.vb: CurlDotNet.Curl.Validate(String)
+  name.vb: Validate(String)
+- uid: CurlDotNet.Curl.ToHttpClient(System.String)
+  commentId: M:CurlDotNet.Curl.ToHttpClient(System.String)
+  id: ToHttpClient(System.String)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: ToHttpClient(string)
+  nameWithType: Curl.ToHttpClient(string)
+  fullName: CurlDotNet.Curl.ToHttpClient(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ToHttpClient
+    path: src/CurlDotNet/Curl.cs
+    startLine: 956
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Convert curl command to C# HttpClient code - great for learning!</b></p>
+
+
+    <p>Shows you exactly how to write the same request using HttpClient.
+
+    Perfect for understanding what curl is doing or migrating to pure HttpClient.</p>
+
+
+    <p><b>Example:</b></p>
+
+
+    <pre><code class="lang-csharp">var curlCommand = @"
+        curl -X POST https://api.example.com/users \
+          -H 'Content-Type: application/json' \
+          -H 'Authorization: Bearer token123' \
+          -d '{""name"":""John"",""age"":30}'
+    ";
+
+
+    string code = Curl.ToHttpClient(curlCommand);
+
+    Console.WriteLine(code);
+
+
+    // Output:
+
+    // using var client = new HttpClient();
+
+    // var request = new HttpRequestMessage(HttpMethod.Post, "https://api.example.com/users");
+
+    // request.Headers.Add("Authorization", "Bearer token123");
+
+    // request.Content = new StringContent("{\"name\":\"John\",\"age\":30}",
+
+    //     Encoding.UTF8, "application/json");
+
+    // var response = await client.SendAsync(request);</code></pre>
+  remarks: >-
+    <p>Great for:</p>
+
+    <ul><li>Learning how HttpClient works</li><li>Migrating from CurlDotNet to pure HttpClient</li><li>Understanding what curl commands actually do</li><li>Code generation for your projects</li></ul>
+  example: []
+  syntax:
+    content: public static string ToHttpClient(string command)
+    parameters:
+    - id: command
+      type: System.String
+      description: The curl command to convert.
+    return:
+      type: System.String
+      description: C# code using HttpClient that does the same thing.
+    content.vb: Public Shared Function ToHttpClient(command As String) As String
+  overload: CurlDotNet.Curl.ToHttpClient*
+  nameWithType.vb: Curl.ToHttpClient(String)
+  fullName.vb: CurlDotNet.Curl.ToHttpClient(String)
+  name.vb: ToHttpClient(String)
+- uid: CurlDotNet.Curl.ToFetch(System.String)
+  commentId: M:CurlDotNet.Curl.ToFetch(System.String)
+  id: ToFetch(System.String)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: ToFetch(string)
+  nameWithType: Curl.ToFetch(string)
+  fullName: CurlDotNet.Curl.ToFetch(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ToFetch
+    path: src/CurlDotNet/Curl.cs
+    startLine: 987
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Convert curl command to JavaScript fetch() code.</b></p>
+
+
+    <p>Generates JavaScript code that does the same thing as your curl command.
+
+    Useful for web developers who need the same request in JavaScript.</p>
+
+
+    <p><b>Example:</b></p>
+
+
+    <pre><code class="lang-javascript">var curlCommand = "curl -X GET https://api.example.com/data -H 'Authorization: Bearer token'";
+
+
+    string jsCode = Curl.ToFetch(curlCommand);
+
+    Console.WriteLine(jsCode);
+
+
+    // Output:
+
+    // fetch('https://api.example.com/data', {
+
+    //     method: 'GET',
+
+    //     headers: {
+
+    //         'Authorization': 'Bearer token'
+
+    //     }
+
+    // })
+
+    // .then(response =&gt; response.json())
+
+    // .then(data =&gt; console.log(data));</code></pre>
+  example: []
+  syntax:
+    content: public static string ToFetch(string command)
+    parameters:
+    - id: command
+      type: System.String
+      description: The curl command to convert.
+    return:
+      type: System.String
+      description: JavaScript fetch() code that does the same thing.
+    content.vb: Public Shared Function ToFetch(command As String) As String
+  overload: CurlDotNet.Curl.ToFetch*
+  nameWithType.vb: Curl.ToFetch(String)
+  fullName.vb: CurlDotNet.Curl.ToFetch(String)
+  name.vb: ToFetch(String)
+- uid: CurlDotNet.Curl.ToPythonRequests(System.String)
+  commentId: M:CurlDotNet.Curl.ToPythonRequests(System.String)
+  id: ToPythonRequests(System.String)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: ToPythonRequests(string)
+  nameWithType: Curl.ToPythonRequests(string)
+  fullName: CurlDotNet.Curl.ToPythonRequests(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ToPythonRequests
+    path: src/CurlDotNet/Curl.cs
+    startLine: 1017
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Convert curl command to Python requests code.</b></p>
+
+
+    <p>Generates Python code using the popular 'requests' library.
+
+    Great for Python developers or data scientists.</p>
+
+
+    <p><b>Example:</b></p>
+
+
+    <pre><code class="lang-python">var curlCommand = "curl -u user:pass https://api.example.com/data";
+
+
+    string pythonCode = Curl.ToPythonRequests(curlCommand);
+
+    Console.WriteLine(pythonCode);
+
+
+    // Output:
+
+    // import requests
+
+    //
+
+    // response = requests.get(
+
+    //     'https://api.example.com/data',
+
+    //     auth=('user', 'pass')
+
+    // )
+
+    // print(response.json())</code></pre>
+  example: []
+  syntax:
+    content: public static string ToPythonRequests(string command)
+    parameters:
+    - id: command
+      type: System.String
+      description: The curl command to convert.
+    return:
+      type: System.String
+      description: Python code using requests library.
+    content.vb: Public Shared Function ToPythonRequests(command As String) As String
+  overload: CurlDotNet.Curl.ToPythonRequests*
+  nameWithType.vb: Curl.ToPythonRequests(String)
+  fullName.vb: CurlDotNet.Curl.ToPythonRequests(String)
+  name.vb: ToPythonRequests(String)
+- uid: CurlDotNet.Curl.ToPowershellCode(System.String)
+  commentId: M:CurlDotNet.Curl.ToPowershellCode(System.String)
+  id: ToPowershellCode(System.String)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: ToPowershellCode(string)
+  nameWithType: Curl.ToPowershellCode(string)
+  fullName: CurlDotNet.Curl.ToPowershellCode(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ToPowershellCode
+    path: src/CurlDotNet/Curl.cs
+    startLine: 1040
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>Convert a curl command to PowerShell code.</b></p>
+
+
+    <p>Generates PowerShell code using Invoke-RestMethod that performs the same request.</p>
+
+
+    <p><b>Example:</b></p>
+
+
+    <pre><code class="lang-powershell">var curlCommand = "curl -X POST https://api.example.com/data -d '{\"key\":\"value\"}'";
+
+
+    string psCode = Curl.ToPowershellCode(curlCommand);
+
+    Console.WriteLine(psCode);
+
+
+    // Output:
+
+    // Invoke-RestMethod -Uri "https://api.example.com/data" -Method POST -Body "{\"key\":\"value\"}" -ContentType "application/json"</code></pre>
+  example: []
+  syntax:
+    content: public static string ToPowershellCode(string command)
+    parameters:
+    - id: command
+      type: System.String
+      description: The curl command to convert.
+    return:
+      type: System.String
+      description: PowerShell code using Invoke-RestMethod.
+    content.vb: Public Shared Function ToPowershellCode(command As String) As String
+  overload: CurlDotNet.Curl.ToPowershellCode*
+  nameWithType.vb: Curl.ToPowershellCode(String)
+  fullName.vb: CurlDotNet.Curl.ToPowershellCode(String)
+  name.vb: ToPowershellCode(String)
+- uid: CurlDotNet.Curl.Execute(System.String)
+  commentId: M:CurlDotNet.Curl.Execute(System.String)
+  id: Execute(System.String)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: Execute(string)
+  nameWithType: Curl.Execute(string)
+  fullName: CurlDotNet.Curl.Execute(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl_SyncAsync.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Execute
+    path: src/CurlDotNet/Curl_SyncAsync.cs
+    startLine: 76
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>⚠️ SYNCHRONOUS - Execute curl command and WAIT for it to complete (BLOCKS thread).</b></p>
+
+
+    <p>This method BLOCKS your thread until the HTTP request completes. Your application
+
+    will FREEZE during this time. Only use when async is not possible.</p>
+
+
+    <p><b>When to use SYNC (this method):</b></p>
+
+    <ul><li>⚠️ Console applications with simple flow</li><li>⚠️ Legacy code that can't use async</li><li>⚠️ Unit tests (sometimes)</li><li>⚠️ Quick scripts or tools</li><li>❌ NEVER in UI applications (will freeze)</li><li>❌ NEVER in web applications (reduces throughput)</li></ul>
+
+
+    <p><b>Example - When sync is OK:</b></p>
+
+
+    <pre><code class="lang-csharp">// ✅ OK - Simple console app
+
+    static void Main()
+
+    {
+        var result = Curl.Execute("curl https://api.example.com");
+        Console.WriteLine(result.Body);
+    }
+
+
+    // ✅ OK - Unit test
+
+    [Test]
+
+    public void TestApi()
+
+    {
+        var result = Curl.Execute("curl https://api.example.com");
+        Assert.AreEqual(200, result.StatusCode);
+    }
+
+
+    // ❌ BAD - Will freeze UI!
+
+    private void Button_Click(object sender, EventArgs e)
+
+    {
+        var result = Curl.Execute("curl https://api.example.com"); // FREEZES UI!
+        textBox.Text = result.Body;
+    }</code></pre>
+
+
+    <p><b>⚠️ WARNING:</b> This blocks your thread. The application cannot do anything else
+
+    while waiting for the HTTP response. Use ExecuteAsync instead whenever possible!</p>
+  example: []
+  syntax:
+    content: public static CurlResult Execute(string command)
+    parameters:
+    - id: command
+      type: System.String
+      description: The curl command to execute
+    return:
+      type: CurlDotNet.Core.CurlResult
+      description: The result (blocks until complete)
+    content.vb: Public Shared Function Execute(command As String) As CurlResult
+  overload: CurlDotNet.Curl.Execute*
+  nameWithType.vb: Curl.Execute(String)
+  fullName.vb: CurlDotNet.Curl.Execute(String)
+  name.vb: Execute(String)
+- uid: CurlDotNet.Curl.Execute(System.String,System.Threading.CancellationToken)
+  commentId: M:CurlDotNet.Curl.Execute(System.String,System.Threading.CancellationToken)
+  id: Execute(System.String,System.Threading.CancellationToken)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: Execute(string, CancellationToken)
+  nameWithType: Curl.Execute(string, CancellationToken)
+  fullName: CurlDotNet.Curl.Execute(string, System.Threading.CancellationToken)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl_SyncAsync.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Execute
+    path: src/CurlDotNet/Curl_SyncAsync.cs
+    startLine: 93
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>⚠️ SYNCHRONOUS with cancellation - Blocks thread but can be cancelled.</b></p>
+
+
+    <p>Still BLOCKS your thread, but can be cancelled. Prefer ExecuteAsync with cancellation.</p>
+
+
+    <pre><code class="lang-csharp">// Blocks thread but can timeout
+
+    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+    var result = Curl.Execute("curl https://api.example.com", cts.Token);</code></pre>
+  example: []
+  syntax:
+    content: public static CurlResult Execute(string command, CancellationToken cancellationToken)
+    parameters:
+    - id: command
+      type: System.String
+    - id: cancellationToken
+      type: System.Threading.CancellationToken
+    return:
+      type: CurlDotNet.Core.CurlResult
+    content.vb: Public Shared Function Execute(command As String, cancellationToken As CancellationToken) As CurlResult
+  overload: CurlDotNet.Curl.Execute*
+  nameWithType.vb: Curl.Execute(String, CancellationToken)
+  fullName.vb: CurlDotNet.Curl.Execute(String, System.Threading.CancellationToken)
+  name.vb: Execute(String, CancellationToken)
+- uid: CurlDotNet.Curl.Execute(System.String,CurlDotNet.Core.CurlSettings)
+  commentId: M:CurlDotNet.Curl.Execute(System.String,CurlDotNet.Core.CurlSettings)
+  id: Execute(System.String,CurlDotNet.Core.CurlSettings)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: Execute(string, CurlSettings)
+  nameWithType: Curl.Execute(string, CurlSettings)
+  fullName: CurlDotNet.Curl.Execute(string, CurlDotNet.Core.CurlSettings)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl_SyncAsync.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Execute
+    path: src/CurlDotNet/Curl_SyncAsync.cs
+    startLine: 102
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: <p><b>⚠️ SYNCHRONOUS with settings - Blocks thread with advanced options.</b></p>
+  example: []
+  syntax:
+    content: public static CurlResult Execute(string command, CurlSettings settings)
+    parameters:
+    - id: command
+      type: System.String
+    - id: settings
+      type: CurlDotNet.Core.CurlSettings
+    return:
+      type: CurlDotNet.Core.CurlResult
+    content.vb: Public Shared Function Execute(command As String, settings As CurlSettings) As CurlResult
+  overload: CurlDotNet.Curl.Execute*
+  nameWithType.vb: Curl.Execute(String, CurlSettings)
+  fullName.vb: CurlDotNet.Curl.Execute(String, CurlDotNet.Core.CurlSettings)
+  name.vb: Execute(String, CurlSettings)
+- uid: CurlDotNet.Curl.Get(System.String)
+  commentId: M:CurlDotNet.Curl.Get(System.String)
+  id: Get(System.String)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: Get(string)
+  nameWithType: Curl.Get(string)
+  fullName: CurlDotNet.Curl.Get(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl_SyncAsync.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Get
+    path: src/CurlDotNet/Curl_SyncAsync.cs
+    startLine: 118
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: >-
+    <p><b>⚠️ SYNCHRONOUS GET request (blocks thread).</b></p>
+
+
+    <pre><code class="lang-csharp">var result = Curl.Get("https://api.example.com"); // Blocks!</code></pre>
+  example: []
+  syntax:
+    content: public static CurlResult Get(string url)
+    parameters:
+    - id: url
+      type: System.String
+    return:
+      type: CurlDotNet.Core.CurlResult
+    content.vb: Public Shared Function [Get](url As String) As CurlResult
+  overload: CurlDotNet.Curl.Get*
+  nameWithType.vb: Curl.Get(String)
+  fullName.vb: CurlDotNet.Curl.Get(String)
+  name.vb: Get(String)
+- uid: CurlDotNet.Curl.Post(System.String,System.String)
+  commentId: M:CurlDotNet.Curl.Post(System.String,System.String)
+  id: Post(System.String,System.String)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: Post(string, string)
+  nameWithType: Curl.Post(string, string)
+  fullName: CurlDotNet.Curl.Post(string, string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl_SyncAsync.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Post
+    path: src/CurlDotNet/Curl_SyncAsync.cs
+    startLine: 126
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: <p><b>⚠️ SYNCHRONOUS POST request (blocks thread).</b></p>
+  example: []
+  syntax:
+    content: public static CurlResult Post(string url, string data)
+    parameters:
+    - id: url
+      type: System.String
+    - id: data
+      type: System.String
+    return:
+      type: CurlDotNet.Core.CurlResult
+    content.vb: Public Shared Function Post(url As String, data As String) As CurlResult
+  overload: CurlDotNet.Curl.Post*
+  nameWithType.vb: Curl.Post(String, String)
+  fullName.vb: CurlDotNet.Curl.Post(String, String)
+  name.vb: Post(String, String)
+- uid: CurlDotNet.Curl.PostJson(System.String,System.Object)
+  commentId: M:CurlDotNet.Curl.PostJson(System.String,System.Object)
+  id: PostJson(System.String,System.Object)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: PostJson(string, object)
+  nameWithType: Curl.PostJson(string, object)
+  fullName: CurlDotNet.Curl.PostJson(string, object)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl_SyncAsync.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: PostJson
+    path: src/CurlDotNet/Curl_SyncAsync.cs
+    startLine: 134
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: <p><b>⚠️ SYNCHRONOUS POST with JSON (blocks thread).</b></p>
+  example: []
+  syntax:
+    content: public static CurlResult PostJson(string url, object data)
+    parameters:
+    - id: url
+      type: System.String
+    - id: data
+      type: System.Object
+    return:
+      type: CurlDotNet.Core.CurlResult
+    content.vb: Public Shared Function PostJson(url As String, data As Object) As CurlResult
+  overload: CurlDotNet.Curl.PostJson*
+  nameWithType.vb: Curl.PostJson(String, Object)
+  fullName.vb: CurlDotNet.Curl.PostJson(String, Object)
+  name.vb: PostJson(String, Object)
+- uid: CurlDotNet.Curl.Download(System.String,System.String)
+  commentId: M:CurlDotNet.Curl.Download(System.String,System.String)
+  id: Download(System.String,System.String)
+  parent: CurlDotNet.Curl
+  langs:
+  - csharp
+  - vb
+  name: Download(string, string)
+  nameWithType: Curl.Download(string, string)
+  fullName: CurlDotNet.Curl.Download(string, string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Curl_SyncAsync.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Download
+    path: src/CurlDotNet/Curl_SyncAsync.cs
+    startLine: 143
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet
+  summary: <p><b>⚠️ SYNCHRONOUS file download (blocks thread).</b></p>
+  example: []
+  syntax:
+    content: public static CurlResult Download(string url, string outputPath)
+    parameters:
+    - id: url
+      type: System.String
+    - id: outputPath
+      type: System.String
+    return:
+      type: CurlDotNet.Core.CurlResult
+    content.vb: Public Shared Function Download(url As String, outputPath As String) As CurlResult
+  overload: CurlDotNet.Curl.Download*
+  nameWithType.vb: Curl.Download(String, String)
+  fullName.vb: CurlDotNet.Curl.Download(String, String)
+  name.vb: Download(String, String)
+references:
+- uid: CurlDotNet
+  commentId: N:CurlDotNet
+  href: CurlDotNet.html
+  name: CurlDotNet
+  nameWithType: CurlDotNet
+  fullName: CurlDotNet
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: CurlDotNet.Curl.DefaultMaxTimeSeconds*
+  commentId: Overload:CurlDotNet.Curl.DefaultMaxTimeSeconds
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_DefaultMaxTimeSeconds
+  name: DefaultMaxTimeSeconds
+  nameWithType: Curl.DefaultMaxTimeSeconds
+  fullName: CurlDotNet.Curl.DefaultMaxTimeSeconds
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: CurlDotNet.Curl.DefaultConnectTimeoutSeconds*
+  commentId: Overload:CurlDotNet.Curl.DefaultConnectTimeoutSeconds
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_DefaultConnectTimeoutSeconds
+  name: DefaultConnectTimeoutSeconds
+  nameWithType: Curl.DefaultConnectTimeoutSeconds
+  fullName: CurlDotNet.Curl.DefaultConnectTimeoutSeconds
+- uid: CurlDotNet.Curl.DefaultFollowRedirects*
+  commentId: Overload:CurlDotNet.Curl.DefaultFollowRedirects
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_DefaultFollowRedirects
+  name: DefaultFollowRedirects
+  nameWithType: Curl.DefaultFollowRedirects
+  fullName: CurlDotNet.Curl.DefaultFollowRedirects
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: CurlDotNet.Curl.DefaultInsecure*
+  commentId: Overload:CurlDotNet.Curl.DefaultInsecure
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_DefaultInsecure
+  name: DefaultInsecure
+  nameWithType: Curl.DefaultInsecure
+  fullName: CurlDotNet.Curl.DefaultInsecure
+- uid: CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)
+  commentId: M:CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)
+  isExternal: true
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_ExecuteAsync_System_String_System_Threading_CancellationToken_
+  name: ExecuteAsync(string, CancellationToken)
+  nameWithType: Curl.ExecuteAsync(string, CancellationToken)
+  fullName: CurlDotNet.Curl.ExecuteAsync(string, System.Threading.CancellationToken)
+  nameWithType.vb: Curl.ExecuteAsync(String, CancellationToken)
+  fullName.vb: CurlDotNet.Curl.ExecuteAsync(String, System.Threading.CancellationToken)
+  name.vb: ExecuteAsync(String, CancellationToken)
+  spec.csharp:
+  - uid: CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)
+    name: ExecuteAsync
+    href: CurlDotNet.Curl.html#CurlDotNet_Curl_ExecuteAsync_System_String_System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)
+    name: ExecuteAsync
+    href: CurlDotNet.Curl.html#CurlDotNet_Curl_ExecuteAsync_System_String_System_Threading_CancellationToken_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Threading.CancellationToken
+    name: CancellationToken
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  - name: )
+- uid: CurlDotNet.Curl.ExecuteAsync(System.String[])
+  commentId: M:CurlDotNet.Curl.ExecuteAsync(System.String[])
+  isExternal: true
+- uid: CurlDotNet.Core.CurlResult
+  commentId: T:CurlDotNet.Core.CurlResult
+  parent: CurlDotNet.Core
+  href: CurlDotNet.Core.CurlResult.html
+  name: CurlResult
+  nameWithType: CurlResult
+  fullName: CurlDotNet.Core.CurlResult
+- uid: CurlDotNet.Core.CurlRequestBuilder
+  commentId: T:CurlDotNet.Core.CurlRequestBuilder
+  parent: CurlDotNet.Core
+  href: CurlDotNet.Core.CurlRequestBuilder.html
+  name: CurlRequestBuilder
+  nameWithType: CurlRequestBuilder
+  fullName: CurlDotNet.Core.CurlRequestBuilder
+- uid: CurlDotNet.Curl.DefaultMaxTimeSeconds
+  commentId: P:CurlDotNet.Curl.DefaultMaxTimeSeconds
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_DefaultMaxTimeSeconds
+  name: DefaultMaxTimeSeconds
+  nameWithType: Curl.DefaultMaxTimeSeconds
+  fullName: CurlDotNet.Curl.DefaultMaxTimeSeconds
+- uid: CurlDotNet.Curl.DefaultFollowRedirects
+  commentId: P:CurlDotNet.Curl.DefaultFollowRedirects
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_DefaultFollowRedirects
+  name: DefaultFollowRedirects
+  nameWithType: Curl.DefaultFollowRedirects
+  fullName: CurlDotNet.Curl.DefaultFollowRedirects
+- uid: System.Threading.CancellationToken
+  commentId: T:System.Threading.CancellationToken
+  parent: System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
+  name: CancellationToken
+  nameWithType: CancellationToken
+  fullName: System.Threading.CancellationToken
+- uid: CurlDotNet.Exceptions.CurlSslException.CertificateError
+  commentId: P:CurlDotNet.Exceptions.CurlSslException.CertificateError
+  parent: CurlDotNet.Exceptions.CurlSslException
+  href: CurlDotNet.Exceptions.CurlSslException.html#CurlDotNet_Exceptions_CurlSslException_CertificateError
+  name: CertificateError
+  nameWithType: CurlSslException.CertificateError
+  fullName: CurlDotNet.Exceptions.CurlSslException.CertificateError
+- uid: CurlDotNet.Exceptions.CurlException.CurlErrorCode
+  commentId: P:CurlDotNet.Exceptions.CurlException.CurlErrorCode
+  parent: CurlDotNet.Exceptions.CurlException
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_CurlErrorCode
+  name: CurlErrorCode
+  nameWithType: CurlException.CurlErrorCode
+  fullName: CurlDotNet.Exceptions.CurlException.CurlErrorCode
+- uid: CurlDotNet.Exceptions.CurlTimeoutException
+  commentId: T:CurlDotNet.Exceptions.CurlTimeoutException
+  parent: CurlDotNet.Exceptions
+  href: CurlDotNet.Exceptions.CurlTimeoutException.html
+  name: CurlTimeoutException
+  nameWithType: CurlTimeoutException
+  fullName: CurlDotNet.Exceptions.CurlTimeoutException
+- uid: CurlDotNet.Exceptions.CurlSslException
+  commentId: T:CurlDotNet.Exceptions.CurlSslException
+  parent: CurlDotNet.Exceptions
+  href: CurlDotNet.Exceptions.CurlSslException.html
+  name: CurlSslException
+  nameWithType: CurlSslException
+  fullName: CurlDotNet.Exceptions.CurlSslException
+- uid: CurlDotNet.Core.CurlResult.StatusCode
+  commentId: P:CurlDotNet.Core.CurlResult.StatusCode
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_StatusCode
+  name: StatusCode
+  nameWithType: CurlResult.StatusCode
+  fullName: CurlDotNet.Core.CurlResult.StatusCode
+- uid: CurlDotNet.Core.CurlResult.Body
+  commentId: P:CurlDotNet.Core.CurlResult.Body
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Body
+  name: Body
+  nameWithType: CurlResult.Body
+  fullName: CurlDotNet.Core.CurlResult.Body
+- uid: CurlDotNet.Core.CurlResult.Headers
+  commentId: P:CurlDotNet.Core.CurlResult.Headers
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Headers
+  name: Headers
+  nameWithType: CurlResult.Headers
+  fullName: CurlDotNet.Core.CurlResult.Headers
+- uid: System.ArgumentNullException
+  commentId: T:System.ArgumentNullException
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.argumentnullexception
+  name: ArgumentNullException
+  nameWithType: ArgumentNullException
+  fullName: System.ArgumentNullException
+- uid: CurlDotNet.Exceptions.CurlParsingException
+  commentId: T:CurlDotNet.Exceptions.CurlParsingException
+  href: CurlDotNet.Exceptions.CurlParsingException.html
+  name: CurlParsingException
+  nameWithType: CurlParsingException
+  fullName: CurlDotNet.Exceptions.CurlParsingException
+- uid: CurlDotNet.Exceptions.CurlCouldntResolveHostException
+  commentId: T:CurlDotNet.Exceptions.CurlCouldntResolveHostException
+  href: CurlDotNet.Exceptions.CurlCouldntResolveHostException.html
+  name: CurlCouldntResolveHostException
+  nameWithType: CurlCouldntResolveHostException
+  fullName: CurlDotNet.Exceptions.CurlCouldntResolveHostException
+- uid: CurlDotNet.Exceptions.CurlException
+  commentId: T:CurlDotNet.Exceptions.CurlException
+  parent: CurlDotNet.Exceptions
+  href: CurlDotNet.Exceptions.CurlException.html
+  name: CurlException
+  nameWithType: CurlException
+  fullName: CurlDotNet.Exceptions.CurlException
+- uid: CurlDotNet.Curl.ExecuteAsync*
+  commentId: Overload:CurlDotNet.Curl.ExecuteAsync
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_ExecuteAsync_System_String_
+  name: ExecuteAsync
+  nameWithType: Curl.ExecuteAsync
+  fullName: CurlDotNet.Curl.ExecuteAsync
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+  commentId: T:System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+  parent: System.Threading.Tasks
+  definition: System.Threading.Tasks.Task`1
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<CurlResult>
+  nameWithType: Task<CurlResult>
+  fullName: System.Threading.Tasks.Task<CurlDotNet.Core.CurlResult>
+  nameWithType.vb: Task(Of CurlResult)
+  fullName.vb: System.Threading.Tasks.Task(Of CurlDotNet.Core.CurlResult)
+  name.vb: Task(Of CurlResult)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: )
+- uid: CurlDotNet.Core
+  commentId: N:CurlDotNet.Core
+  href: CurlDotNet.html
+  name: CurlDotNet.Core
+  nameWithType: CurlDotNet.Core
+  fullName: CurlDotNet.Core
+  spec.csharp:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Core
+    name: Core
+    href: CurlDotNet.Core.html
+  spec.vb:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Core
+    name: Core
+    href: CurlDotNet.Core.html
+- uid: System.Threading
+  commentId: N:System.Threading
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading
+  nameWithType: System.Threading
+  fullName: System.Threading
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+- uid: CurlDotNet.Exceptions
+  commentId: N:CurlDotNet.Exceptions
+  href: CurlDotNet.html
+  name: CurlDotNet.Exceptions
+  nameWithType: CurlDotNet.Exceptions
+  fullName: CurlDotNet.Exceptions
+  spec.csharp:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Exceptions
+    name: Exceptions
+    href: CurlDotNet.Exceptions.html
+  spec.vb:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Exceptions
+    name: Exceptions
+    href: CurlDotNet.Exceptions.html
+- uid: System.Threading.Tasks.Task`1
+  commentId: T:System.Threading.Tasks.Task`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<TResult>
+  nameWithType: Task<TResult>
+  fullName: System.Threading.Tasks.Task<TResult>
+  nameWithType.vb: Task(Of TResult)
+  fullName.vb: System.Threading.Tasks.Task(Of TResult)
+  name.vb: Task(Of TResult)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: TResult
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TResult
+  - name: )
+- uid: System.Threading.Tasks
+  commentId: N:System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading.Tasks
+  nameWithType: System.Threading.Tasks
+  fullName: System.Threading.Tasks
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+- uid: CurlDotNet.Curl.Execute(System.String)
+  commentId: M:CurlDotNet.Curl.Execute(System.String)
+  isExternal: true
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_Execute_System_String_
+  name: Execute(string)
+  nameWithType: Curl.Execute(string)
+  fullName: CurlDotNet.Curl.Execute(string)
+  nameWithType.vb: Curl.Execute(String)
+  fullName.vb: CurlDotNet.Curl.Execute(String)
+  name.vb: Execute(String)
+  spec.csharp:
+  - uid: CurlDotNet.Curl.Execute(System.String)
+    name: Execute
+    href: CurlDotNet.Curl.html#CurlDotNet_Curl_Execute_System_String_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Curl.Execute(System.String)
+    name: Execute
+    href: CurlDotNet.Curl.html#CurlDotNet_Curl_Execute_System_String_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: System.OperationCanceledException
+  commentId: T:System.OperationCanceledException
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.operationcanceledexception
+  name: OperationCanceledException
+  nameWithType: OperationCanceledException
+  fullName: System.OperationCanceledException
+- uid: CurlDotNet.Core.CurlSettings
+  commentId: T:CurlDotNet.Core.CurlSettings
+  parent: CurlDotNet.Core
+  href: CurlDotNet.Core.CurlSettings.html
+  name: CurlSettings
+  nameWithType: CurlSettings
+  fullName: CurlDotNet.Core.CurlSettings
+- uid: CurlDotNet.Curl.GetAsync*
+  commentId: Overload:CurlDotNet.Curl.GetAsync
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_GetAsync_System_String_
+  name: GetAsync
+  nameWithType: Curl.GetAsync
+  fullName: CurlDotNet.Curl.GetAsync
+- uid: CurlDotNet.Curl.PostJson(System.String,System.Object)
+  commentId: M:CurlDotNet.Curl.PostJson(System.String,System.Object)
+  isExternal: true
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_PostJson_System_String_System_Object_
+  name: PostJson(string, object)
+  nameWithType: Curl.PostJson(string, object)
+  fullName: CurlDotNet.Curl.PostJson(string, object)
+  nameWithType.vb: Curl.PostJson(String, Object)
+  fullName.vb: CurlDotNet.Curl.PostJson(String, Object)
+  name.vb: PostJson(String, Object)
+  spec.csharp:
+  - uid: CurlDotNet.Curl.PostJson(System.String,System.Object)
+    name: PostJson
+    href: CurlDotNet.Curl.html#CurlDotNet_Curl_PostJson_System_String_System_Object_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Curl.PostJson(System.String,System.Object)
+    name: PostJson
+    href: CurlDotNet.Curl.html#CurlDotNet_Curl_PostJson_System_String_System_Object_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: CurlDotNet.Curl.PostAsync*
+  commentId: Overload:CurlDotNet.Curl.PostAsync
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_PostAsync_System_String_System_String_
+  name: PostAsync
+  nameWithType: Curl.PostAsync
+  fullName: CurlDotNet.Curl.PostAsync
+- uid: CurlDotNet.Curl.PostJsonAsync*
+  commentId: Overload:CurlDotNet.Curl.PostJsonAsync
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_PostJsonAsync_System_String_System_Object_
+  name: PostJsonAsync
+  nameWithType: Curl.PostJsonAsync
+  fullName: CurlDotNet.Curl.PostJsonAsync
+- uid: CurlDotNet.Curl.Execute(System.String,CurlDotNet.Core.CurlSettings)
+  commentId: M:CurlDotNet.Curl.Execute(System.String,CurlDotNet.Core.CurlSettings)
+  isExternal: true
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_Execute_System_String_CurlDotNet_Core_CurlSettings_
+  name: Execute(string, CurlSettings)
+  nameWithType: Curl.Execute(string, CurlSettings)
+  fullName: CurlDotNet.Curl.Execute(string, CurlDotNet.Core.CurlSettings)
+  nameWithType.vb: Curl.Execute(String, CurlSettings)
+  fullName.vb: CurlDotNet.Curl.Execute(String, CurlDotNet.Core.CurlSettings)
+  name.vb: Execute(String, CurlSettings)
+  spec.csharp:
+  - uid: CurlDotNet.Curl.Execute(System.String,CurlDotNet.Core.CurlSettings)
+    name: Execute
+    href: CurlDotNet.Curl.html#CurlDotNet_Curl_Execute_System_String_CurlDotNet_Core_CurlSettings_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: CurlDotNet.Core.CurlSettings
+    name: CurlSettings
+    href: CurlDotNet.Core.CurlSettings.html
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Curl.Execute(System.String,CurlDotNet.Core.CurlSettings)
+    name: Execute
+    href: CurlDotNet.Curl.html#CurlDotNet_Curl_Execute_System_String_CurlDotNet_Core_CurlSettings_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: CurlDotNet.Core.CurlSettings
+    name: CurlSettings
+    href: CurlDotNet.Core.CurlSettings.html
+  - name: )
+- uid: CurlDotNet.Curl.DownloadAsync*
+  commentId: Overload:CurlDotNet.Curl.DownloadAsync
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_DownloadAsync_System_String_System_String_
+  name: DownloadAsync
+  nameWithType: Curl.DownloadAsync
+  fullName: CurlDotNet.Curl.DownloadAsync
+- uid: CurlDotNet.Curl.ExecuteManyAsync*
+  commentId: Overload:CurlDotNet.Curl.ExecuteManyAsync
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_ExecuteManyAsync_System_String___
+  name: ExecuteManyAsync
+  nameWithType: Curl.ExecuteManyAsync
+  fullName: CurlDotNet.Curl.ExecuteManyAsync
+- uid: System.String[]
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string[]
+  nameWithType: string[]
+  fullName: string[]
+  nameWithType.vb: String()
+  fullName.vb: String()
+  name.vb: String()
+  spec.csharp:
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: '['
+  - name: ']'
+  spec.vb:
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: (
+  - name: )
+- uid: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult[]}
+  commentId: T:System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult[]}
+  parent: System.Threading.Tasks
+  definition: System.Threading.Tasks.Task`1
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<CurlResult[]>
+  nameWithType: Task<CurlResult[]>
+  fullName: System.Threading.Tasks.Task<CurlDotNet.Core.CurlResult[]>
+  nameWithType.vb: Task(Of CurlResult())
+  fullName.vb: System.Threading.Tasks.Task(Of CurlDotNet.Core.CurlResult())
+  name.vb: Task(Of CurlResult())
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: '['
+  - name: ']'
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: (
+  - name: )
+  - name: )
+- uid: CurlDotNet.Core.ValidationResult
+  commentId: T:CurlDotNet.Core.ValidationResult
+  parent: CurlDotNet.Core
+  href: CurlDotNet.Core.ValidationResult.html
+  name: ValidationResult
+  nameWithType: ValidationResult
+  fullName: CurlDotNet.Core.ValidationResult
+- uid: CurlDotNet.Curl.Validate*
+  commentId: Overload:CurlDotNet.Curl.Validate
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_Validate_System_String_
+  name: Validate
+  nameWithType: Curl.Validate
+  fullName: CurlDotNet.Curl.Validate
+- uid: CurlDotNet.Curl.ToHttpClient*
+  commentId: Overload:CurlDotNet.Curl.ToHttpClient
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_ToHttpClient_System_String_
+  name: ToHttpClient
+  nameWithType: Curl.ToHttpClient
+  fullName: CurlDotNet.Curl.ToHttpClient
+- uid: CurlDotNet.Curl.ToFetch*
+  commentId: Overload:CurlDotNet.Curl.ToFetch
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_ToFetch_System_String_
+  name: ToFetch
+  nameWithType: Curl.ToFetch
+  fullName: CurlDotNet.Curl.ToFetch
+- uid: CurlDotNet.Curl.ToPythonRequests*
+  commentId: Overload:CurlDotNet.Curl.ToPythonRequests
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_ToPythonRequests_System_String_
+  name: ToPythonRequests
+  nameWithType: Curl.ToPythonRequests
+  fullName: CurlDotNet.Curl.ToPythonRequests
+- uid: CurlDotNet.Curl.ToPowershellCode*
+  commentId: Overload:CurlDotNet.Curl.ToPowershellCode
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_ToPowershellCode_System_String_
+  name: ToPowershellCode
+  nameWithType: Curl.ToPowershellCode
+  fullName: CurlDotNet.Curl.ToPowershellCode
+- uid: CurlDotNet.Curl.Execute*
+  commentId: Overload:CurlDotNet.Curl.Execute
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_Execute_System_String_
+  name: Execute
+  nameWithType: Curl.Execute
+  fullName: CurlDotNet.Curl.Execute
+- uid: CurlDotNet.Curl.Get*
+  commentId: Overload:CurlDotNet.Curl.Get
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_Get_System_String_
+  name: Get
+  nameWithType: Curl.Get
+  fullName: CurlDotNet.Curl.Get
+- uid: CurlDotNet.Curl.Post*
+  commentId: Overload:CurlDotNet.Curl.Post
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_Post_System_String_System_String_
+  name: Post
+  nameWithType: Curl.Post
+  fullName: CurlDotNet.Curl.Post
+- uid: CurlDotNet.Curl.PostJson*
+  commentId: Overload:CurlDotNet.Curl.PostJson
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_PostJson_System_String_System_Object_
+  name: PostJson
+  nameWithType: Curl.PostJson
+  fullName: CurlDotNet.Curl.PostJson
+- uid: CurlDotNet.Curl.Download*
+  commentId: Overload:CurlDotNet.Curl.Download
+  href: CurlDotNet.Curl.html#CurlDotNet_Curl_Download_System_String_System_String_
+  name: Download
+  nameWithType: Curl.Download
+  fullName: CurlDotNet.Curl.Download

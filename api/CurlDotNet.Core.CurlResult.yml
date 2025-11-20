@@ -1,0 +1,4044 @@
+### YamlMime:ManagedReference
+items:
+- uid: CurlDotNet.Core.CurlResult
+  commentId: T:CurlDotNet.Core.CurlResult
+  id: CurlResult
+  parent: CurlDotNet.Core
+  children:
+  - CurlDotNet.Core.CurlResult.AppendToFile(System.String)
+  - CurlDotNet.Core.CurlResult.AsJsonDynamic
+  - CurlDotNet.Core.CurlResult.AsJson``1
+  - CurlDotNet.Core.CurlResult.BinaryData
+  - CurlDotNet.Core.CurlResult.Body
+  - CurlDotNet.Core.CurlResult.Command
+  - CurlDotNet.Core.CurlResult.EnsureContains(System.String)
+  - CurlDotNet.Core.CurlResult.EnsureStatus(System.Int32)
+  - CurlDotNet.Core.CurlResult.EnsureSuccess
+  - CurlDotNet.Core.CurlResult.Exception
+  - CurlDotNet.Core.CurlResult.FilterLines(System.Func{System.String,System.Boolean})
+  - CurlDotNet.Core.CurlResult.GetHeader(System.String)
+  - CurlDotNet.Core.CurlResult.HasHeader(System.String)
+  - CurlDotNet.Core.CurlResult.Headers
+  - CurlDotNet.Core.CurlResult.IsBinary
+  - CurlDotNet.Core.CurlResult.IsSuccess
+  - CurlDotNet.Core.CurlResult.OutputFiles
+  - CurlDotNet.Core.CurlResult.ParseJson``1
+  - CurlDotNet.Core.CurlResult.Print
+  - CurlDotNet.Core.CurlResult.PrintBody
+  - CurlDotNet.Core.CurlResult.PrintVerbose
+  - CurlDotNet.Core.CurlResult.Retry
+  - CurlDotNet.Core.CurlResult.RetryWith(System.Action{CurlDotNet.Core.CurlSettings})
+  - CurlDotNet.Core.CurlResult.SaveAsCsv(System.String)
+  - CurlDotNet.Core.CurlResult.SaveAsJson(System.String,System.Boolean)
+  - CurlDotNet.Core.CurlResult.SaveToFile(System.String)
+  - CurlDotNet.Core.CurlResult.SaveToFileAsync(System.String)
+  - CurlDotNet.Core.CurlResult.StatusCode
+  - CurlDotNet.Core.CurlResult.Timings
+  - CurlDotNet.Core.CurlResult.ToStream
+  - CurlDotNet.Core.CurlResult.Transform``1(System.Func{CurlDotNet.Core.CurlResult,``0})
+  langs:
+  - csharp
+  - vb
+  name: CurlResult
+  nameWithType: CurlResult
+  fullName: CurlDotNet.Core.CurlResult
+  type: Class
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: CurlResult
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 65
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>🎯 The response from your curl command - everything you need is here!</b></p>
+
+
+    <p>After running any curl command, you get this object back. It has the status code,
+
+    response body, headers, and helpful methods to work with the data.</p>
+
+
+    <p><b>The API is designed to be intuitive - just type what you want to do:</b></p>
+
+    <ul><li>Want the body? → <code>result.Body</code></li><li>Want JSON? → <code>result.ParseJson&lt;T&gt;()</code> or <code>result.AsJson&lt;T&gt;()</code></li><li>Want to save? → <code>result.SaveToFile("path")</code></li><li>Want headers? → <code>result.Headers["Content-Type"]</code></li><li>Check success? → <code>result.IsSuccess</code> or <code>result.EnsureSuccess()</code></li></ul>
+
+
+    <p><b>Quick Example:</b></p>
+
+
+    <pre><code class="lang-csharp">var result = await Curl.Execute("curl https://api.github.com/users/octocat");
+
+
+    if (result.IsSuccess)  // Was it 200-299?
+
+    {
+        var user = result.ParseJson&lt;User&gt;();  // Parse JSON to your type
+        result.SaveToFile("user.json");       // Save for later
+    }</code></pre>
+  remarks: >-
+    <p><b>Design Philosophy:</b> Every method name tells you exactly what it does.
+
+    No surprises. If you guess a method name, it probably exists and does what you expect.</p>
+
+
+    <p><b>Fluent API:</b> Most methods return 'this' so you can chain operations:</p>
+
+
+    <pre><code class="lang-csharp">result
+        .EnsureSuccess()           // Throw if not 200-299
+        .SaveToFile("backup.json") // Save a copy
+        .ParseJson&lt;Data&gt;()        // Parse and return data</code></pre>
+  example: []
+  syntax:
+    content: public class CurlResult
+    content.vb: Public Class CurlResult
+  inheritance:
+  - System.Object
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+  extensionMethods:
+  - CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode
+  - CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.GetHeader(System.String)
+  - CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.HasContentType(System.String)
+  - CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.ParseJson``1(System.Text.Json.JsonSerializerOptions)
+  - CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.SaveToFile(System.String)
+  - CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.ToSimple
+  - CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.TryParseJson``1({T}@,System.Text.Json.JsonSerializerOptions)
+- uid: CurlDotNet.Core.CurlResult.StatusCode
+  commentId: P:CurlDotNet.Core.CurlResult.StatusCode
+  id: StatusCode
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: StatusCode
+  nameWithType: CurlResult.StatusCode
+  fullName: CurlDotNet.Core.CurlResult.StatusCode
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: StatusCode
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 97
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>The HTTP status code - tells you what happened.</b></p>
+
+
+    <p>Common codes you'll see:</p>
+
+
+    <pre><code class="lang-csharp">200 = OK, it worked!
+
+    201 = Created something new
+
+    204 = Success, but no content returned
+
+    400 = Bad request (you sent something wrong)
+
+    401 = Unauthorized (need to login)
+
+    403 = Forbidden (not allowed)
+
+    404 = Not found
+
+    429 = Too many requests (slow down!)
+
+    500 = Server error (their fault, not yours)
+
+    503 = Service unavailable (try again later)</code></pre>
+
+
+    <p><b>Example - Handle different statuses:</b></p>
+
+
+    <pre><code class="lang-csharp">switch (result.StatusCode)
+
+    {
+        case 200: ProcessData(result.Body); break;
+        case 404: Console.WriteLine("Not found"); break;
+        case 401: RedirectToLogin(); break;
+        case &gt;= 500: Console.WriteLine("Server error, retry later"); break;
+    }</code></pre>
+  example: []
+  syntax:
+    content: public int StatusCode { get; set; }
+    parameters: []
+    return:
+      type: System.Int32
+    content.vb: Public Property StatusCode As Integer
+  overload: CurlDotNet.Core.CurlResult.StatusCode*
+- uid: CurlDotNet.Core.CurlResult.Body
+  commentId: P:CurlDotNet.Core.CurlResult.Body
+  id: Body
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: Body
+  nameWithType: CurlResult.Body
+  fullName: CurlDotNet.Core.CurlResult.Body
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Body
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 125
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>The response body as a string - this is your data!</b></p>
+
+
+    <p>Contains whatever the server sent back: JSON, HTML, XML, plain text, etc.</p>
+
+
+    <p><b>Common patterns:</b></p>
+
+
+    <pre><code class="lang-csharp">// JSON API response (most common)
+
+    if (result.Body.StartsWith("{"))
+
+    {
+        var data = result.ParseJson&lt;MyClass&gt;();
+    }
+
+
+    // HTML webpage
+
+    if (result.Body.Contains("&lt;html"))
+
+    {
+        result.SaveToFile("page.html");
+    }
+
+
+    // Plain text
+
+    Console.WriteLine(result.Body);</code></pre>
+
+
+    <p><b>Note:</b> For binary data (images, PDFs), use <xref href="CurlDotNet.Core.CurlResult.BinaryData" data-throw-if-not-resolved="false"></xref> instead.</p>
+
+    <p><b>Note:</b> Can be null for 204 No Content or binary responses.</p>
+  example: []
+  syntax:
+    content: public string Body { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property Body As String
+  overload: CurlDotNet.Core.CurlResult.Body*
+- uid: CurlDotNet.Core.CurlResult.Headers
+  commentId: P:CurlDotNet.Core.CurlResult.Headers
+  id: Headers
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: Headers
+  nameWithType: CurlResult.Headers
+  fullName: CurlDotNet.Core.CurlResult.Headers
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Headers
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 163
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>All HTTP headers from the response - contains metadata about the response.</b></p>
+
+
+    <p>Headers tell you things like content type, cache rules, rate limits, etc.
+
+    Access them like a dictionary (case-insensitive keys).</p>
+
+
+    <p><b>Get a specific header:</b></p>
+
+
+    <pre><code class="lang-csharp">// These all work (case-insensitive):
+
+    var type = result.Headers["Content-Type"];
+
+    var type = result.Headers["content-type"];
+
+    var type = result.Headers["CONTENT-TYPE"];
+
+
+    // Or use the helper:
+
+    var type = result.GetHeader("Content-Type");</code></pre>
+
+
+    <p><b>Check rate limits (common in APIs):</b></p>
+
+
+    <pre><code class="lang-csharp">if (result.Headers.ContainsKey("X-RateLimit-Remaining"))
+
+    {
+        var remaining = int.Parse(result.Headers["X-RateLimit-Remaining"]);
+        if (remaining &lt; 10)
+            Console.WriteLine("⚠️ Only {0} API calls left!", remaining);
+    }</code></pre>
+
+
+    <p><b>Common headers:</b></p>
+
+    <ul><li><b>Content-Type</b> - Format of the data (application/json, text/html)</li><li><b>Content-Length</b> - Size in bytes</li><li><b>Location</b> - Where you got redirected to</li><li><b>Set-Cookie</b> - Cookies to store</li><li><b>Cache-Control</b> - How long to cache</li></ul>
+  example: []
+  syntax:
+    content: public Dictionary<string, string> Headers { get; set; }
+    parameters: []
+    return:
+      type: System.Collections.Generic.Dictionary{System.String,System.String}
+    content.vb: Public Property Headers As Dictionary(Of String, String)
+  overload: CurlDotNet.Core.CurlResult.Headers*
+- uid: CurlDotNet.Core.CurlResult.IsSuccess
+  commentId: P:CurlDotNet.Core.CurlResult.IsSuccess
+  id: IsSuccess
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: IsSuccess
+  nameWithType: CurlResult.IsSuccess
+  fullName: CurlDotNet.Core.CurlResult.IsSuccess
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: IsSuccess
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 183
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Quick success check - true if status is 200-299.</b></p>
+
+
+    <p>The easiest way to check if your request worked:</p>
+
+
+    <pre><code class="lang-csharp">if (result.IsSuccess)
+
+    {
+        // It worked! Do something with result.Body
+    }
+
+    else
+
+    {
+        // Something went wrong, check result.StatusCode
+    }</code></pre>
+
+
+    <p>What's considered success: 200 OK, 201 Created, 204 No Content, etc.</p>
+
+    <p>What's NOT success: 404 Not Found, 500 Server Error, etc.</p>
+  example: []
+  syntax:
+    content: public bool IsSuccess { get; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public ReadOnly Property IsSuccess As Boolean
+  overload: CurlDotNet.Core.CurlResult.IsSuccess*
+- uid: CurlDotNet.Core.CurlResult.BinaryData
+  commentId: P:CurlDotNet.Core.CurlResult.BinaryData
+  id: BinaryData
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: BinaryData
+  nameWithType: CurlResult.BinaryData
+  fullName: CurlDotNet.Core.CurlResult.BinaryData
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: BinaryData
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 200
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Binary data for files like images, PDFs, downloads.</b></p>
+
+
+    <p>When you download non-text files, the bytes are here:</p>
+
+
+    <pre><code class="lang-csharp">// Download an image
+
+    var result = await Curl.Execute("curl https://example.com/logo.png");
+
+
+    if (result.IsBinary)
+
+    {
+        File.WriteAllBytes("logo.png", result.BinaryData);
+        Console.WriteLine($"Saved {result.BinaryData.Length} bytes");
+    }</code></pre>
+  example: []
+  syntax:
+    content: public byte[] BinaryData { get; set; }
+    parameters: []
+    return:
+      type: System.Byte[]
+    content.vb: Public Property BinaryData As Byte()
+  overload: CurlDotNet.Core.CurlResult.BinaryData*
+- uid: CurlDotNet.Core.CurlResult.IsBinary
+  commentId: P:CurlDotNet.Core.CurlResult.IsBinary
+  id: IsBinary
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: IsBinary
+  nameWithType: CurlResult.IsBinary
+  fullName: CurlDotNet.Core.CurlResult.IsBinary
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: IsBinary
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 213
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Is this binary data? (images, PDFs, etc.)</b></p>
+
+
+    <p>Quick check before accessing BinaryData:</p>
+
+
+    <pre><code class="lang-csharp">if (result.IsBinary)
+        File.WriteAllBytes("file.bin", result.BinaryData);
+    else
+        File.WriteAllText("file.txt", result.Body);</code></pre>
+  example: []
+  syntax:
+    content: public bool IsBinary { get; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public ReadOnly Property IsBinary As Boolean
+  overload: CurlDotNet.Core.CurlResult.IsBinary*
+- uid: CurlDotNet.Core.CurlResult.Command
+  commentId: P:CurlDotNet.Core.CurlResult.Command
+  id: Command
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: Command
+  nameWithType: CurlResult.Command
+  fullName: CurlDotNet.Core.CurlResult.Command
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Command
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 226
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>The original curl command that was executed.</b></p>
+
+
+    <p>Useful for debugging or retrying:</p>
+
+
+    <pre><code class="lang-csharp">Console.WriteLine($"Executed: {result.Command}");
+
+
+    // Retry the same command
+
+    var retry = await Curl.Execute(result.Command);</code></pre>
+  example: []
+  syntax:
+    content: public string Command { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property Command As String
+  overload: CurlDotNet.Core.CurlResult.Command*
+- uid: CurlDotNet.Core.CurlResult.Timings
+  commentId: P:CurlDotNet.Core.CurlResult.Timings
+  id: Timings
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: Timings
+  nameWithType: CurlResult.Timings
+  fullName: CurlDotNet.Core.CurlResult.Timings
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Timings
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 238
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Detailed timing information (like curl -w).</b></p>
+
+
+    <p>See how long each phase took:</p>
+
+
+    <pre><code class="lang-csharp">Console.WriteLine($"DNS lookup: {result.Timings.NameLookup}ms");
+
+    Console.WriteLine($"Connect: {result.Timings.Connect}ms");
+
+    Console.WriteLine($"Total: {result.Timings.Total}ms");</code></pre>
+  example: []
+  syntax:
+    content: public CurlTimings Timings { get; set; }
+    parameters: []
+    return:
+      type: CurlDotNet.Core.CurlTimings
+    content.vb: Public Property Timings As CurlTimings
+  overload: CurlDotNet.Core.CurlResult.Timings*
+- uid: CurlDotNet.Core.CurlResult.OutputFiles
+  commentId: P:CurlDotNet.Core.CurlResult.OutputFiles
+  id: OutputFiles
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: OutputFiles
+  nameWithType: CurlResult.OutputFiles
+  fullName: CurlDotNet.Core.CurlResult.OutputFiles
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: OutputFiles
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 251
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Files that were saved (if using -o flag).</b></p>
+
+
+    <p>Track what files were created:</p>
+
+
+    <pre><code class="lang-csharp">foreach (var file in result.OutputFiles)
+
+    {
+        Console.WriteLine($"Saved: {file}");
+    }</code></pre>
+  example: []
+  syntax:
+    content: public List<string> OutputFiles { get; set; }
+    parameters: []
+    return:
+      type: System.Collections.Generic.List{System.String}
+    content.vb: Public Property OutputFiles As List(Of String)
+  overload: CurlDotNet.Core.CurlResult.OutputFiles*
+- uid: CurlDotNet.Core.CurlResult.Exception
+  commentId: P:CurlDotNet.Core.CurlResult.Exception
+  id: Exception
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: Exception
+  nameWithType: CurlResult.Exception
+  fullName: CurlDotNet.Core.CurlResult.Exception
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Exception
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 270
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Any exception if the request failed completely.</b></p>
+
+
+    <p>Only set for network failures, not HTTP errors:</p>
+
+
+    <pre><code class="lang-csharp">if (result.Exception != null)
+
+    {
+        // Network/DNS/Timeout failure
+        Console.WriteLine($"Failed: {result.Exception.Message}");
+    }
+
+    else if (!result.IsSuccess)
+
+    {
+        // HTTP error (404, 500, etc)
+        Console.WriteLine($"HTTP {result.StatusCode}");
+    }</code></pre>
+  example: []
+  syntax:
+    content: public Exception Exception { get; set; }
+    parameters: []
+    return:
+      type: System.Exception
+    content.vb: Public Property Exception As Exception
+  overload: CurlDotNet.Core.CurlResult.Exception*
+- uid: CurlDotNet.Core.CurlResult.ParseJson``1
+  commentId: M:CurlDotNet.Core.CurlResult.ParseJson``1
+  id: ParseJson``1
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: ParseJson<T>()
+  nameWithType: CurlResult.ParseJson<T>()
+  fullName: CurlDotNet.Core.CurlResult.ParseJson<T>()
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ParseJson
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 317
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Parse the JSON response into your C# class.</b></p>
+
+
+    <p>The most common operation - turning JSON into objects. This method uses <xref href="System.Text.Json.JsonSerializer" data-throw-if-not-resolved="false"></xref> 
+
+    in .NET 6+ and <xref href="Newtonsoft.Json.JsonConvert" data-throw-if-not-resolved="false"></xref> in .NET Standard 2.0 for maximum compatibility.</p>
+
+    <example>
+
+
+    <pre><code class="lang-csharp">// Define your class matching the JSON structure
+
+    public class User
+
+    {
+        public string Name { get; set; }
+        public string Email { get; set; }
+        public int Id { get; set; }
+    }
+
+
+    var response = await Curl.ExecuteAsync("curl https://api.example.com/users/42");
+
+    var user = response.ParseJson&lt;User&gt;();
+
+    Console.WriteLine($"Hello {user.Name}!");
+
+
+    // Or parse arrays
+
+    var listResponse = await Curl.ExecuteAsync("curl https://api.example.com/users");
+
+    var users = listResponse.ParseJson&lt;List&lt;User&gt;&gt;();
+
+    Console.WriteLine($"Found {users.Count} users");</code></pre>
+
+    </example>
+
+
+    <p><b>Tip:</b> Use https://json2csharp.com to generate C# classes from JSON!</p>
+  remarks: >-
+    <p>This method automatically detects whether to use System.Text.Json or Newtonsoft.Json based on the target framework.</p>
+
+    <p>For complex JSON structures, consider using <xref href="CurlDotNet.Core.CurlResult.AsJsonDynamic" data-throw-if-not-resolved="false"></xref> for exploration, then creating a typed class.</p>
+
+    <p>If <code class="typeparamref">T</code> doesn't match the JSON structure, properties that don't match will be left at their default values.</p>
+  example: []
+  syntax:
+    content: public T ParseJson<T>()
+    typeParameters:
+    - id: T
+      description: The type to deserialize to. Must match the JSON structure. Can be a class, struct, or collection type like <xref href="System.Collections.Generic.List%601" data-throw-if-not-resolved="false"></xref> or <xref href="System.Collections.Generic.Dictionary%602" data-throw-if-not-resolved="false"></xref>.
+    return:
+      type: '{T}'
+      description: An instance of <code class="typeparamref">T</code> with data from the JSON <xref href="CurlDotNet.Core.CurlResult.Body" data-throw-if-not-resolved="false"></xref>.
+    content.vb: Public Function ParseJson(Of T)() As T
+  overload: CurlDotNet.Core.CurlResult.ParseJson*
+  exceptions:
+  - type: System.ArgumentNullException
+    commentId: T:System.ArgumentNullException
+    description: Thrown when <xref href="CurlDotNet.Core.CurlResult.Body" data-throw-if-not-resolved="false"></xref> is null or empty.
+  - type: System.InvalidOperationException
+    commentId: T:System.InvalidOperationException
+    description: Thrown when JSON deserialization fails or JSON doesn't match type <code class="typeparamref">T</code>.
+  - type: System.Exception
+    commentId: T:System.Exception
+    description: Thrown when the JSON syntax is invalid. See <xref href="System.Exception.InnerException" data-throw-if-not-resolved="false"></xref> for details.
+  seealso:
+  - linkId: CurlDotNet.Core.CurlResult.AsJson``1
+    commentId: M:CurlDotNet.Core.CurlResult.AsJson``1
+    altText: Alternative method name for parsing JSON
+  - linkId: CurlDotNet.Core.CurlResult.AsJsonDynamic
+    commentId: M:CurlDotNet.Core.CurlResult.AsJsonDynamic
+    altText: Parse JSON as dynamic object without a class
+  - linkId: CurlDotNet.Core.CurlResult.Body
+    commentId: P:CurlDotNet.Core.CurlResult.Body
+    altText: The JSON string being parsed
+  nameWithType.vb: CurlResult.ParseJson(Of T)()
+  fullName.vb: CurlDotNet.Core.CurlResult.ParseJson(Of T)()
+  name.vb: ParseJson(Of T)()
+- uid: CurlDotNet.Core.CurlResult.AsJson``1
+  commentId: M:CurlDotNet.Core.CurlResult.AsJson``1
+  id: AsJson``1
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: AsJson<T>()
+  nameWithType: CurlResult.AsJson<T>()
+  fullName: CurlDotNet.Core.CurlResult.AsJson<T>()
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: AsJson
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 355
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Parse JSON response (alternative name for <xref href="CurlDotNet.Core.CurlResult.ParseJson%60%601" data-throw-if-not-resolved="false"></xref>).</b></p>
+
+
+    <p>Some people prefer <code>AsJson</code>, some prefer <code>ParseJson</code>. Both methods are identical and produce the same result.</p>
+
+
+    <pre><code class="lang-csharp">var data = result.AsJson&lt;MyData&gt;();
+
+    // Exactly the same as: result.ParseJson&lt;MyData&gt;()</code></pre>
+  remarks: <p>This is simply an alias for <xref href="CurlDotNet.Core.CurlResult.ParseJson%60%601" data-throw-if-not-resolved="false"></xref>. Use whichever method name you prefer.</p>
+  example: []
+  syntax:
+    content: public T AsJson<T>()
+    typeParameters:
+    - id: T
+      description: The type to deserialize to. See <xref href="CurlDotNet.Core.CurlResult.ParseJson%60%601" data-throw-if-not-resolved="false"></xref> for details.
+    return:
+      type: '{T}'
+      description: An instance of <code class="typeparamref">T</code> with data from the JSON <xref href="CurlDotNet.Core.CurlResult.Body" data-throw-if-not-resolved="false"></xref>.
+    content.vb: Public Function AsJson(Of T)() As T
+  overload: CurlDotNet.Core.CurlResult.AsJson*
+  exceptions:
+  - type: System.ArgumentNullException
+    commentId: T:System.ArgumentNullException
+    description: Thrown when <xref href="CurlDotNet.Core.CurlResult.Body" data-throw-if-not-resolved="false"></xref> is null or empty.
+  - type: System.InvalidOperationException
+    commentId: T:System.InvalidOperationException
+    description: Thrown when JSON deserialization fails.
+  - type: System.Exception
+    commentId: T:System.Exception
+    description: Thrown when the JSON syntax is invalid.
+  seealso:
+  - linkId: CurlDotNet.Core.CurlResult.ParseJson``1
+    commentId: M:CurlDotNet.Core.CurlResult.ParseJson``1
+    altText: Primary method for parsing JSON
+  - linkId: CurlDotNet.Core.CurlResult.AsJsonDynamic
+    commentId: M:CurlDotNet.Core.CurlResult.AsJsonDynamic
+    altText: Parse JSON as dynamic without a class
+  nameWithType.vb: CurlResult.AsJson(Of T)()
+  fullName.vb: CurlDotNet.Core.CurlResult.AsJson(Of T)()
+  name.vb: AsJson(Of T)()
+- uid: CurlDotNet.Core.CurlResult.AsJsonDynamic
+  commentId: M:CurlDotNet.Core.CurlResult.AsJsonDynamic
+  id: AsJsonDynamic
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: AsJsonDynamic()
+  nameWithType: CurlResult.AsJsonDynamic()
+  fullName: CurlDotNet.Core.CurlResult.AsJsonDynamic()
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: AsJsonDynamic
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 397
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Parse JSON as dynamic object (when you don't have a class).</b></p>
+
+
+    <p>Useful for quick exploration or simple JSON structures. This method returns a dynamic object that allows 
+
+    you to access JSON properties without defining a C# class. However, there's no compile-time checking, so prefer 
+
+    <xref href="CurlDotNet.Core.CurlResult.ParseJson%60%601" data-throw-if-not-resolved="false"></xref> with typed classes when possible.</p>
+
+
+    <p><b>Example:</b></p>
+
+
+    <pre><code class="lang-csharp">dynamic json = result.AsJsonDynamic();
+
+    Console.WriteLine(json.name);           // Access properties directly
+
+    Console.WriteLine(json.users[0].email); // Navigate arrays
+
+
+    // Iterate dynamic arrays
+
+    foreach (var item in json.items)
+
+    {
+        Console.WriteLine(item.title);
+    }</code></pre>
+  remarks: >-
+    <p><b>⚠️ Warning:</b> No compile-time checking! If a property doesn't exist, you'll get a runtime exception.</p>
+
+    <p>For production code, prefer <xref href="CurlDotNet.Core.CurlResult.ParseJson%60%601" data-throw-if-not-resolved="false"></xref> with typed classes for better safety and IntelliSense support.</p>
+
+    <p>This method is useful for:</p>
+
+    <ul><li>Quick prototyping and exploration</li><li>Working with highly dynamic JSON structures</li><li>One-off scripts and tools</li></ul>
+  example: []
+  syntax:
+    content: public dynamic AsJsonDynamic()
+    return:
+      type: dynamic
+      description: >-
+        <p>A dynamic object representing the JSON. In .NET 6+, this is a <xref href="System.Text.Json.JsonDocument" data-throw-if-not-resolved="false"></xref>.
+
+        In .NET Standard 2.0, this is a <code>JObject</code> from Newtonsoft.Json.</p>
+
+        <p>Access properties like: <code>dynamicObj.propertyName</code> or <code>dynamicObj["propertyName"]</code></p>
+    content.vb: Public Function AsJsonDynamic() As Object
+  overload: CurlDotNet.Core.CurlResult.AsJsonDynamic*
+  exceptions:
+  - type: System.ArgumentNullException
+    commentId: T:System.ArgumentNullException
+    description: Thrown when <xref href="CurlDotNet.Core.CurlResult.Body" data-throw-if-not-resolved="false"></xref> is null or empty.
+  - type: System.Exception
+    commentId: T:System.Exception
+    description: Thrown when the JSON syntax is invalid.
+  seealso:
+  - linkId: CurlDotNet.Core.CurlResult.ParseJson``1
+    commentId: M:CurlDotNet.Core.CurlResult.ParseJson``1
+    altText: Parse JSON into typed classes (recommended)
+  - linkId: CurlDotNet.Core.CurlResult.AsJson``1
+    commentId: M:CurlDotNet.Core.CurlResult.AsJson``1
+    altText: Alternative method name for typed parsing
+  - linkId: CurlDotNet.Core.CurlResult.Body
+    commentId: P:CurlDotNet.Core.CurlResult.Body
+    altText: The JSON string being parsed
+- uid: CurlDotNet.Core.CurlResult.SaveToFile(System.String)
+  commentId: M:CurlDotNet.Core.CurlResult.SaveToFile(System.String)
+  id: SaveToFile(System.String)
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: SaveToFile(string)
+  nameWithType: CurlResult.SaveToFile(string)
+  fullName: CurlDotNet.Core.CurlResult.SaveToFile(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: SaveToFile
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 464
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Save the response to a file - works for both text and binary!</b></p>
+
+
+    <p>Smart saving - automatically handles text vs binary:</p>
+
+
+    <pre><code class="lang-csharp">// Save any response
+
+    result.SaveToFile("output.txt");     // Text saved as text
+
+    result.SaveToFile("image.png");      // Binary saved as binary
+
+
+    // Chain operations (returns this)
+
+    result
+        .SaveToFile("backup.json")       // Save a backup
+        .ParseJson&lt;Data&gt;();              // Then parse it</code></pre>
+
+    <p><b>Path examples:</b></p>
+
+
+    <pre><code class="lang-csharp">result.SaveToFile("file.txt");              // Current directory
+
+    result.SaveToFile("data/file.txt");         // Relative path
+
+    result.SaveToFile(@"C:\temp\file.txt");     // Absolute path
+
+    result.SaveToFile("/home/user/file.txt");   // Linux/Mac path</code></pre>
+  example:
+  - >-
+    <pre><code class="lang-csharp">// Download and save JSON response
+
+    var result = await Curl.ExecuteAsync("curl https://api.example.com/data.json");
+
+    result.SaveToFile("data.json");
+
+    // File is now saved to disk AND still available in result.Body
+
+
+    // Download image and save
+
+    var result = await Curl.ExecuteAsync("curl https://example.com/logo.png");
+
+    result.SaveToFile("logo.png");
+
+    Console.WriteLine($"Saved {result.BinaryData.Length} bytes");
+
+
+    // Chain with parsing
+
+    var result = await Curl.ExecuteAsync("curl https://api.example.com/users");
+
+    var users = result
+        .SaveToFile("backup-users.json")  // Save backup
+        .ParseJson&lt;List&lt;User&gt;&gt;();    // Then parse
+
+    // Save with relative path
+
+    result.SaveToFile("downloads/report.pdf");
+
+
+    // Save with absolute path
+
+    result.SaveToFile(@"C:\Temp\output.txt");  // Windows
+
+    result.SaveToFile("/tmp/output.txt");       // Linux/Mac</code></pre>
+  syntax:
+    content: public CurlResult SaveToFile(string filePath)
+    parameters:
+    - id: filePath
+      type: System.String
+      description: Where to save the file
+    return:
+      type: CurlDotNet.Core.CurlResult
+      description: This result (for chaining)
+    content.vb: Public Function SaveToFile(filePath As String) As CurlResult
+  overload: CurlDotNet.Core.CurlResult.SaveToFile*
+  seealso:
+  - linkId: CurlDotNet.Core.CurlResult.SaveToFileAsync(System.String)
+    commentId: M:CurlDotNet.Core.CurlResult.SaveToFileAsync(System.String)
+    altText: Async version that doesn't block
+  - linkId: CurlDotNet.Core.CurlResult.SaveAsJson(System.String,System.Boolean)
+    commentId: M:CurlDotNet.Core.CurlResult.SaveAsJson(System.String,System.Boolean)
+    altText: Save JSON with formatting
+  - linkId: CurlDotNet.Core.CurlResult.AppendToFile(System.String)
+    commentId: M:CurlDotNet.Core.CurlResult.AppendToFile(System.String)
+    altText: Append to existing file instead of overwriting
+  nameWithType.vb: CurlResult.SaveToFile(String)
+  fullName.vb: CurlDotNet.Core.CurlResult.SaveToFile(String)
+  name.vb: SaveToFile(String)
+- uid: CurlDotNet.Core.CurlResult.SaveToFileAsync(System.String)
+  commentId: M:CurlDotNet.Core.CurlResult.SaveToFileAsync(System.String)
+  id: SaveToFileAsync(System.String)
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: SaveToFileAsync(string)
+  nameWithType: CurlResult.SaveToFileAsync(string)
+  fullName: CurlDotNet.Core.CurlResult.SaveToFileAsync(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: SaveToFileAsync
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 488
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Save the response to a file asynchronously.</b></p>
+
+
+    <p>Same as SaveToFile but doesn't block:</p>
+
+
+    <pre><code class="lang-csharp">await result.SaveToFileAsync("large-file.json");
+
+
+    // Or chain async operations
+
+    await result
+        .SaveToFileAsync("backup.json")
+        .ContinueWith(_ =&gt; Console.WriteLine("Saved!"));</code></pre>
+  example: []
+  syntax:
+    content: public Task<CurlResult> SaveToFileAsync(string filePath)
+    parameters:
+    - id: filePath
+      type: System.String
+    return:
+      type: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+    content.vb: Public Function SaveToFileAsync(filePath As String) As Task(Of CurlResult)
+  overload: CurlDotNet.Core.CurlResult.SaveToFileAsync*
+  nameWithType.vb: CurlResult.SaveToFileAsync(String)
+  fullName.vb: CurlDotNet.Core.CurlResult.SaveToFileAsync(String)
+  name.vb: SaveToFileAsync(String)
+- uid: CurlDotNet.Core.CurlResult.SaveAsJson(System.String,System.Boolean)
+  commentId: M:CurlDotNet.Core.CurlResult.SaveAsJson(System.String,System.Boolean)
+  id: SaveAsJson(System.String,System.Boolean)
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: SaveAsJson(string, bool)
+  nameWithType: CurlResult.SaveAsJson(string, bool)
+  fullName: CurlDotNet.Core.CurlResult.SaveAsJson(string, bool)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: SaveAsJson
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 529
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Save as formatted JSON file (pretty-printed).</b></p>
+
+
+    <p>Makes JSON human-readable with indentation:</p>
+
+
+    <pre><code class="lang-csharp">// Save with nice formatting
+
+    result.SaveAsJson("data.json");           // Pretty-printed
+
+    result.SaveAsJson("data.json", false);    // Minified
+
+
+    // Before: {"name":"John","age":30}
+
+    // After:  {
+
+    //           "name": "John",
+
+    //           "age": 30
+
+    //         }</code></pre>
+  example: []
+  syntax:
+    content: public CurlResult SaveAsJson(string filePath, bool indented = true)
+    parameters:
+    - id: filePath
+      type: System.String
+      description: Where to save the JSON file
+    - id: indented
+      type: System.Boolean
+      description: true for pretty formatting (default), false for minified
+    return:
+      type: CurlDotNet.Core.CurlResult
+      description: This result (for chaining)
+    content.vb: Public Function SaveAsJson(filePath As String, indented As Boolean = True) As CurlResult
+  overload: CurlDotNet.Core.CurlResult.SaveAsJson*
+  nameWithType.vb: CurlResult.SaveAsJson(String, Boolean)
+  fullName.vb: CurlDotNet.Core.CurlResult.SaveAsJson(String, Boolean)
+  name.vb: SaveAsJson(String, Boolean)
+- uid: CurlDotNet.Core.CurlResult.SaveAsCsv(System.String)
+  commentId: M:CurlDotNet.Core.CurlResult.SaveAsCsv(System.String)
+  id: SaveAsCsv(System.String)
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: SaveAsCsv(string)
+  nameWithType: CurlResult.SaveAsCsv(string)
+  fullName: CurlDotNet.Core.CurlResult.SaveAsCsv(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: SaveAsCsv
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 575
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Save JSON response as CSV file (for JSON arrays).</b></p>
+
+
+    <p>Converts JSON arrays to CSV for Excel:</p>
+
+
+    <pre><code class="lang-csharp">// JSON: [{"name":"John","age":30}, {"name":"Jane","age":25}]
+
+    result.SaveAsCsv("users.csv");
+
+
+    // Creates CSV:
+
+    // name,age
+
+    // John,30
+
+    // Jane,25
+
+
+    // Open in Excel
+
+    Process.Start("users.csv");</code></pre>
+
+
+    <p><b>Note:</b> Only works with JSON arrays of objects.</p>
+  example: []
+  syntax:
+    content: public CurlResult SaveAsCsv(string filePath)
+    parameters:
+    - id: filePath
+      type: System.String
+    return:
+      type: CurlDotNet.Core.CurlResult
+    content.vb: Public Function SaveAsCsv(filePath As String) As CurlResult
+  overload: CurlDotNet.Core.CurlResult.SaveAsCsv*
+  nameWithType.vb: CurlResult.SaveAsCsv(String)
+  fullName.vb: CurlDotNet.Core.CurlResult.SaveAsCsv(String)
+  name.vb: SaveAsCsv(String)
+- uid: CurlDotNet.Core.CurlResult.AppendToFile(System.String)
+  commentId: M:CurlDotNet.Core.CurlResult.AppendToFile(System.String)
+  id: AppendToFile(System.String)
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: AppendToFile(string)
+  nameWithType: CurlResult.AppendToFile(string)
+  fullName: CurlDotNet.Core.CurlResult.AppendToFile(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: AppendToFile
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 599
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Append response to an existing file.</b></p>
+
+
+    <p>Add to a file without overwriting:</p>
+
+
+    <pre><code class="lang-csharp">// Log all responses
+
+    result.AppendToFile("api-log.txt");
+
+
+    // Build up a file over time
+
+    foreach (var url in urls)
+
+    {
+        var r = await Curl.Execute($"curl {url}");
+        r.AppendToFile("combined.txt");
+    }</code></pre>
+  example: []
+  syntax:
+    content: public CurlResult AppendToFile(string filePath)
+    parameters:
+    - id: filePath
+      type: System.String
+    return:
+      type: CurlDotNet.Core.CurlResult
+    content.vb: Public Function AppendToFile(filePath As String) As CurlResult
+  overload: CurlDotNet.Core.CurlResult.AppendToFile*
+  nameWithType.vb: CurlResult.AppendToFile(String)
+  fullName.vb: CurlDotNet.Core.CurlResult.AppendToFile(String)
+  name.vb: AppendToFile(String)
+- uid: CurlDotNet.Core.CurlResult.GetHeader(System.String)
+  commentId: M:CurlDotNet.Core.CurlResult.GetHeader(System.String)
+  id: GetHeader(System.String)
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: GetHeader(string)
+  nameWithType: CurlResult.GetHeader(string)
+  fullName: CurlDotNet.Core.CurlResult.GetHeader(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: GetHeader
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 657
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Get a specific header value (case-insensitive).</b></p>
+
+
+    <p>Easy header access with null safety. This matches curl's header behavior exactly.</p>
+  example:
+  - >-
+    <pre><code class="lang-csharp">// Get content type
+
+    var contentType = result.GetHeader("Content-Type");
+
+    if (contentType?.Contains("json") == true)
+
+    {
+        var data = result.ParseJson&lt;MyData&gt;();
+    }
+
+
+    // Check rate limits (common in APIs)
+
+    var remaining = result.GetHeader("X-RateLimit-Remaining");
+
+    if (remaining != null &amp;&amp; int.Parse(remaining) &lt; 10)
+
+    {
+        Console.WriteLine("⚠️ Only {0} API calls left!", remaining);
+    }
+
+
+    // Check cache control
+
+    var cacheControl = result.GetHeader("Cache-Control");
+
+    if (cacheControl?.Contains("no-cache") == true)
+
+    {
+        Console.WriteLine("Response should not be cached");
+    }
+
+
+    // Get redirect location
+
+    var location = result.GetHeader("Location");
+
+    if (location != null)
+
+    {
+        Console.WriteLine($"Redirected to: {location}");
+    }</code></pre>
+  syntax:
+    content: public string GetHeader(string headerName)
+    parameters:
+    - id: headerName
+      type: System.String
+      description: Name of the header (case doesn't matter)
+    return:
+      type: System.String
+      description: Header value or null if not found
+    content.vb: Public Function GetHeader(headerName As String) As String
+  overload: CurlDotNet.Core.CurlResult.GetHeader*
+  seealso:
+  - linkId: CurlDotNet.Core.CurlResult.HasHeader(System.String)
+    commentId: M:CurlDotNet.Core.CurlResult.HasHeader(System.String)
+    altText: Check if header exists
+  - linkId: CurlDotNet.Core.CurlResult.Headers
+    commentId: P:CurlDotNet.Core.CurlResult.Headers
+    altText: Access all headers as dictionary
+  nameWithType.vb: CurlResult.GetHeader(String)
+  fullName.vb: CurlDotNet.Core.CurlResult.GetHeader(String)
+  name.vb: GetHeader(String)
+- uid: CurlDotNet.Core.CurlResult.HasHeader(System.String)
+  commentId: M:CurlDotNet.Core.CurlResult.HasHeader(System.String)
+  id: HasHeader(System.String)
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: HasHeader(string)
+  nameWithType: CurlResult.HasHeader(string)
+  fullName: CurlDotNet.Core.CurlResult.HasHeader(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: HasHeader
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 701
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Check if a header exists.</b></p>
+
+
+    <p>Test for header presence before accessing. This is case-insensitive, matching curl's behavior.</p>
+  example:
+  - >-
+    <pre><code class="lang-csharp">// Check for cookies
+
+    if (result.HasHeader("Set-Cookie"))
+
+    {
+        var cookie = result.GetHeader("Set-Cookie");
+        Console.WriteLine($"Cookie received: {cookie}");
+    }
+
+
+    // Check for authentication requirements
+
+    if (result.HasHeader("WWW-Authenticate"))
+
+    {
+        Console.WriteLine("Authentication required");
+    }
+
+
+    // Check for custom headers
+
+    if (result.HasHeader("X-Custom-Header"))
+
+    {
+        var value = result.GetHeader("X-Custom-Header");
+        ProcessCustomValue(value);
+    }
+
+
+    // Conditional logic based on headers
+
+    if (result.HasHeader("Content-Encoding") &amp;&amp; 
+        result.GetHeader("Content-Encoding").Contains("gzip"))
+    {
+        Console.WriteLine("Response is gzip compressed");
+    }</code></pre>
+  syntax:
+    content: public bool HasHeader(string headerName)
+    parameters:
+    - id: headerName
+      type: System.String
+      description: Name of the header to check (case-insensitive)
+    return:
+      type: System.Boolean
+      description: true if the header exists, false otherwise
+    content.vb: Public Function HasHeader(headerName As String) As Boolean
+  overload: CurlDotNet.Core.CurlResult.HasHeader*
+  seealso:
+  - linkId: CurlDotNet.Core.CurlResult.GetHeader(System.String)
+    commentId: M:CurlDotNet.Core.CurlResult.GetHeader(System.String)
+    altText: Get header value
+  - linkId: CurlDotNet.Core.CurlResult.Headers
+    commentId: P:CurlDotNet.Core.CurlResult.Headers
+    altText: Access all headers
+  nameWithType.vb: CurlResult.HasHeader(String)
+  fullName.vb: CurlDotNet.Core.CurlResult.HasHeader(String)
+  name.vb: HasHeader(String)
+- uid: CurlDotNet.Core.CurlResult.EnsureSuccess
+  commentId: M:CurlDotNet.Core.CurlResult.EnsureSuccess
+  id: EnsureSuccess
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: EnsureSuccess()
+  nameWithType: CurlResult.EnsureSuccess()
+  fullName: CurlDotNet.Core.CurlResult.EnsureSuccess()
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: EnsureSuccess
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 763
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Throw an exception if the request wasn't successful (not 200-299).</b></p>
+
+
+    <p>Use this when you expect success and want to fail fast. This matches curl's <code>-f</code> (fail) flag behavior.</p>
+  example:
+  - >-
+    <pre><code class="lang-csharp">// Fail fast pattern
+
+    try
+
+    {
+        var data = result
+            .EnsureSuccess()      // Throws if not 200-299
+            .ParseJson&lt;Data&gt;();  // Only runs if successful
+    }
+
+    catch (CurlHttpException ex)
+
+    {
+        Console.WriteLine($"HTTP {ex.StatusCode}: {ex.Message}");
+        Console.WriteLine($"Response body: {ex.ResponseBody}");
+    }
+
+
+    // Common API pattern - get user data
+
+    var user = (await Curl.ExecuteAsync("curl https://api.example.com/user/123"))
+        .EnsureSuccess()        // Throws on 404, 500, etc.
+        .ParseJson&lt;User&gt;();    // Safe to parse, we know it's 200
+
+    // Chain multiple operations
+
+    var response = await Curl.ExecuteAsync("curl https://api.example.com/data");
+
+    var processed = response
+        .EnsureSuccess()           // Ensure 200-299
+        .SaveToFile("backup.json") // Save backup
+        .ParseJson&lt;DataModel&gt;(); // Then parse
+
+    // Different handling for different status codes
+
+    try
+
+    {
+        result.EnsureSuccess();
+        ProcessData(result.Body);
+    }
+
+    catch (CurlHttpException ex) when (ex.StatusCode == 404)
+
+    {
+        Console.WriteLine("Resource not found");
+    }
+
+    catch (CurlHttpException ex) when (ex.StatusCode &gt;= 500)
+
+    {
+        Console.WriteLine("Server error - retry later");
+    }</code></pre>
+  syntax:
+    content: public CurlResult EnsureSuccess()
+    return:
+      type: CurlDotNet.Core.CurlResult
+      description: This result if successful (for chaining)
+    content.vb: Public Function EnsureSuccess() As CurlResult
+  overload: CurlDotNet.Core.CurlResult.EnsureSuccess*
+  exceptions:
+  - type: CurlDotNet.Core.CurlHttpException
+    commentId: T:CurlDotNet.Core.CurlHttpException
+    description: Thrown if status is not 200-299. The exception contains <xref href="CurlDotNet.Core.CurlHttpException.StatusCode" data-throw-if-not-resolved="false"></xref> and <xref href="CurlDotNet.Core.CurlHttpException.ResponseBody" data-throw-if-not-resolved="false"></xref>.
+  seealso:
+  - linkId: CurlDotNet.Core.CurlResult.EnsureStatus(System.Int32)
+    commentId: M:CurlDotNet.Core.CurlResult.EnsureStatus(System.Int32)
+    altText: Ensure specific status code
+  - linkId: CurlDotNet.Core.CurlResult.EnsureContains(System.String)
+    commentId: M:CurlDotNet.Core.CurlResult.EnsureContains(System.String)
+    altText: Ensure response contains text
+  - linkId: CurlDotNet.Core.CurlResult.IsSuccess
+    commentId: P:CurlDotNet.Core.CurlResult.IsSuccess
+    altText: Check success without throwing
+- uid: CurlDotNet.Core.CurlResult.EnsureStatus(System.Int32)
+  commentId: M:CurlDotNet.Core.CurlResult.EnsureStatus(System.Int32)
+  id: EnsureStatus(System.Int32)
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: EnsureStatus(int)
+  nameWithType: CurlResult.EnsureStatus(int)
+  fullName: CurlDotNet.Core.CurlResult.EnsureStatus(int)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: EnsureStatus
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 791
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Throw if status doesn't match what you expect.</b></p>
+
+
+    <p>Validate specific status codes:</p>
+
+
+    <pre><code class="lang-csharp">// Expect 201 Created
+
+    result.EnsureStatus(201);
+
+
+    // Expect 204 No Content
+
+    result.EnsureStatus(204);</code></pre>
+  example: []
+  syntax:
+    content: public CurlResult EnsureStatus(int expectedStatus)
+    parameters:
+    - id: expectedStatus
+      type: System.Int32
+      description: The status code you expect
+    return:
+      type: CurlDotNet.Core.CurlResult
+      description: This result if status matches (for chaining)
+    content.vb: Public Function EnsureStatus(expectedStatus As Integer) As CurlResult
+  overload: CurlDotNet.Core.CurlResult.EnsureStatus*
+  exceptions:
+  - type: CurlDotNet.Core.CurlHttpException
+    commentId: T:CurlDotNet.Core.CurlHttpException
+    description: Thrown if status doesn't match
+  nameWithType.vb: CurlResult.EnsureStatus(Integer)
+  fullName.vb: CurlDotNet.Core.CurlResult.EnsureStatus(Integer)
+  name.vb: EnsureStatus(Integer)
+- uid: CurlDotNet.Core.CurlResult.EnsureContains(System.String)
+  commentId: M:CurlDotNet.Core.CurlResult.EnsureContains(System.String)
+  id: EnsureContains(System.String)
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: EnsureContains(string)
+  nameWithType: CurlResult.EnsureContains(string)
+  fullName: CurlDotNet.Core.CurlResult.EnsureContains(string)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: EnsureContains
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 817
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Throw if response body doesn't contain expected text.</b></p>
+
+
+    <p>Validate response content:</p>
+
+
+    <pre><code class="lang-csharp">// Make sure we got the right response
+
+    result.EnsureContains("success");
+
+
+    // Check for error messages
+
+    if (result.Body.Contains("error"))
+
+    {
+        result.EnsureContains("recoverable");  // Make sure it's recoverable
+    }</code></pre>
+  example: []
+  syntax:
+    content: public CurlResult EnsureContains(string expectedText)
+    parameters:
+    - id: expectedText
+      type: System.String
+    return:
+      type: CurlDotNet.Core.CurlResult
+    content.vb: Public Function EnsureContains(expectedText As String) As CurlResult
+  overload: CurlDotNet.Core.CurlResult.EnsureContains*
+  nameWithType.vb: CurlResult.EnsureContains(String)
+  fullName.vb: CurlDotNet.Core.CurlResult.EnsureContains(String)
+  name.vb: EnsureContains(String)
+- uid: CurlDotNet.Core.CurlResult.Retry
+  commentId: M:CurlDotNet.Core.CurlResult.Retry
+  id: Retry
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: Retry()
+  nameWithType: CurlResult.Retry()
+  fullName: CurlDotNet.Core.CurlResult.Retry()
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Retry
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 853
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Retry the same curl command again.</b></p>
+
+
+    <p>Simple retry for transient failures:</p>
+
+
+    <pre><code class="lang-csharp">// First attempt
+
+    var result = await Curl.Execute("curl https://flaky-api.example.com");
+
+
+    // Retry if it failed
+
+    if (!result.IsSuccess)
+
+    {
+        result = await result.Retry();
+    }
+
+
+    // Retry with delay
+
+    if (result.StatusCode == 429)  // Too many requests
+
+    {
+        await Task.Delay(5000);
+        result = await result.Retry();
+    }</code></pre>
+  example: []
+  syntax:
+    content: public Task<CurlResult> Retry()
+    return:
+      type: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+      description: New result from retrying the command
+    content.vb: Public Function Retry() As Task(Of CurlResult)
+  overload: CurlDotNet.Core.CurlResult.Retry*
+- uid: CurlDotNet.Core.CurlResult.RetryWith(System.Action{CurlDotNet.Core.CurlSettings})
+  commentId: M:CurlDotNet.Core.CurlResult.RetryWith(System.Action{CurlDotNet.Core.CurlSettings})
+  id: RetryWith(System.Action{CurlDotNet.Core.CurlSettings})
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: RetryWith(Action<CurlSettings>)
+  nameWithType: CurlResult.RetryWith(Action<CurlSettings>)
+  fullName: CurlDotNet.Core.CurlResult.RetryWith(System.Action<CurlDotNet.Core.CurlSettings>)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: RetryWith
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 879
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Retry with modifications to the original command.</b></p>
+
+
+    <p>Retry with different settings:</p>
+
+
+    <pre><code class="lang-csharp">// Retry with longer timeout
+
+    var result = await result.RetryWith(settings =&gt;
+
+    {
+        settings.Timeout = TimeSpan.FromSeconds(60);
+    });
+
+
+    // Retry with authentication
+
+    var result = await result.RetryWith(settings =&gt;
+
+    {
+        settings.AddHeader("Authorization", "Bearer " + token);
+    });</code></pre>
+  example: []
+  syntax:
+    content: public Task<CurlResult> RetryWith(Action<CurlSettings> configure)
+    parameters:
+    - id: configure
+      type: System.Action{CurlDotNet.Core.CurlSettings}
+    return:
+      type: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+    content.vb: Public Function RetryWith(configure As Action(Of CurlSettings)) As Task(Of CurlResult)
+  overload: CurlDotNet.Core.CurlResult.RetryWith*
+  nameWithType.vb: CurlResult.RetryWith(Action(Of CurlSettings))
+  fullName.vb: CurlDotNet.Core.CurlResult.RetryWith(System.Action(Of CurlDotNet.Core.CurlSettings))
+  name.vb: RetryWith(Action(Of CurlSettings))
+- uid: CurlDotNet.Core.CurlResult.PrintBody
+  commentId: M:CurlDotNet.Core.CurlResult.PrintBody
+  id: PrintBody
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: PrintBody()
+  nameWithType: CurlResult.PrintBody()
+  fullName: CurlDotNet.Core.CurlResult.PrintBody()
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: PrintBody
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 908
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Print the response body to console.</b></p>
+
+
+    <p>Quick debugging output:</p>
+
+
+    <pre><code class="lang-csharp">result.PrintBody();  // Just prints the body
+
+
+    // Chain with other operations
+
+    result
+        .PrintBody()           // Debug output
+        .SaveToFile("out.txt") // Also save it
+        .ParseJson&lt;Data&gt;();   // Then parse</code></pre>
+  example: []
+  syntax:
+    content: public CurlResult PrintBody()
+    return:
+      type: CurlDotNet.Core.CurlResult
+      description: This result (for chaining)
+    content.vb: Public Function PrintBody() As CurlResult
+  overload: CurlDotNet.Core.CurlResult.PrintBody*
+- uid: CurlDotNet.Core.CurlResult.Print
+  commentId: M:CurlDotNet.Core.CurlResult.Print
+  id: Print
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: Print()
+  nameWithType: CurlResult.Print()
+  fullName: CurlDotNet.Core.CurlResult.Print()
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Print
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 925
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Print status code and body to console.</b></p>
+
+
+    <p>More detailed debug output:</p>
+
+
+    <pre><code class="lang-csharp">result.Print();
+
+    // Output:
+
+    // Status: 200
+
+    // {"name":"John","age":30}</code></pre>
+  example: []
+  syntax:
+    content: public CurlResult Print()
+    return:
+      type: CurlDotNet.Core.CurlResult
+    content.vb: Public Function Print() As CurlResult
+  overload: CurlDotNet.Core.CurlResult.Print*
+- uid: CurlDotNet.Core.CurlResult.PrintVerbose
+  commentId: M:CurlDotNet.Core.CurlResult.PrintVerbose
+  id: PrintVerbose
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: PrintVerbose()
+  nameWithType: CurlResult.PrintVerbose()
+  fullName: CurlDotNet.Core.CurlResult.PrintVerbose()
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: PrintVerbose
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 947
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Print everything - status, headers, and body (like curl -v).</b></p>
+
+
+    <p>Full debug output:</p>
+
+
+    <pre><code class="lang-csharp">result.PrintVerbose();
+
+    // Output:
+
+    // Status: 200
+
+    // Headers:
+
+    //   Content-Type: application/json
+
+    //   Content-Length: 123
+
+    // Body:
+
+    // {"name":"John"}</code></pre>
+  example: []
+  syntax:
+    content: public CurlResult PrintVerbose()
+    return:
+      type: CurlDotNet.Core.CurlResult
+    content.vb: Public Function PrintVerbose() As CurlResult
+  overload: CurlDotNet.Core.CurlResult.PrintVerbose*
+- uid: CurlDotNet.Core.CurlResult.Transform``1(System.Func{CurlDotNet.Core.CurlResult,``0})
+  commentId: M:CurlDotNet.Core.CurlResult.Transform``1(System.Func{CurlDotNet.Core.CurlResult,``0})
+  id: Transform``1(System.Func{CurlDotNet.Core.CurlResult,``0})
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: Transform<T>(Func<CurlResult, T>)
+  nameWithType: CurlResult.Transform<T>(Func<CurlResult, T>)
+  fullName: CurlDotNet.Core.CurlResult.Transform<T>(System.Func<CurlDotNet.Core.CurlResult, T>)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Transform
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 994
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Transform the result using your own function.</b></p>
+
+
+    <p>Extract or convert data however you need:</p>
+
+
+    <pre><code class="lang-csharp">// Extract just what you need
+
+    var name = result.Transform(r =&gt;
+
+    {
+        var user = r.ParseJson&lt;User&gt;();
+        return user.Name;
+    });
+
+
+    // Convert to your own type
+
+    var summary = result.Transform(r =&gt; new
+
+    {
+        Success = r.IsSuccess,
+        Size = r.Body?.Length ?? 0,
+        Type = r.GetHeader("Content-Type")
+    });</code></pre>
+  example: []
+  syntax:
+    content: public T Transform<T>(Func<CurlResult, T> transformer)
+    parameters:
+    - id: transformer
+      type: System.Func{CurlDotNet.Core.CurlResult,{T}}
+    typeParameters:
+    - id: T
+    return:
+      type: '{T}'
+    content.vb: Public Function Transform(Of T)(transformer As Func(Of CurlResult, T)) As T
+  overload: CurlDotNet.Core.CurlResult.Transform*
+  nameWithType.vb: CurlResult.Transform(Of T)(Func(Of CurlResult, T))
+  fullName.vb: CurlDotNet.Core.CurlResult.Transform(Of T)(System.Func(Of CurlDotNet.Core.CurlResult, T))
+  name.vb: Transform(Of T)(Func(Of CurlResult, T))
+- uid: CurlDotNet.Core.CurlResult.ToStream
+  commentId: M:CurlDotNet.Core.CurlResult.ToStream
+  id: ToStream
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: ToStream()
+  nameWithType: CurlResult.ToStream()
+  fullName: CurlDotNet.Core.CurlResult.ToStream()
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ToStream
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 1015
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Convert the response to a Stream for reading.</b></p>
+
+
+    <p>Useful for streaming or processing data:</p>
+
+
+    <pre><code class="lang-csharp">using var stream = result.ToStream();
+
+    using var reader = new StreamReader(stream);
+
+    var line = await reader.ReadLineAsync();
+
+
+    // Or for binary data
+
+    using var stream = result.ToStream();
+
+    var buffer = new byte[1024];
+
+    var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);</code></pre>
+  example: []
+  syntax:
+    content: public Stream ToStream()
+    return:
+      type: System.IO.Stream
+      description: A MemoryStream containing the response data
+    content.vb: Public Function ToStream() As Stream
+  overload: CurlDotNet.Core.CurlResult.ToStream*
+- uid: CurlDotNet.Core.CurlResult.FilterLines(System.Func{System.String,System.Boolean})
+  commentId: M:CurlDotNet.Core.CurlResult.FilterLines(System.Func{System.String,System.Boolean})
+  id: FilterLines(System.Func{System.String,System.Boolean})
+  parent: CurlDotNet.Core.CurlResult
+  langs:
+  - csharp
+  - vb
+  name: FilterLines(Func<string, bool>)
+  nameWithType: CurlResult.FilterLines(Func<string, bool>)
+  fullName: CurlDotNet.Core.CurlResult.FilterLines(System.Func<string, bool>)
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlResult.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: FilterLines
+    path: src/CurlDotNet/Core/CurlResult.cs
+    startLine: 1047
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: >-
+    <p><b>Extract lines that match a condition.</b></p>
+
+
+    <p>Filter text responses:</p>
+
+
+    <pre><code class="lang-csharp">// Keep only error lines
+
+    result.FilterLines(line =&gt; line.Contains("ERROR"));
+
+
+    // Remove empty lines
+
+    result.FilterLines(line =&gt; !string.IsNullOrWhiteSpace(line));
+
+
+    // Keep lines starting with data
+
+    result.FilterLines(line =&gt; line.StartsWith("data:"));</code></pre>
+  example: []
+  syntax:
+    content: public CurlResult FilterLines(Func<string, bool> predicate)
+    parameters:
+    - id: predicate
+      type: System.Func{System.String,System.Boolean}
+    return:
+      type: CurlDotNet.Core.CurlResult
+    content.vb: Public Function FilterLines(predicate As Func(Of String, Boolean)) As CurlResult
+  overload: CurlDotNet.Core.CurlResult.FilterLines*
+  nameWithType.vb: CurlResult.FilterLines(Func(Of String, Boolean))
+  fullName.vb: CurlDotNet.Core.CurlResult.FilterLines(System.Func(Of String, Boolean))
+  name.vb: FilterLines(Func(Of String, Boolean))
+references:
+- uid: CurlDotNet.Core
+  commentId: N:CurlDotNet.Core
+  href: CurlDotNet.html
+  name: CurlDotNet.Core
+  nameWithType: CurlDotNet.Core
+  fullName: CurlDotNet.Core
+  spec.csharp:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Core
+    name: Core
+    href: CurlDotNet.Core.html
+  spec.vb:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Core
+    name: Core
+    href: CurlDotNet.Core.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode
+  commentId: M:CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode(CurlDotNet.Core.CurlResult)
+  parent: CurlDotNet.ErgonomicExtensions
+  definition: CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode(CurlDotNet.Core.CurlResult)
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_EnsureSuccessStatusCode_CurlDotNet_Core_CurlResult_
+  name: EnsureSuccessStatusCode(CurlResult)
+  nameWithType: ErgonomicExtensions.EnsureSuccessStatusCode(CurlResult)
+  fullName: CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode(CurlDotNet.Core.CurlResult)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode(CurlDotNet.Core.CurlResult)
+    name: EnsureSuccessStatusCode
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_EnsureSuccessStatusCode_CurlDotNet_Core_CurlResult_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode(CurlDotNet.Core.CurlResult)
+    name: EnsureSuccessStatusCode
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_EnsureSuccessStatusCode_CurlDotNet_Core_CurlResult_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.GetHeader(System.String)
+  commentId: M:CurlDotNet.ErgonomicExtensions.GetHeader(CurlDotNet.Core.CurlResult,System.String)
+  parent: CurlDotNet.ErgonomicExtensions
+  definition: CurlDotNet.ErgonomicExtensions.GetHeader(CurlDotNet.Core.CurlResult,System.String)
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_GetHeader_CurlDotNet_Core_CurlResult_System_String_
+  name: GetHeader(CurlResult, string)
+  nameWithType: ErgonomicExtensions.GetHeader(CurlResult, string)
+  fullName: CurlDotNet.ErgonomicExtensions.GetHeader(CurlDotNet.Core.CurlResult, string)
+  nameWithType.vb: ErgonomicExtensions.GetHeader(CurlResult, String)
+  fullName.vb: CurlDotNet.ErgonomicExtensions.GetHeader(CurlDotNet.Core.CurlResult, String)
+  name.vb: GetHeader(CurlResult, String)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.GetHeader(CurlDotNet.Core.CurlResult,System.String)
+    name: GetHeader
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_GetHeader_CurlDotNet_Core_CurlResult_System_String_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.GetHeader(CurlDotNet.Core.CurlResult,System.String)
+    name: GetHeader
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_GetHeader_CurlDotNet_Core_CurlResult_System_String_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.HasContentType(System.String)
+  commentId: M:CurlDotNet.ErgonomicExtensions.HasContentType(CurlDotNet.Core.CurlResult,System.String)
+  parent: CurlDotNet.ErgonomicExtensions
+  definition: CurlDotNet.ErgonomicExtensions.HasContentType(CurlDotNet.Core.CurlResult,System.String)
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_HasContentType_CurlDotNet_Core_CurlResult_System_String_
+  name: HasContentType(CurlResult, string)
+  nameWithType: ErgonomicExtensions.HasContentType(CurlResult, string)
+  fullName: CurlDotNet.ErgonomicExtensions.HasContentType(CurlDotNet.Core.CurlResult, string)
+  nameWithType.vb: ErgonomicExtensions.HasContentType(CurlResult, String)
+  fullName.vb: CurlDotNet.ErgonomicExtensions.HasContentType(CurlDotNet.Core.CurlResult, String)
+  name.vb: HasContentType(CurlResult, String)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.HasContentType(CurlDotNet.Core.CurlResult,System.String)
+    name: HasContentType
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_HasContentType_CurlDotNet_Core_CurlResult_System_String_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.HasContentType(CurlDotNet.Core.CurlResult,System.String)
+    name: HasContentType
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_HasContentType_CurlDotNet_Core_CurlResult_System_String_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.ParseJson``1(System.Text.Json.JsonSerializerOptions)
+  commentId: M:CurlDotNet.ErgonomicExtensions.ParseJson``1(CurlDotNet.Core.CurlResult,System.Text.Json.JsonSerializerOptions)
+  parent: CurlDotNet.ErgonomicExtensions
+  definition: CurlDotNet.ErgonomicExtensions.ParseJson``1(CurlDotNet.Core.CurlResult,System.Text.Json.JsonSerializerOptions)
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_ParseJson__1_CurlDotNet_Core_CurlResult_System_Text_Json_JsonSerializerOptions_
+  name: ParseJson<T>(CurlResult, JsonSerializerOptions)
+  nameWithType: ErgonomicExtensions.ParseJson<T>(CurlResult, JsonSerializerOptions)
+  fullName: CurlDotNet.ErgonomicExtensions.ParseJson<T>(CurlDotNet.Core.CurlResult, System.Text.Json.JsonSerializerOptions)
+  nameWithType.vb: ErgonomicExtensions.ParseJson(Of T)(CurlResult, JsonSerializerOptions)
+  fullName.vb: CurlDotNet.ErgonomicExtensions.ParseJson(Of T)(CurlDotNet.Core.CurlResult, System.Text.Json.JsonSerializerOptions)
+  name.vb: ParseJson(Of T)(CurlResult, JsonSerializerOptions)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.ParseJson``1(CurlDotNet.Core.CurlResult,System.Text.Json.JsonSerializerOptions)
+    name: ParseJson
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_ParseJson__1_CurlDotNet_Core_CurlResult_System_Text_Json_JsonSerializerOptions_
+  - name: <
+  - name: T
+  - name: '>'
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.Text.Json.JsonSerializerOptions
+    name: JsonSerializerOptions
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.jsonserializeroptions
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.ParseJson``1(CurlDotNet.Core.CurlResult,System.Text.Json.JsonSerializerOptions)
+    name: ParseJson
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_ParseJson__1_CurlDotNet_Core_CurlResult_System_Text_Json_JsonSerializerOptions_
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.Text.Json.JsonSerializerOptions
+    name: JsonSerializerOptions
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.jsonserializeroptions
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.SaveToFile(System.String)
+  commentId: M:CurlDotNet.ErgonomicExtensions.SaveToFile(CurlDotNet.Core.CurlResult,System.String)
+  parent: CurlDotNet.ErgonomicExtensions
+  definition: CurlDotNet.ErgonomicExtensions.SaveToFile(CurlDotNet.Core.CurlResult,System.String)
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_SaveToFile_CurlDotNet_Core_CurlResult_System_String_
+  name: SaveToFile(CurlResult, string)
+  nameWithType: ErgonomicExtensions.SaveToFile(CurlResult, string)
+  fullName: CurlDotNet.ErgonomicExtensions.SaveToFile(CurlDotNet.Core.CurlResult, string)
+  nameWithType.vb: ErgonomicExtensions.SaveToFile(CurlResult, String)
+  fullName.vb: CurlDotNet.ErgonomicExtensions.SaveToFile(CurlDotNet.Core.CurlResult, String)
+  name.vb: SaveToFile(CurlResult, String)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.SaveToFile(CurlDotNet.Core.CurlResult,System.String)
+    name: SaveToFile
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_SaveToFile_CurlDotNet_Core_CurlResult_System_String_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.SaveToFile(CurlDotNet.Core.CurlResult,System.String)
+    name: SaveToFile
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_SaveToFile_CurlDotNet_Core_CurlResult_System_String_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.ToSimple
+  commentId: M:CurlDotNet.ErgonomicExtensions.ToSimple(CurlDotNet.Core.CurlResult)
+  parent: CurlDotNet.ErgonomicExtensions
+  definition: CurlDotNet.ErgonomicExtensions.ToSimple(CurlDotNet.Core.CurlResult)
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_ToSimple_CurlDotNet_Core_CurlResult_
+  name: ToSimple(CurlResult)
+  nameWithType: ErgonomicExtensions.ToSimple(CurlResult)
+  fullName: CurlDotNet.ErgonomicExtensions.ToSimple(CurlDotNet.Core.CurlResult)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.ToSimple(CurlDotNet.Core.CurlResult)
+    name: ToSimple
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_ToSimple_CurlDotNet_Core_CurlResult_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.ToSimple(CurlDotNet.Core.CurlResult)
+    name: ToSimple
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_ToSimple_CurlDotNet_Core_CurlResult_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.CurlDotNet.ErgonomicExtensions.TryParseJson``1({T}@,System.Text.Json.JsonSerializerOptions)
+  commentId: M:CurlDotNet.ErgonomicExtensions.TryParseJson``1(CurlDotNet.Core.CurlResult,``0@,System.Text.Json.JsonSerializerOptions)
+  parent: CurlDotNet.ErgonomicExtensions
+  definition: CurlDotNet.ErgonomicExtensions.TryParseJson``1(CurlDotNet.Core.CurlResult,``0@,System.Text.Json.JsonSerializerOptions)
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_TryParseJson__1_CurlDotNet_Core_CurlResult___0__System_Text_Json_JsonSerializerOptions_
+  name: TryParseJson<T>(CurlResult, out T, JsonSerializerOptions)
+  nameWithType: ErgonomicExtensions.TryParseJson<T>(CurlResult, out T, JsonSerializerOptions)
+  fullName: CurlDotNet.ErgonomicExtensions.TryParseJson<T>(CurlDotNet.Core.CurlResult, out T, System.Text.Json.JsonSerializerOptions)
+  nameWithType.vb: ErgonomicExtensions.TryParseJson(Of T)(CurlResult, T, JsonSerializerOptions)
+  fullName.vb: CurlDotNet.ErgonomicExtensions.TryParseJson(Of T)(CurlDotNet.Core.CurlResult, T, System.Text.Json.JsonSerializerOptions)
+  name.vb: TryParseJson(Of T)(CurlResult, T, JsonSerializerOptions)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.TryParseJson``1(CurlDotNet.Core.CurlResult,``0@,System.Text.Json.JsonSerializerOptions)
+    name: TryParseJson
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_TryParseJson__1_CurlDotNet_Core_CurlResult___0__System_Text_Json_JsonSerializerOptions_
+  - name: <
+  - name: T
+  - name: '>'
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - name: out
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - uid: System.Text.Json.JsonSerializerOptions
+    name: JsonSerializerOptions
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.jsonserializeroptions
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.TryParseJson``1(CurlDotNet.Core.CurlResult,``0@,System.Text.Json.JsonSerializerOptions)
+    name: TryParseJson
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_TryParseJson__1_CurlDotNet_Core_CurlResult___0__System_Text_Json_JsonSerializerOptions_
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - uid: System.Text.Json.JsonSerializerOptions
+    name: JsonSerializerOptions
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.jsonserializeroptions
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode(CurlDotNet.Core.CurlResult)
+  commentId: M:CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode(CurlDotNet.Core.CurlResult)
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_EnsureSuccessStatusCode_CurlDotNet_Core_CurlResult_
+  name: EnsureSuccessStatusCode(CurlResult)
+  nameWithType: ErgonomicExtensions.EnsureSuccessStatusCode(CurlResult)
+  fullName: CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode(CurlDotNet.Core.CurlResult)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode(CurlDotNet.Core.CurlResult)
+    name: EnsureSuccessStatusCode
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_EnsureSuccessStatusCode_CurlDotNet_Core_CurlResult_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode(CurlDotNet.Core.CurlResult)
+    name: EnsureSuccessStatusCode
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_EnsureSuccessStatusCode_CurlDotNet_Core_CurlResult_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: )
+- uid: CurlDotNet.ErgonomicExtensions
+  commentId: T:CurlDotNet.ErgonomicExtensions
+  parent: CurlDotNet
+  href: CurlDotNet.ErgonomicExtensions.html
+  name: ErgonomicExtensions
+  nameWithType: ErgonomicExtensions
+  fullName: CurlDotNet.ErgonomicExtensions
+- uid: CurlDotNet.ErgonomicExtensions.GetHeader(CurlDotNet.Core.CurlResult,System.String)
+  commentId: M:CurlDotNet.ErgonomicExtensions.GetHeader(CurlDotNet.Core.CurlResult,System.String)
+  isExternal: true
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_GetHeader_CurlDotNet_Core_CurlResult_System_String_
+  name: GetHeader(CurlResult, string)
+  nameWithType: ErgonomicExtensions.GetHeader(CurlResult, string)
+  fullName: CurlDotNet.ErgonomicExtensions.GetHeader(CurlDotNet.Core.CurlResult, string)
+  nameWithType.vb: ErgonomicExtensions.GetHeader(CurlResult, String)
+  fullName.vb: CurlDotNet.ErgonomicExtensions.GetHeader(CurlDotNet.Core.CurlResult, String)
+  name.vb: GetHeader(CurlResult, String)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.GetHeader(CurlDotNet.Core.CurlResult,System.String)
+    name: GetHeader
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_GetHeader_CurlDotNet_Core_CurlResult_System_String_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.GetHeader(CurlDotNet.Core.CurlResult,System.String)
+    name: GetHeader
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_GetHeader_CurlDotNet_Core_CurlResult_System_String_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: CurlDotNet.ErgonomicExtensions.HasContentType(CurlDotNet.Core.CurlResult,System.String)
+  commentId: M:CurlDotNet.ErgonomicExtensions.HasContentType(CurlDotNet.Core.CurlResult,System.String)
+  isExternal: true
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_HasContentType_CurlDotNet_Core_CurlResult_System_String_
+  name: HasContentType(CurlResult, string)
+  nameWithType: ErgonomicExtensions.HasContentType(CurlResult, string)
+  fullName: CurlDotNet.ErgonomicExtensions.HasContentType(CurlDotNet.Core.CurlResult, string)
+  nameWithType.vb: ErgonomicExtensions.HasContentType(CurlResult, String)
+  fullName.vb: CurlDotNet.ErgonomicExtensions.HasContentType(CurlDotNet.Core.CurlResult, String)
+  name.vb: HasContentType(CurlResult, String)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.HasContentType(CurlDotNet.Core.CurlResult,System.String)
+    name: HasContentType
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_HasContentType_CurlDotNet_Core_CurlResult_System_String_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.HasContentType(CurlDotNet.Core.CurlResult,System.String)
+    name: HasContentType
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_HasContentType_CurlDotNet_Core_CurlResult_System_String_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: CurlDotNet.ErgonomicExtensions.ParseJson``1(CurlDotNet.Core.CurlResult,System.Text.Json.JsonSerializerOptions)
+  commentId: M:CurlDotNet.ErgonomicExtensions.ParseJson``1(CurlDotNet.Core.CurlResult,System.Text.Json.JsonSerializerOptions)
+  isExternal: true
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_ParseJson__1_CurlDotNet_Core_CurlResult_System_Text_Json_JsonSerializerOptions_
+  name: ParseJson<T>(CurlResult, JsonSerializerOptions)
+  nameWithType: ErgonomicExtensions.ParseJson<T>(CurlResult, JsonSerializerOptions)
+  fullName: CurlDotNet.ErgonomicExtensions.ParseJson<T>(CurlDotNet.Core.CurlResult, System.Text.Json.JsonSerializerOptions)
+  nameWithType.vb: ErgonomicExtensions.ParseJson(Of T)(CurlResult, JsonSerializerOptions)
+  fullName.vb: CurlDotNet.ErgonomicExtensions.ParseJson(Of T)(CurlDotNet.Core.CurlResult, System.Text.Json.JsonSerializerOptions)
+  name.vb: ParseJson(Of T)(CurlResult, JsonSerializerOptions)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.ParseJson``1(CurlDotNet.Core.CurlResult,System.Text.Json.JsonSerializerOptions)
+    name: ParseJson
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_ParseJson__1_CurlDotNet_Core_CurlResult_System_Text_Json_JsonSerializerOptions_
+  - name: <
+  - name: T
+  - name: '>'
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.Text.Json.JsonSerializerOptions
+    name: JsonSerializerOptions
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.jsonserializeroptions
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.ParseJson``1(CurlDotNet.Core.CurlResult,System.Text.Json.JsonSerializerOptions)
+    name: ParseJson
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_ParseJson__1_CurlDotNet_Core_CurlResult_System_Text_Json_JsonSerializerOptions_
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.Text.Json.JsonSerializerOptions
+    name: JsonSerializerOptions
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.jsonserializeroptions
+  - name: )
+- uid: CurlDotNet.ErgonomicExtensions.SaveToFile(CurlDotNet.Core.CurlResult,System.String)
+  commentId: M:CurlDotNet.ErgonomicExtensions.SaveToFile(CurlDotNet.Core.CurlResult,System.String)
+  isExternal: true
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_SaveToFile_CurlDotNet_Core_CurlResult_System_String_
+  name: SaveToFile(CurlResult, string)
+  nameWithType: ErgonomicExtensions.SaveToFile(CurlResult, string)
+  fullName: CurlDotNet.ErgonomicExtensions.SaveToFile(CurlDotNet.Core.CurlResult, string)
+  nameWithType.vb: ErgonomicExtensions.SaveToFile(CurlResult, String)
+  fullName.vb: CurlDotNet.ErgonomicExtensions.SaveToFile(CurlDotNet.Core.CurlResult, String)
+  name.vb: SaveToFile(CurlResult, String)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.SaveToFile(CurlDotNet.Core.CurlResult,System.String)
+    name: SaveToFile
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_SaveToFile_CurlDotNet_Core_CurlResult_System_String_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.SaveToFile(CurlDotNet.Core.CurlResult,System.String)
+    name: SaveToFile
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_SaveToFile_CurlDotNet_Core_CurlResult_System_String_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: CurlDotNet.ErgonomicExtensions.ToSimple(CurlDotNet.Core.CurlResult)
+  commentId: M:CurlDotNet.ErgonomicExtensions.ToSimple(CurlDotNet.Core.CurlResult)
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_ToSimple_CurlDotNet_Core_CurlResult_
+  name: ToSimple(CurlResult)
+  nameWithType: ErgonomicExtensions.ToSimple(CurlResult)
+  fullName: CurlDotNet.ErgonomicExtensions.ToSimple(CurlDotNet.Core.CurlResult)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.ToSimple(CurlDotNet.Core.CurlResult)
+    name: ToSimple
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_ToSimple_CurlDotNet_Core_CurlResult_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.ToSimple(CurlDotNet.Core.CurlResult)
+    name: ToSimple
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_ToSimple_CurlDotNet_Core_CurlResult_
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: )
+- uid: CurlDotNet.ErgonomicExtensions.TryParseJson``1(CurlDotNet.Core.CurlResult,``0@,System.Text.Json.JsonSerializerOptions)
+  commentId: M:CurlDotNet.ErgonomicExtensions.TryParseJson``1(CurlDotNet.Core.CurlResult,``0@,System.Text.Json.JsonSerializerOptions)
+  isExternal: true
+  href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_TryParseJson__1_CurlDotNet_Core_CurlResult___0__System_Text_Json_JsonSerializerOptions_
+  name: TryParseJson<T>(CurlResult, out T, JsonSerializerOptions)
+  nameWithType: ErgonomicExtensions.TryParseJson<T>(CurlResult, out T, JsonSerializerOptions)
+  fullName: CurlDotNet.ErgonomicExtensions.TryParseJson<T>(CurlDotNet.Core.CurlResult, out T, System.Text.Json.JsonSerializerOptions)
+  nameWithType.vb: ErgonomicExtensions.TryParseJson(Of T)(CurlResult, T, JsonSerializerOptions)
+  fullName.vb: CurlDotNet.ErgonomicExtensions.TryParseJson(Of T)(CurlDotNet.Core.CurlResult, T, System.Text.Json.JsonSerializerOptions)
+  name.vb: TryParseJson(Of T)(CurlResult, T, JsonSerializerOptions)
+  spec.csharp:
+  - uid: CurlDotNet.ErgonomicExtensions.TryParseJson``1(CurlDotNet.Core.CurlResult,``0@,System.Text.Json.JsonSerializerOptions)
+    name: TryParseJson
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_TryParseJson__1_CurlDotNet_Core_CurlResult___0__System_Text_Json_JsonSerializerOptions_
+  - name: <
+  - name: T
+  - name: '>'
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - name: out
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - uid: System.Text.Json.JsonSerializerOptions
+    name: JsonSerializerOptions
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.jsonserializeroptions
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.ErgonomicExtensions.TryParseJson``1(CurlDotNet.Core.CurlResult,``0@,System.Text.Json.JsonSerializerOptions)
+    name: TryParseJson
+    href: CurlDotNet.ErgonomicExtensions.html#CurlDotNet_ErgonomicExtensions_TryParseJson__1_CurlDotNet_Core_CurlResult___0__System_Text_Json_JsonSerializerOptions_
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+  - name: (
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - uid: System.Text.Json.JsonSerializerOptions
+    name: JsonSerializerOptions
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.text.json.jsonserializeroptions
+  - name: )
+- uid: CurlDotNet
+  commentId: N:CurlDotNet
+  href: CurlDotNet.html
+  name: CurlDotNet
+  nameWithType: CurlDotNet
+  fullName: CurlDotNet
+- uid: CurlDotNet.Core.CurlResult.StatusCode*
+  commentId: Overload:CurlDotNet.Core.CurlResult.StatusCode
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_StatusCode
+  name: StatusCode
+  nameWithType: CurlResult.StatusCode
+  fullName: CurlDotNet.Core.CurlResult.StatusCode
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: CurlDotNet.Core.CurlResult.BinaryData
+  commentId: P:CurlDotNet.Core.CurlResult.BinaryData
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_BinaryData
+  name: BinaryData
+  nameWithType: CurlResult.BinaryData
+  fullName: CurlDotNet.Core.CurlResult.BinaryData
+- uid: CurlDotNet.Core.CurlResult.Body*
+  commentId: Overload:CurlDotNet.Core.CurlResult.Body
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Body
+  name: Body
+  nameWithType: CurlResult.Body
+  fullName: CurlDotNet.Core.CurlResult.Body
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: CurlDotNet.Core.CurlResult.Headers*
+  commentId: Overload:CurlDotNet.Core.CurlResult.Headers
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Headers
+  name: Headers
+  nameWithType: CurlResult.Headers
+  fullName: CurlDotNet.Core.CurlResult.Headers
+- uid: System.Collections.Generic.Dictionary{System.String,System.String}
+  commentId: T:System.Collections.Generic.Dictionary{System.String,System.String}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.Dictionary`2
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  name: Dictionary<string, string>
+  nameWithType: Dictionary<string, string>
+  fullName: System.Collections.Generic.Dictionary<string, string>
+  nameWithType.vb: Dictionary(Of String, String)
+  fullName.vb: System.Collections.Generic.Dictionary(Of String, String)
+  name.vb: Dictionary(Of String, String)
+  spec.csharp:
+  - uid: System.Collections.Generic.Dictionary`2
+    name: Dictionary
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  - name: <
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.Dictionary`2
+    name: Dictionary
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: System.Collections.Generic.Dictionary`2
+  commentId: T:System.Collections.Generic.Dictionary`2
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  name: Dictionary<TKey, TValue>
+  nameWithType: Dictionary<TKey, TValue>
+  fullName: System.Collections.Generic.Dictionary<TKey, TValue>
+  nameWithType.vb: Dictionary(Of TKey, TValue)
+  fullName.vb: System.Collections.Generic.Dictionary(Of TKey, TValue)
+  name.vb: Dictionary(Of TKey, TValue)
+  spec.csharp:
+  - uid: System.Collections.Generic.Dictionary`2
+    name: Dictionary
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  - name: <
+  - name: TKey
+  - name: ','
+  - name: " "
+  - name: TValue
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.Dictionary`2
+    name: Dictionary
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TKey
+  - name: ','
+  - name: " "
+  - name: TValue
+  - name: )
+- uid: System.Collections.Generic
+  commentId: N:System.Collections.Generic
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Collections.Generic
+  nameWithType: System.Collections.Generic
+  fullName: System.Collections.Generic
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Collections
+    name: Collections
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections
+  - name: .
+  - uid: System.Collections.Generic
+    name: Generic
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Collections
+    name: Collections
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections
+  - name: .
+  - uid: System.Collections.Generic
+    name: Generic
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic
+- uid: CurlDotNet.Core.CurlResult.IsSuccess*
+  commentId: Overload:CurlDotNet.Core.CurlResult.IsSuccess
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_IsSuccess
+  name: IsSuccess
+  nameWithType: CurlResult.IsSuccess
+  fullName: CurlDotNet.Core.CurlResult.IsSuccess
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: CurlDotNet.Core.CurlResult.BinaryData*
+  commentId: Overload:CurlDotNet.Core.CurlResult.BinaryData
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_BinaryData
+  name: BinaryData
+  nameWithType: CurlResult.BinaryData
+  fullName: CurlDotNet.Core.CurlResult.BinaryData
+- uid: System.Byte[]
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.byte
+  name: byte[]
+  nameWithType: byte[]
+  fullName: byte[]
+  nameWithType.vb: Byte()
+  fullName.vb: Byte()
+  name.vb: Byte()
+  spec.csharp:
+  - uid: System.Byte
+    name: byte
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.byte
+  - name: '['
+  - name: ']'
+  spec.vb:
+  - uid: System.Byte
+    name: Byte
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.byte
+  - name: (
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.IsBinary*
+  commentId: Overload:CurlDotNet.Core.CurlResult.IsBinary
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_IsBinary
+  name: IsBinary
+  nameWithType: CurlResult.IsBinary
+  fullName: CurlDotNet.Core.CurlResult.IsBinary
+- uid: CurlDotNet.Core.CurlResult.Command*
+  commentId: Overload:CurlDotNet.Core.CurlResult.Command
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Command
+  name: Command
+  nameWithType: CurlResult.Command
+  fullName: CurlDotNet.Core.CurlResult.Command
+- uid: CurlDotNet.Core.CurlResult.Timings*
+  commentId: Overload:CurlDotNet.Core.CurlResult.Timings
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Timings
+  name: Timings
+  nameWithType: CurlResult.Timings
+  fullName: CurlDotNet.Core.CurlResult.Timings
+- uid: CurlDotNet.Core.CurlTimings
+  commentId: T:CurlDotNet.Core.CurlTimings
+  parent: CurlDotNet.Core
+  href: CurlDotNet.Core.CurlTimings.html
+  name: CurlTimings
+  nameWithType: CurlTimings
+  fullName: CurlDotNet.Core.CurlTimings
+- uid: CurlDotNet.Core.CurlResult.OutputFiles*
+  commentId: Overload:CurlDotNet.Core.CurlResult.OutputFiles
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_OutputFiles
+  name: OutputFiles
+  nameWithType: CurlResult.OutputFiles
+  fullName: CurlDotNet.Core.CurlResult.OutputFiles
+- uid: System.Collections.Generic.List{System.String}
+  commentId: T:System.Collections.Generic.List{System.String}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.List`1
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1
+  name: List<string>
+  nameWithType: List<string>
+  fullName: System.Collections.Generic.List<string>
+  nameWithType.vb: List(Of String)
+  fullName.vb: System.Collections.Generic.List(Of String)
+  name.vb: List(Of String)
+  spec.csharp:
+  - uid: System.Collections.Generic.List`1
+    name: List
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1
+  - name: <
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.List`1
+    name: List
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: System.Collections.Generic.List`1
+  commentId: T:System.Collections.Generic.List`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1
+  name: List<T>
+  nameWithType: List<T>
+  fullName: System.Collections.Generic.List<T>
+  nameWithType.vb: List(Of T)
+  fullName.vb: System.Collections.Generic.List(Of T)
+  name.vb: List(Of T)
+  spec.csharp:
+  - uid: System.Collections.Generic.List`1
+    name: List
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.List`1
+    name: List
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.Exception*
+  commentId: Overload:CurlDotNet.Core.CurlResult.Exception
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Exception
+  name: Exception
+  nameWithType: CurlResult.Exception
+  fullName: CurlDotNet.Core.CurlResult.Exception
+- uid: System.Exception
+  commentId: T:System.Exception
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception
+  name: Exception
+  nameWithType: Exception
+  fullName: System.Exception
+- uid: CurlDotNet.Core.CurlResult.AsJson``1
+  commentId: M:CurlDotNet.Core.CurlResult.AsJson``1
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AsJson__1
+  name: AsJson<T>()
+  nameWithType: CurlResult.AsJson<T>()
+  fullName: CurlDotNet.Core.CurlResult.AsJson<T>()
+  nameWithType.vb: CurlResult.AsJson(Of T)()
+  fullName.vb: CurlDotNet.Core.CurlResult.AsJson(Of T)()
+  name.vb: AsJson(Of T)()
+  spec.csharp:
+  - uid: CurlDotNet.Core.CurlResult.AsJson``1
+    name: AsJson
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AsJson__1
+  - name: <
+  - name: T
+  - name: '>'
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Core.CurlResult.AsJson``1
+    name: AsJson
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AsJson__1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+  - name: (
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.AsJsonDynamic
+  commentId: M:CurlDotNet.Core.CurlResult.AsJsonDynamic
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AsJsonDynamic
+  name: AsJsonDynamic()
+  nameWithType: CurlResult.AsJsonDynamic()
+  fullName: CurlDotNet.Core.CurlResult.AsJsonDynamic()
+  spec.csharp:
+  - uid: CurlDotNet.Core.CurlResult.AsJsonDynamic
+    name: AsJsonDynamic
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AsJsonDynamic
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Core.CurlResult.AsJsonDynamic
+    name: AsJsonDynamic
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AsJsonDynamic
+  - name: (
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.Body
+  commentId: P:CurlDotNet.Core.CurlResult.Body
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Body
+  name: Body
+  nameWithType: CurlResult.Body
+  fullName: CurlDotNet.Core.CurlResult.Body
+- uid: System.Text.Json.JsonSerializer
+  commentId: T:System.Text.Json.JsonSerializer
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.text.json.jsonserializer
+  name: JsonSerializer
+  nameWithType: JsonSerializer
+  fullName: System.Text.Json.JsonSerializer
+- uid: Newtonsoft.Json.JsonConvert
+  commentId: T:Newtonsoft.Json.JsonConvert
+  isExternal: true
+  name: JsonConvert
+  nameWithType: JsonConvert
+  fullName: Newtonsoft.Json.JsonConvert
+- uid: System.Exception.InnerException
+  commentId: P:System.Exception.InnerException
+  parent: System.Exception
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception.innerexception
+  name: InnerException
+  nameWithType: Exception.InnerException
+  fullName: System.Exception.InnerException
+- uid: System.ArgumentNullException
+  commentId: T:System.ArgumentNullException
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.argumentnullexception
+  name: ArgumentNullException
+  nameWithType: ArgumentNullException
+  fullName: System.ArgumentNullException
+- uid: System.InvalidOperationException
+  commentId: T:System.InvalidOperationException
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.invalidoperationexception
+  name: InvalidOperationException
+  nameWithType: InvalidOperationException
+  fullName: System.InvalidOperationException
+- uid: CurlDotNet.Core.CurlResult.ParseJson*
+  commentId: Overload:CurlDotNet.Core.CurlResult.ParseJson
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_ParseJson__1
+  name: ParseJson
+  nameWithType: CurlResult.ParseJson
+  fullName: CurlDotNet.Core.CurlResult.ParseJson
+- uid: '{T}'
+  commentId: '!:T'
+  definition: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: T
+  name: T
+  nameWithType: T
+  fullName: T
+- uid: CurlDotNet.Core.CurlResult.ParseJson``1
+  commentId: M:CurlDotNet.Core.CurlResult.ParseJson``1
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_ParseJson__1
+  name: ParseJson<T>()
+  nameWithType: CurlResult.ParseJson<T>()
+  fullName: CurlDotNet.Core.CurlResult.ParseJson<T>()
+  nameWithType.vb: CurlResult.ParseJson(Of T)()
+  fullName.vb: CurlDotNet.Core.CurlResult.ParseJson(Of T)()
+  name.vb: ParseJson(Of T)()
+  spec.csharp:
+  - uid: CurlDotNet.Core.CurlResult.ParseJson``1
+    name: ParseJson
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_ParseJson__1
+  - name: <
+  - name: T
+  - name: '>'
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Core.CurlResult.ParseJson``1
+    name: ParseJson
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_ParseJson__1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+  - name: (
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.AsJson*
+  commentId: Overload:CurlDotNet.Core.CurlResult.AsJson
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AsJson__1
+  name: AsJson
+  nameWithType: CurlResult.AsJson
+  fullName: CurlDotNet.Core.CurlResult.AsJson
+- uid: System.Text.Json.JsonDocument
+  commentId: T:System.Text.Json.JsonDocument
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.text.json.jsondocument
+  name: JsonDocument
+  nameWithType: JsonDocument
+  fullName: System.Text.Json.JsonDocument
+- uid: CurlDotNet.Core.CurlResult.AsJsonDynamic*
+  commentId: Overload:CurlDotNet.Core.CurlResult.AsJsonDynamic
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AsJsonDynamic
+  name: AsJsonDynamic
+  nameWithType: CurlResult.AsJsonDynamic
+  fullName: CurlDotNet.Core.CurlResult.AsJsonDynamic
+- uid: dynamic
+  commentId: T:System.Object
+  isExternal: true
+  name: dynamic
+  nameWithType: dynamic
+  fullName: dynamic
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: CurlDotNet.Core.CurlResult.SaveToFileAsync(System.String)
+  commentId: M:CurlDotNet.Core.CurlResult.SaveToFileAsync(System.String)
+  isExternal: true
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_SaveToFileAsync_System_String_
+  name: SaveToFileAsync(string)
+  nameWithType: CurlResult.SaveToFileAsync(string)
+  fullName: CurlDotNet.Core.CurlResult.SaveToFileAsync(string)
+  nameWithType.vb: CurlResult.SaveToFileAsync(String)
+  fullName.vb: CurlDotNet.Core.CurlResult.SaveToFileAsync(String)
+  name.vb: SaveToFileAsync(String)
+  spec.csharp:
+  - uid: CurlDotNet.Core.CurlResult.SaveToFileAsync(System.String)
+    name: SaveToFileAsync
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_SaveToFileAsync_System_String_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Core.CurlResult.SaveToFileAsync(System.String)
+    name: SaveToFileAsync
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_SaveToFileAsync_System_String_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.SaveAsJson(System.String,System.Boolean)
+  commentId: M:CurlDotNet.Core.CurlResult.SaveAsJson(System.String,System.Boolean)
+  isExternal: true
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_SaveAsJson_System_String_System_Boolean_
+  name: SaveAsJson(string, bool)
+  nameWithType: CurlResult.SaveAsJson(string, bool)
+  fullName: CurlDotNet.Core.CurlResult.SaveAsJson(string, bool)
+  nameWithType.vb: CurlResult.SaveAsJson(String, Boolean)
+  fullName.vb: CurlDotNet.Core.CurlResult.SaveAsJson(String, Boolean)
+  name.vb: SaveAsJson(String, Boolean)
+  spec.csharp:
+  - uid: CurlDotNet.Core.CurlResult.SaveAsJson(System.String,System.Boolean)
+    name: SaveAsJson
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_SaveAsJson_System_String_System_Boolean_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Boolean
+    name: bool
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.boolean
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Core.CurlResult.SaveAsJson(System.String,System.Boolean)
+    name: SaveAsJson
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_SaveAsJson_System_String_System_Boolean_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Boolean
+    name: Boolean
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.boolean
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.AppendToFile(System.String)
+  commentId: M:CurlDotNet.Core.CurlResult.AppendToFile(System.String)
+  isExternal: true
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AppendToFile_System_String_
+  name: AppendToFile(string)
+  nameWithType: CurlResult.AppendToFile(string)
+  fullName: CurlDotNet.Core.CurlResult.AppendToFile(string)
+  nameWithType.vb: CurlResult.AppendToFile(String)
+  fullName.vb: CurlDotNet.Core.CurlResult.AppendToFile(String)
+  name.vb: AppendToFile(String)
+  spec.csharp:
+  - uid: CurlDotNet.Core.CurlResult.AppendToFile(System.String)
+    name: AppendToFile
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AppendToFile_System_String_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Core.CurlResult.AppendToFile(System.String)
+    name: AppendToFile
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AppendToFile_System_String_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.SaveToFile*
+  commentId: Overload:CurlDotNet.Core.CurlResult.SaveToFile
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_SaveToFile_System_String_
+  name: SaveToFile
+  nameWithType: CurlResult.SaveToFile
+  fullName: CurlDotNet.Core.CurlResult.SaveToFile
+- uid: CurlDotNet.Core.CurlResult
+  commentId: T:CurlDotNet.Core.CurlResult
+  parent: CurlDotNet.Core
+  href: CurlDotNet.Core.CurlResult.html
+  name: CurlResult
+  nameWithType: CurlResult
+  fullName: CurlDotNet.Core.CurlResult
+- uid: CurlDotNet.Core.CurlResult.SaveToFileAsync*
+  commentId: Overload:CurlDotNet.Core.CurlResult.SaveToFileAsync
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_SaveToFileAsync_System_String_
+  name: SaveToFileAsync
+  nameWithType: CurlResult.SaveToFileAsync
+  fullName: CurlDotNet.Core.CurlResult.SaveToFileAsync
+- uid: System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+  commentId: T:System.Threading.Tasks.Task{CurlDotNet.Core.CurlResult}
+  parent: System.Threading.Tasks
+  definition: System.Threading.Tasks.Task`1
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<CurlResult>
+  nameWithType: Task<CurlResult>
+  fullName: System.Threading.Tasks.Task<CurlDotNet.Core.CurlResult>
+  nameWithType.vb: Task(Of CurlResult)
+  fullName.vb: System.Threading.Tasks.Task(Of CurlDotNet.Core.CurlResult)
+  name.vb: Task(Of CurlResult)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: )
+- uid: System.Threading.Tasks.Task`1
+  commentId: T:System.Threading.Tasks.Task`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  name: Task<TResult>
+  nameWithType: Task<TResult>
+  fullName: System.Threading.Tasks.Task<TResult>
+  nameWithType.vb: Task(Of TResult)
+  fullName.vb: System.Threading.Tasks.Task(Of TResult)
+  name.vb: Task(Of TResult)
+  spec.csharp:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: <
+  - name: TResult
+  - name: '>'
+  spec.vb:
+  - uid: System.Threading.Tasks.Task`1
+    name: Task
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TResult
+  - name: )
+- uid: System.Threading.Tasks
+  commentId: N:System.Threading.Tasks
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Threading.Tasks
+  nameWithType: System.Threading.Tasks
+  fullName: System.Threading.Tasks
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Threading
+    name: Threading
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading
+  - name: .
+  - uid: System.Threading.Tasks
+    name: Tasks
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.threading.tasks
+- uid: CurlDotNet.Core.CurlResult.SaveAsJson*
+  commentId: Overload:CurlDotNet.Core.CurlResult.SaveAsJson
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_SaveAsJson_System_String_System_Boolean_
+  name: SaveAsJson
+  nameWithType: CurlResult.SaveAsJson
+  fullName: CurlDotNet.Core.CurlResult.SaveAsJson
+- uid: CurlDotNet.Core.CurlResult.SaveAsCsv*
+  commentId: Overload:CurlDotNet.Core.CurlResult.SaveAsCsv
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_SaveAsCsv_System_String_
+  name: SaveAsCsv
+  nameWithType: CurlResult.SaveAsCsv
+  fullName: CurlDotNet.Core.CurlResult.SaveAsCsv
+- uid: CurlDotNet.Core.CurlResult.AppendToFile*
+  commentId: Overload:CurlDotNet.Core.CurlResult.AppendToFile
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_AppendToFile_System_String_
+  name: AppendToFile
+  nameWithType: CurlResult.AppendToFile
+  fullName: CurlDotNet.Core.CurlResult.AppendToFile
+- uid: CurlDotNet.Core.CurlResult.HasHeader(System.String)
+  commentId: M:CurlDotNet.Core.CurlResult.HasHeader(System.String)
+  isExternal: true
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_HasHeader_System_String_
+  name: HasHeader(string)
+  nameWithType: CurlResult.HasHeader(string)
+  fullName: CurlDotNet.Core.CurlResult.HasHeader(string)
+  nameWithType.vb: CurlResult.HasHeader(String)
+  fullName.vb: CurlDotNet.Core.CurlResult.HasHeader(String)
+  name.vb: HasHeader(String)
+  spec.csharp:
+  - uid: CurlDotNet.Core.CurlResult.HasHeader(System.String)
+    name: HasHeader
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_HasHeader_System_String_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Core.CurlResult.HasHeader(System.String)
+    name: HasHeader
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_HasHeader_System_String_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.Headers
+  commentId: P:CurlDotNet.Core.CurlResult.Headers
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Headers
+  name: Headers
+  nameWithType: CurlResult.Headers
+  fullName: CurlDotNet.Core.CurlResult.Headers
+- uid: CurlDotNet.Core.CurlResult.GetHeader*
+  commentId: Overload:CurlDotNet.Core.CurlResult.GetHeader
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_GetHeader_System_String_
+  name: GetHeader
+  nameWithType: CurlResult.GetHeader
+  fullName: CurlDotNet.Core.CurlResult.GetHeader
+- uid: CurlDotNet.Core.CurlResult.GetHeader(System.String)
+  commentId: M:CurlDotNet.Core.CurlResult.GetHeader(System.String)
+  isExternal: true
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_GetHeader_System_String_
+  name: GetHeader(string)
+  nameWithType: CurlResult.GetHeader(string)
+  fullName: CurlDotNet.Core.CurlResult.GetHeader(string)
+  nameWithType.vb: CurlResult.GetHeader(String)
+  fullName.vb: CurlDotNet.Core.CurlResult.GetHeader(String)
+  name.vb: GetHeader(String)
+  spec.csharp:
+  - uid: CurlDotNet.Core.CurlResult.GetHeader(System.String)
+    name: GetHeader
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_GetHeader_System_String_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Core.CurlResult.GetHeader(System.String)
+    name: GetHeader
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_GetHeader_System_String_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.HasHeader*
+  commentId: Overload:CurlDotNet.Core.CurlResult.HasHeader
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_HasHeader_System_String_
+  name: HasHeader
+  nameWithType: CurlResult.HasHeader
+  fullName: CurlDotNet.Core.CurlResult.HasHeader
+- uid: CurlDotNet.Core.CurlResult.EnsureStatus(System.Int32)
+  commentId: M:CurlDotNet.Core.CurlResult.EnsureStatus(System.Int32)
+  isExternal: true
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_EnsureStatus_System_Int32_
+  name: EnsureStatus(int)
+  nameWithType: CurlResult.EnsureStatus(int)
+  fullName: CurlDotNet.Core.CurlResult.EnsureStatus(int)
+  nameWithType.vb: CurlResult.EnsureStatus(Integer)
+  fullName.vb: CurlDotNet.Core.CurlResult.EnsureStatus(Integer)
+  name.vb: EnsureStatus(Integer)
+  spec.csharp:
+  - uid: CurlDotNet.Core.CurlResult.EnsureStatus(System.Int32)
+    name: EnsureStatus
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_EnsureStatus_System_Int32_
+  - name: (
+  - uid: System.Int32
+    name: int
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.int32
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Core.CurlResult.EnsureStatus(System.Int32)
+    name: EnsureStatus
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_EnsureStatus_System_Int32_
+  - name: (
+  - uid: System.Int32
+    name: Integer
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.int32
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.EnsureContains(System.String)
+  commentId: M:CurlDotNet.Core.CurlResult.EnsureContains(System.String)
+  isExternal: true
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_EnsureContains_System_String_
+  name: EnsureContains(string)
+  nameWithType: CurlResult.EnsureContains(string)
+  fullName: CurlDotNet.Core.CurlResult.EnsureContains(string)
+  nameWithType.vb: CurlResult.EnsureContains(String)
+  fullName.vb: CurlDotNet.Core.CurlResult.EnsureContains(String)
+  name.vb: EnsureContains(String)
+  spec.csharp:
+  - uid: CurlDotNet.Core.CurlResult.EnsureContains(System.String)
+    name: EnsureContains
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_EnsureContains_System_String_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Core.CurlResult.EnsureContains(System.String)
+    name: EnsureContains
+    href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_EnsureContains_System_String_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.IsSuccess
+  commentId: P:CurlDotNet.Core.CurlResult.IsSuccess
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_IsSuccess
+  name: IsSuccess
+  nameWithType: CurlResult.IsSuccess
+  fullName: CurlDotNet.Core.CurlResult.IsSuccess
+- uid: CurlDotNet.Core.CurlHttpException.StatusCode
+  commentId: P:CurlDotNet.Core.CurlHttpException.StatusCode
+  href: CurlDotNet.Core.CurlHttpException.html#CurlDotNet_Core_CurlHttpException_StatusCode
+  name: StatusCode
+  nameWithType: CurlHttpException.StatusCode
+  fullName: CurlDotNet.Core.CurlHttpException.StatusCode
+- uid: CurlDotNet.Core.CurlHttpException.ResponseBody
+  commentId: P:CurlDotNet.Core.CurlHttpException.ResponseBody
+  href: CurlDotNet.Core.CurlHttpException.html#CurlDotNet_Core_CurlHttpException_ResponseBody
+  name: ResponseBody
+  nameWithType: CurlHttpException.ResponseBody
+  fullName: CurlDotNet.Core.CurlHttpException.ResponseBody
+- uid: CurlDotNet.Core.CurlHttpException
+  commentId: T:CurlDotNet.Core.CurlHttpException
+  href: CurlDotNet.Core.CurlHttpException.html
+  name: CurlHttpException
+  nameWithType: CurlHttpException
+  fullName: CurlDotNet.Core.CurlHttpException
+- uid: CurlDotNet.Core.CurlResult.EnsureSuccess*
+  commentId: Overload:CurlDotNet.Core.CurlResult.EnsureSuccess
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_EnsureSuccess
+  name: EnsureSuccess
+  nameWithType: CurlResult.EnsureSuccess
+  fullName: CurlDotNet.Core.CurlResult.EnsureSuccess
+- uid: CurlDotNet.Core.CurlResult.EnsureStatus*
+  commentId: Overload:CurlDotNet.Core.CurlResult.EnsureStatus
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_EnsureStatus_System_Int32_
+  name: EnsureStatus
+  nameWithType: CurlResult.EnsureStatus
+  fullName: CurlDotNet.Core.CurlResult.EnsureStatus
+- uid: CurlDotNet.Core.CurlResult.EnsureContains*
+  commentId: Overload:CurlDotNet.Core.CurlResult.EnsureContains
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_EnsureContains_System_String_
+  name: EnsureContains
+  nameWithType: CurlResult.EnsureContains
+  fullName: CurlDotNet.Core.CurlResult.EnsureContains
+- uid: CurlDotNet.Core.CurlResult.Retry*
+  commentId: Overload:CurlDotNet.Core.CurlResult.Retry
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Retry
+  name: Retry
+  nameWithType: CurlResult.Retry
+  fullName: CurlDotNet.Core.CurlResult.Retry
+- uid: CurlDotNet.Core.CurlResult.RetryWith*
+  commentId: Overload:CurlDotNet.Core.CurlResult.RetryWith
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_RetryWith_System_Action_CurlDotNet_Core_CurlSettings__
+  name: RetryWith
+  nameWithType: CurlResult.RetryWith
+  fullName: CurlDotNet.Core.CurlResult.RetryWith
+- uid: System.Action{CurlDotNet.Core.CurlSettings}
+  commentId: T:System.Action{CurlDotNet.Core.CurlSettings}
+  parent: System
+  definition: System.Action`1
+  href: https://learn.microsoft.com/dotnet/api/system.action-1
+  name: Action<CurlSettings>
+  nameWithType: Action<CurlSettings>
+  fullName: System.Action<CurlDotNet.Core.CurlSettings>
+  nameWithType.vb: Action(Of CurlSettings)
+  fullName.vb: System.Action(Of CurlDotNet.Core.CurlSettings)
+  name.vb: Action(Of CurlSettings)
+  spec.csharp:
+  - uid: System.Action`1
+    name: Action
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.action-1
+  - name: <
+  - uid: CurlDotNet.Core.CurlSettings
+    name: CurlSettings
+    href: CurlDotNet.Core.CurlSettings.html
+  - name: '>'
+  spec.vb:
+  - uid: System.Action`1
+    name: Action
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.action-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: CurlDotNet.Core.CurlSettings
+    name: CurlSettings
+    href: CurlDotNet.Core.CurlSettings.html
+  - name: )
+- uid: System.Action`1
+  commentId: T:System.Action`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.action-1
+  name: Action<T>
+  nameWithType: Action<T>
+  fullName: System.Action<T>
+  nameWithType.vb: Action(Of T)
+  fullName.vb: System.Action(Of T)
+  name.vb: Action(Of T)
+  spec.csharp:
+  - uid: System.Action`1
+    name: Action
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.action-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Action`1
+    name: Action
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.action-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.PrintBody*
+  commentId: Overload:CurlDotNet.Core.CurlResult.PrintBody
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_PrintBody
+  name: PrintBody
+  nameWithType: CurlResult.PrintBody
+  fullName: CurlDotNet.Core.CurlResult.PrintBody
+- uid: CurlDotNet.Core.CurlResult.Print*
+  commentId: Overload:CurlDotNet.Core.CurlResult.Print
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Print
+  name: Print
+  nameWithType: CurlResult.Print
+  fullName: CurlDotNet.Core.CurlResult.Print
+- uid: CurlDotNet.Core.CurlResult.PrintVerbose*
+  commentId: Overload:CurlDotNet.Core.CurlResult.PrintVerbose
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_PrintVerbose
+  name: PrintVerbose
+  nameWithType: CurlResult.PrintVerbose
+  fullName: CurlDotNet.Core.CurlResult.PrintVerbose
+- uid: CurlDotNet.Core.CurlResult.Transform*
+  commentId: Overload:CurlDotNet.Core.CurlResult.Transform
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_Transform__1_System_Func_CurlDotNet_Core_CurlResult___0__
+  name: Transform
+  nameWithType: CurlResult.Transform
+  fullName: CurlDotNet.Core.CurlResult.Transform
+- uid: System.Func{CurlDotNet.Core.CurlResult,{T}}
+  commentId: T:System.Func{CurlDotNet.Core.CurlResult,``0}
+  parent: System
+  definition: System.Func`2
+  href: https://learn.microsoft.com/dotnet/api/system.func-2
+  name: Func<CurlResult, T>
+  nameWithType: Func<CurlResult, T>
+  fullName: System.Func<CurlDotNet.Core.CurlResult, T>
+  nameWithType.vb: Func(Of CurlResult, T)
+  fullName.vb: System.Func(Of CurlDotNet.Core.CurlResult, T)
+  name.vb: Func(Of CurlResult, T)
+  spec.csharp:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: <
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: CurlDotNet.Core.CurlResult
+    name: CurlResult
+    href: CurlDotNet.Core.CurlResult.html
+  - name: ','
+  - name: " "
+  - name: T
+  - name: )
+- uid: System.Func`2
+  commentId: T:System.Func`2
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.func-2
+  name: Func<T, TResult>
+  nameWithType: Func<T, TResult>
+  fullName: System.Func<T, TResult>
+  nameWithType.vb: Func(Of T, TResult)
+  fullName.vb: System.Func(Of T, TResult)
+  name.vb: Func(Of T, TResult)
+  spec.csharp:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: <
+  - name: T
+  - name: ','
+  - name: " "
+  - name: TResult
+  - name: '>'
+  spec.vb:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: ','
+  - name: " "
+  - name: TResult
+  - name: )
+- uid: CurlDotNet.Core.CurlResult.ToStream*
+  commentId: Overload:CurlDotNet.Core.CurlResult.ToStream
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_ToStream
+  name: ToStream
+  nameWithType: CurlResult.ToStream
+  fullName: CurlDotNet.Core.CurlResult.ToStream
+- uid: System.IO.Stream
+  commentId: T:System.IO.Stream
+  parent: System.IO
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.io.stream
+  name: Stream
+  nameWithType: Stream
+  fullName: System.IO.Stream
+- uid: System.IO
+  commentId: N:System.IO
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.IO
+  nameWithType: System.IO
+  fullName: System.IO
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.IO
+    name: IO
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.io
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.IO
+    name: IO
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.io
+- uid: CurlDotNet.Core.CurlResult.FilterLines*
+  commentId: Overload:CurlDotNet.Core.CurlResult.FilterLines
+  href: CurlDotNet.Core.CurlResult.html#CurlDotNet_Core_CurlResult_FilterLines_System_Func_System_String_System_Boolean__
+  name: FilterLines
+  nameWithType: CurlResult.FilterLines
+  fullName: CurlDotNet.Core.CurlResult.FilterLines
+- uid: System.Func{System.String,System.Boolean}
+  commentId: T:System.Func{System.String,System.Boolean}
+  parent: System
+  definition: System.Func`2
+  href: https://learn.microsoft.com/dotnet/api/system.func-2
+  name: Func<string, bool>
+  nameWithType: Func<string, bool>
+  fullName: System.Func<string, bool>
+  nameWithType.vb: Func(Of String, Boolean)
+  fullName.vb: System.Func(Of String, Boolean)
+  name.vb: Func(Of String, Boolean)
+  spec.csharp:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: <
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Boolean
+    name: bool
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.boolean
+  - name: '>'
+  spec.vb:
+  - uid: System.Func`2
+    name: Func
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.func-2
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Boolean
+    name: Boolean
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.boolean
+  - name: )

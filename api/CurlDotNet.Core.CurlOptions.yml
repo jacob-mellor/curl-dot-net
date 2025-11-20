@@ -1,0 +1,3084 @@
+### YamlMime:ManagedReference
+items:
+- uid: CurlDotNet.Core.CurlOptions
+  commentId: T:CurlDotNet.Core.CurlOptions
+  id: CurlOptions
+  parent: CurlDotNet.Core
+  children:
+  - CurlDotNet.Core.CurlOptions.BinaryData
+  - CurlDotNet.Core.CurlOptions.CaCert
+  - CurlDotNet.Core.CurlOptions.CaCertFile
+  - CurlDotNet.Core.CurlOptions.CertFile
+  - CurlDotNet.Core.CurlOptions.Clone
+  - CurlDotNet.Core.CurlOptions.Compressed
+  - CurlDotNet.Core.CurlOptions.ConnectTimeout
+  - CurlDotNet.Core.CurlOptions.Cookie
+  - CurlDotNet.Core.CurlOptions.CookieJar
+  - CurlDotNet.Core.CurlOptions.CreateDirs
+  - CurlDotNet.Core.CurlOptions.Credentials
+  - CurlDotNet.Core.CurlOptions.CustomMethod
+  - CurlDotNet.Core.CurlOptions.Data
+  - CurlDotNet.Core.CurlOptions.DataUrlEncode
+  - CurlDotNet.Core.CurlOptions.DisableEprt
+  - CurlDotNet.Core.CurlOptions.DisableEpsv
+  - CurlDotNet.Core.CurlOptions.DnsServers
+  - CurlDotNet.Core.CurlOptions.FailOnError
+  - CurlDotNet.Core.CurlOptions.Files
+  - CurlDotNet.Core.CurlOptions.FollowLocation
+  - CurlDotNet.Core.CurlOptions.FollowRedirects
+  - CurlDotNet.Core.CurlOptions.FormData
+  - CurlDotNet.Core.CurlOptions.FtpPassive
+  - CurlDotNet.Core.CurlOptions.FtpSsl
+  - CurlDotNet.Core.CurlOptions.HeadOnly
+  - CurlDotNet.Core.CurlOptions.Headers
+  - CurlDotNet.Core.CurlOptions.HttpVersion
+  - CurlDotNet.Core.CurlOptions.IncludeHeaders
+  - CurlDotNet.Core.CurlOptions.Insecure
+  - CurlDotNet.Core.CurlOptions.Interface
+  - CurlDotNet.Core.CurlOptions.KeepAliveTime
+  - CurlDotNet.Core.CurlOptions.KeyFile
+  - CurlDotNet.Core.CurlOptions.LocationTrusted
+  - CurlDotNet.Core.CurlOptions.MaxRedirects
+  - CurlDotNet.Core.CurlOptions.MaxTime
+  - CurlDotNet.Core.CurlOptions.Method
+  - CurlDotNet.Core.CurlOptions.OriginalCommand
+  - CurlDotNet.Core.CurlOptions.OutputFile
+  - CurlDotNet.Core.CurlOptions.ProgressBar
+  - CurlDotNet.Core.CurlOptions.ProgressHandler
+  - CurlDotNet.Core.CurlOptions.Proxy
+  - CurlDotNet.Core.CurlOptions.ProxyCredentials
+  - CurlDotNet.Core.CurlOptions.Quote
+  - CurlDotNet.Core.CurlOptions.Range
+  - CurlDotNet.Core.CurlOptions.Referer
+  - CurlDotNet.Core.CurlOptions.Resolve
+  - CurlDotNet.Core.CurlOptions.ResumeFrom
+  - CurlDotNet.Core.CurlOptions.Retry
+  - CurlDotNet.Core.CurlOptions.RetryDelay
+  - CurlDotNet.Core.CurlOptions.RetryMaxTime
+  - CurlDotNet.Core.CurlOptions.ShowError
+  - CurlDotNet.Core.CurlOptions.Silent
+  - CurlDotNet.Core.CurlOptions.Socks5Proxy
+  - CurlDotNet.Core.CurlOptions.SpeedLimit
+  - CurlDotNet.Core.CurlOptions.SpeedTime
+  - CurlDotNet.Core.CurlOptions.Url
+  - CurlDotNet.Core.CurlOptions.UseRemoteFileName
+  - CurlDotNet.Core.CurlOptions.UserAgent
+  - CurlDotNet.Core.CurlOptions.UserAuth
+  - CurlDotNet.Core.CurlOptions.Verbose
+  - CurlDotNet.Core.CurlOptions.WriteOut
+  langs:
+  - csharp
+  - vb
+  name: CurlOptions
+  nameWithType: CurlOptions
+  fullName: CurlDotNet.Core.CurlOptions
+  type: Class
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: CurlOptions
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 22
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Represents parsed curl command options.
+  remarks: >-
+    <p>This class contains all options extracted from a curl command string.</p>
+
+    <p>AI-Usage: This is the intermediate representation between curl syntax and HTTP operations.</p>
+  example: []
+  syntax:
+    content: public class CurlOptions
+    content.vb: Public Class CurlOptions
+  inheritance:
+  - System.Object
+  inheritedMembers:
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.GetType
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  - System.Object.ToString
+- uid: CurlDotNet.Core.CurlOptions.Url
+  commentId: P:CurlDotNet.Core.CurlOptions.Url
+  id: Url
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Url
+  nameWithType: CurlOptions.Url
+  fullName: CurlDotNet.Core.CurlOptions.Url
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Url
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 27
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: The target URL.
+  example: []
+  syntax:
+    content: public string Url { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property Url As String
+  overload: CurlDotNet.Core.CurlOptions.Url*
+- uid: CurlDotNet.Core.CurlOptions.Method
+  commentId: P:CurlDotNet.Core.CurlOptions.Method
+  id: Method
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Method
+  nameWithType: CurlOptions.Method
+  fullName: CurlDotNet.Core.CurlOptions.Method
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Method
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 32
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: HTTP method (GET, POST, PUT, DELETE, etc.).
+  example: []
+  syntax:
+    content: public string? Method { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property Method As String
+  overload: CurlDotNet.Core.CurlOptions.Method*
+- uid: CurlDotNet.Core.CurlOptions.Headers
+  commentId: P:CurlDotNet.Core.CurlOptions.Headers
+  id: Headers
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Headers
+  nameWithType: CurlOptions.Headers
+  fullName: CurlDotNet.Core.CurlOptions.Headers
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Headers
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 37
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Request headers.
+  example: []
+  syntax:
+    content: public Dictionary<string, string> Headers { get; set; }
+    parameters: []
+    return:
+      type: System.Collections.Generic.Dictionary{System.String,System.String}
+    content.vb: Public Property Headers As Dictionary(Of String, String)
+  overload: CurlDotNet.Core.CurlOptions.Headers*
+- uid: CurlDotNet.Core.CurlOptions.Data
+  commentId: P:CurlDotNet.Core.CurlOptions.Data
+  id: Data
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Data
+  nameWithType: CurlOptions.Data
+  fullName: CurlDotNet.Core.CurlOptions.Data
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Data
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 42
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Request body data.
+  example: []
+  syntax:
+    content: public string? Data { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property Data As String
+  overload: CurlDotNet.Core.CurlOptions.Data*
+- uid: CurlDotNet.Core.CurlOptions.DataUrlEncode
+  commentId: P:CurlDotNet.Core.CurlOptions.DataUrlEncode
+  id: DataUrlEncode
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: DataUrlEncode
+  nameWithType: CurlOptions.DataUrlEncode
+  fullName: CurlDotNet.Core.CurlOptions.DataUrlEncode
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: DataUrlEncode
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 47
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to URL encode the data (--data-urlencode flag).
+  example: []
+  syntax:
+    content: public bool DataUrlEncode { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property DataUrlEncode As Boolean
+  overload: CurlDotNet.Core.CurlOptions.DataUrlEncode*
+- uid: CurlDotNet.Core.CurlOptions.BinaryData
+  commentId: P:CurlDotNet.Core.CurlOptions.BinaryData
+  id: BinaryData
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: BinaryData
+  nameWithType: CurlOptions.BinaryData
+  fullName: CurlDotNet.Core.CurlOptions.BinaryData
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: BinaryData
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 52
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Binary data for upload.
+  example: []
+  syntax:
+    content: public byte[]? BinaryData { get; set; }
+    parameters: []
+    return:
+      type: System.Byte[]
+    content.vb: Public Property BinaryData As Byte()
+  overload: CurlDotNet.Core.CurlOptions.BinaryData*
+- uid: CurlDotNet.Core.CurlOptions.FormData
+  commentId: P:CurlDotNet.Core.CurlOptions.FormData
+  id: FormData
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: FormData
+  nameWithType: CurlOptions.FormData
+  fullName: CurlDotNet.Core.CurlOptions.FormData
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: FormData
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 57
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Form data for multipart/form-data.
+  example: []
+  syntax:
+    content: public Dictionary<string, string> FormData { get; set; }
+    parameters: []
+    return:
+      type: System.Collections.Generic.Dictionary{System.String,System.String}
+    content.vb: Public Property FormData As Dictionary(Of String, String)
+  overload: CurlDotNet.Core.CurlOptions.FormData*
+- uid: CurlDotNet.Core.CurlOptions.Files
+  commentId: P:CurlDotNet.Core.CurlOptions.Files
+  id: Files
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Files
+  nameWithType: CurlOptions.Files
+  fullName: CurlDotNet.Core.CurlOptions.Files
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Files
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 62
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Files to upload (for -F flag with @file).
+  example: []
+  syntax:
+    content: public Dictionary<string, string> Files { get; set; }
+    parameters: []
+    return:
+      type: System.Collections.Generic.Dictionary{System.String,System.String}
+    content.vb: Public Property Files As Dictionary(Of String, String)
+  overload: CurlDotNet.Core.CurlOptions.Files*
+- uid: CurlDotNet.Core.CurlOptions.OutputFile
+  commentId: P:CurlDotNet.Core.CurlOptions.OutputFile
+  id: OutputFile
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: OutputFile
+  nameWithType: CurlOptions.OutputFile
+  fullName: CurlDotNet.Core.CurlOptions.OutputFile
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: OutputFile
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 67
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Output file path (-o flag).
+  example: []
+  syntax:
+    content: public string? OutputFile { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property OutputFile As String
+  overload: CurlDotNet.Core.CurlOptions.OutputFile*
+- uid: CurlDotNet.Core.CurlOptions.UseRemoteFileName
+  commentId: P:CurlDotNet.Core.CurlOptions.UseRemoteFileName
+  id: UseRemoteFileName
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: UseRemoteFileName
+  nameWithType: CurlOptions.UseRemoteFileName
+  fullName: CurlDotNet.Core.CurlOptions.UseRemoteFileName
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: UseRemoteFileName
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 72
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to use remote filename for output (-O flag).
+  example: []
+  syntax:
+    content: public bool UseRemoteFileName { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property UseRemoteFileName As Boolean
+  overload: CurlDotNet.Core.CurlOptions.UseRemoteFileName*
+- uid: CurlDotNet.Core.CurlOptions.IncludeHeaders
+  commentId: P:CurlDotNet.Core.CurlOptions.IncludeHeaders
+  id: IncludeHeaders
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: IncludeHeaders
+  nameWithType: CurlOptions.IncludeHeaders
+  fullName: CurlDotNet.Core.CurlOptions.IncludeHeaders
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: IncludeHeaders
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 77
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to include headers in output (-i flag).
+  example: []
+  syntax:
+    content: public bool IncludeHeaders { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property IncludeHeaders As Boolean
+  overload: CurlDotNet.Core.CurlOptions.IncludeHeaders*
+- uid: CurlDotNet.Core.CurlOptions.HeadOnly
+  commentId: P:CurlDotNet.Core.CurlOptions.HeadOnly
+  id: HeadOnly
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: HeadOnly
+  nameWithType: CurlOptions.HeadOnly
+  fullName: CurlDotNet.Core.CurlOptions.HeadOnly
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: HeadOnly
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 82
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to show only headers (-I or --head flag).
+  example: []
+  syntax:
+    content: public bool HeadOnly { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property HeadOnly As Boolean
+  overload: CurlDotNet.Core.CurlOptions.HeadOnly*
+- uid: CurlDotNet.Core.CurlOptions.FollowLocation
+  commentId: P:CurlDotNet.Core.CurlOptions.FollowLocation
+  id: FollowLocation
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: FollowLocation
+  nameWithType: CurlOptions.FollowLocation
+  fullName: CurlDotNet.Core.CurlOptions.FollowLocation
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: FollowLocation
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 87
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to follow redirects (-L flag).
+  example: []
+  syntax:
+    content: public bool FollowLocation { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property FollowLocation As Boolean
+  overload: CurlDotNet.Core.CurlOptions.FollowLocation*
+- uid: CurlDotNet.Core.CurlOptions.FollowRedirects
+  commentId: P:CurlDotNet.Core.CurlOptions.FollowRedirects
+  id: FollowRedirects
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: FollowRedirects
+  nameWithType: CurlOptions.FollowRedirects
+  fullName: CurlDotNet.Core.CurlOptions.FollowRedirects
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: FollowRedirects
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 92
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Alias for FollowLocation for test compatibility.
+  example: []
+  syntax:
+    content: public bool FollowRedirects { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property FollowRedirects As Boolean
+  overload: CurlDotNet.Core.CurlOptions.FollowRedirects*
+- uid: CurlDotNet.Core.CurlOptions.MaxRedirects
+  commentId: P:CurlDotNet.Core.CurlOptions.MaxRedirects
+  id: MaxRedirects
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: MaxRedirects
+  nameWithType: CurlOptions.MaxRedirects
+  fullName: CurlDotNet.Core.CurlOptions.MaxRedirects
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: MaxRedirects
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 101
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Maximum number of redirects to follow (--max-redirs).
+  example: []
+  syntax:
+    content: public int MaxRedirects { get; set; }
+    parameters: []
+    return:
+      type: System.Int32
+    content.vb: Public Property MaxRedirects As Integer
+  overload: CurlDotNet.Core.CurlOptions.MaxRedirects*
+- uid: CurlDotNet.Core.CurlOptions.Insecure
+  commentId: P:CurlDotNet.Core.CurlOptions.Insecure
+  id: Insecure
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Insecure
+  nameWithType: CurlOptions.Insecure
+  fullName: CurlDotNet.Core.CurlOptions.Insecure
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Insecure
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 106
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to ignore SSL errors (-k flag).
+  example: []
+  syntax:
+    content: public bool Insecure { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property Insecure As Boolean
+  overload: CurlDotNet.Core.CurlOptions.Insecure*
+- uid: CurlDotNet.Core.CurlOptions.Verbose
+  commentId: P:CurlDotNet.Core.CurlOptions.Verbose
+  id: Verbose
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Verbose
+  nameWithType: CurlOptions.Verbose
+  fullName: CurlDotNet.Core.CurlOptions.Verbose
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Verbose
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 111
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Verbose output (-v flag).
+  example: []
+  syntax:
+    content: public bool Verbose { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property Verbose As Boolean
+  overload: CurlDotNet.Core.CurlOptions.Verbose*
+- uid: CurlDotNet.Core.CurlOptions.Silent
+  commentId: P:CurlDotNet.Core.CurlOptions.Silent
+  id: Silent
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Silent
+  nameWithType: CurlOptions.Silent
+  fullName: CurlDotNet.Core.CurlOptions.Silent
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Silent
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 116
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Silent mode (-s flag).
+  example: []
+  syntax:
+    content: public bool Silent { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property Silent As Boolean
+  overload: CurlDotNet.Core.CurlOptions.Silent*
+- uid: CurlDotNet.Core.CurlOptions.ShowError
+  commentId: P:CurlDotNet.Core.CurlOptions.ShowError
+  id: ShowError
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: ShowError
+  nameWithType: CurlOptions.ShowError
+  fullName: CurlDotNet.Core.CurlOptions.ShowError
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ShowError
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 121
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Show error even in silent mode (-S flag).
+  example: []
+  syntax:
+    content: public bool ShowError { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property ShowError As Boolean
+  overload: CurlDotNet.Core.CurlOptions.ShowError*
+- uid: CurlDotNet.Core.CurlOptions.FailOnError
+  commentId: P:CurlDotNet.Core.CurlOptions.FailOnError
+  id: FailOnError
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: FailOnError
+  nameWithType: CurlOptions.FailOnError
+  fullName: CurlDotNet.Core.CurlOptions.FailOnError
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: FailOnError
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 126
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Fail silently on HTTP errors (-f flag).
+  example: []
+  syntax:
+    content: public bool FailOnError { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property FailOnError As Boolean
+  overload: CurlDotNet.Core.CurlOptions.FailOnError*
+- uid: CurlDotNet.Core.CurlOptions.UserAgent
+  commentId: P:CurlDotNet.Core.CurlOptions.UserAgent
+  id: UserAgent
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: UserAgent
+  nameWithType: CurlOptions.UserAgent
+  fullName: CurlDotNet.Core.CurlOptions.UserAgent
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: UserAgent
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 131
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: User agent string (-A or --user-agent).
+  example: []
+  syntax:
+    content: public string? UserAgent { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property UserAgent As String
+  overload: CurlDotNet.Core.CurlOptions.UserAgent*
+- uid: CurlDotNet.Core.CurlOptions.Referer
+  commentId: P:CurlDotNet.Core.CurlOptions.Referer
+  id: Referer
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Referer
+  nameWithType: CurlOptions.Referer
+  fullName: CurlDotNet.Core.CurlOptions.Referer
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Referer
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 136
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Referer header (-e or --referer).
+  example: []
+  syntax:
+    content: public string? Referer { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property Referer As String
+  overload: CurlDotNet.Core.CurlOptions.Referer*
+- uid: CurlDotNet.Core.CurlOptions.Cookie
+  commentId: P:CurlDotNet.Core.CurlOptions.Cookie
+  id: Cookie
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Cookie
+  nameWithType: CurlOptions.Cookie
+  fullName: CurlDotNet.Core.CurlOptions.Cookie
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Cookie
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 141
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Cookie string (-b or --cookie).
+  example: []
+  syntax:
+    content: public string? Cookie { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property Cookie As String
+  overload: CurlDotNet.Core.CurlOptions.Cookie*
+- uid: CurlDotNet.Core.CurlOptions.CookieJar
+  commentId: P:CurlDotNet.Core.CurlOptions.CookieJar
+  id: CookieJar
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: CookieJar
+  nameWithType: CurlOptions.CookieJar
+  fullName: CurlDotNet.Core.CurlOptions.CookieJar
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: CookieJar
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 146
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Cookie jar file path (-c or --cookie-jar).
+  example: []
+  syntax:
+    content: public string? CookieJar { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property CookieJar As String
+  overload: CurlDotNet.Core.CurlOptions.CookieJar*
+- uid: CurlDotNet.Core.CurlOptions.Credentials
+  commentId: P:CurlDotNet.Core.CurlOptions.Credentials
+  id: Credentials
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Credentials
+  nameWithType: CurlOptions.Credentials
+  fullName: CurlDotNet.Core.CurlOptions.Credentials
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Credentials
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 151
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Basic authentication (-u or --user).
+  example: []
+  syntax:
+    content: public NetworkCredential? Credentials { get; set; }
+    parameters: []
+    return:
+      type: System.Net.NetworkCredential
+    content.vb: Public Property Credentials As NetworkCredential
+  overload: CurlDotNet.Core.CurlOptions.Credentials*
+- uid: CurlDotNet.Core.CurlOptions.UserAuth
+  commentId: P:CurlDotNet.Core.CurlOptions.UserAuth
+  id: UserAuth
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: UserAuth
+  nameWithType: CurlOptions.UserAuth
+  fullName: CurlDotNet.Core.CurlOptions.UserAuth
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: UserAuth
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 156
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Alias for Credentials for test compatibility.
+  example: []
+  syntax:
+    content: public NetworkCredential UserAuth { get; set; }
+    parameters: []
+    return:
+      type: System.Net.NetworkCredential
+    content.vb: Public Property UserAuth As NetworkCredential
+  overload: CurlDotNet.Core.CurlOptions.UserAuth*
+- uid: CurlDotNet.Core.CurlOptions.Proxy
+  commentId: P:CurlDotNet.Core.CurlOptions.Proxy
+  id: Proxy
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Proxy
+  nameWithType: CurlOptions.Proxy
+  fullName: CurlDotNet.Core.CurlOptions.Proxy
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Proxy
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 165
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Proxy URL (-x or --proxy).
+  example: []
+  syntax:
+    content: public string Proxy { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property Proxy As String
+  overload: CurlDotNet.Core.CurlOptions.Proxy*
+- uid: CurlDotNet.Core.CurlOptions.ProxyCredentials
+  commentId: P:CurlDotNet.Core.CurlOptions.ProxyCredentials
+  id: ProxyCredentials
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: ProxyCredentials
+  nameWithType: CurlOptions.ProxyCredentials
+  fullName: CurlDotNet.Core.CurlOptions.ProxyCredentials
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ProxyCredentials
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 170
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Proxy authentication (--proxy-user).
+  example: []
+  syntax:
+    content: public NetworkCredential? ProxyCredentials { get; set; }
+    parameters: []
+    return:
+      type: System.Net.NetworkCredential
+    content.vb: Public Property ProxyCredentials As NetworkCredential
+  overload: CurlDotNet.Core.CurlOptions.ProxyCredentials*
+- uid: CurlDotNet.Core.CurlOptions.MaxTime
+  commentId: P:CurlDotNet.Core.CurlOptions.MaxTime
+  id: MaxTime
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: MaxTime
+  nameWithType: CurlOptions.MaxTime
+  fullName: CurlDotNet.Core.CurlOptions.MaxTime
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: MaxTime
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 175
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Maximum time in seconds (--max-time).
+  example: []
+  syntax:
+    content: public int? MaxTime { get; set; }
+    parameters: []
+    return:
+      type: System.Nullable{System.Int32}
+    content.vb: Public Property MaxTime As Integer?
+  overload: CurlDotNet.Core.CurlOptions.MaxTime*
+- uid: CurlDotNet.Core.CurlOptions.ConnectTimeout
+  commentId: P:CurlDotNet.Core.CurlOptions.ConnectTimeout
+  id: ConnectTimeout
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: ConnectTimeout
+  nameWithType: CurlOptions.ConnectTimeout
+  fullName: CurlDotNet.Core.CurlOptions.ConnectTimeout
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ConnectTimeout
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 180
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Connection timeout in seconds (--connect-timeout).
+  example: []
+  syntax:
+    content: public int? ConnectTimeout { get; set; }
+    parameters: []
+    return:
+      type: System.Nullable{System.Int32}
+    content.vb: Public Property ConnectTimeout As Integer?
+  overload: CurlDotNet.Core.CurlOptions.ConnectTimeout*
+- uid: CurlDotNet.Core.CurlOptions.SpeedLimit
+  commentId: P:CurlDotNet.Core.CurlOptions.SpeedLimit
+  id: SpeedLimit
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: SpeedLimit
+  nameWithType: CurlOptions.SpeedLimit
+  fullName: CurlDotNet.Core.CurlOptions.SpeedLimit
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: SpeedLimit
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 185
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Speed limit in bytes per second (--limit-rate).
+  example: []
+  syntax:
+    content: public long SpeedLimit { get; set; }
+    parameters: []
+    return:
+      type: System.Int64
+    content.vb: Public Property SpeedLimit As Long
+  overload: CurlDotNet.Core.CurlOptions.SpeedLimit*
+- uid: CurlDotNet.Core.CurlOptions.SpeedTime
+  commentId: P:CurlDotNet.Core.CurlOptions.SpeedTime
+  id: SpeedTime
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: SpeedTime
+  nameWithType: CurlOptions.SpeedTime
+  fullName: CurlDotNet.Core.CurlOptions.SpeedTime
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: SpeedTime
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 190
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Speed time period for limit (--speed-time).
+  example: []
+  syntax:
+    content: public int SpeedTime { get; set; }
+    parameters: []
+    return:
+      type: System.Int32
+    content.vb: Public Property SpeedTime As Integer
+  overload: CurlDotNet.Core.CurlOptions.SpeedTime*
+- uid: CurlDotNet.Core.CurlOptions.ResumeFrom
+  commentId: P:CurlDotNet.Core.CurlOptions.ResumeFrom
+  id: ResumeFrom
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: ResumeFrom
+  nameWithType: CurlOptions.ResumeFrom
+  fullName: CurlDotNet.Core.CurlOptions.ResumeFrom
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ResumeFrom
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 195
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Resume from byte offset (-C or --continue-at).
+  example: []
+  syntax:
+    content: public long? ResumeFrom { get; set; }
+    parameters: []
+    return:
+      type: System.Nullable{System.Int64}
+    content.vb: Public Property ResumeFrom As Long?
+  overload: CurlDotNet.Core.CurlOptions.ResumeFrom*
+- uid: CurlDotNet.Core.CurlOptions.Range
+  commentId: P:CurlDotNet.Core.CurlOptions.Range
+  id: Range
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Range
+  nameWithType: CurlOptions.Range
+  fullName: CurlDotNet.Core.CurlOptions.Range
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Range
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 200
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Range of bytes to request (-r or --range).
+  example: []
+  syntax:
+    content: public string? Range { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property Range As String
+  overload: CurlDotNet.Core.CurlOptions.Range*
+- uid: CurlDotNet.Core.CurlOptions.Compressed
+  commentId: P:CurlDotNet.Core.CurlOptions.Compressed
+  id: Compressed
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Compressed
+  nameWithType: CurlOptions.Compressed
+  fullName: CurlDotNet.Core.CurlOptions.Compressed
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Compressed
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 205
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to use compressed encoding (--compressed).
+  example: []
+  syntax:
+    content: public bool Compressed { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property Compressed As Boolean
+  overload: CurlDotNet.Core.CurlOptions.Compressed*
+- uid: CurlDotNet.Core.CurlOptions.CertFile
+  commentId: P:CurlDotNet.Core.CurlOptions.CertFile
+  id: CertFile
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: CertFile
+  nameWithType: CurlOptions.CertFile
+  fullName: CurlDotNet.Core.CurlOptions.CertFile
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: CertFile
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 210
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Certificate file for client authentication (--cert).
+  example: []
+  syntax:
+    content: public string? CertFile { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property CertFile As String
+  overload: CurlDotNet.Core.CurlOptions.CertFile*
+- uid: CurlDotNet.Core.CurlOptions.KeyFile
+  commentId: P:CurlDotNet.Core.CurlOptions.KeyFile
+  id: KeyFile
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: KeyFile
+  nameWithType: CurlOptions.KeyFile
+  fullName: CurlDotNet.Core.CurlOptions.KeyFile
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: KeyFile
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 215
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Certificate key file (--key).
+  example: []
+  syntax:
+    content: public string? KeyFile { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property KeyFile As String
+  overload: CurlDotNet.Core.CurlOptions.KeyFile*
+- uid: CurlDotNet.Core.CurlOptions.CaCertFile
+  commentId: P:CurlDotNet.Core.CurlOptions.CaCertFile
+  id: CaCertFile
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: CaCertFile
+  nameWithType: CurlOptions.CaCertFile
+  fullName: CurlDotNet.Core.CurlOptions.CaCertFile
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: CaCertFile
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 220
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: CA certificate file (--cacert).
+  example: []
+  syntax:
+    content: public string? CaCertFile { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property CaCertFile As String
+  overload: CurlDotNet.Core.CurlOptions.CaCertFile*
+- uid: CurlDotNet.Core.CurlOptions.CaCert
+  commentId: P:CurlDotNet.Core.CurlOptions.CaCert
+  id: CaCert
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: CaCert
+  nameWithType: CurlOptions.CaCert
+  fullName: CurlDotNet.Core.CurlOptions.CaCert
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: CaCert
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 225
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Alias for CaCertFile for test compatibility.
+  example: []
+  syntax:
+    content: public string CaCert { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property CaCert As String
+  overload: CurlDotNet.Core.CurlOptions.CaCert*
+- uid: CurlDotNet.Core.CurlOptions.Interface
+  commentId: P:CurlDotNet.Core.CurlOptions.Interface
+  id: Interface
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Interface
+  nameWithType: CurlOptions.Interface
+  fullName: CurlDotNet.Core.CurlOptions.Interface
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Interface
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 234
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Interface to use for outgoing connections (--interface).
+  example: []
+  syntax:
+    content: public string? Interface { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property [Interface] As String
+  overload: CurlDotNet.Core.CurlOptions.Interface*
+- uid: CurlDotNet.Core.CurlOptions.HttpVersion
+  commentId: P:CurlDotNet.Core.CurlOptions.HttpVersion
+  id: HttpVersion
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: HttpVersion
+  nameWithType: CurlOptions.HttpVersion
+  fullName: CurlDotNet.Core.CurlOptions.HttpVersion
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: HttpVersion
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 239
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: HTTP version to use (--http1.0, --http1.1, --http2).
+  example: []
+  syntax:
+    content: public string? HttpVersion { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property HttpVersion As String
+  overload: CurlDotNet.Core.CurlOptions.HttpVersion*
+- uid: CurlDotNet.Core.CurlOptions.CustomMethod
+  commentId: P:CurlDotNet.Core.CurlOptions.CustomMethod
+  id: CustomMethod
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: CustomMethod
+  nameWithType: CurlOptions.CustomMethod
+  fullName: CurlDotNet.Core.CurlOptions.CustomMethod
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: CustomMethod
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 244
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Request method override (-X flag value).
+  example: []
+  syntax:
+    content: public string? CustomMethod { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property CustomMethod As String
+  overload: CurlDotNet.Core.CurlOptions.CustomMethod*
+- uid: CurlDotNet.Core.CurlOptions.WriteOut
+  commentId: P:CurlDotNet.Core.CurlOptions.WriteOut
+  id: WriteOut
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: WriteOut
+  nameWithType: CurlOptions.WriteOut
+  fullName: CurlDotNet.Core.CurlOptions.WriteOut
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: WriteOut
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 249
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Write-out format string (-w or --write-out).
+  example: []
+  syntax:
+    content: public string? WriteOut { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property WriteOut As String
+  overload: CurlDotNet.Core.CurlOptions.WriteOut*
+- uid: CurlDotNet.Core.CurlOptions.ProgressHandler
+  commentId: P:CurlDotNet.Core.CurlOptions.ProgressHandler
+  id: ProgressHandler
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: ProgressHandler
+  nameWithType: CurlOptions.ProgressHandler
+  fullName: CurlDotNet.Core.CurlOptions.ProgressHandler
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ProgressHandler
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 254
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Progress callback handler.
+  example: []
+  syntax:
+    content: public Action<double, long, long>? ProgressHandler { get; set; }
+    parameters: []
+    return:
+      type: System.Action{System.Double,System.Int64,System.Int64}
+    content.vb: Public Property ProgressHandler As Action(Of Double, Long, Long)
+  overload: CurlDotNet.Core.CurlOptions.ProgressHandler*
+- uid: CurlDotNet.Core.CurlOptions.OriginalCommand
+  commentId: P:CurlDotNet.Core.CurlOptions.OriginalCommand
+  id: OriginalCommand
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: OriginalCommand
+  nameWithType: CurlOptions.OriginalCommand
+  fullName: CurlDotNet.Core.CurlOptions.OriginalCommand
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: OriginalCommand
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 259
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: The original command string.
+  example: []
+  syntax:
+    content: public string? OriginalCommand { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property OriginalCommand As String
+  overload: CurlDotNet.Core.CurlOptions.OriginalCommand*
+- uid: CurlDotNet.Core.CurlOptions.ProgressBar
+  commentId: P:CurlDotNet.Core.CurlOptions.ProgressBar
+  id: ProgressBar
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: ProgressBar
+  nameWithType: CurlOptions.ProgressBar
+  fullName: CurlDotNet.Core.CurlOptions.ProgressBar
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: ProgressBar
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 264
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to show progress bar (--progress-bar).
+  example: []
+  syntax:
+    content: public bool ProgressBar { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property ProgressBar As Boolean
+  overload: CurlDotNet.Core.CurlOptions.ProgressBar*
+- uid: CurlDotNet.Core.CurlOptions.KeepAliveTime
+  commentId: P:CurlDotNet.Core.CurlOptions.KeepAliveTime
+  id: KeepAliveTime
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: KeepAliveTime
+  nameWithType: CurlOptions.KeepAliveTime
+  fullName: CurlDotNet.Core.CurlOptions.KeepAliveTime
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: KeepAliveTime
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 269
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to use TCP keepalive (--keepalive-time).
+  example: []
+  syntax:
+    content: public int? KeepAliveTime { get; set; }
+    parameters: []
+    return:
+      type: System.Nullable{System.Int32}
+    content.vb: Public Property KeepAliveTime As Integer?
+  overload: CurlDotNet.Core.CurlOptions.KeepAliveTime*
+- uid: CurlDotNet.Core.CurlOptions.DnsServers
+  commentId: P:CurlDotNet.Core.CurlOptions.DnsServers
+  id: DnsServers
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: DnsServers
+  nameWithType: CurlOptions.DnsServers
+  fullName: CurlDotNet.Core.CurlOptions.DnsServers
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: DnsServers
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 274
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: DNS servers to use (--dns-servers).
+  example: []
+  syntax:
+    content: public string? DnsServers { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property DnsServers As String
+  overload: CurlDotNet.Core.CurlOptions.DnsServers*
+- uid: CurlDotNet.Core.CurlOptions.Resolve
+  commentId: P:CurlDotNet.Core.CurlOptions.Resolve
+  id: Resolve
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Resolve
+  nameWithType: CurlOptions.Resolve
+  fullName: CurlDotNet.Core.CurlOptions.Resolve
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Resolve
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 279
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Resolve host to IP (--resolve).
+  example: []
+  syntax:
+    content: public Dictionary<string, string> Resolve { get; set; }
+    parameters: []
+    return:
+      type: System.Collections.Generic.Dictionary{System.String,System.String}
+    content.vb: Public Property Resolve As Dictionary(Of String, String)
+  overload: CurlDotNet.Core.CurlOptions.Resolve*
+- uid: CurlDotNet.Core.CurlOptions.Quote
+  commentId: P:CurlDotNet.Core.CurlOptions.Quote
+  id: Quote
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Quote
+  nameWithType: CurlOptions.Quote
+  fullName: CurlDotNet.Core.CurlOptions.Quote
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Quote
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 284
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: FTP/SFTP commands to execute after transfer (--quote).
+  example: []
+  syntax:
+    content: public List<string> Quote { get; set; }
+    parameters: []
+    return:
+      type: System.Collections.Generic.List{System.String}
+    content.vb: Public Property Quote As List(Of String)
+  overload: CurlDotNet.Core.CurlOptions.Quote*
+- uid: CurlDotNet.Core.CurlOptions.CreateDirs
+  commentId: P:CurlDotNet.Core.CurlOptions.CreateDirs
+  id: CreateDirs
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: CreateDirs
+  nameWithType: CurlOptions.CreateDirs
+  fullName: CurlDotNet.Core.CurlOptions.CreateDirs
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: CreateDirs
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 289
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to create missing directories for output (--create-dirs).
+  example: []
+  syntax:
+    content: public bool CreateDirs { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property CreateDirs As Boolean
+  overload: CurlDotNet.Core.CurlOptions.CreateDirs*
+- uid: CurlDotNet.Core.CurlOptions.FtpPassive
+  commentId: P:CurlDotNet.Core.CurlOptions.FtpPassive
+  id: FtpPassive
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: FtpPassive
+  nameWithType: CurlOptions.FtpPassive
+  fullName: CurlDotNet.Core.CurlOptions.FtpPassive
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: FtpPassive
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 294
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to use passive mode for FTP (--ftp-pasv).
+  example: []
+  syntax:
+    content: public bool FtpPassive { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property FtpPassive As Boolean
+  overload: CurlDotNet.Core.CurlOptions.FtpPassive*
+- uid: CurlDotNet.Core.CurlOptions.FtpSsl
+  commentId: P:CurlDotNet.Core.CurlOptions.FtpSsl
+  id: FtpSsl
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: FtpSsl
+  nameWithType: CurlOptions.FtpSsl
+  fullName: CurlDotNet.Core.CurlOptions.FtpSsl
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: FtpSsl
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 299
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to use SSL/TLS for FTP (--ftp-ssl).
+  example: []
+  syntax:
+    content: public bool FtpSsl { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property FtpSsl As Boolean
+  overload: CurlDotNet.Core.CurlOptions.FtpSsl*
+- uid: CurlDotNet.Core.CurlOptions.Socks5Proxy
+  commentId: P:CurlDotNet.Core.CurlOptions.Socks5Proxy
+  id: Socks5Proxy
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Socks5Proxy
+  nameWithType: CurlOptions.Socks5Proxy
+  fullName: CurlDotNet.Core.CurlOptions.Socks5Proxy
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Socks5Proxy
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 304
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: SOCKS proxy (--socks5).
+  example: []
+  syntax:
+    content: public string? Socks5Proxy { get; set; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public Property Socks5Proxy As String
+  overload: CurlDotNet.Core.CurlOptions.Socks5Proxy*
+- uid: CurlDotNet.Core.CurlOptions.Retry
+  commentId: P:CurlDotNet.Core.CurlOptions.Retry
+  id: Retry
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Retry
+  nameWithType: CurlOptions.Retry
+  fullName: CurlDotNet.Core.CurlOptions.Retry
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Retry
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 309
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Retry count (--retry).
+  example: []
+  syntax:
+    content: public int Retry { get; set; }
+    parameters: []
+    return:
+      type: System.Int32
+    content.vb: Public Property Retry As Integer
+  overload: CurlDotNet.Core.CurlOptions.Retry*
+- uid: CurlDotNet.Core.CurlOptions.RetryDelay
+  commentId: P:CurlDotNet.Core.CurlOptions.RetryDelay
+  id: RetryDelay
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: RetryDelay
+  nameWithType: CurlOptions.RetryDelay
+  fullName: CurlDotNet.Core.CurlOptions.RetryDelay
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: RetryDelay
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 314
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Retry delay in seconds (--retry-delay).
+  example: []
+  syntax:
+    content: public int RetryDelay { get; set; }
+    parameters: []
+    return:
+      type: System.Int32
+    content.vb: Public Property RetryDelay As Integer
+  overload: CurlDotNet.Core.CurlOptions.RetryDelay*
+- uid: CurlDotNet.Core.CurlOptions.RetryMaxTime
+  commentId: P:CurlDotNet.Core.CurlOptions.RetryMaxTime
+  id: RetryMaxTime
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: RetryMaxTime
+  nameWithType: CurlOptions.RetryMaxTime
+  fullName: CurlDotNet.Core.CurlOptions.RetryMaxTime
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: RetryMaxTime
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 319
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Maximum retry time (--retry-max-time).
+  example: []
+  syntax:
+    content: public int RetryMaxTime { get; set; }
+    parameters: []
+    return:
+      type: System.Int32
+    content.vb: Public Property RetryMaxTime As Integer
+  overload: CurlDotNet.Core.CurlOptions.RetryMaxTime*
+- uid: CurlDotNet.Core.CurlOptions.LocationTrusted
+  commentId: P:CurlDotNet.Core.CurlOptions.LocationTrusted
+  id: LocationTrusted
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: LocationTrusted
+  nameWithType: CurlOptions.LocationTrusted
+  fullName: CurlDotNet.Core.CurlOptions.LocationTrusted
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: LocationTrusted
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 324
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Location trusted for automatic authentication (--location-trusted).
+  example: []
+  syntax:
+    content: public bool LocationTrusted { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property LocationTrusted As Boolean
+  overload: CurlDotNet.Core.CurlOptions.LocationTrusted*
+- uid: CurlDotNet.Core.CurlOptions.DisableEpsv
+  commentId: P:CurlDotNet.Core.CurlOptions.DisableEpsv
+  id: DisableEpsv
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: DisableEpsv
+  nameWithType: CurlOptions.DisableEpsv
+  fullName: CurlDotNet.Core.CurlOptions.DisableEpsv
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: DisableEpsv
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 329
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to disable EPSV for FTP (--disable-epsv).
+  example: []
+  syntax:
+    content: public bool DisableEpsv { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property DisableEpsv As Boolean
+  overload: CurlDotNet.Core.CurlOptions.DisableEpsv*
+- uid: CurlDotNet.Core.CurlOptions.DisableEprt
+  commentId: P:CurlDotNet.Core.CurlOptions.DisableEprt
+  id: DisableEprt
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: DisableEprt
+  nameWithType: CurlOptions.DisableEprt
+  fullName: CurlDotNet.Core.CurlOptions.DisableEprt
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: DisableEprt
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 334
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Whether to disable EPRT for FTP (--disable-eprt).
+  example: []
+  syntax:
+    content: public bool DisableEprt { get; set; }
+    parameters: []
+    return:
+      type: System.Boolean
+    content.vb: Public Property DisableEprt As Boolean
+  overload: CurlDotNet.Core.CurlOptions.DisableEprt*
+- uid: CurlDotNet.Core.CurlOptions.Clone
+  commentId: M:CurlDotNet.Core.CurlOptions.Clone
+  id: Clone
+  parent: CurlDotNet.Core.CurlOptions
+  langs:
+  - csharp
+  - vb
+  name: Clone()
+  nameWithType: CurlOptions.Clone()
+  fullName: CurlDotNet.Core.CurlOptions.Clone()
+  type: Method
+  source:
+    remote:
+      path: src/CurlDotNet/Core/CurlOptions.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: Clone
+    path: src/CurlDotNet/Core/CurlOptions.cs
+    startLine: 339
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Core
+  summary: Clone this options object.
+  example: []
+  syntax:
+    content: public CurlOptions Clone()
+    return:
+      type: CurlDotNet.Core.CurlOptions
+    content.vb: Public Function Clone() As CurlOptions
+  overload: CurlDotNet.Core.CurlOptions.Clone*
+references:
+- uid: CurlDotNet.Core
+  commentId: N:CurlDotNet.Core
+  href: CurlDotNet.html
+  name: CurlDotNet.Core
+  nameWithType: CurlDotNet.Core
+  fullName: CurlDotNet.Core
+  spec.csharp:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Core
+    name: Core
+    href: CurlDotNet.Core.html
+  spec.vb:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Core
+    name: Core
+    href: CurlDotNet.Core.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.GetType
+  commentId: M:System.Object.GetType
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  name: GetType()
+  nameWithType: object.GetType()
+  fullName: object.GetType()
+  nameWithType.vb: Object.GetType()
+  fullName.vb: Object.GetType()
+  spec.csharp:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gettype
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.ToString
+  commentId: M:System.Object.ToString
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  name: ToString()
+  nameWithType: object.ToString()
+  fullName: object.ToString()
+  nameWithType.vb: Object.ToString()
+  fullName.vb: Object.ToString()
+  spec.csharp:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.tostring
+  - name: (
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: CurlDotNet.Core.CurlOptions.Url*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Url
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Url
+  name: Url
+  nameWithType: CurlOptions.Url
+  fullName: CurlDotNet.Core.CurlOptions.Url
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: CurlDotNet.Core.CurlOptions.Method*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Method
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Method
+  name: Method
+  nameWithType: CurlOptions.Method
+  fullName: CurlDotNet.Core.CurlOptions.Method
+- uid: CurlDotNet.Core.CurlOptions.Headers*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Headers
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Headers
+  name: Headers
+  nameWithType: CurlOptions.Headers
+  fullName: CurlDotNet.Core.CurlOptions.Headers
+- uid: System.Collections.Generic.Dictionary{System.String,System.String}
+  commentId: T:System.Collections.Generic.Dictionary{System.String,System.String}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.Dictionary`2
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  name: Dictionary<string, string>
+  nameWithType: Dictionary<string, string>
+  fullName: System.Collections.Generic.Dictionary<string, string>
+  nameWithType.vb: Dictionary(Of String, String)
+  fullName.vb: System.Collections.Generic.Dictionary(Of String, String)
+  name.vb: Dictionary(Of String, String)
+  spec.csharp:
+  - uid: System.Collections.Generic.Dictionary`2
+    name: Dictionary
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  - name: <
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.Dictionary`2
+    name: Dictionary
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: System.Collections.Generic.Dictionary`2
+  commentId: T:System.Collections.Generic.Dictionary`2
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  name: Dictionary<TKey, TValue>
+  nameWithType: Dictionary<TKey, TValue>
+  fullName: System.Collections.Generic.Dictionary<TKey, TValue>
+  nameWithType.vb: Dictionary(Of TKey, TValue)
+  fullName.vb: System.Collections.Generic.Dictionary(Of TKey, TValue)
+  name.vb: Dictionary(Of TKey, TValue)
+  spec.csharp:
+  - uid: System.Collections.Generic.Dictionary`2
+    name: Dictionary
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  - name: <
+  - name: TKey
+  - name: ','
+  - name: " "
+  - name: TValue
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.Dictionary`2
+    name: Dictionary
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  - name: (
+  - name: Of
+  - name: " "
+  - name: TKey
+  - name: ','
+  - name: " "
+  - name: TValue
+  - name: )
+- uid: System.Collections.Generic
+  commentId: N:System.Collections.Generic
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Collections.Generic
+  nameWithType: System.Collections.Generic
+  fullName: System.Collections.Generic
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Collections
+    name: Collections
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections
+  - name: .
+  - uid: System.Collections.Generic
+    name: Generic
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Collections
+    name: Collections
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections
+  - name: .
+  - uid: System.Collections.Generic
+    name: Generic
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic
+- uid: CurlDotNet.Core.CurlOptions.Data*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Data
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Data
+  name: Data
+  nameWithType: CurlOptions.Data
+  fullName: CurlDotNet.Core.CurlOptions.Data
+- uid: CurlDotNet.Core.CurlOptions.DataUrlEncode*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.DataUrlEncode
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_DataUrlEncode
+  name: DataUrlEncode
+  nameWithType: CurlOptions.DataUrlEncode
+  fullName: CurlDotNet.Core.CurlOptions.DataUrlEncode
+- uid: System.Boolean
+  commentId: T:System.Boolean
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.boolean
+  name: bool
+  nameWithType: bool
+  fullName: bool
+  nameWithType.vb: Boolean
+  fullName.vb: Boolean
+  name.vb: Boolean
+- uid: CurlDotNet.Core.CurlOptions.BinaryData*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.BinaryData
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_BinaryData
+  name: BinaryData
+  nameWithType: CurlOptions.BinaryData
+  fullName: CurlDotNet.Core.CurlOptions.BinaryData
+- uid: System.Byte[]
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.byte
+  name: byte[]
+  nameWithType: byte[]
+  fullName: byte[]
+  nameWithType.vb: Byte()
+  fullName.vb: Byte()
+  name.vb: Byte()
+  spec.csharp:
+  - uid: System.Byte
+    name: byte
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.byte
+  - name: '['
+  - name: ']'
+  spec.vb:
+  - uid: System.Byte
+    name: Byte
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.byte
+  - name: (
+  - name: )
+- uid: CurlDotNet.Core.CurlOptions.FormData*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.FormData
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_FormData
+  name: FormData
+  nameWithType: CurlOptions.FormData
+  fullName: CurlDotNet.Core.CurlOptions.FormData
+- uid: CurlDotNet.Core.CurlOptions.Files*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Files
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Files
+  name: Files
+  nameWithType: CurlOptions.Files
+  fullName: CurlDotNet.Core.CurlOptions.Files
+- uid: CurlDotNet.Core.CurlOptions.OutputFile*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.OutputFile
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_OutputFile
+  name: OutputFile
+  nameWithType: CurlOptions.OutputFile
+  fullName: CurlDotNet.Core.CurlOptions.OutputFile
+- uid: CurlDotNet.Core.CurlOptions.UseRemoteFileName*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.UseRemoteFileName
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_UseRemoteFileName
+  name: UseRemoteFileName
+  nameWithType: CurlOptions.UseRemoteFileName
+  fullName: CurlDotNet.Core.CurlOptions.UseRemoteFileName
+- uid: CurlDotNet.Core.CurlOptions.IncludeHeaders*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.IncludeHeaders
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_IncludeHeaders
+  name: IncludeHeaders
+  nameWithType: CurlOptions.IncludeHeaders
+  fullName: CurlDotNet.Core.CurlOptions.IncludeHeaders
+- uid: CurlDotNet.Core.CurlOptions.HeadOnly*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.HeadOnly
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_HeadOnly
+  name: HeadOnly
+  nameWithType: CurlOptions.HeadOnly
+  fullName: CurlDotNet.Core.CurlOptions.HeadOnly
+- uid: CurlDotNet.Core.CurlOptions.FollowLocation*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.FollowLocation
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_FollowLocation
+  name: FollowLocation
+  nameWithType: CurlOptions.FollowLocation
+  fullName: CurlDotNet.Core.CurlOptions.FollowLocation
+- uid: CurlDotNet.Core.CurlOptions.FollowRedirects*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.FollowRedirects
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_FollowRedirects
+  name: FollowRedirects
+  nameWithType: CurlOptions.FollowRedirects
+  fullName: CurlDotNet.Core.CurlOptions.FollowRedirects
+- uid: CurlDotNet.Core.CurlOptions.MaxRedirects*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.MaxRedirects
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_MaxRedirects
+  name: MaxRedirects
+  nameWithType: CurlOptions.MaxRedirects
+  fullName: CurlDotNet.Core.CurlOptions.MaxRedirects
+- uid: System.Int32
+  commentId: T:System.Int32
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int
+  nameWithType: int
+  fullName: int
+  nameWithType.vb: Integer
+  fullName.vb: Integer
+  name.vb: Integer
+- uid: CurlDotNet.Core.CurlOptions.Insecure*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Insecure
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Insecure
+  name: Insecure
+  nameWithType: CurlOptions.Insecure
+  fullName: CurlDotNet.Core.CurlOptions.Insecure
+- uid: CurlDotNet.Core.CurlOptions.Verbose*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Verbose
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Verbose
+  name: Verbose
+  nameWithType: CurlOptions.Verbose
+  fullName: CurlDotNet.Core.CurlOptions.Verbose
+- uid: CurlDotNet.Core.CurlOptions.Silent*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Silent
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Silent
+  name: Silent
+  nameWithType: CurlOptions.Silent
+  fullName: CurlDotNet.Core.CurlOptions.Silent
+- uid: CurlDotNet.Core.CurlOptions.ShowError*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.ShowError
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_ShowError
+  name: ShowError
+  nameWithType: CurlOptions.ShowError
+  fullName: CurlDotNet.Core.CurlOptions.ShowError
+- uid: CurlDotNet.Core.CurlOptions.FailOnError*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.FailOnError
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_FailOnError
+  name: FailOnError
+  nameWithType: CurlOptions.FailOnError
+  fullName: CurlDotNet.Core.CurlOptions.FailOnError
+- uid: CurlDotNet.Core.CurlOptions.UserAgent*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.UserAgent
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_UserAgent
+  name: UserAgent
+  nameWithType: CurlOptions.UserAgent
+  fullName: CurlDotNet.Core.CurlOptions.UserAgent
+- uid: CurlDotNet.Core.CurlOptions.Referer*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Referer
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Referer
+  name: Referer
+  nameWithType: CurlOptions.Referer
+  fullName: CurlDotNet.Core.CurlOptions.Referer
+- uid: CurlDotNet.Core.CurlOptions.Cookie*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Cookie
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Cookie
+  name: Cookie
+  nameWithType: CurlOptions.Cookie
+  fullName: CurlDotNet.Core.CurlOptions.Cookie
+- uid: CurlDotNet.Core.CurlOptions.CookieJar*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.CookieJar
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_CookieJar
+  name: CookieJar
+  nameWithType: CurlOptions.CookieJar
+  fullName: CurlDotNet.Core.CurlOptions.CookieJar
+- uid: CurlDotNet.Core.CurlOptions.Credentials*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Credentials
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Credentials
+  name: Credentials
+  nameWithType: CurlOptions.Credentials
+  fullName: CurlDotNet.Core.CurlOptions.Credentials
+- uid: System.Net.NetworkCredential
+  commentId: T:System.Net.NetworkCredential
+  parent: System.Net
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.net.networkcredential
+  name: NetworkCredential
+  nameWithType: NetworkCredential
+  fullName: System.Net.NetworkCredential
+- uid: System.Net
+  commentId: N:System.Net
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Net
+  nameWithType: System.Net
+  fullName: System.Net
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Net
+    name: Net
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.net
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Net
+    name: Net
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.net
+- uid: CurlDotNet.Core.CurlOptions.UserAuth*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.UserAuth
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_UserAuth
+  name: UserAuth
+  nameWithType: CurlOptions.UserAuth
+  fullName: CurlDotNet.Core.CurlOptions.UserAuth
+- uid: CurlDotNet.Core.CurlOptions.Proxy*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Proxy
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Proxy
+  name: Proxy
+  nameWithType: CurlOptions.Proxy
+  fullName: CurlDotNet.Core.CurlOptions.Proxy
+- uid: CurlDotNet.Core.CurlOptions.ProxyCredentials*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.ProxyCredentials
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_ProxyCredentials
+  name: ProxyCredentials
+  nameWithType: CurlOptions.ProxyCredentials
+  fullName: CurlDotNet.Core.CurlOptions.ProxyCredentials
+- uid: CurlDotNet.Core.CurlOptions.MaxTime*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.MaxTime
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_MaxTime
+  name: MaxTime
+  nameWithType: CurlOptions.MaxTime
+  fullName: CurlDotNet.Core.CurlOptions.MaxTime
+- uid: System.Nullable{System.Int32}
+  commentId: T:System.Nullable{System.Int32}
+  parent: System
+  definition: System.Nullable`1
+  href: https://learn.microsoft.com/dotnet/api/system.int32
+  name: int?
+  nameWithType: int?
+  fullName: int?
+  nameWithType.vb: Integer?
+  fullName.vb: Integer?
+  name.vb: Integer?
+  spec.csharp:
+  - uid: System.Int32
+    name: int
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.int32
+  - name: '?'
+  spec.vb:
+  - uid: System.Int32
+    name: Integer
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.int32
+  - name: '?'
+- uid: System.Nullable`1
+  commentId: T:System.Nullable`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.nullable-1
+  name: Nullable<T>
+  nameWithType: Nullable<T>
+  fullName: System.Nullable<T>
+  nameWithType.vb: Nullable(Of T)
+  fullName.vb: System.Nullable(Of T)
+  name.vb: Nullable(Of T)
+  spec.csharp:
+  - uid: System.Nullable`1
+    name: Nullable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.nullable-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Nullable`1
+    name: Nullable
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.nullable-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: CurlDotNet.Core.CurlOptions.ConnectTimeout*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.ConnectTimeout
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_ConnectTimeout
+  name: ConnectTimeout
+  nameWithType: CurlOptions.ConnectTimeout
+  fullName: CurlDotNet.Core.CurlOptions.ConnectTimeout
+- uid: CurlDotNet.Core.CurlOptions.SpeedLimit*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.SpeedLimit
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_SpeedLimit
+  name: SpeedLimit
+  nameWithType: CurlOptions.SpeedLimit
+  fullName: CurlDotNet.Core.CurlOptions.SpeedLimit
+- uid: System.Int64
+  commentId: T:System.Int64
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.int64
+  name: long
+  nameWithType: long
+  fullName: long
+  nameWithType.vb: Long
+  fullName.vb: Long
+  name.vb: Long
+- uid: CurlDotNet.Core.CurlOptions.SpeedTime*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.SpeedTime
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_SpeedTime
+  name: SpeedTime
+  nameWithType: CurlOptions.SpeedTime
+  fullName: CurlDotNet.Core.CurlOptions.SpeedTime
+- uid: CurlDotNet.Core.CurlOptions.ResumeFrom*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.ResumeFrom
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_ResumeFrom
+  name: ResumeFrom
+  nameWithType: CurlOptions.ResumeFrom
+  fullName: CurlDotNet.Core.CurlOptions.ResumeFrom
+- uid: System.Nullable{System.Int64}
+  commentId: T:System.Nullable{System.Int64}
+  parent: System
+  definition: System.Nullable`1
+  href: https://learn.microsoft.com/dotnet/api/system.int64
+  name: long?
+  nameWithType: long?
+  fullName: long?
+  nameWithType.vb: Long?
+  fullName.vb: Long?
+  name.vb: Long?
+  spec.csharp:
+  - uid: System.Int64
+    name: long
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.int64
+  - name: '?'
+  spec.vb:
+  - uid: System.Int64
+    name: Long
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.int64
+  - name: '?'
+- uid: CurlDotNet.Core.CurlOptions.Range*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Range
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Range
+  name: Range
+  nameWithType: CurlOptions.Range
+  fullName: CurlDotNet.Core.CurlOptions.Range
+- uid: CurlDotNet.Core.CurlOptions.Compressed*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Compressed
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Compressed
+  name: Compressed
+  nameWithType: CurlOptions.Compressed
+  fullName: CurlDotNet.Core.CurlOptions.Compressed
+- uid: CurlDotNet.Core.CurlOptions.CertFile*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.CertFile
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_CertFile
+  name: CertFile
+  nameWithType: CurlOptions.CertFile
+  fullName: CurlDotNet.Core.CurlOptions.CertFile
+- uid: CurlDotNet.Core.CurlOptions.KeyFile*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.KeyFile
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_KeyFile
+  name: KeyFile
+  nameWithType: CurlOptions.KeyFile
+  fullName: CurlDotNet.Core.CurlOptions.KeyFile
+- uid: CurlDotNet.Core.CurlOptions.CaCertFile*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.CaCertFile
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_CaCertFile
+  name: CaCertFile
+  nameWithType: CurlOptions.CaCertFile
+  fullName: CurlDotNet.Core.CurlOptions.CaCertFile
+- uid: CurlDotNet.Core.CurlOptions.CaCert*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.CaCert
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_CaCert
+  name: CaCert
+  nameWithType: CurlOptions.CaCert
+  fullName: CurlDotNet.Core.CurlOptions.CaCert
+- uid: CurlDotNet.Core.CurlOptions.Interface*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Interface
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Interface
+  name: Interface
+  nameWithType: CurlOptions.Interface
+  fullName: CurlDotNet.Core.CurlOptions.Interface
+- uid: CurlDotNet.Core.CurlOptions.HttpVersion*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.HttpVersion
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_HttpVersion
+  name: HttpVersion
+  nameWithType: CurlOptions.HttpVersion
+  fullName: CurlDotNet.Core.CurlOptions.HttpVersion
+- uid: CurlDotNet.Core.CurlOptions.CustomMethod*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.CustomMethod
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_CustomMethod
+  name: CustomMethod
+  nameWithType: CurlOptions.CustomMethod
+  fullName: CurlDotNet.Core.CurlOptions.CustomMethod
+- uid: CurlDotNet.Core.CurlOptions.WriteOut*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.WriteOut
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_WriteOut
+  name: WriteOut
+  nameWithType: CurlOptions.WriteOut
+  fullName: CurlDotNet.Core.CurlOptions.WriteOut
+- uid: CurlDotNet.Core.CurlOptions.ProgressHandler*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.ProgressHandler
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_ProgressHandler
+  name: ProgressHandler
+  nameWithType: CurlOptions.ProgressHandler
+  fullName: CurlDotNet.Core.CurlOptions.ProgressHandler
+- uid: System.Action{System.Double,System.Int64,System.Int64}
+  commentId: T:System.Action{System.Double,System.Int64,System.Int64}
+  parent: System
+  definition: System.Action`3
+  href: https://learn.microsoft.com/dotnet/api/system.action-3
+  name: Action<double, long, long>
+  nameWithType: Action<double, long, long>
+  fullName: System.Action<double, long, long>
+  nameWithType.vb: Action(Of Double, Long, Long)
+  fullName.vb: System.Action(Of Double, Long, Long)
+  name.vb: Action(Of Double, Long, Long)
+  spec.csharp:
+  - uid: System.Action`3
+    name: Action
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.action-3
+  - name: <
+  - uid: System.Double
+    name: double
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.double
+  - name: ','
+  - name: " "
+  - uid: System.Int64
+    name: long
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.int64
+  - name: ','
+  - name: " "
+  - uid: System.Int64
+    name: long
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.int64
+  - name: '>'
+  spec.vb:
+  - uid: System.Action`3
+    name: Action
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.action-3
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.Double
+    name: Double
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.double
+  - name: ','
+  - name: " "
+  - uid: System.Int64
+    name: Long
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.int64
+  - name: ','
+  - name: " "
+  - uid: System.Int64
+    name: Long
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.int64
+  - name: )
+- uid: System.Action`3
+  commentId: T:System.Action`3
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.action-3
+  name: Action<T1, T2, T3>
+  nameWithType: Action<T1, T2, T3>
+  fullName: System.Action<T1, T2, T3>
+  nameWithType.vb: Action(Of T1, T2, T3)
+  fullName.vb: System.Action(Of T1, T2, T3)
+  name.vb: Action(Of T1, T2, T3)
+  spec.csharp:
+  - uid: System.Action`3
+    name: Action
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.action-3
+  - name: <
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: '>'
+  spec.vb:
+  - uid: System.Action`3
+    name: Action
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.action-3
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T1
+  - name: ','
+  - name: " "
+  - name: T2
+  - name: ','
+  - name: " "
+  - name: T3
+  - name: )
+- uid: CurlDotNet.Core.CurlOptions.OriginalCommand*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.OriginalCommand
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_OriginalCommand
+  name: OriginalCommand
+  nameWithType: CurlOptions.OriginalCommand
+  fullName: CurlDotNet.Core.CurlOptions.OriginalCommand
+- uid: CurlDotNet.Core.CurlOptions.ProgressBar*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.ProgressBar
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_ProgressBar
+  name: ProgressBar
+  nameWithType: CurlOptions.ProgressBar
+  fullName: CurlDotNet.Core.CurlOptions.ProgressBar
+- uid: CurlDotNet.Core.CurlOptions.KeepAliveTime*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.KeepAliveTime
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_KeepAliveTime
+  name: KeepAliveTime
+  nameWithType: CurlOptions.KeepAliveTime
+  fullName: CurlDotNet.Core.CurlOptions.KeepAliveTime
+- uid: CurlDotNet.Core.CurlOptions.DnsServers*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.DnsServers
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_DnsServers
+  name: DnsServers
+  nameWithType: CurlOptions.DnsServers
+  fullName: CurlDotNet.Core.CurlOptions.DnsServers
+- uid: CurlDotNet.Core.CurlOptions.Resolve*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Resolve
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Resolve
+  name: Resolve
+  nameWithType: CurlOptions.Resolve
+  fullName: CurlDotNet.Core.CurlOptions.Resolve
+- uid: CurlDotNet.Core.CurlOptions.Quote*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Quote
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Quote
+  name: Quote
+  nameWithType: CurlOptions.Quote
+  fullName: CurlDotNet.Core.CurlOptions.Quote
+- uid: System.Collections.Generic.List{System.String}
+  commentId: T:System.Collections.Generic.List{System.String}
+  parent: System.Collections.Generic
+  definition: System.Collections.Generic.List`1
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1
+  name: List<string>
+  nameWithType: List<string>
+  fullName: System.Collections.Generic.List<string>
+  nameWithType.vb: List(Of String)
+  fullName.vb: System.Collections.Generic.List(Of String)
+  name.vb: List(Of String)
+  spec.csharp:
+  - uid: System.Collections.Generic.List`1
+    name: List
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1
+  - name: <
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.List`1
+    name: List
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: System.Collections.Generic.List`1
+  commentId: T:System.Collections.Generic.List`1
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1
+  name: List<T>
+  nameWithType: List<T>
+  fullName: System.Collections.Generic.List<T>
+  nameWithType.vb: List(Of T)
+  fullName.vb: System.Collections.Generic.List(Of T)
+  name.vb: List(Of T)
+  spec.csharp:
+  - uid: System.Collections.Generic.List`1
+    name: List
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1
+  - name: <
+  - name: T
+  - name: '>'
+  spec.vb:
+  - uid: System.Collections.Generic.List`1
+    name: List
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1
+  - name: (
+  - name: Of
+  - name: " "
+  - name: T
+  - name: )
+- uid: CurlDotNet.Core.CurlOptions.CreateDirs*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.CreateDirs
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_CreateDirs
+  name: CreateDirs
+  nameWithType: CurlOptions.CreateDirs
+  fullName: CurlDotNet.Core.CurlOptions.CreateDirs
+- uid: CurlDotNet.Core.CurlOptions.FtpPassive*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.FtpPassive
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_FtpPassive
+  name: FtpPassive
+  nameWithType: CurlOptions.FtpPassive
+  fullName: CurlDotNet.Core.CurlOptions.FtpPassive
+- uid: CurlDotNet.Core.CurlOptions.FtpSsl*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.FtpSsl
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_FtpSsl
+  name: FtpSsl
+  nameWithType: CurlOptions.FtpSsl
+  fullName: CurlDotNet.Core.CurlOptions.FtpSsl
+- uid: CurlDotNet.Core.CurlOptions.Socks5Proxy*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Socks5Proxy
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Socks5Proxy
+  name: Socks5Proxy
+  nameWithType: CurlOptions.Socks5Proxy
+  fullName: CurlDotNet.Core.CurlOptions.Socks5Proxy
+- uid: CurlDotNet.Core.CurlOptions.Retry*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Retry
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Retry
+  name: Retry
+  nameWithType: CurlOptions.Retry
+  fullName: CurlDotNet.Core.CurlOptions.Retry
+- uid: CurlDotNet.Core.CurlOptions.RetryDelay*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.RetryDelay
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_RetryDelay
+  name: RetryDelay
+  nameWithType: CurlOptions.RetryDelay
+  fullName: CurlDotNet.Core.CurlOptions.RetryDelay
+- uid: CurlDotNet.Core.CurlOptions.RetryMaxTime*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.RetryMaxTime
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_RetryMaxTime
+  name: RetryMaxTime
+  nameWithType: CurlOptions.RetryMaxTime
+  fullName: CurlDotNet.Core.CurlOptions.RetryMaxTime
+- uid: CurlDotNet.Core.CurlOptions.LocationTrusted*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.LocationTrusted
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_LocationTrusted
+  name: LocationTrusted
+  nameWithType: CurlOptions.LocationTrusted
+  fullName: CurlDotNet.Core.CurlOptions.LocationTrusted
+- uid: CurlDotNet.Core.CurlOptions.DisableEpsv*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.DisableEpsv
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_DisableEpsv
+  name: DisableEpsv
+  nameWithType: CurlOptions.DisableEpsv
+  fullName: CurlDotNet.Core.CurlOptions.DisableEpsv
+- uid: CurlDotNet.Core.CurlOptions.DisableEprt*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.DisableEprt
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_DisableEprt
+  name: DisableEprt
+  nameWithType: CurlOptions.DisableEprt
+  fullName: CurlDotNet.Core.CurlOptions.DisableEprt
+- uid: CurlDotNet.Core.CurlOptions.Clone*
+  commentId: Overload:CurlDotNet.Core.CurlOptions.Clone
+  href: CurlDotNet.Core.CurlOptions.html#CurlDotNet_Core_CurlOptions_Clone
+  name: Clone
+  nameWithType: CurlOptions.Clone
+  fullName: CurlDotNet.Core.CurlOptions.Clone
+- uid: CurlDotNet.Core.CurlOptions
+  commentId: T:CurlDotNet.Core.CurlOptions
+  parent: CurlDotNet.Core
+  href: CurlDotNet.Core.CurlOptions.html
+  name: CurlOptions
+  nameWithType: CurlOptions
+  fullName: CurlDotNet.Core.CurlOptions

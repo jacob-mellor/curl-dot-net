@@ -1,0 +1,1031 @@
+### YamlMime:ManagedReference
+items:
+- uid: CurlDotNet.Exceptions.CurlUploadFailedException
+  commentId: T:CurlDotNet.Exceptions.CurlUploadFailedException
+  id: CurlUploadFailedException
+  parent: CurlDotNet.Exceptions
+  children:
+  - CurlDotNet.Exceptions.CurlUploadFailedException.#ctor(System.String,System.String,System.String)
+  - CurlDotNet.Exceptions.CurlUploadFailedException.FileName
+  langs:
+  - csharp
+  - vb
+  name: CurlUploadFailedException
+  nameWithType: CurlUploadFailedException
+  fullName: CurlDotNet.Exceptions.CurlUploadFailedException
+  type: Class
+  source:
+    remote:
+      path: src/CurlDotNet/Exceptions/CurlExceptionTypes.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: CurlUploadFailedException
+    path: src/CurlDotNet/Exceptions/CurlExceptionTypes.cs
+    startLine: 309
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Exceptions
+  summary: CURLE_UPLOAD_FAILED (25) - Upload failed
+  example: []
+  syntax:
+    content: >-
+      [Serializable]
+
+      public class CurlUploadFailedException : CurlException, ISerializable
+    content.vb: >-
+      <Serializable>
+
+      Public Class CurlUploadFailedException Inherits CurlException Implements ISerializable
+  inheritance:
+  - System.Object
+  - System.Exception
+  - CurlDotNet.Exceptions.CurlException
+  implements:
+  - System.Runtime.Serialization.ISerializable
+  inheritedMembers:
+  - CurlDotNet.Exceptions.CurlException.Command
+  - CurlDotNet.Exceptions.CurlException.CurlErrorCode
+  - CurlDotNet.Exceptions.CurlException.Context
+  - CurlDotNet.Exceptions.CurlException.Suggestions
+  - CurlDotNet.Exceptions.CurlException.DiagnosticInfo
+  - CurlDotNet.Exceptions.CurlException.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)
+  - CurlDotNet.Exceptions.CurlException.WithContext(System.String,System.Object)
+  - CurlDotNet.Exceptions.CurlException.WithContext(System.Collections.Generic.Dictionary{System.String,System.Object})
+  - CurlDotNet.Exceptions.CurlException.WithSuggestion(System.String)
+  - CurlDotNet.Exceptions.CurlException.WithDiagnostics(System.String)
+  - CurlDotNet.Exceptions.CurlException.ToDetailedString
+  - CurlDotNet.Exceptions.CurlException.ToJson
+  - CurlDotNet.Exceptions.CurlException.GetDiagnosticInfo
+  - CurlDotNet.Exceptions.CurlException.GetCurlErrorName
+  - CurlDotNet.Exceptions.CurlException.IsRetryable
+  - CurlDotNet.Exceptions.CurlException.Log(System.Action{System.String,System.Collections.Generic.Dictionary{System.String,System.Object}})
+  - CurlDotNet.Exceptions.CurlException.ToUserFriendlyMessage
+  - System.Exception.GetBaseException
+  - System.Exception.GetType
+  - System.Exception.ToString
+  - System.Exception.Data
+  - System.Exception.HelpLink
+  - System.Exception.HResult
+  - System.Exception.InnerException
+  - System.Exception.Message
+  - System.Exception.Source
+  - System.Exception.StackTrace
+  - System.Exception.TargetSite
+  - System.Exception.SerializeObjectState
+  - System.Object.Equals(System.Object)
+  - System.Object.Equals(System.Object,System.Object)
+  - System.Object.GetHashCode
+  - System.Object.MemberwiseClone
+  - System.Object.ReferenceEquals(System.Object,System.Object)
+  attributes:
+  - type: System.SerializableAttribute
+    ctor: System.SerializableAttribute.#ctor
+    arguments: []
+- uid: CurlDotNet.Exceptions.CurlUploadFailedException.FileName
+  commentId: P:CurlDotNet.Exceptions.CurlUploadFailedException.FileName
+  id: FileName
+  parent: CurlDotNet.Exceptions.CurlUploadFailedException
+  langs:
+  - csharp
+  - vb
+  name: FileName
+  nameWithType: CurlUploadFailedException.FileName
+  fullName: CurlDotNet.Exceptions.CurlUploadFailedException.FileName
+  type: Property
+  source:
+    remote:
+      path: src/CurlDotNet/Exceptions/CurlExceptionTypes.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: FileName
+    path: src/CurlDotNet/Exceptions/CurlExceptionTypes.cs
+    startLine: 315
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Exceptions
+  summary: Gets the file name that failed to upload
+  example: []
+  syntax:
+    content: public string FileName { get; }
+    parameters: []
+    return:
+      type: System.String
+    content.vb: Public ReadOnly Property FileName As String
+  overload: CurlDotNet.Exceptions.CurlUploadFailedException.FileName*
+- uid: CurlDotNet.Exceptions.CurlUploadFailedException.#ctor(System.String,System.String,System.String)
+  commentId: M:CurlDotNet.Exceptions.CurlUploadFailedException.#ctor(System.String,System.String,System.String)
+  id: '#ctor(System.String,System.String,System.String)'
+  parent: CurlDotNet.Exceptions.CurlUploadFailedException
+  langs:
+  - csharp
+  - vb
+  name: CurlUploadFailedException(string, string, string)
+  nameWithType: CurlUploadFailedException.CurlUploadFailedException(string, string, string)
+  fullName: CurlDotNet.Exceptions.CurlUploadFailedException.CurlUploadFailedException(string, string, string)
+  type: Constructor
+  source:
+    remote:
+      path: src/CurlDotNet/Exceptions/CurlExceptionTypes.cs
+      branch: dev
+      repo: https://github.com/jacob-mellor/curl-dot-net.git
+    id: .ctor
+    path: src/CurlDotNet/Exceptions/CurlExceptionTypes.cs
+    startLine: 323
+  assemblies:
+  - CurlDotNet
+  namespace: CurlDotNet.Exceptions
+  summary: Initializes a new instance of the <xref href="CurlDotNet.Exceptions.CurlUploadFailedException" data-throw-if-not-resolved="false"></xref> class.
+  example: []
+  syntax:
+    content: public CurlUploadFailedException(string fileName, string message, string command = null)
+    parameters:
+    - id: fileName
+      type: System.String
+      description: The name of the file that failed to upload.
+    - id: message
+      type: System.String
+      description: The error message that explains the reason for the exception.
+    - id: command
+      type: System.String
+      description: The curl command that caused the exception.
+    content.vb: Public Sub New(fileName As String, message As String, command As String = Nothing)
+  overload: CurlDotNet.Exceptions.CurlUploadFailedException.#ctor*
+  nameWithType.vb: CurlUploadFailedException.New(String, String, String)
+  fullName.vb: CurlDotNet.Exceptions.CurlUploadFailedException.New(String, String, String)
+  name.vb: New(String, String, String)
+references:
+- uid: CurlDotNet.Exceptions
+  commentId: N:CurlDotNet.Exceptions
+  href: CurlDotNet.html
+  name: CurlDotNet.Exceptions
+  nameWithType: CurlDotNet.Exceptions
+  fullName: CurlDotNet.Exceptions
+  spec.csharp:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Exceptions
+    name: Exceptions
+    href: CurlDotNet.Exceptions.html
+  spec.vb:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Exceptions
+    name: Exceptions
+    href: CurlDotNet.Exceptions.html
+- uid: System.Object
+  commentId: T:System.Object
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object
+  name: object
+  nameWithType: object
+  fullName: object
+  nameWithType.vb: Object
+  fullName.vb: Object
+  name.vb: Object
+- uid: System.Exception
+  commentId: T:System.Exception
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception
+  name: Exception
+  nameWithType: Exception
+  fullName: System.Exception
+- uid: CurlDotNet.Exceptions.CurlException
+  commentId: T:CurlDotNet.Exceptions.CurlException
+  parent: CurlDotNet.Exceptions
+  href: CurlDotNet.Exceptions.CurlException.html
+  name: CurlException
+  nameWithType: CurlException
+  fullName: CurlDotNet.Exceptions.CurlException
+- uid: System.Runtime.Serialization.ISerializable
+  commentId: T:System.Runtime.Serialization.ISerializable
+  parent: System.Runtime.Serialization
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.runtime.serialization.iserializable
+  name: ISerializable
+  nameWithType: ISerializable
+  fullName: System.Runtime.Serialization.ISerializable
+- uid: CurlDotNet.Exceptions.CurlException.Command
+  commentId: P:CurlDotNet.Exceptions.CurlException.Command
+  parent: CurlDotNet.Exceptions.CurlException
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_Command
+  name: Command
+  nameWithType: CurlException.Command
+  fullName: CurlDotNet.Exceptions.CurlException.Command
+- uid: CurlDotNet.Exceptions.CurlException.CurlErrorCode
+  commentId: P:CurlDotNet.Exceptions.CurlException.CurlErrorCode
+  parent: CurlDotNet.Exceptions.CurlException
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_CurlErrorCode
+  name: CurlErrorCode
+  nameWithType: CurlException.CurlErrorCode
+  fullName: CurlDotNet.Exceptions.CurlException.CurlErrorCode
+- uid: CurlDotNet.Exceptions.CurlException.Context
+  commentId: P:CurlDotNet.Exceptions.CurlException.Context
+  parent: CurlDotNet.Exceptions.CurlException
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_Context
+  name: Context
+  nameWithType: CurlException.Context
+  fullName: CurlDotNet.Exceptions.CurlException.Context
+- uid: CurlDotNet.Exceptions.CurlException.Suggestions
+  commentId: P:CurlDotNet.Exceptions.CurlException.Suggestions
+  parent: CurlDotNet.Exceptions.CurlException
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_Suggestions
+  name: Suggestions
+  nameWithType: CurlException.Suggestions
+  fullName: CurlDotNet.Exceptions.CurlException.Suggestions
+- uid: CurlDotNet.Exceptions.CurlException.DiagnosticInfo
+  commentId: P:CurlDotNet.Exceptions.CurlException.DiagnosticInfo
+  parent: CurlDotNet.Exceptions.CurlException
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_DiagnosticInfo
+  name: DiagnosticInfo
+  nameWithType: CurlException.DiagnosticInfo
+  fullName: CurlDotNet.Exceptions.CurlException.DiagnosticInfo
+- uid: CurlDotNet.Exceptions.CurlException.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)
+  commentId: M:CurlDotNet.Exceptions.CurlException.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)
+  parent: CurlDotNet.Exceptions.CurlException
+  isExternal: true
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_GetObjectData_System_Runtime_Serialization_SerializationInfo_System_Runtime_Serialization_StreamingContext_
+  name: GetObjectData(SerializationInfo, StreamingContext)
+  nameWithType: CurlException.GetObjectData(SerializationInfo, StreamingContext)
+  fullName: CurlDotNet.Exceptions.CurlException.GetObjectData(System.Runtime.Serialization.SerializationInfo, System.Runtime.Serialization.StreamingContext)
+  spec.csharp:
+  - uid: CurlDotNet.Exceptions.CurlException.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)
+    name: GetObjectData
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_GetObjectData_System_Runtime_Serialization_SerializationInfo_System_Runtime_Serialization_StreamingContext_
+  - name: (
+  - uid: System.Runtime.Serialization.SerializationInfo
+    name: SerializationInfo
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.runtime.serialization.serializationinfo
+  - name: ','
+  - name: " "
+  - uid: System.Runtime.Serialization.StreamingContext
+    name: StreamingContext
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.runtime.serialization.streamingcontext
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Exceptions.CurlException.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)
+    name: GetObjectData
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_GetObjectData_System_Runtime_Serialization_SerializationInfo_System_Runtime_Serialization_StreamingContext_
+  - name: (
+  - uid: System.Runtime.Serialization.SerializationInfo
+    name: SerializationInfo
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.runtime.serialization.serializationinfo
+  - name: ','
+  - name: " "
+  - uid: System.Runtime.Serialization.StreamingContext
+    name: StreamingContext
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.runtime.serialization.streamingcontext
+  - name: )
+- uid: CurlDotNet.Exceptions.CurlException.WithContext(System.String,System.Object)
+  commentId: M:CurlDotNet.Exceptions.CurlException.WithContext(System.String,System.Object)
+  parent: CurlDotNet.Exceptions.CurlException
+  isExternal: true
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_WithContext_System_String_System_Object_
+  name: WithContext(string, object)
+  nameWithType: CurlException.WithContext(string, object)
+  fullName: CurlDotNet.Exceptions.CurlException.WithContext(string, object)
+  nameWithType.vb: CurlException.WithContext(String, Object)
+  fullName.vb: CurlDotNet.Exceptions.CurlException.WithContext(String, Object)
+  name.vb: WithContext(String, Object)
+  spec.csharp:
+  - uid: CurlDotNet.Exceptions.CurlException.WithContext(System.String,System.Object)
+    name: WithContext
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_WithContext_System_String_System_Object_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Exceptions.CurlException.WithContext(System.String,System.Object)
+    name: WithContext
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_WithContext_System_String_System_Object_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: CurlDotNet.Exceptions.CurlException.WithContext(System.Collections.Generic.Dictionary{System.String,System.Object})
+  commentId: M:CurlDotNet.Exceptions.CurlException.WithContext(System.Collections.Generic.Dictionary{System.String,System.Object})
+  parent: CurlDotNet.Exceptions.CurlException
+  isExternal: true
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_WithContext_System_Collections_Generic_Dictionary_System_String_System_Object__
+  name: WithContext(Dictionary<string, object>)
+  nameWithType: CurlException.WithContext(Dictionary<string, object>)
+  fullName: CurlDotNet.Exceptions.CurlException.WithContext(System.Collections.Generic.Dictionary<string, object>)
+  nameWithType.vb: CurlException.WithContext(Dictionary(Of String, Object))
+  fullName.vb: CurlDotNet.Exceptions.CurlException.WithContext(System.Collections.Generic.Dictionary(Of String, Object))
+  name.vb: WithContext(Dictionary(Of String, Object))
+  spec.csharp:
+  - uid: CurlDotNet.Exceptions.CurlException.WithContext(System.Collections.Generic.Dictionary{System.String,System.Object})
+    name: WithContext
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_WithContext_System_Collections_Generic_Dictionary_System_String_System_Object__
+  - name: (
+  - uid: System.Collections.Generic.Dictionary`2
+    name: Dictionary
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  - name: <
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: '>'
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Exceptions.CurlException.WithContext(System.Collections.Generic.Dictionary{System.String,System.Object})
+    name: WithContext
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_WithContext_System_Collections_Generic_Dictionary_System_String_System_Object__
+  - name: (
+  - uid: System.Collections.Generic.Dictionary`2
+    name: Dictionary
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  - name: )
+- uid: CurlDotNet.Exceptions.CurlException.WithSuggestion(System.String)
+  commentId: M:CurlDotNet.Exceptions.CurlException.WithSuggestion(System.String)
+  parent: CurlDotNet.Exceptions.CurlException
+  isExternal: true
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_WithSuggestion_System_String_
+  name: WithSuggestion(string)
+  nameWithType: CurlException.WithSuggestion(string)
+  fullName: CurlDotNet.Exceptions.CurlException.WithSuggestion(string)
+  nameWithType.vb: CurlException.WithSuggestion(String)
+  fullName.vb: CurlDotNet.Exceptions.CurlException.WithSuggestion(String)
+  name.vb: WithSuggestion(String)
+  spec.csharp:
+  - uid: CurlDotNet.Exceptions.CurlException.WithSuggestion(System.String)
+    name: WithSuggestion
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_WithSuggestion_System_String_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Exceptions.CurlException.WithSuggestion(System.String)
+    name: WithSuggestion
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_WithSuggestion_System_String_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: CurlDotNet.Exceptions.CurlException.WithDiagnostics(System.String)
+  commentId: M:CurlDotNet.Exceptions.CurlException.WithDiagnostics(System.String)
+  parent: CurlDotNet.Exceptions.CurlException
+  isExternal: true
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_WithDiagnostics_System_String_
+  name: WithDiagnostics(string)
+  nameWithType: CurlException.WithDiagnostics(string)
+  fullName: CurlDotNet.Exceptions.CurlException.WithDiagnostics(string)
+  nameWithType.vb: CurlException.WithDiagnostics(String)
+  fullName.vb: CurlDotNet.Exceptions.CurlException.WithDiagnostics(String)
+  name.vb: WithDiagnostics(String)
+  spec.csharp:
+  - uid: CurlDotNet.Exceptions.CurlException.WithDiagnostics(System.String)
+    name: WithDiagnostics
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_WithDiagnostics_System_String_
+  - name: (
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Exceptions.CurlException.WithDiagnostics(System.String)
+    name: WithDiagnostics
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_WithDiagnostics_System_String_
+  - name: (
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: )
+- uid: CurlDotNet.Exceptions.CurlException.ToDetailedString
+  commentId: M:CurlDotNet.Exceptions.CurlException.ToDetailedString
+  parent: CurlDotNet.Exceptions.CurlException
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_ToDetailedString
+  name: ToDetailedString()
+  nameWithType: CurlException.ToDetailedString()
+  fullName: CurlDotNet.Exceptions.CurlException.ToDetailedString()
+  spec.csharp:
+  - uid: CurlDotNet.Exceptions.CurlException.ToDetailedString
+    name: ToDetailedString
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_ToDetailedString
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Exceptions.CurlException.ToDetailedString
+    name: ToDetailedString
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_ToDetailedString
+  - name: (
+  - name: )
+- uid: CurlDotNet.Exceptions.CurlException.ToJson
+  commentId: M:CurlDotNet.Exceptions.CurlException.ToJson
+  parent: CurlDotNet.Exceptions.CurlException
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_ToJson
+  name: ToJson()
+  nameWithType: CurlException.ToJson()
+  fullName: CurlDotNet.Exceptions.CurlException.ToJson()
+  spec.csharp:
+  - uid: CurlDotNet.Exceptions.CurlException.ToJson
+    name: ToJson
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_ToJson
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Exceptions.CurlException.ToJson
+    name: ToJson
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_ToJson
+  - name: (
+  - name: )
+- uid: CurlDotNet.Exceptions.CurlException.GetDiagnosticInfo
+  commentId: M:CurlDotNet.Exceptions.CurlException.GetDiagnosticInfo
+  parent: CurlDotNet.Exceptions.CurlException
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_GetDiagnosticInfo
+  name: GetDiagnosticInfo()
+  nameWithType: CurlException.GetDiagnosticInfo()
+  fullName: CurlDotNet.Exceptions.CurlException.GetDiagnosticInfo()
+  spec.csharp:
+  - uid: CurlDotNet.Exceptions.CurlException.GetDiagnosticInfo
+    name: GetDiagnosticInfo
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_GetDiagnosticInfo
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Exceptions.CurlException.GetDiagnosticInfo
+    name: GetDiagnosticInfo
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_GetDiagnosticInfo
+  - name: (
+  - name: )
+- uid: CurlDotNet.Exceptions.CurlException.GetCurlErrorName
+  commentId: M:CurlDotNet.Exceptions.CurlException.GetCurlErrorName
+  parent: CurlDotNet.Exceptions.CurlException
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_GetCurlErrorName
+  name: GetCurlErrorName()
+  nameWithType: CurlException.GetCurlErrorName()
+  fullName: CurlDotNet.Exceptions.CurlException.GetCurlErrorName()
+  spec.csharp:
+  - uid: CurlDotNet.Exceptions.CurlException.GetCurlErrorName
+    name: GetCurlErrorName
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_GetCurlErrorName
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Exceptions.CurlException.GetCurlErrorName
+    name: GetCurlErrorName
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_GetCurlErrorName
+  - name: (
+  - name: )
+- uid: CurlDotNet.Exceptions.CurlException.IsRetryable
+  commentId: M:CurlDotNet.Exceptions.CurlException.IsRetryable
+  parent: CurlDotNet.Exceptions.CurlException
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_IsRetryable
+  name: IsRetryable()
+  nameWithType: CurlException.IsRetryable()
+  fullName: CurlDotNet.Exceptions.CurlException.IsRetryable()
+  spec.csharp:
+  - uid: CurlDotNet.Exceptions.CurlException.IsRetryable
+    name: IsRetryable
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_IsRetryable
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Exceptions.CurlException.IsRetryable
+    name: IsRetryable
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_IsRetryable
+  - name: (
+  - name: )
+- uid: CurlDotNet.Exceptions.CurlException.Log(System.Action{System.String,System.Collections.Generic.Dictionary{System.String,System.Object}})
+  commentId: M:CurlDotNet.Exceptions.CurlException.Log(System.Action{System.String,System.Collections.Generic.Dictionary{System.String,System.Object}})
+  parent: CurlDotNet.Exceptions.CurlException
+  isExternal: true
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_Log_System_Action_System_String_System_Collections_Generic_Dictionary_System_String_System_Object___
+  name: Log(Action<string, Dictionary<string, object>>)
+  nameWithType: CurlException.Log(Action<string, Dictionary<string, object>>)
+  fullName: CurlDotNet.Exceptions.CurlException.Log(System.Action<string, System.Collections.Generic.Dictionary<string, object>>)
+  nameWithType.vb: CurlException.Log(Action(Of String, Dictionary(Of String, Object)))
+  fullName.vb: CurlDotNet.Exceptions.CurlException.Log(System.Action(Of String, System.Collections.Generic.Dictionary(Of String, Object)))
+  name.vb: Log(Action(Of String, Dictionary(Of String, Object)))
+  spec.csharp:
+  - uid: CurlDotNet.Exceptions.CurlException.Log(System.Action{System.String,System.Collections.Generic.Dictionary{System.String,System.Object}})
+    name: Log
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_Log_System_Action_System_String_System_Collections_Generic_Dictionary_System_String_System_Object___
+  - name: (
+  - uid: System.Action`2
+    name: Action
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.action-2
+  - name: <
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Collections.Generic.Dictionary`2
+    name: Dictionary
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  - name: <
+  - uid: System.String
+    name: string
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: '>'
+  - name: '>'
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Exceptions.CurlException.Log(System.Action{System.String,System.Collections.Generic.Dictionary{System.String,System.Object}})
+    name: Log
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_Log_System_Action_System_String_System_Collections_Generic_Dictionary_System_String_System_Object___
+  - name: (
+  - uid: System.Action`2
+    name: Action
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.action-2
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Collections.Generic.Dictionary`2
+    name: Dictionary
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2
+  - name: (
+  - name: Of
+  - name: " "
+  - uid: System.String
+    name: String
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.string
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  - name: )
+  - name: )
+- uid: CurlDotNet.Exceptions.CurlException.ToUserFriendlyMessage
+  commentId: M:CurlDotNet.Exceptions.CurlException.ToUserFriendlyMessage
+  parent: CurlDotNet.Exceptions.CurlException
+  href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_ToUserFriendlyMessage
+  name: ToUserFriendlyMessage()
+  nameWithType: CurlException.ToUserFriendlyMessage()
+  fullName: CurlDotNet.Exceptions.CurlException.ToUserFriendlyMessage()
+  spec.csharp:
+  - uid: CurlDotNet.Exceptions.CurlException.ToUserFriendlyMessage
+    name: ToUserFriendlyMessage
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_ToUserFriendlyMessage
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: CurlDotNet.Exceptions.CurlException.ToUserFriendlyMessage
+    name: ToUserFriendlyMessage
+    href: CurlDotNet.Exceptions.CurlException.html#CurlDotNet_Exceptions_CurlException_ToUserFriendlyMessage
+  - name: (
+  - name: )
+- uid: System.Exception.GetBaseException
+  commentId: M:System.Exception.GetBaseException
+  parent: System.Exception
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception.getbaseexception
+  name: GetBaseException()
+  nameWithType: Exception.GetBaseException()
+  fullName: System.Exception.GetBaseException()
+  spec.csharp:
+  - uid: System.Exception.GetBaseException
+    name: GetBaseException
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.exception.getbaseexception
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Exception.GetBaseException
+    name: GetBaseException
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.exception.getbaseexception
+  - name: (
+  - name: )
+- uid: System.Exception.GetType
+  commentId: M:System.Exception.GetType
+  parent: System.Exception
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception.gettype
+  name: GetType()
+  nameWithType: Exception.GetType()
+  fullName: System.Exception.GetType()
+  spec.csharp:
+  - uid: System.Exception.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.exception.gettype
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Exception.GetType
+    name: GetType
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.exception.gettype
+  - name: (
+  - name: )
+- uid: System.Exception.ToString
+  commentId: M:System.Exception.ToString
+  parent: System.Exception
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception.tostring
+  name: ToString()
+  nameWithType: Exception.ToString()
+  fullName: System.Exception.ToString()
+  spec.csharp:
+  - uid: System.Exception.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.exception.tostring
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Exception.ToString
+    name: ToString
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.exception.tostring
+  - name: (
+  - name: )
+- uid: System.Exception.Data
+  commentId: P:System.Exception.Data
+  parent: System.Exception
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception.data
+  name: Data
+  nameWithType: Exception.Data
+  fullName: System.Exception.Data
+- uid: System.Exception.HelpLink
+  commentId: P:System.Exception.HelpLink
+  parent: System.Exception
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception.helplink
+  name: HelpLink
+  nameWithType: Exception.HelpLink
+  fullName: System.Exception.HelpLink
+- uid: System.Exception.HResult
+  commentId: P:System.Exception.HResult
+  parent: System.Exception
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception.hresult
+  name: HResult
+  nameWithType: Exception.HResult
+  fullName: System.Exception.HResult
+- uid: System.Exception.InnerException
+  commentId: P:System.Exception.InnerException
+  parent: System.Exception
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception.innerexception
+  name: InnerException
+  nameWithType: Exception.InnerException
+  fullName: System.Exception.InnerException
+- uid: System.Exception.Message
+  commentId: P:System.Exception.Message
+  parent: System.Exception
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception.message
+  name: Message
+  nameWithType: Exception.Message
+  fullName: System.Exception.Message
+- uid: System.Exception.Source
+  commentId: P:System.Exception.Source
+  parent: System.Exception
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception.source
+  name: Source
+  nameWithType: Exception.Source
+  fullName: System.Exception.Source
+- uid: System.Exception.StackTrace
+  commentId: P:System.Exception.StackTrace
+  parent: System.Exception
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception.stacktrace
+  name: StackTrace
+  nameWithType: Exception.StackTrace
+  fullName: System.Exception.StackTrace
+- uid: System.Exception.TargetSite
+  commentId: P:System.Exception.TargetSite
+  parent: System.Exception
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception.targetsite
+  name: TargetSite
+  nameWithType: Exception.TargetSite
+  fullName: System.Exception.TargetSite
+- uid: System.Exception.SerializeObjectState
+  commentId: E:System.Exception.SerializeObjectState
+  parent: System.Exception
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.exception.serializeobjectstate
+  name: SerializeObjectState
+  nameWithType: Exception.SerializeObjectState
+  fullName: System.Exception.SerializeObjectState
+- uid: System.Object.Equals(System.Object)
+  commentId: M:System.Object.Equals(System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  name: Equals(object)
+  nameWithType: object.Equals(object)
+  fullName: object.Equals(object)
+  nameWithType.vb: Object.Equals(Object)
+  fullName.vb: Object.Equals(Object)
+  name.vb: Equals(Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.Equals(System.Object,System.Object)
+  commentId: M:System.Object.Equals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  name: Equals(object, object)
+  nameWithType: object.Equals(object, object)
+  fullName: object.Equals(object, object)
+  nameWithType.vb: Object.Equals(Object, Object)
+  fullName.vb: Object.Equals(Object, Object)
+  name.vb: Equals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.Equals(System.Object,System.Object)
+    name: Equals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.equals#system-object-equals(system-object-system-object)
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System.Object.GetHashCode
+  commentId: M:System.Object.GetHashCode
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  name: GetHashCode()
+  nameWithType: object.GetHashCode()
+  fullName: object.GetHashCode()
+  nameWithType.vb: Object.GetHashCode()
+  fullName.vb: Object.GetHashCode()
+  spec.csharp:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.GetHashCode
+    name: GetHashCode
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.gethashcode
+  - name: (
+  - name: )
+- uid: System.Object.MemberwiseClone
+  commentId: M:System.Object.MemberwiseClone
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  name: MemberwiseClone()
+  nameWithType: object.MemberwiseClone()
+  fullName: object.MemberwiseClone()
+  nameWithType.vb: Object.MemberwiseClone()
+  fullName.vb: Object.MemberwiseClone()
+  spec.csharp:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+  spec.vb:
+  - uid: System.Object.MemberwiseClone
+    name: MemberwiseClone
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone
+  - name: (
+  - name: )
+- uid: System.Object.ReferenceEquals(System.Object,System.Object)
+  commentId: M:System.Object.ReferenceEquals(System.Object,System.Object)
+  parent: System.Object
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  name: ReferenceEquals(object, object)
+  nameWithType: object.ReferenceEquals(object, object)
+  fullName: object.ReferenceEquals(object, object)
+  nameWithType.vb: Object.ReferenceEquals(Object, Object)
+  fullName.vb: Object.ReferenceEquals(Object, Object)
+  name.vb: ReferenceEquals(Object, Object)
+  spec.csharp:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+  spec.vb:
+  - uid: System.Object.ReferenceEquals(System.Object,System.Object)
+    name: ReferenceEquals
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object.referenceequals
+  - name: (
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: ','
+  - name: " "
+  - uid: System.Object
+    name: Object
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.object
+  - name: )
+- uid: System
+  commentId: N:System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System
+  nameWithType: System
+  fullName: System
+- uid: System.Runtime.Serialization
+  commentId: N:System.Runtime.Serialization
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system
+  name: System.Runtime.Serialization
+  nameWithType: System.Runtime.Serialization
+  fullName: System.Runtime.Serialization
+  spec.csharp:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Runtime
+    name: Runtime
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.runtime
+  - name: .
+  - uid: System.Runtime.Serialization
+    name: Serialization
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.runtime.serialization
+  spec.vb:
+  - uid: System
+    name: System
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system
+  - name: .
+  - uid: System.Runtime
+    name: Runtime
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.runtime
+  - name: .
+  - uid: System.Runtime.Serialization
+    name: Serialization
+    isExternal: true
+    href: https://learn.microsoft.com/dotnet/api/system.runtime.serialization
+- uid: CurlDotNet.Exceptions.CurlUploadFailedException.FileName*
+  commentId: Overload:CurlDotNet.Exceptions.CurlUploadFailedException.FileName
+  href: CurlDotNet.Exceptions.CurlUploadFailedException.html#CurlDotNet_Exceptions_CurlUploadFailedException_FileName
+  name: FileName
+  nameWithType: CurlUploadFailedException.FileName
+  fullName: CurlDotNet.Exceptions.CurlUploadFailedException.FileName
+- uid: System.String
+  commentId: T:System.String
+  parent: System
+  isExternal: true
+  href: https://learn.microsoft.com/dotnet/api/system.string
+  name: string
+  nameWithType: string
+  fullName: string
+  nameWithType.vb: String
+  fullName.vb: String
+  name.vb: String
+- uid: CurlDotNet.Exceptions.CurlUploadFailedException
+  commentId: T:CurlDotNet.Exceptions.CurlUploadFailedException
+  href: CurlDotNet.Exceptions.CurlUploadFailedException.html
+  name: CurlUploadFailedException
+  nameWithType: CurlUploadFailedException
+  fullName: CurlDotNet.Exceptions.CurlUploadFailedException
+- uid: CurlDotNet.Exceptions.CurlUploadFailedException.#ctor*
+  commentId: Overload:CurlDotNet.Exceptions.CurlUploadFailedException.#ctor
+  href: CurlDotNet.Exceptions.CurlUploadFailedException.html#CurlDotNet_Exceptions_CurlUploadFailedException__ctor_System_String_System_String_System_String_
+  name: CurlUploadFailedException
+  nameWithType: CurlUploadFailedException.CurlUploadFailedException
+  fullName: CurlDotNet.Exceptions.CurlUploadFailedException.CurlUploadFailedException
+  nameWithType.vb: CurlUploadFailedException.New
+  fullName.vb: CurlDotNet.Exceptions.CurlUploadFailedException.New
+  name.vb: New

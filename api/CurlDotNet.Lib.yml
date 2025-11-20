@@ -1,0 +1,46 @@
+### YamlMime:ManagedReference
+items:
+- uid: CurlDotNet.Lib
+  commentId: N:CurlDotNet.Lib
+  id: CurlDotNet.Lib
+  children:
+  - CurlDotNet.Lib.LibCurl
+  langs:
+  - csharp
+  - vb
+  name: CurlDotNet.Lib
+  nameWithType: CurlDotNet.Lib
+  fullName: CurlDotNet.Lib
+  type: Namespace
+  assemblies:
+  - CurlDotNet
+references:
+- uid: CurlDotNet.Lib.LibCurl
+  commentId: T:CurlDotNet.Lib.LibCurl
+  parent: CurlDotNet.Lib
+  href: CurlDotNet.Lib.LibCurl.html
+  name: LibCurl
+  nameWithType: LibCurl
+  fullName: CurlDotNet.Lib.LibCurl
+- uid: CurlDotNet.Lib
+  commentId: N:CurlDotNet.Lib
+  href: CurlDotNet.html
+  name: CurlDotNet.Lib
+  nameWithType: CurlDotNet.Lib
+  fullName: CurlDotNet.Lib
+  spec.csharp:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Lib
+    name: Lib
+    href: CurlDotNet.Lib.html
+  spec.vb:
+  - uid: CurlDotNet
+    name: CurlDotNet
+    href: CurlDotNet.html
+  - name: .
+  - uid: CurlDotNet.Lib
+    name: Lib
+    href: CurlDotNet.Lib.html
