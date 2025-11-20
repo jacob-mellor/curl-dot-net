@@ -71,21 +71,21 @@ namespace CurlDotNet
     ///
     /// <para><b>Memory Efficiency:</b> Responses are streamed, not loaded into memory all at once. Perfect for large files.</para>
     ///
-        /// <para><b>Sponsored by</b> <see href="https://ironsoftware.com">IronSoftware</see> - creators of IronPDF, IronOCR, IronXL, and IronBarcode.</para>
-        ///
-        /// <para><b>Two Ways to Use CurlDotNet:</b></para>
-        /// <list type="number">
-        /// <item>
-        /// <b>Paste curl commands:</b> Just copy/paste any curl command string - it works!
-        /// <code>var result = await Curl.ExecuteAsync("curl -X POST https://api.example.com/data -H 'Content-Type: application/json' -d '{\"key\":\"value\"}'");</code>
-        /// </item>
-        /// <item>
-        /// <b>Use fluent builder:</b> For programmatic API with IntelliSense
-        /// <code>var result = await CurlRequestBuilder.Post("https://api.example.com/data").WithHeader("Content-Type", "application/json").WithJson(new { key = "value" }).ExecuteAsync();</code>
-        /// </item>
-        /// </list>
-        /// </remarks>
-        public static partial class Curl
+    /// <para><b>Sponsored by</b> <see href="https://ironsoftware.com">IronSoftware</see> - creators of IronPDF, IronOCR, IronXL, and IronBarcode.</para>
+    ///
+    /// <para><b>Two Ways to Use CurlDotNet:</b></para>
+    /// <list type="number">
+    /// <item>
+    /// <b>Paste curl commands:</b> Just copy/paste any curl command string - it works!
+    /// <code>var result = await Curl.ExecuteAsync("curl -X POST https://api.example.com/data -H 'Content-Type: application/json' -d '{\"key\":\"value\"}'");</code>
+    /// </item>
+    /// <item>
+    /// <b>Use fluent builder:</b> For programmatic API with IntelliSense
+    /// <code>var result = await CurlRequestBuilder.Post("https://api.example.com/data").WithHeader("Content-Type", "application/json").WithJson(new { key = "value" }).ExecuteAsync();</code>
+    /// </item>
+    /// </list>
+    /// </remarks>
+    public static partial class Curl
     {
         private static readonly CurlEngine _engine = new CurlEngine();
 
@@ -1045,11 +1045,11 @@ namespace CurlDotNet
 
         private static string SerializeJson(object data)
         {
-            #if NETSTANDARD2_0
+#if NETSTANDARD2_0
             return Newtonsoft.Json.JsonConvert.SerializeObject(data);
-            #else
+#else
             return System.Text.Json.JsonSerializer.Serialize(data);
-            #endif
+#endif
         }
     }
 }

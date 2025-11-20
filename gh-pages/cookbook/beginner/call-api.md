@@ -245,11 +245,11 @@ class BlogApiClient
         var result = await Curl.ExecuteAsync($@"
             curl -X POST {BaseUrl}/posts \
             -H 'Content-Type: application/json' \
-            -d '{{
+            -d '{% raw %}{{{% endraw %}
                 ""title"": ""{title}"",
                 ""body"": ""{body}"",
                 ""userId"": 1
-            }}'
+            {% raw %}}}{% endraw %}'
         ");
 
         return result.IsSuccess

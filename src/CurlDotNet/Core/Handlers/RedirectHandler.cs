@@ -18,12 +18,12 @@ namespace CurlDotNet.Core.Handlers
         }
 
         public async Task<(HttpResponseMessage Response, HttpRequestMessage Request, int RedirectCount)> HandleRedirectAsync(
-            HttpResponseMessage response, 
-            HttpRequestMessage initialRequest, 
+            HttpResponseMessage response,
+            HttpRequestMessage initialRequest,
             CurlOptions options,
-            CancellationToken cancellationToken, 
-            CurlTimings timings, 
-            DateTime startTime, 
+            CancellationToken cancellationToken,
+            CurlTimings timings,
+            DateTime startTime,
             StringBuilder? verboseLog,
             Func<CurlOptions, HttpRequestMessage> createRequestFunc,
             Action<StringBuilder?, HttpRequestMessage> appendVerboseRequestFunc,
@@ -54,7 +54,7 @@ namespace CurlDotNet.Core.Handlers
 
                 currentRequest = createRequestFunc(options);
                 appendVerboseRequestFunc(verboseLog, currentRequest);
-                
+
                 currentResponse = await _httpClient.SendAsync(currentRequest, cancellationToken);
                 appendVerboseResponseFunc(verboseLog, currentResponse);
 

@@ -387,7 +387,7 @@ public static CurlDotNet.Core.CurlRequestBuilder Request(string method, string u
 
 ## CurlRequestBuilder\.SaveToFile\(string\) Method
 
-Save response to file \(like curl \-o\)\.
+Save output to a file\. Alias for WithOutput\.
 
 ```csharp
 public CurlDotNet.Core.CurlRequestBuilder SaveToFile(string filePath);
@@ -397,6 +397,8 @@ public CurlDotNet.Core.CurlRequestBuilder SaveToFile(string filePath);
 <a name='CurlDotNet.Core.CurlRequestBuilder.SaveToFile(string).filePath'></a>
 
 `filePath` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+
+Path to save the file
 
 #### Returns
 [CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.md 'CurlDotNet\.Core\.CurlRequestBuilder')
@@ -608,6 +610,26 @@ public CurlDotNet.Core.CurlRequestBuilder WithData(string data);
 <a name='CurlDotNet.Core.CurlRequestBuilder.WithData(string).data'></a>
 
 `data` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+
+#### Returns
+[CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.md 'CurlDotNet\.Core\.CurlRequestBuilder')
+
+<a name='CurlDotNet.Core.CurlRequestBuilder.WithFile(string)'></a>
+
+## CurlRequestBuilder\.WithFile\(string\) Method
+
+Upload a file \(multipart/form\-data\)\. Alias for WithUploadFile\.
+
+```csharp
+public CurlDotNet.Core.CurlRequestBuilder WithFile(string filePath);
+```
+#### Parameters
+
+<a name='CurlDotNet.Core.CurlRequestBuilder.WithFile(string).filePath'></a>
+
+`filePath` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+
+Path to the file
 
 #### Returns
 [CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.md 'CurlDotNet\.Core\.CurlRequestBuilder')
@@ -829,6 +851,26 @@ public CurlDotNet.Core.CurlRequestBuilder WithMultipartForm(System.Collections.G
 #### Returns
 [CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.md 'CurlDotNet\.Core\.CurlRequestBuilder')
 
+<a name='CurlDotNet.Core.CurlRequestBuilder.WithOutput(string)'></a>
+
+## CurlRequestBuilder\.WithOutput\(string\) Method
+
+Save output to a file\.
+
+```csharp
+public CurlDotNet.Core.CurlRequestBuilder WithOutput(string filePath);
+```
+#### Parameters
+
+<a name='CurlDotNet.Core.CurlRequestBuilder.WithOutput(string).filePath'></a>
+
+`filePath` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+
+Path to save the file
+
+#### Returns
+[CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.md 'CurlDotNet\.Core\.CurlRequestBuilder')
+
 <a name='CurlDotNet.Core.CurlRequestBuilder.WithProxy(string)'></a>
 
 ## CurlRequestBuilder\.WithProxy\(string\) Method
@@ -923,6 +965,32 @@ public CurlDotNet.Core.CurlRequestBuilder WithTimeout(System.TimeSpan timeout);
 <a name='CurlDotNet.Core.CurlRequestBuilder.WithTimeout(System.TimeSpan).timeout'></a>
 
 `timeout` [System\.TimeSpan](https://learn.microsoft.com/en-us/dotnet/api/system.timespan 'System\.TimeSpan')
+
+#### Returns
+[CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.md 'CurlDotNet\.Core\.CurlRequestBuilder')
+
+<a name='CurlDotNet.Core.CurlRequestBuilder.WithUploadFile(string,string)'></a>
+
+## CurlRequestBuilder\.WithUploadFile\(string, string\) Method
+
+Upload a file \(multipart/form\-data\)\.
+
+```csharp
+public CurlDotNet.Core.CurlRequestBuilder WithUploadFile(string parameterName, string filePath);
+```
+#### Parameters
+
+<a name='CurlDotNet.Core.CurlRequestBuilder.WithUploadFile(string,string).parameterName'></a>
+
+`parameterName` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+
+The form field name
+
+<a name='CurlDotNet.Core.CurlRequestBuilder.WithUploadFile(string,string).filePath'></a>
+
+`filePath` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+
+Path to the file
 
 #### Returns
 [CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.md 'CurlDotNet\.Core\.CurlRequestBuilder')

@@ -664,7 +664,7 @@ public static async Task WarmAsync(IEnumerable<string> urls, CancellationToken t
     {
         foreach (var url in urls)
         {
-            var response = await Curl.ExecuteAsync($"curl -s -o /dev/null -w '%{{http_code}}' {url}");
+            var response = await Curl.ExecuteAsync($"curl -s -o /dev/null -w '%{% raw %}{{http_code}}{% endraw %}' {url}");
             Console.WriteLine($"Warmed {url}: {response.StatusCode}");
         }
     } while (await timer.WaitForNextTickAsync(token));

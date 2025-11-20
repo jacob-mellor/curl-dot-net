@@ -273,9 +273,9 @@ namespace CurlDotNet.Tests
             // FtpWebRequest is not fully supported on all platforms in .NET Core+
             // especially on macOS/Linux where it might throw PlatformNotSupportedException
             // or "URI prefix is not recognized"
-            
+
             bool isWindows = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows);
-            
+
             try
             {
                 await testAction();
@@ -288,13 +288,13 @@ namespace CurlDotNet.Tests
                     // Accept failure on non-Windows
                     return;
                 }
-                
+
                 // On Windows, we expect it to work, so re-throw unless it's a specific known issue
                 if (ex is NotSupportedException || ex is PlatformNotSupportedException)
                 {
                     return;
                 }
-                
+
                 Console.WriteLine($"[ExecuteSafeAsync] Failed on Windows: {ex.GetType().Name}: {ex.Message}");
                 throw;
             }

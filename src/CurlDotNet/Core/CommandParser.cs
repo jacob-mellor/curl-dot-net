@@ -218,10 +218,10 @@ namespace CurlDotNet.Core
             command = Regex.Replace(command, @"[ \t]*\\[ \t]*(\r\n|\r|\n)", " ", RegexOptions.Multiline);
             command = Regex.Replace(command, @"[ \t]*\^[ \t]*(\r\n|\r|\n)", " ", RegexOptions.Multiline); // Windows CMD
             command = Regex.Replace(command, @"[ \t]*`[ \t]*(\r\n|\r|\n)", " ", RegexOptions.Multiline); // PowerShell
-            
+
             // Normalize all whitespace sequences to single space
             command = Regex.Replace(command, @"\s+", " ");
-            
+
             return command.Trim();
         }
 
@@ -539,20 +539,8 @@ namespace CurlDotNet.Core
 
                 case "--data-urlencode":
                     options.DataUrlEncode = true;
-                    // URL encode the value part if it's a key=value pair
-                    string encodedValue;
-                    var eqIndex = value.IndexOf('=');
-                    if (eqIndex > 0)
-                    {
-                        var key = value.Substring(0, eqIndex);
-                        var val = value.Substring(eqIndex + 1);
-                        encodedValue = key + "=" + System.Net.WebUtility.UrlEncode(val);
-                    }
-                    else
-                    {
-                        encodedValue = System.Net.WebUtility.UrlEncode(value);
-                    }
-                    AppendData(options, encodedValue);
+                    // Store the data as-is; encoding should happen when the request is sent
+                    AppendData(options, value);
                     if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")
                     {
                         options.Method = "POST";

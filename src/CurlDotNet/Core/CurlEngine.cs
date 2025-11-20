@@ -157,9 +157,13 @@ namespace CurlDotNet.Core
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    return CreateCancelledResult(options);
+                    throw new CurlAbortedByCallbackException("Operation was cancelled by the user");
                 }
-                return CreateTimeoutResult(options);
+                var timeoutSeconds = GetTimeoutSeconds(options);
+                throw new CurlTimeoutException(
+                    $"Operation timed out after {timeoutSeconds} seconds",
+                    options.OriginalCommand,
+                    TimeSpan.FromSeconds(timeoutSeconds));
             }
             catch (HttpRequestException)
             {
@@ -394,7 +398,7 @@ namespace CurlDotNet.Core
                 // Escape double quotes in data
                 var data = options.Data.Replace("\"", "`\"");
                 sb.Append($" -Body \"{data}\"");
-                
+
                 // If it looks like JSON, add ContentType
                 if (options.Data.TrimStart().StartsWith("{"))
                 {
@@ -516,12 +520,12 @@ namespace CurlDotNet.Core
         /// Whether the validation succeeded.
         /// </summary>
         public bool IsValid { get; set; }
-        
+
         /// <summary>
         /// Error message if validation failed, null if valid.
         /// </summary>
         public string? Error { get; set; }
-        
+
         /// <summary>
         /// Parsed options if validation succeeded, null if invalid.
         /// </summary>

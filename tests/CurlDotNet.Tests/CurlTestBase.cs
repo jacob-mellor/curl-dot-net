@@ -112,11 +112,11 @@ namespace CurlDotNet.Tests
         /// </summary>
         protected void SkipIfNetFramework(string reason = "Test not supported on .NET Framework")
         {
-            #if NET472
+#if NET472
             // Test skipped on .NET Framework
             Assert.True(true, reason);
             return;
-            #endif
+#endif
         }
 
         /// <summary>
@@ -124,11 +124,11 @@ namespace CurlDotNet.Tests
         /// </summary>
         protected void SkipIfNotNetFramework(string reason = "Test requires .NET Framework")
         {
-            #if !NET472
+#if !NET472
             // Test skipped on non-.NET Framework
             Assert.True(true, reason);
             return;
-            #endif
+#endif
         }
 
         /// <summary>

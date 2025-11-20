@@ -94,14 +94,18 @@ namespace CurlDotNet.Core
                     var redirectResult = await _redirectHandler.HandleRedirectAsync(
                         response, request, options, cts.Token, timings, startTime, verboseLog,
                         CreateRequest, AppendVerboseRequest, AppendVerboseResponseHeaders);
-                    
+
                     response = redirectResult.Response;
                     request = redirectResult.Request;
                 }
 
                 return await BuildResultAsync(request, response, options, timings, startTime, cts.Token, verboseLog);
             }
-
+            catch (TaskCanceledException)
+            {
+                // Re-throw to let CurlEngine handle it
+                throw;
+            }
             catch (HttpRequestException)
             {
                 var uri = new Uri(options.Url);

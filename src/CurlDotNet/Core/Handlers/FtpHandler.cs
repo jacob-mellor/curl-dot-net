@@ -133,11 +133,11 @@ namespace CurlDotNet.Core
                     // Save to output file if specified
                     if (!string.IsNullOrEmpty(options.OutputFile))
                     {
-                        #if NETSTANDARD2_0 || NET472 || NET48
+#if NETSTANDARD2_0 || NET472 || NET48
                         await Task.Run(() => File.WriteAllText(options.OutputFile, result.Body), cancellationToken);
-                        #else
+#else
                         await File.WriteAllTextAsync(options.OutputFile, result.Body, cancellationToken);
-                        #endif
+#endif
                         result.OutputFiles.Add(options.OutputFile);
                     }
                 }
@@ -167,7 +167,7 @@ namespace CurlDotNet.Core
 
         public bool SupportsProtocol(string protocol)
         {
-            return protocol.Equals("ftp", StringComparison.OrdinalIgnoreCase) || 
+            return protocol.Equals("ftp", StringComparison.OrdinalIgnoreCase) ||
                    protocol.Equals("ftps", StringComparison.OrdinalIgnoreCase);
         }
 
