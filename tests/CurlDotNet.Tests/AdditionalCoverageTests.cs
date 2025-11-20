@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using CurlDotNet;
 using CurlDotNet.Core;
+using CurlDotNet.Tests.TestServers;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
@@ -17,15 +18,22 @@ namespace CurlDotNet.Tests
     [Trait("Category", TestCategories.FullCoverage)]
     public class DotNetCurlAdditionalTests : CurlTestBase
     {
-        public DotNetCurlAdditionalTests(ITestOutputHelper output) : base(output) { }
+        private TestServerEndpoint _testServer;
+        private TestServerAdapter _serverAdapter;
+
+        public DotNetCurlAdditionalTests(ITestOutputHelper output) : base(output)
+        {
+            _testServer = TestServerConfiguration.GetBestAvailableServerAsync(TestServerFeatures.All).GetAwaiter().GetResult();
+            _serverAdapter = new TestServerAdapter(_testServer.BaseUrl);
+        }
 
         [Fact]
         public async Task DotNetCurl_Curl_WithSettings_Success()
         {
             // Arrange
-            var command = "https://httpbin.org/get";
+            var command = _serverAdapter.GetEndpoint();
             var settings = CurlSettings.FromDefaults()
-                .WithTimeout(TimeSpan.FromSeconds(30));
+                .WithTimeout(30);
 
             // Act
             var result = await DotNetCurl.CurlAsync(command, settings);
@@ -39,7 +47,7 @@ namespace CurlDotNet.Tests
         public void DotNetCurl_Validate_ReturnsValidationResult()
         {
             // Arrange
-            var command = "curl https://httpbin.org/get";
+            var command = $"curl {_serverAdapter.GetEndpoint()}";
 
             // Act
             var validation = DotNetCurl.Validate(command);
@@ -53,7 +61,7 @@ validation.IsValid.Should().BeTrue();
         public void DotNetCurl_ToHttpClient_GeneratesCode()
         {
             // Arrange
-            var command = "curl https://httpbin.org/get";
+            var command = $"curl {_serverAdapter.GetEndpoint()}";
 
             // Act
             var code = DotNetCurl.ToHttpClient(command);
@@ -67,7 +75,7 @@ validation.IsValid.Should().BeTrue();
         public void DotNetCurl_ToFetch_GeneratesJavaScript()
         {
             // Arrange
-            var command = "curl https://httpbin.org/get";
+            var command = $"curl {_serverAdapter.GetEndpoint()}";
 
             // Act
             var code = DotNetCurl.ToFetch(command);
@@ -81,7 +89,7 @@ validation.IsValid.Should().BeTrue();
         public void DotNetCurl_ToPython_GeneratesPythonCode()
         {
             // Arrange
-            var command = "curl https://httpbin.org/get";
+            var command = $"curl {_serverAdapter.GetEndpoint()}";
 
             // Act
             var code = DotNetCurl.ToPython(command);
@@ -95,7 +103,7 @@ validation.IsValid.Should().BeTrue();
         public async Task DotNetCurl_Download_SavesFile()
         {
             // Arrange
-            var url = "https://httpbin.org/bytes/100";
+            var url = $"{_testServer.BaseUrl}/bytes/100";
             var tempFile = Path.GetTempFileName();
 
             try
@@ -208,7 +216,7 @@ validation.IsValid.Should().BeTrue();
         public async Task CurlApiClient_GetAsync_Works()
         {
             // Arrange
-            var client = new CurlApiClient("https://httpbin.org");
+            var client = new CurlApiClient(_testServer.BaseUrl);
 
             // Act
             var result = await client.GetAsync("get");
@@ -222,7 +230,7 @@ validation.IsValid.Should().BeTrue();
         public async Task CurlApiClient_PostJsonAsync_Works()
         {
             // Arrange
-            var client = new CurlApiClient("https://httpbin.org");
+            var client = new CurlApiClient(_testServer.BaseUrl);
             var data = new { name = "test" };
 
             // Act
@@ -237,7 +245,7 @@ validation.IsValid.Should().BeTrue();
         public async Task CurlApiClient_PutJsonAsync_Works()
         {
             // Arrange
-            var client = new CurlApiClient("https://httpbin.org");
+            var client = new CurlApiClient(_testServer.BaseUrl);
             var data = new { value = "updated" };
 
             // Act
@@ -251,7 +259,7 @@ validation.IsValid.Should().BeTrue();
         public async Task CurlApiClient_DeleteAsync_Works()
         {
             // Arrange
-            var client = new CurlApiClient("https://httpbin.org");
+            var client = new CurlApiClient(_testServer.BaseUrl);
 
             // Act
             var result = await client.DeleteAsync("delete");
@@ -264,7 +272,7 @@ validation.IsValid.Should().BeTrue();
         public async Task CurlApiClient_PatchJsonAsync_Works()
         {
             // Arrange
-            var client = new CurlApiClient("https://httpbin.org");
+            var client = new CurlApiClient(_testServer.BaseUrl);
             var data = new { field = "patched" };
 
             // Act
@@ -278,7 +286,7 @@ validation.IsValid.Should().BeTrue();
         public async Task ParseJson_ValidResponse_Deserializes()
         {
             // Arrange
-            var result = await Curl.ExecuteAsync("curl https://httpbin.org/json");
+            var result = await Curl.ExecuteAsync($"curl {_serverAdapter.GetEndpoint()}");
 
             // Act
             var json = result.ParseJson<JsonElement>();
@@ -291,7 +299,7 @@ validation.IsValid.Should().BeTrue();
         public async Task TryParseJson_ValidResponse_ReturnsTrue()
         {
             // Arrange
-            var result = await Curl.ExecuteAsync("curl https://httpbin.org/json");
+            var result = await Curl.ExecuteAsync($"curl {_serverAdapter.GetEndpoint()}");
 
             // Act
             var success = result.TryParseJson<object>(out var json);
@@ -305,7 +313,7 @@ validation.IsValid.Should().BeTrue();
         public async Task SaveToFile_WithBody_SavesFile()
         {
             // Arrange
-            var result = await Curl.ExecuteAsync("curl https://httpbin.org/html");
+            var result = await Curl.ExecuteAsync($"curl {_serverAdapter.GetEndpoint()}");
             var tempFile = Path.GetTempFileName();
 
             try
@@ -328,7 +336,7 @@ validation.IsValid.Should().BeTrue();
         public async Task GetHeader_ValidHeader_ReturnsValue()
         {
             // Arrange
-            var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
+            var result = await Curl.ExecuteAsync($"curl {_serverAdapter.GetEndpoint()}");
 
             // Act
             var contentType = result.GetHeader("Content-Type");
@@ -341,7 +349,7 @@ validation.IsValid.Should().BeTrue();
         public async Task HasContentType_MatchingType_ReturnsTrue()
         {
             // Arrange
-            var result = await Curl.ExecuteAsync("curl https://httpbin.org/json");
+            var result = await Curl.ExecuteAsync($"curl {_serverAdapter.GetEndpoint()}");
 
             // Act
             var hasJson = result.HasContentType("json");
@@ -354,7 +362,7 @@ validation.IsValid.Should().BeTrue();
         public async Task EnsureSuccessStatusCode_SuccessResponse_ReturnsResult()
         {
             // Arrange
-           var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/200");
+           var result = await Curl.ExecuteAsync($"curl {_serverAdapter.StatusEndpoint(200)}");
 
             // Act
             var chained = result.EnsureSuccessStatusCode();
@@ -367,7 +375,7 @@ validation.IsValid.Should().BeTrue();
         public async Task ToSimple_SuccessResponse_ReturnsTuple()
         {
             // Arrange
-            var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
+            var result = await Curl.ExecuteAsync($"curl {_serverAdapter.GetEndpoint()}");
 
             // Act
             var (success, body, error) = result.ToSimple();
