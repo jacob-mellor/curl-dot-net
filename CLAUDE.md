@@ -162,3 +162,4 @@ As is the general instruction before finishing any to-do list
 - Update the readme and NuGet readme making sure all of the links are up to date and all of the information is up to date. Rewriting as necessary before making a major commit
 - Never bypass GitHub workflows by trying to push everything live yourself
 - If you suspect that there are multiple threads working at any time, please use GitHub work trees automatically
+- Also locally I would like you to highlight if there is ever any red tests when you give me a status report - You know when you've run out of tokens? When you feed back to me and stop working. Tell me how many tests are read. If the number is more than zero, fix them

@@ -322,11 +322,11 @@ namespace CurlDotNet.Core
 
             try
             {
-                #if NETSTANDARD2_0
+#if NETSTANDARD2_0
                 return Newtonsoft.Json.JsonConvert.DeserializeObject<T>(Body);
-                #else
+#else
                 return System.Text.Json.JsonSerializer.Deserialize<T>(Body);
-                #endif
+#endif
             }
             catch (Exception ex)
             {
@@ -397,11 +397,11 @@ namespace CurlDotNet.Core
         /// <seealso cref="Body">The JSON string being parsed</seealso>
         public dynamic AsJsonDynamic()
         {
-            #if NETSTANDARD2_0
+#if NETSTANDARD2_0
             return Newtonsoft.Json.JsonConvert.DeserializeObject(Body);
-            #else
+#else
             return System.Text.Json.JsonDocument.Parse(Body);
-            #endif
+#endif
         }
 
         #endregion
@@ -533,15 +533,15 @@ namespace CurlDotNet.Core
 
             try
             {
-                #if NETSTANDARD2_0
+#if NETSTANDARD2_0
                 var obj = Newtonsoft.Json.JsonConvert.DeserializeObject(Body);
                 formatted = Newtonsoft.Json.JsonConvert.SerializeObject(obj,
                     indented ? Newtonsoft.Json.Formatting.Indented : Newtonsoft.Json.Formatting.None);
-                #else
+#else
                 using var doc = System.Text.Json.JsonDocument.Parse(Body);
                 var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = indented };
                 formatted = System.Text.Json.JsonSerializer.Serialize(doc.RootElement, options);
-                #endif
+#endif
             }
             catch
             {
@@ -1065,7 +1065,7 @@ namespace CurlDotNet.Core
             {
                 var sb = new StringBuilder();
 
-                #if NETSTANDARD2_0
+#if NETSTANDARD2_0
                 var array = Newtonsoft.Json.Linq.JArray.Parse(json);
                 if (array.Count == 0) return "";
 
@@ -1089,7 +1089,7 @@ namespace CurlDotNet.Core
                         sb.AppendLine(string.Join(",", values));
                     }
                 }
-                #else
+#else
                 using var doc = System.Text.Json.JsonDocument.Parse(json);
                 if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Array)
                     return Body;
@@ -1121,7 +1121,7 @@ namespace CurlDotNet.Core
                         sb.AppendLine(string.Join(",", values));
                     }
                 }
-                #endif
+#endif
 
                 return sb.ToString();
             }

@@ -119,7 +119,7 @@ namespace CurlDotNet.Middleware
                 {
                     // Check if exception is retryable
                     bool isRetryable = ex is CurlException curlEx && curlEx.IsRetryable();
-                    
+
                     if (!isRetryable)
                     {
                         throw;
@@ -132,7 +132,7 @@ namespace CurlDotNet.Middleware
                         await Task.Delay(delay, context.CancellationToken);
                         continue;
                     }
-                    
+
                     // If we are out of retries, we swallow the exception here
                     // The loop will finish and throw CurlRetryException
                 }

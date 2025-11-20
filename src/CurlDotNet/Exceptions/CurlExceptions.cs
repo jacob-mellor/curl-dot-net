@@ -261,11 +261,11 @@ namespace CurlDotNet.Exceptions
                 ["innerException"] = InnerException?.Message
             };
 
-            #if NETSTANDARD2_0
+#if NETSTANDARD2_0
             return Newtonsoft.Json.JsonConvert.SerializeObject(errorObject, Newtonsoft.Json.Formatting.Indented);
-            #else
+#else
             return System.Text.Json.JsonSerializer.Serialize(errorObject, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-            #endif
+#endif
         }
 
         /// <summary>

@@ -167,11 +167,11 @@ namespace CurlDotNet.Tests
 
             // Assert
             CompareResults(dotNetResult, curlResult, nameof(SimpleGet_CompareWithCurl));
-            
+
             // Both should succeed
             dotNetResult.StatusCode.Should().Be(200);
             curlResult.ExitCode.Should().Be(0);
-            
+
             // Both should have JSON response
             dotNetResult.Body.Should().Contain("httpbin.org");
             curlResult.StandardOutput.Should().Contain("httpbin.org");
@@ -193,10 +193,10 @@ namespace CurlDotNet.Tests
 
             // Assert
             CompareResults(dotNetResult, curlResult, nameof(GetWithHeaders_CompareWithCurl));
-            
+
             dotNetResult.StatusCode.Should().Be(200);
             curlResult.ExitCode.Should().Be(0);
-            
+
             // Both should include our headers in response
             dotNetResult.Body.Should().Contain("User-Agent");
             curlResult.StandardOutput.Should().Contain("User-Agent");
@@ -224,10 +224,10 @@ namespace CurlDotNet.Tests
 
             // Assert
             CompareResults(dotNetResult, curlResult, nameof(PostWithJson_CompareWithCurl));
-            
+
             dotNetResult.StatusCode.Should().Be(200);
             curlResult.ExitCode.Should().Be(0);
-            
+
             // Both should echo back the JSON data
             dotNetResult.Body.Should().Contain("test");
             curlResult.StandardOutput.Should().Contain("test");
@@ -253,7 +253,7 @@ namespace CurlDotNet.Tests
 
             // Assert
             CompareResults(dotNetResult, curlResult, nameof(SilentMode_CompareWithCurl));
-            
+
             // Silent mode should not have progress/error output
             curlResult.StandardError.Should().BeNullOrWhiteSpace();
         }
@@ -274,7 +274,7 @@ namespace CurlDotNet.Tests
 
             // Assert
             CompareResults(dotNetResult, curlResult, nameof(VerboseMode_CompareWithCurl));
-            
+
             // Verbose mode should have additional output in stderr
             curlResult.StandardError.Should().NotBeNullOrWhiteSpace();
             curlResult.StandardError.Should().Contain("Connected");
@@ -297,7 +297,7 @@ namespace CurlDotNet.Tests
 
             // Assert
             CompareResults(dotNetResult, curlResult, nameof(FollowRedirects_CompareWithCurl));
-            
+
             // Both should follow redirect and get final response
             dotNetResult.StatusCode.Should().Be(200);
             curlResult.ExitCode.Should().Be(0);
@@ -323,7 +323,7 @@ namespace CurlDotNet.Tests
 
             // Assert
             CompareResults(dotNetResult, curlResult, nameof(BasicAuth_CompareWithCurl));
-            
+
             // Both should authenticate successfully
             dotNetResult.StatusCode.Should().Be(200);
             curlResult.ExitCode.Should().Be(0);
@@ -357,7 +357,7 @@ namespace CurlDotNet.Tests
 
             // Assert
             CompareResults(dotNetResult, curlResult, nameof(NotFoundError_CompareWithCurl));
-            
+
             // Both should return 404
             dotNetResult.StatusCode.Should().Be(404);
             // curl returns 0 exit code for HTTP errors (unless -f flag used)
@@ -380,7 +380,7 @@ namespace CurlDotNet.Tests
 
             // Assert
             CompareResults(dotNetResult, curlResult, nameof(FailOnError_CompareWithCurl));
-            
+
             // With -f, curl should return non-zero exit code for HTTP errors
             // dotNetResult may throw exception or return error status
             dotNetResult.StatusCode.Should().Be(404);

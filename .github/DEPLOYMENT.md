@@ -6,18 +6,17 @@ This repository uses GitHub Actions to build and deploy NuGet packages with **10
 
 ## Workflows
 
-### 1. PR Validation (`nuget-build-validation.yml`)
+### 1. Smoke Tests (`ci-smoke.yml`)
 
 **Triggers**: On every PR to `main`, `master`, or `dev`
 
-**Purpose**: Ensures the NuGet package builds correctly with ALL target frameworks
+**Purpose**: Validates code works on all platforms
 
 **What it does**:
-- ✅ Builds on Windows (to include .NET Framework 4.7.2 & 4.8)
-- ✅ Verifies all 5 target frameworks are in the package
-- ✅ Tests package installation on Windows, Ubuntu, and macOS
-- ✅ Validates package works with .NET 8.0 and 9.0
-- ✅ Provides detailed summary of validation results
+- ✅ Runs smoke tests on Windows (with .NET Framework 4.7.2 & 4.8)
+- ✅ Runs smoke tests on Ubuntu
+- ✅ Runs smoke tests on macOS
+- ✅ Must pass before any PR can merge
 
 ### 2. Production Deployment (`nuget-deploy.yml`)
 
@@ -64,9 +63,9 @@ This repository uses GitHub Actions to build and deploy NuGet packages with **10
 ### For Regular Releases (Recommended)
 
 1. **Create PR**: Make changes in `dev` branch
-2. **Automatic Validation**: PR triggers `nuget-build-validation.yml`
-3. **Review Results**: Check that all frameworks are included
-4. **Merge PR**: Once validation passes
+2. **Automatic Validation**: PR triggers smoke tests on all platforms
+3. **Review Results**: Ensure all smoke tests pass (Windows, Ubuntu, Mac)
+4. **Merge PR**: Once smoke tests pass
 5. **Manual Deploy**:
    - Go to Actions → "Deploy to NuGet"
    - Click "Run workflow"

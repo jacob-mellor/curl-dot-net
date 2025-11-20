@@ -291,11 +291,11 @@ namespace CurlDotNet.Core
         /// </example>
         public CurlRequestBuilder WithJson(object data)
         {
-            #if NETSTANDARD2_0
+#if NETSTANDARD2_0
             _options.Data = Newtonsoft.Json.JsonConvert.SerializeObject(data);
-            #else
+#else
             _options.Data = System.Text.Json.JsonSerializer.Serialize(data);
-            #endif
+#endif
             _options.Headers["Content-Type"] = "application/json";
             if (string.IsNullOrEmpty(_options.Method) || _options.Method == "GET")
                 _options.Method = "POST";
@@ -349,7 +349,7 @@ namespace CurlDotNet.Core
         {
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"File not found: {filePath}");
-            
+
             _options.Files[fieldName] = filePath;
             if (string.IsNullOrEmpty(_options.Method) || _options.Method == "GET")
                 _options.Method = "POST";

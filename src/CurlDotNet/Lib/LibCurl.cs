@@ -444,7 +444,7 @@ namespace CurlDotNet.Lib
             {
                 options.FollowLocation = true;
                 options.MaxRedirects = _defaultOptions.MaxRedirects;
-        }
+            }
 
             if (!options.Insecure && _defaultOptions.Insecure)
                 options.Insecure = true;
@@ -470,12 +470,12 @@ namespace CurlDotNet.Lib
             if (data == null) return null;
             if (data is string s) return s;
 
-            #if NETSTANDARD2_0
+#if NETSTANDARD2_0
             // Use Newtonsoft.Json for older frameworks
             return Newtonsoft.Json.JsonConvert.SerializeObject(data);
-            #else
+#else
             return System.Text.Json.JsonSerializer.Serialize(data);
-            #endif
+#endif
         }
 
         #endregion

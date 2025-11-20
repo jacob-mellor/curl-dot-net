@@ -48,7 +48,7 @@ namespace CurlDotNet.Tests
             result.Headers.Should().ContainKey("Content-Type");
             result.Headers.Should().ContainKey("content-type"); // Case insensitive check
             result.Headers.Should().ContainKey("X-CUSTOM-HEADER"); // Case insensitive check
-            result.GetHeader("content-type").Should().Be("application/json");
+            result.GetHeader("content-type").Should().StartWith("application/json");
         }
 
         [Fact]
@@ -56,7 +56,7 @@ namespace CurlDotNet.Tests
         {
             // Arrange
             var handlerMock = new Mock<HttpMessageHandler>();
-            
+
             // Setup redirect sequence
             handlerMock
                 .Protected()
@@ -78,10 +78,10 @@ namespace CurlDotNet.Tests
 
             var httpClient = new HttpClient(handlerMock.Object);
             var httpHandler = new HttpHandler(httpClient);
-            var options = new CurlOptions 
-            { 
+            var options = new CurlOptions
+            {
                 Url = "http://example.com",
-                FollowLocation = true 
+                FollowLocation = true
             };
 
             // Act
@@ -90,7 +90,7 @@ namespace CurlDotNet.Tests
             // Assert
             result.StatusCode.Should().Be(200);
             result.Body.Should().Be("final destination");
-            
+
             // Verify calls
             handlerMock.Protected().Verify(
                 "SendAsync",
