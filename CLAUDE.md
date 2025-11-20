@@ -10,7 +10,6 @@
 - **Index Files**: Always update directory index files when adding new content
 - **Never Create Broken Links**: Verify all linked files exist before creating links
 - **Promotional Image**: Uses external URL: https://dev-to-uploads.s3.amazonaws.com/uploads/articles/1o4hlr4tbp6b8k86ew6c.jpg
-- **Promotional Materials**: Maintain gh-pages/promotional-materials.md with press kit info
 
 ### ALWAYS Generate API Documentation
 - **Every build**: Run `dotnet script scripts/generate-docs.csx` after EVERY build
