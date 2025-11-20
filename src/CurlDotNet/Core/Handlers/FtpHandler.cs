@@ -36,7 +36,21 @@ namespace CurlDotNet.Core
         {
             try
             {
-                var request = (FtpWebRequest)WebRequest.Create(options.Url);
+                FtpWebRequest request;
+                try
+                {
+                    request = (FtpWebRequest)WebRequest.Create(options.Url);
+                }
+                catch (NotSupportedException ex)
+                {
+                    Console.WriteLine($"[FtpHandler] Caught NotSupportedException: {ex.Message}");
+                    throw new CurlException("FTP protocol not supported on this platform", 1);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[FtpHandler] Caught unexpected exception: {ex.GetType().Name} - {ex.Message}");
+                    throw;
+                }
 
                 // Set method
                 request.Method = DetermineFtpMethod(options);
@@ -130,6 +144,10 @@ namespace CurlDotNet.Core
 
                 return result;
             }
+            catch (NotSupportedException)
+            {
+                throw new CurlException("FTP protocol not supported on this platform", 1); // CURLE_UNSUPPORTED_PROTOCOL
+            }
             catch (WebException ex)
             {
                 if (ex.Response is FtpWebResponse ftpResponse)
@@ -149,7 +167,8 @@ namespace CurlDotNet.Core
 
         public bool SupportsProtocol(string protocol)
         {
-            return protocol == "ftp" || protocol == "ftps";
+            return protocol.Equals("ftp", StringComparison.OrdinalIgnoreCase) || 
+                   protocol.Equals("ftps", StringComparison.OrdinalIgnoreCase);
         }
 
         private string DetermineFtpMethod(CurlOptions options)

@@ -4,7 +4,7 @@
 [![Downloads](https://img.shields.io/nuget/dt/CurlDotNet.svg)](https://www.nuget.org/packages/CurlDotNet/)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/jacob-mellor/curl-dot-net/ci-smoke.yml?branch=master)](https://github.com/jacob-mellor/curl-dot-net/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/jacob-mellor/curl-dot-net/blob/master/LICENSE)
-![Coverage](https://img.shields.io/badge/coverage-65.9%25-yellow)
+![Coverage](https://img.shields.io/badge/coverage-52.2%25-yellow)
 
 ![CurlDotNet - Why .NET Needs a POSIX/GNU Userland](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/1o4hlr4tbp6b8k86ew6c.jpg)
 
@@ -325,6 +325,54 @@ Console.WriteLine($"Connect: {result.Timings.Connect}ms");
 Console.WriteLine($"TLS Handshake: {result.Timings.TlsHandshake}ms");
 Console.WriteLine($"First Byte: {result.Timings.FirstByte}ms");
 Console.WriteLine($"Total: {result.Timings.Total}ms");
+```
+
+### Code Generation
+CurlDotNet can transpile curl commands into code for other languages. This is perfect for building developer tools or converting documentation examples.
+
+```csharp
+// Convert curl to PowerShell
+var powershellCode = Curl.ToPowershellCode("curl -X POST https://api.example.com -d 'data'");
+
+// Convert curl to Python Requests
+var pythonCode = Curl.ToPythonCode("curl -X POST https://api.example.com -d 'data'");
+
+// Convert curl to JavaScript Fetch
+var jsCode = Curl.ToFetchCode("curl -X POST https://api.example.com -d 'data'");
+
+// Convert curl to C# HttpClient
+var csharpCode = Curl.ToHttpClientCode("curl -X POST https://api.example.com -d 'data'");
+```
+
+## ❓ Troubleshooting
+
+### SSL/TLS Issues
+If you encounter SSL errors (e.g., self-signed certificates), you can disable verification for development:
+
+```csharp
+// Global setting (affects all requests)
+Curl.DefaultInsecure = true;
+
+// Per-request setting
+await Curl.Execute("curl -k https://self-signed.local");
+```
+
+### Timeouts
+If requests are timing out, increase the timeout settings:
+
+```csharp
+// Set global timeout to 60 seconds
+Curl.DefaultMaxTimeSeconds = 60;
+
+// Or per request
+await Curl.Execute("curl --max-time 60 https://slow-api.example.com");
+```
+
+### Proxy Authentication
+If your proxy requires authentication:
+
+```csharp
+await Curl.Execute("curl -x http://user:pass@proxy.example.com:8080 https://api.example.com");
 ```
 
 ## 🤝 Contributing

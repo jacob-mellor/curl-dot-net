@@ -1,14 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Default target frameworks including .NET 10 -->
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' != 'true'">netstandard2.0;net472;net48;net8.0;net9.0;net10.0</TargetFrameworks>
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' != 'true'">netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <!-- Detect if running in GitHub Actions or other CI -->
+    <IsGitHubActions Condition="'$(GITHUB_ACTIONS)' == 'true'">true</IsGitHubActions>
+    <IsGitHubActions Condition="'$(IsGitHubActions)' == ''">false</IsGitHubActions>
 
-    <!-- CI target frameworks (GitHub runners don't have .NET 10 yet) -->
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' == 'true'">netstandard2.0;net472;net48;net8.0</TargetFrameworks>
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(CIBuild)' == 'true'">netstandard2.0;net8.0</TargetFrameworks>
-    <!-- .NET 10 is released! GitHub CI runners don't have it yet, so CI uses CIBuild=true flag -->
+    <!-- Build configurations based on environment -->
+    <!-- Local Windows with .NET 10 -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' != 'true'">netstandard2.0;net472;net48;net8.0;net9.0;net10.0</TargetFrameworks>
+
+    <!-- Local Mac/Linux with .NET 10 -->
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' != 'true'">netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+
+    <!-- GitHub Actions Windows (no .NET 10) -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">netstandard2.0;net472;net48;net8.0;net9.0</TargetFrameworks>
+
+    <!-- GitHub Actions Linux/Mac (no .NET 10) -->
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -23,9 +31,9 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>1.2.34</Version>
-    <AssemblyVersion>1.2.34.0</AssemblyVersion>
-    <FileVersion>1.2.34.0</FileVersion>
+    <Version>1.2.36</Version>
+    <AssemblyVersion>1.2.36.0</AssemblyVersion>
+    <FileVersion>1.2.36.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>

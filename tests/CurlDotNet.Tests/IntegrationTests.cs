@@ -43,10 +43,19 @@ namespace CurlDotNet.Tests
             if (Directory.Exists(_tempDirectory))
             {
                 // Restore original directory if we changed it
-                var currentDir = Directory.GetCurrentDirectory();
-                if (currentDir == _tempDirectory || currentDir.StartsWith(_tempDirectory))
+                try
                 {
-                    Directory.SetCurrentDirectory(Path.GetTempPath());
+                    var currentDir = Directory.GetCurrentDirectory();
+                    if (currentDir == _tempDirectory || currentDir.StartsWith(_tempDirectory))
+                    {
+                        Directory.SetCurrentDirectory(Path.GetTempPath());
+                    }
+                }
+                catch (Exception)
+                {
+                    // If we can't get the current directory, it might have been deleted.
+                    // Try to reset to temp path just in case.
+                    try { Directory.SetCurrentDirectory(Path.GetTempPath()); } catch { }
                 }
 
                 // On Windows, give OS time to release file handles

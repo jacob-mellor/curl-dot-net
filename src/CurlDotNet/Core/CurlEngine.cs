@@ -365,6 +365,46 @@ namespace CurlDotNet.Core
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Convert curl command to PowerShell code.
+        /// </summary>
+        public string ToPowershellCode(string command)
+        {
+            var options = _parser.Parse(command);
+            var sb = new StringBuilder();
+
+            var method = (options.Method ?? "GET").ToUpper();
+            sb.Append($"Invoke-RestMethod -Uri \"{options.Url}\" -Method {method}");
+
+            if (options.Headers.Any())
+            {
+                sb.Append(" -Headers @{");
+                var first = true;
+                foreach (var header in options.Headers)
+                {
+                    if (!first) sb.Append("; ");
+                    sb.Append($"\"{header.Key}\"=\"{header.Value}\"");
+                    first = false;
+                }
+                sb.Append("}");
+            }
+
+            if (!string.IsNullOrEmpty(options.Data))
+            {
+                // Escape double quotes in data
+                var data = options.Data.Replace("\"", "`\"");
+                sb.Append($" -Body \"{data}\"");
+                
+                // If it looks like JSON, add ContentType
+                if (options.Data.TrimStart().StartsWith("{"))
+                {
+                    sb.Append(" -ContentType \"application/json\"");
+                }
+            }
+
+            return sb.ToString();
+        }
+
         private void ApplySettings(CurlOptions options, CurlSettings settings)
         {
             if (settings.MaxTimeSeconds.HasValue)

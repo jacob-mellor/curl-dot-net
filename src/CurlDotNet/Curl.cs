@@ -1020,6 +1020,29 @@ namespace CurlDotNet
             return _engine.ToPythonCode(command);
         }
 
+        /// <summary>
+        /// <para><b>Convert a curl command to PowerShell code.</b></para>
+        ///
+        /// <para>Generates PowerShell code using Invoke-RestMethod that performs the same request.</para>
+        ///
+        /// <para><b>Example:</b></para>
+        /// <code language="powershell">
+        /// var curlCommand = "curl -X POST https://api.example.com/data -d '{\"key\":\"value\"}'";
+        ///
+        /// string psCode = Curl.ToPowershellCode(curlCommand);
+        /// Console.WriteLine(psCode);
+        ///
+        /// // Output:
+        /// // Invoke-RestMethod -Uri "https://api.example.com/data" -Method POST -Body "{\"key\":\"value\"}" -ContentType "application/json"
+        /// </code>
+        /// </summary>
+        /// <param name="command">The curl command to convert.</param>
+        /// <returns>PowerShell code using Invoke-RestMethod.</returns>
+        public static string ToPowershellCode(string command)
+        {
+            return _engine.ToPowershellCode(command);
+        }
+
         private static string SerializeJson(object data)
         {
             #if NETSTANDARD2_0

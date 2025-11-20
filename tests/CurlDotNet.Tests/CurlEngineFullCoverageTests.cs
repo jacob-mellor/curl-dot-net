@@ -421,6 +421,31 @@ namespace CurlDotNet.Tests
             code.Should().Contain("proxy:8080");
         }
 
+        [Fact]
+        public void ToPowershellCode_GeneratesInvokeRestMethod()
+        {
+            // Act
+            var code = _engine.ToPowershellCode("curl -X POST -H 'Accept: application/json' https://api.example.com");
+
+            // Assert
+            code.Should().Contain("Invoke-RestMethod");
+            code.Should().Contain("-Method POST");
+            code.Should().Contain("Accept");
+            code.Should().Contain("application/json");
+        }
+
+        [Fact]
+        public void ToPowershellCode_WithData_IncludesBodyAndContentType()
+        {
+            // Act
+            var code = _engine.ToPowershellCode("curl -X POST -d '{\"test\":true}' https://api.example.com");
+
+            // Assert
+            code.Should().Contain("-Body");
+            code.Should().Contain("test");
+            code.Should().Contain("-ContentType \"application/json\"");
+        }
+
         #endregion
 
         #region Disposal Tests
@@ -472,10 +497,10 @@ namespace CurlDotNet.Tests
         #region Edge Cases
 
         [Fact]
-        public async Task ExecuteAsync_NullCommand_ThrowsArgumentNullException()
+        public async Task ExecuteAsync_NullCommand_ThrowsArgumentException()
         {
             // Act & Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(
+            await Assert.ThrowsAsync<ArgumentException>(
                 () => _engine.ExecuteAsync((string)null!));
         }
 

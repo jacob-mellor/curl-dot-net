@@ -137,6 +137,7 @@ namespace CurlDotNet.Core
             "--cacert",
             "--interface",
             "--limit-rate",
+            "--speed-limit",
             "--speed-time",
             "--keepalive-time",
             "--dns-servers",
@@ -290,13 +291,37 @@ namespace CurlDotNet.Core
 
                 if (escape)
                 {
-                    // Handle escape sequences
-                    if (c == 'n') current.Append('\n');
-                    else if (c == 't') current.Append('\t');
-                    else if (c == 'r') current.Append('\r');
-                    else if (c == '\\') current.Append('\\');
-                    else current.Append(c);
-                    
+                    // Handle escape sequences - but only in double quotes!
+                    if (inQuote && quoteChar == '"')
+                    {
+                        // In double quotes, process escape sequences
+                        if (c == 'n') current.Append('\n');
+                        else if (c == 't') current.Append('\t');
+                        else if (c == 'r') current.Append('\r');
+                        else if (c == '\\') current.Append('\\');
+                        else if (c == '"') current.Append('"');
+                        else current.Append(c);
+                    }
+                    else if (inQuote && quoteChar == '\'')
+                    {
+                        // In single quotes, escapes are literal except for \'
+                        if (c == '\'') current.Append('\'');
+                        else
+                        {
+                            current.Append('\\'); // Keep the backslash
+                            current.Append(c);
+                        }
+                    }
+                    else
+                    {
+                        // Outside quotes, handle as needed
+                        if (c == 'n') current.Append('\n');
+                        else if (c == 't') current.Append('\t');
+                        else if (c == 'r') current.Append('\r');
+                        else if (c == '\\') current.Append('\\');
+                        else current.Append(c);
+                    }
+
                     escape = false;
                     i++;
                     continue;
@@ -514,7 +539,20 @@ namespace CurlDotNet.Core
 
                 case "--data-urlencode":
                     options.DataUrlEncode = true;
-                    AppendData(options, value);
+                    // URL encode the value part if it's a key=value pair
+                    string encodedValue;
+                    var eqIndex = value.IndexOf('=');
+                    if (eqIndex > 0)
+                    {
+                        var key = value.Substring(0, eqIndex);
+                        var val = value.Substring(eqIndex + 1);
+                        encodedValue = key + "=" + System.Net.WebUtility.UrlEncode(val);
+                    }
+                    else
+                    {
+                        encodedValue = System.Net.WebUtility.UrlEncode(value);
+                    }
+                    AppendData(options, encodedValue);
                     if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")
                     {
                         options.Method = "POST";
@@ -652,9 +690,14 @@ namespace CurlDotNet.Core
                 case "--continue-at":
                 case "-C":
                     if (value == "-")
+                    {
                         options.ResumeFrom = -1; // Auto-resume
+                    }
                     else if (long.TryParse(value, out var resumeFrom))
+                    {
                         options.ResumeFrom = resumeFrom;
+                        options.Range = $"{resumeFrom}-"; // Also set Range for compatibility
+                    }
                     return true;
 
                 case "--cert":
@@ -686,6 +729,7 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--limit-rate":
+                case "--speed-limit":
                     options.SpeedLimit = ParseSize(value);
                     return true;
 
@@ -764,6 +808,14 @@ namespace CurlDotNet.Core
 
         private void ParseHeader(string header, CurlOptions options)
         {
+            // Handle header from file (@file)
+            if (header.StartsWith("@"))
+            {
+                // Store as special header indicating file source
+                options.Headers[header] = "";
+                return;
+            }
+
             var colonIndex = header.IndexOf(':');
             if (colonIndex > 0)
             {

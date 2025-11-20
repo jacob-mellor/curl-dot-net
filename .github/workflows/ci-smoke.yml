@@ -21,25 +21,31 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # Step 2: Setup .NET SDK 8.0.x
+    # Step 2: Setup .NET SDKs
     - name: Setup .NET SDK 8.0.x
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
         dotnet-quality: 'ga'  # Use stable GA release, not preview
 
-    # Step 3: Restore dependencies (CI-specific frameworks only)
-    - name: Restore dependencies
-      run: dotnet restore -p:CIBuild=true
+    - name: Setup .NET SDK 9.0.x
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        dotnet-quality: 'ga'  # Use stable GA release
 
-    # Step 4: Build solution in Release configuration (CI-specific frameworks only)
+    # Step 3: Restore dependencies
+    - name: Restore dependencies
+      run: dotnet restore
+
+    # Step 4: Build solution in Release configuration
     - name: Build solution (Release)
-      run: dotnet build --configuration Release --no-restore -p:CIBuild=true
+      run: dotnet build --configuration Release --no-restore
 
     # Step 5: Run DevOps/smoke tests only
     # NOTE: This workflow runs ONLY DevOps category tests - reliable, fast tests for CI/CD
     - name: Run DevOps & Smoke Tests
-      run: dotnet test --configuration Release --no-build --filter "Category=DevOps|Category=Smoke" -p:CIBuild=true
+      run: dotnet test --configuration Release --no-build --filter "Category=DevOps|Category=Smoke"
       continue-on-error: false  # Explicitly fail the workflow if tests fail
 
     # Optional: Report test results summary

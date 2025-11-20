@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CurlDotNet.Core;
+using CurlDotNet.Exceptions;
 using FluentAssertions;
 using Xunit;
 
@@ -221,7 +222,7 @@ namespace CurlDotNet.Tests
         public void Parse_HandlesEscapedQuotes()
         {
             // Arrange
-            var command = @"curl -d '{""name"": ""John's Test""}' https://api.example.com";
+            var command = "curl -d \"{\\\"name\\\": \\\"John's Test\\\"}\" https://api.example.com";
 
             // Act
             var options = _parser.Parse(command);
@@ -234,13 +235,13 @@ namespace CurlDotNet.Tests
         public void Parse_HandlesEscapeSequences()
         {
             // Arrange
-            var command = @"curl -d 'line1\nline2\ttab' https://api.example.com";
+            var command = @"curl -d ""line1\nline2\ttab"" https://api.example.com";
 
             // Act
             var options = _parser.Parse(command);
 
             // Assert
-            options.Data.Should().Be("line1\nline2\ttab");
+            options.Data.Should().Be("line1\nline2\ttab"); // With actual newline and tab characters
         }
 
         #endregion
@@ -283,7 +284,7 @@ namespace CurlDotNet.Tests
             var options = _parser.Parse(command);
 
             // Assert
-            options.ResumeFrom.Should().NotBeNull();
+            options.ResumeFrom.Should().Be(-1); // -1 indicates auto-resume
         }
 
         [Fact]
@@ -562,7 +563,7 @@ namespace CurlDotNet.Tests
         {
             // Act & Assert
             Action act = () => _parser.Parse("curl -X POST");
-            act.Should().Throw<ArgumentException>().WithMessage("*URL*");
+            act.Should().Throw<CurlInvalidCommandException>().WithMessage("*URL*");
         }
 
         [Fact]

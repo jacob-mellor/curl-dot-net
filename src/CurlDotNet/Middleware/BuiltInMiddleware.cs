@@ -115,17 +115,26 @@ namespace CurlDotNet.Middleware
 
                     return result;
                 }
-                catch (CurlException ex) when (ex.IsRetryable() && attempt < _maxRetries)
-                {
-                    lastException = ex;
-                    var delay = TimeSpan.FromMilliseconds(_initialDelay.TotalMilliseconds * Math.Pow(2, attempt));
-                    await Task.Delay(delay, context.CancellationToken);
-                }
                 catch (Exception ex)
                 {
-                    lastException = ex;
-                    if (attempt >= _maxRetries)
+                    // Check if exception is retryable
+                    bool isRetryable = ex is CurlException curlEx && curlEx.IsRetryable();
+                    
+                    if (!isRetryable)
+                    {
                         throw;
+                    }
+
+                    lastException = ex;
+                    if (attempt < _maxRetries)
+                    {
+                        var delay = TimeSpan.FromMilliseconds(_initialDelay.TotalMilliseconds * Math.Pow(2, attempt));
+                        await Task.Delay(delay, context.CancellationToken);
+                        continue;
+                    }
+                    
+                    // If we are out of retries, we swallow the exception here
+                    // The loop will finish and throw CurlRetryException
                 }
             }
 

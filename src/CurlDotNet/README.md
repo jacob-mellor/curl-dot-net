@@ -259,7 +259,7 @@ When in doubt, author the command in an Ubuntu shell (or WSL), then copy it into
 - **[🔧 API Reference](https://jacob-mellor.github.io/curl-dot-net/api/)** - Complete API documentation
 - **[👨‍🍳 Cookbook](https://jacob-mellor.github.io/curl-dot-net/cookbook/)** - Ready-to-use recipes
 - **[🎓 Tutorials](https://jacob-mellor.github.io/curl-dot-net/tutorials/)** - Step-by-step learning
-- **[🔄 Migration Guides](https://jacob-mellor.github.io/curl-dot-net/guides/)** - Move from HttpClient/RestSharp
+- **[🔄 Migration Guides](https://jacob-mellor.github.io/curl-dot-net/migration/)** - Move from HttpClient/RestSharp
 
 ## ✅ Tests & Coverage
 

@@ -22,8 +22,8 @@ Install-Package CurlDotNet
 ## 📚 Articles in This Section
 
 ### Available Articles
-- **[Getting Started](getting-started.html)** - Complete guide to getting started with CurlDotNet, from installation to your first request
-- **[Installation Guide](installation.html)** - Detailed installation instructions for all platforms and environments
+- **[Getting Started](../getting-started/README.md)** - Complete guide to getting started with CurlDotNet, from installation to your first request
+- **[Installation Guide](../getting-started/installation.md)** - Detailed installation instructions for all platforms and environments
 - **[CI/CD Integration](ci-cd-integration.md)** - Run CurlDotNet smoke tests inside GitHub Actions, Azure DevOps, or any pipeline
 
 ## 📂 Documentation Sections

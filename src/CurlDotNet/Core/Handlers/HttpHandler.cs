@@ -32,6 +32,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using CurlDotNet.Core.Handlers;
 using CurlDotNet.Exceptions;
 
 namespace CurlDotNet.Core
@@ -43,6 +44,7 @@ namespace CurlDotNet.Core
     {
         private readonly HttpClient _httpClient;
         private readonly bool _ownsHttpClient;
+        private readonly RedirectHandler _redirectHandler;
 
         /// <summary>
         /// Create handler with default HttpClient.
@@ -58,6 +60,7 @@ namespace CurlDotNet.Core
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _ownsHttpClient = ownsHttpClient;
+            _redirectHandler = new RedirectHandler(_httpClient);
         }
 
         public async Task<CurlResult> ExecuteAsync(CurlOptions options, CancellationToken cancellationToken)
@@ -86,19 +89,19 @@ namespace CurlDotNet.Core
                 AppendVerboseResponseHeaders(verboseLog, response);
 
                 // Handle redirects manually if needed
-                if (options.FollowLocation && IsRedirect(response.StatusCode))
+                if (options.FollowLocation && _redirectHandler.IsRedirect(response.StatusCode))
                 {
-                    return await HandleRedirect(response, request, options, cts.Token, timings, startTime, verboseLog);
+                    var redirectResult = await _redirectHandler.HandleRedirectAsync(
+                        response, request, options, cts.Token, timings, startTime, verboseLog,
+                        CreateRequest, AppendVerboseRequest, AppendVerboseResponseHeaders);
+                    
+                    response = redirectResult.Response;
+                    request = redirectResult.Request;
                 }
 
                 return await BuildResultAsync(request, response, options, timings, startTime, cts.Token, verboseLog);
             }
-            catch (TaskCanceledException)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    throw new CurlAbortedByCallbackException("Operation cancelled");
-                throw new CurlOperationTimeoutException(GetTimeoutSeconds(options), options.OriginalCommand);
-            }
+
             catch (HttpRequestException)
             {
                 var uri = new Uri(options.Url);
@@ -267,12 +270,20 @@ namespace CurlDotNet.Core
         private async Task<(CurlResult Result, string? ResponseText, byte[]? ResponseBinary)> CreateResult(HttpResponseMessage response, CurlOptions options,
             CurlTimings timings, DateTime startTime)
         {
+            // FIX: Use StringComparer.OrdinalIgnoreCase for case-insensitive headers
             var result = new CurlResult
             {
                 StatusCode = (int)response.StatusCode,
-                Headers = response.Headers.ToDictionary(h => h.Key, h => string.Join(", ", h.Value)),
+                Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
                 Command = options.OriginalCommand
             };
+
+            // Populate headers
+            foreach (var header in response.Headers)
+            {
+                result.Headers[header.Key] = string.Join(", ", header.Value);
+            }
+
             string? responseText = null;
             byte[]? responseBinary = null;
 
@@ -484,26 +495,6 @@ namespace CurlDotNet.Core
             return formatted;
         }
 
-        private CurlResult CreateTimeoutResult(CurlOptions options)
-        {
-            return new CurlResult
-            {
-                StatusCode = 408,
-                Body = $"Operation timed out after {GetTimeoutSeconds(options)} seconds.",
-                Command = options.OriginalCommand
-            };
-        }
-
-        private CurlResult CreateCancelledResult(CurlOptions options)
-        {
-            return new CurlResult
-            {
-                StatusCode = 499,
-                Body = "Operation cancelled by caller.",
-                Command = options.OriginalCommand
-            };
-        }
-
         private string DetermineRemoteFileName(CurlOptions options)
         {
             var uri = new Uri(options.Url);
@@ -513,75 +504,6 @@ namespace CurlDotNet.Core
                 fileName = "curl-download";
             }
             return Path.Combine(Directory.GetCurrentDirectory(), fileName);
-        }
-
-        private async Task<CurlResult> HandleRedirect(HttpResponseMessage response, HttpRequestMessage initialRequest, CurlOptions options,
-            CancellationToken cancellationToken, CurlTimings timings, DateTime startTime, StringBuilder? verboseLog)
-        {
-            var redirectCount = 0;
-            var currentResponse = response;
-            var currentRequest = initialRequest;
-
-            // Accumulate redirect headers when -i flag is used
-            var redirectHeaders = new StringBuilder();
-
-            while (IsRedirect(currentResponse.StatusCode) && redirectCount < options.MaxRedirects)
-            {
-                // If -i flag is used, accumulate headers from redirect responses
-                if (options.IncludeHeaders)
-                {
-                    redirectHeaders.AppendLine(BuildHeaderBlock(currentResponse));
-                    redirectHeaders.AppendLine(); // Empty line between responses
-                }
-
-                var location = currentResponse.Headers.Location;
-                if (location == null)
-                {
-                    throw new CurlException("Redirect response missing Location header");
-                }
-
-                var newUrl = location.IsAbsoluteUri
-                    ? location.ToString()
-                    : new Uri(new Uri(options.Url), location).ToString();
-
-                options.Url = newUrl;
-                redirectCount++;
-
-                currentRequest = CreateRequest(options);
-                AppendVerboseRequest(verboseLog, currentRequest);
-                currentResponse = await _httpClient.SendAsync(currentRequest, cancellationToken);
-                AppendVerboseResponseHeaders(verboseLog, currentResponse);
-
-                timings.Redirect = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            }
-
-            if (redirectCount >= options.MaxRedirects)
-            {
-                throw new CurlTooManyRedirectsException(redirectCount);
-            }
-
-            var result = await BuildResultAsync(currentRequest, currentResponse, options, timings, startTime, cancellationToken, verboseLog);
-
-            // Prepend redirect headers to the body when -i flag is used
-            if (options.IncludeHeaders && redirectHeaders.Length > 0)
-            {
-                result.Body = redirectHeaders.ToString() + result.Body;
-            }
-
-            return result;
-        }
-
-        private bool IsRedirect(HttpStatusCode statusCode)
-        {
-            return statusCode == HttpStatusCode.MovedPermanently ||
-                   statusCode == HttpStatusCode.Found ||
-                   statusCode == HttpStatusCode.SeeOther ||
-                   statusCode == HttpStatusCode.TemporaryRedirect ||
-#if NETSTANDARD2_0 || NET472 || NET48
-                   statusCode == (HttpStatusCode)308; // PermanentRedirect
-#else
-                   statusCode == HttpStatusCode.PermanentRedirect;
-#endif
         }
 
         private bool IsTextContent(HttpContent content)

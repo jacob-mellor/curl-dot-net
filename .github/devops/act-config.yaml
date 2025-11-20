@@ -1,0 +1,23 @@
+# Configuration for act (GitHub Actions local runner)
+# This file configures how to test GitHub Actions locally
+
+# Default runner image (medium size for balance of features and size)
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+-P windows-latest=catthehacker/ubuntu:act-latest
+-P macos-latest=catthehacker/ubuntu:act-latest
+
+# Container architecture for Apple Silicon
+--container-architecture linux/amd64
+
+# Environment variables to simulate GitHub Actions
+--env GITHUB_ACTIONS=true
+--env CI=true
+
+# Reuse containers for faster subsequent runs
+--reuse
+
+# Directory bindings
+--bind
+
+# Artifact directory
+--artifact-server-path /tmp/artifacts
