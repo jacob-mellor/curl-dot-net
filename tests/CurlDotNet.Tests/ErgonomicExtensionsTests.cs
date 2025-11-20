@@ -146,10 +146,10 @@ namespace CurlDotNet.Tests
             try
             {
                 // Act
-                var bytesWritten = result.SaveToFile(tempFile);
+                var returnedResult = result.SaveToFile(tempFile);
 
                 // Assert
-                bytesWritten.Should().Be(result.Body.Length);
+                returnedResult.Should().BeSameAs(result);
                 File.ReadAllText(tempFile).Should().Be("Test content");
             }
             finally
@@ -174,10 +174,10 @@ namespace CurlDotNet.Tests
             try
             {
                 // Act
-                var bytesWritten = result.SaveToFile(tempFile);
+                var returnedResult = result.SaveToFile(tempFile);
 
                 // Assert
-                bytesWritten.Should().Be(binaryData.Length);
+                returnedResult.Should().BeSameAs(result);
                 File.ReadAllBytes(tempFile).Should().BeEquivalentTo(binaryData);
             }
             finally
@@ -188,7 +188,7 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
-        public void SaveToFile_FailedRequest_ThrowsInvalidOperationException()
+        public void SaveToFile_FailedRequest_SavesErrorBody()
         {
             // Arrange
             var result = new CurlResult
@@ -196,10 +196,21 @@ namespace CurlDotNet.Tests
                 StatusCode = 404,
                 Body = "Not Found"
             };
+            var tempFile = Path.GetTempFileName();
 
-            // Act & Assert
-            Assert.Throws<InvalidOperationException>(() =>
-                result.SaveToFile("test.txt"));
+            try
+            {
+                // Act
+                result.SaveToFile(tempFile);
+
+                // Assert
+                File.ReadAllText(tempFile).Should().Be("Not Found");
+            }
+            finally
+            {
+                if (File.Exists(tempFile))
+                    File.Delete(tempFile);
+            }
         }
 
         #endregion
@@ -232,7 +243,7 @@ namespace CurlDotNet.Tests
             // Arrange
             var result = new CurlResult
             {
-                Headers = new System.Collections.Generic.Dictionary<string, string>
+                Headers = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
                     ["Content-Type"] = "text/plain"
                 }

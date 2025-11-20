@@ -474,12 +474,44 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Save response to file (like curl -o).
+        /// Upload a file (multipart/form-data).
         /// </summary>
-        public CurlRequestBuilder SaveToFile(string filePath)
+        /// <param name="parameterName">The form field name</param>
+        /// <param name="filePath">Path to the file</param>
+        public CurlRequestBuilder WithUploadFile(string parameterName, string filePath)
+        {
+            _options.Files[parameterName] = filePath;
+            return this;
+        }
+
+        /// <summary>
+        /// Upload a file (multipart/form-data). Alias for WithUploadFile.
+        /// </summary>
+        /// <param name="filePath">Path to the file</param>
+        /// <returns></returns>
+        public CurlRequestBuilder WithFile(string filePath)
+        {
+            return WithUploadFile("file", filePath);
+        }
+
+        /// <summary>
+        /// Save output to a file.
+        /// </summary>
+        /// <param name="filePath">Path to save the file</param>
+        public CurlRequestBuilder WithOutput(string filePath)
         {
             _options.OutputFile = filePath;
             return this;
+        }
+
+        /// <summary>
+        /// Save output to a file. Alias for WithOutput.
+        /// </summary>
+        /// <param name="filePath">Path to save the file</param>
+        /// <returns></returns>
+        public CurlRequestBuilder SaveToFile(string filePath)
+        {
+            return WithOutput(filePath);
         }
 
         /// <summary>

@@ -100,7 +100,14 @@ namespace CurlDotNet.Middleware
         {
             if (Properties.TryGetValue(key, out var value))
             {
-                return (T)value;
+                try
+                {
+                    return (T)value;
+                }
+                catch (InvalidCastException)
+                {
+                    return default(T);
+                }
             }
             return default(T);
         }
