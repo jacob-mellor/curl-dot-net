@@ -1,0 +1,296 @@
+name: NuGet Package Build & Validation
+
+on:
+  pull_request:
+    branches: [ main, master, dev ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - '**.csproj'
+      - '**.cs'
+      - '.github/workflows/nuget-build-validation.yml'
+
+  # Allow manual trigger for testing
+  workflow_dispatch:
+
+jobs:
+  build-nuget-package:
+    name: Build Complete NuGet Package
+    runs-on: windows-latest  # MUST be Windows to build .NET Framework targets
+
+    outputs:
+      package-version: ${{ steps.package-info.outputs.version }}
+      package-path: ${{ steps.package-info.outputs.path }}
+
+    steps:
+    # Step 1: Checkout code
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Step 2: Setup ALL required .NET SDKs
+    - name: Setup .NET SDK 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        dotnet-quality: 'ga'
+
+    - name: Setup .NET SDK 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        dotnet-quality: 'ga'
+
+    # .NET Framework is included in Windows image
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    # Step 3: Restore dependencies
+    - name: Restore dependencies
+      run: dotnet restore
+
+    # Step 4: Build in Release mode (this creates the NuGet package)
+    - name: Build and Pack
+      run: dotnet build src/CurlDotNet/CurlDotNet.csproj --configuration Release
+
+    # Step 5: Verify all target frameworks are included
+    - name: Extract and Verify Package Contents
+      id: package-info
+      shell: pwsh
+      run: |
+        # Find the generated package
+        $package = Get-ChildItem -Path "src/CurlDotNet/bin/Release" -Filter "*.nupkg" |
+                   Where-Object { $_.Name -notlike "*.symbols.nupkg" -and $_.Name -notlike "*.snupkg" } |
+                   Select-Object -First 1
+
+        if (-not $package) {
+            Write-Error "No NuGet package found!"
+            exit 1
+        }
+
+        Write-Host "Found package: $($package.FullName)"
+
+        # Extract version from filename
+        if ($package.Name -match "CurlDotNet\.(.+)\.nupkg") {
+            $version = $matches[1]
+            Write-Host "Package version: $version"
+            echo "version=$version" >> $env:GITHUB_OUTPUT
+            echo "path=$($package.FullName)" >> $env:GITHUB_OUTPUT
+        }
+
+        # Create temp directory for extraction
+        $extractPath = Join-Path $env:TEMP "nuget-extract"
+        New-Item -ItemType Directory -Path $extractPath -Force | Out-Null
+
+        # Extract package (nupkg is just a zip)
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($package.FullName, $extractPath)
+
+        # Check for all expected frameworks
+        $requiredFrameworks = @(
+            "lib/netstandard2.0/CurlDotNet.dll",
+            "lib/net472/CurlDotNet.dll",
+            "lib/net48/CurlDotNet.dll",
+            "lib/net8.0/CurlDotNet.dll",
+            "lib/net9.0/CurlDotNet.dll"
+        )
+
+        $missingFrameworks = @()
+        $foundFrameworks = @()
+
+        foreach ($framework in $requiredFrameworks) {
+            $fullPath = Join-Path $extractPath $framework
+            if (Test-Path $fullPath) {
+                $foundFrameworks += $framework
+                Write-Host "✅ Found: $framework"
+            } else {
+                $missingFrameworks += $framework
+                Write-Host "❌ Missing: $framework"
+            }
+        }
+
+        # Report results
+        Write-Host "`n📦 Package Analysis Complete"
+        Write-Host "Found $($foundFrameworks.Count) of $($requiredFrameworks.Count) required frameworks"
+
+        if ($missingFrameworks.Count -gt 0) {
+            Write-Error "Missing required frameworks! Package is incomplete."
+            exit 1
+        }
+
+        Write-Host "✅ All required frameworks present in package"
+
+    # Step 6: Upload package as artifact
+    - name: Upload NuGet Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-package
+        path: src/CurlDotNet/bin/Release/*.nupkg
+        retention-days: 7
+
+    # Step 7: Upload symbols package
+    - name: Upload Symbols Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: symbols-package
+        path: src/CurlDotNet/bin/Release/*.snupkg
+        retention-days: 7
+
+  validate-package:
+    name: Validate NuGet Package
+    needs: build-nuget-package
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        dotnet: ['8.0.x', '9.0.x']
+      fail-fast: true
+
+    steps:
+    # Step 1: Checkout for test files
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Step 2: Setup .NET SDK
+    - name: Setup .NET SDK ${{ matrix.dotnet }}
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ matrix.dotnet }}
+        dotnet-quality: 'ga'
+
+    # Step 3: Download package artifact
+    - name: Download NuGet package
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-package
+        path: ./package
+
+    # Step 4: Create test project
+    - name: Create test project
+      run: |
+        dotnet new console -n PackageTest -o ./PackageTest
+        cd PackageTest
+
+    # Step 5: Add package reference (from local source)
+    - name: Add local package source and install
+      shell: pwsh
+      run: |
+        cd PackageTest
+
+        # Find the package file
+        $packageFile = Get-ChildItem -Path "../package" -Filter "CurlDotNet.*.nupkg" |
+                      Where-Object { $_.Name -notlike "*.symbols.nupkg" -and $_.Name -notlike "*.snupkg" } |
+                      Select-Object -First 1
+
+        if (-not $packageFile) {
+            Write-Error "Package file not found!"
+            exit 1
+        }
+
+        # Extract version from filename
+        if ($packageFile.Name -match "CurlDotNet\.(.+)\.nupkg") {
+            $version = $matches[1]
+            Write-Host "Installing CurlDotNet version: $version"
+        }
+
+        # Add package
+        dotnet add package CurlDotNet --version $version --source ../package
+
+    # Step 6: Create test program
+    - name: Create test program
+      shell: pwsh
+      run: |
+        @'
+        using System;
+        using System.Threading.Tasks;
+        using CurlDotNet;
+
+        class Program
+        {
+            static async Task Main()
+            {
+                try
+                {
+                    Console.WriteLine("Testing CurlDotNet package...");
+
+                    var curl = new Curl();
+                    Console.WriteLine("✅ Curl instance created successfully");
+
+                    // Test basic functionality
+                    var testUrl = "https://httpbin.org/get";
+                    var result = await curl.GetAsync(testUrl);
+
+                    if (result.IsSuccess)
+                    {
+                        Console.WriteLine("✅ HTTP GET request successful");
+                        Console.WriteLine($"   Status: {result.StatusCode}");
+                        Console.WriteLine($"   Response length: {result.Data?.Length ?? 0} bytes");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"❌ Request failed: {result.Error}");
+                        Environment.Exit(1);
+                    }
+
+                    // Test version
+                    var assembly = typeof(Curl).Assembly;
+                    var version = assembly.GetName().Version;
+                    Console.WriteLine($"✅ Assembly version: {version}");
+
+                    Console.WriteLine("\n✅ All tests passed!");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ Test failed: {ex.Message}");
+                    Console.WriteLine(ex.StackTrace);
+                    Environment.Exit(1);
+                }
+            }
+        }
+        '@ | Out-File -FilePath PackageTest/Program.cs -Encoding UTF8
+
+    # Step 7: Build test project
+    - name: Build test project
+      run: |
+        cd PackageTest
+        dotnet build --configuration Release
+
+    # Step 8: Run test
+    - name: Run package test
+      run: |
+        cd PackageTest
+        dotnet run --configuration Release --no-build
+
+  report-status:
+    name: Package Validation Summary
+    needs: [build-nuget-package, validate-package]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Report Success
+      if: needs.validate-package.result == 'success'
+      run: |
+        echo "# ✅ NuGet Package Validation Successful!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "The NuGet package has been successfully built and validated on:" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Windows (.NET 8.0 & 9.0)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Ubuntu (.NET 8.0 & 9.0)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ macOS (.NET 8.0 & 9.0)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Package includes all target frameworks:" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ .NET Standard 2.0" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ .NET Framework 4.7.2" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ .NET Framework 4.8" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ .NET 8.0" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ .NET 9.0" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Package is ready for release!** 🚀" >> $GITHUB_STEP_SUMMARY
+
+    - name: Report Failure
+      if: needs.validate-package.result != 'success'
+      run: |
+        echo "# ❌ NuGet Package Validation Failed!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Please check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+        exit 1

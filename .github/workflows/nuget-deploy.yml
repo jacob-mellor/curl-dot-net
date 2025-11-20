@@ -1,0 +1,305 @@
+name: Deploy to NuGet
+
+on:
+  # Manual deployment with approval
+  workflow_dispatch:
+    inputs:
+      deploy-to-nuget:
+        description: 'Deploy to NuGet.org?'
+        required: true
+        type: boolean
+        default: false
+      dry-run:
+        description: 'Dry run (validate but do not push)?'
+        required: true
+        type: boolean
+        default: true
+
+  # Auto-deploy on release tags
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'release/*'
+
+jobs:
+  build-package:
+    name: Build Production NuGet Package
+    runs-on: windows-latest  # MUST be Windows for .NET Framework support
+
+    outputs:
+      package-version: ${{ steps.package-info.outputs.version }}
+      package-path: ${{ steps.package-info.outputs.path }}
+
+    steps:
+    # Step 1: Checkout code
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for version calculation
+
+    # Step 2: Setup .NET SDKs
+    - name: Setup .NET SDK 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        dotnet-quality: 'ga'
+
+    - name: Setup .NET SDK 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        dotnet-quality: 'ga'
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    # Step 3: Restore
+    - name: Restore dependencies
+      run: dotnet restore
+
+    # Step 4: Build and Pack with Release configuration
+    - name: Build and Create NuGet Package
+      run: |
+        dotnet build src/CurlDotNet/CurlDotNet.csproj --configuration Release --no-restore
+
+    # Step 5: Verify package integrity
+    - name: Verify Package Contents
+      id: package-info
+      shell: pwsh
+      run: |
+        $package = Get-ChildItem -Path "src/CurlDotNet/bin/Release" -Filter "*.nupkg" |
+                   Where-Object { $_.Name -notlike "*.symbols.nupkg" -and $_.Name -notlike "*.snupkg" } |
+                   Select-Object -First 1
+
+        if (-not $package) {
+            Write-Error "No NuGet package found!"
+            exit 1
+        }
+
+        Write-Host "📦 Found package: $($package.Name)"
+
+        # Extract version
+        if ($package.Name -match "CurlDotNet\.(.+)\.nupkg") {
+            $version = $matches[1]
+            Write-Host "📌 Version: $version"
+            echo "version=$version" >> $env:GITHUB_OUTPUT
+            echo "path=$($package.FullName)" >> $env:GITHUB_OUTPUT
+        }
+
+        # Verify all frameworks are present
+        $extractPath = Join-Path $env:TEMP "nuget-verify"
+        New-Item -ItemType Directory -Path $extractPath -Force | Out-Null
+
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($package.FullName, $extractPath)
+
+        $requiredFiles = @(
+            "lib/netstandard2.0/CurlDotNet.dll",
+            "lib/net472/CurlDotNet.dll",
+            "lib/net48/CurlDotNet.dll",
+            "lib/net8.0/CurlDotNet.dll",
+            "lib/net9.0/CurlDotNet.dll"
+        )
+
+        $allPresent = $true
+        foreach ($file in $requiredFiles) {
+            $fullPath = Join-Path $extractPath $file
+            if (Test-Path $fullPath) {
+                Write-Host "✅ $file"
+            } else {
+                Write-Host "❌ MISSING: $file"
+                $allPresent = $false
+            }
+        }
+
+        if (-not $allPresent) {
+            Write-Error "Package is missing required frameworks!"
+            exit 1
+        }
+
+        Write-Host "`n✅ Package verification passed - all frameworks included"
+
+    # Step 6: Run package validation tests
+    - name: Validate Package Locally
+      shell: pwsh
+      run: |
+        # Create test project
+        dotnet new console -n ValidatePackage -o ./ValidatePackage
+        cd ValidatePackage
+
+        # Add package from local source
+        $packagePath = "${{ steps.package-info.outputs.path }}"
+        $packageDir = Split-Path $packagePath -Parent
+        $version = "${{ steps.package-info.outputs.version }}"
+
+        dotnet add package CurlDotNet --version $version --source $packageDir
+
+        # Create test program
+        @'
+        using System;
+        using CurlDotNet;
+
+        var curl = new Curl();
+        Console.WriteLine("✅ CurlDotNet loaded successfully");
+        Console.WriteLine($"Version: {typeof(Curl).Assembly.GetName().Version}");
+        '@ | Out-File -FilePath Program.cs -Encoding UTF8
+
+        # Build and run
+        dotnet build --configuration Release
+        dotnet run --configuration Release --no-build
+
+    # Step 7: Upload artifacts
+    - name: Upload NuGet Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-package-${{ steps.package-info.outputs.version }}
+        path: src/CurlDotNet/bin/Release/*.nupkg
+
+    - name: Upload Symbols Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: symbols-package-${{ steps.package-info.outputs.version }}
+        path: src/CurlDotNet/bin/Release/*.snupkg
+
+  deploy-to-nuget:
+    name: Deploy to NuGet.org
+    needs: build-package
+    runs-on: windows-latest
+
+    # Only deploy if explicitly requested or on release tag
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy-to-nuget == 'true' && github.event.inputs.dry-run == 'false') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+
+    environment:
+      name: nuget-production
+      url: https://www.nuget.org/packages/CurlDotNet/${{ needs.build-package.outputs.package-version }}
+
+    steps:
+    # Step 1: Download package
+    - name: Download NuGet package
+      uses: actions/download-artifact@v4
+      with:
+        name: nuget-package-${{ needs.build-package.outputs.package-version }}
+        path: ./package
+
+    - name: Download symbols package
+      uses: actions/download-artifact@v4
+      with:
+        name: symbols-package-${{ needs.build-package.outputs.package-version }}
+        path: ./package
+
+    # Step 2: Setup .NET
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    # Step 3: Push to NuGet
+    - name: Push to NuGet.org
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      shell: pwsh
+      run: |
+        if (-not $env:NUGET_API_KEY) {
+            Write-Error "NUGET_API_KEY secret is not set!"
+            exit 1
+        }
+
+        $packages = Get-ChildItem -Path "./package" -Filter "*.nupkg"
+
+        foreach ($package in $packages) {
+            if ($package.Name -notlike "*.symbols.nupkg" -and $package.Name -notlike "*.snupkg") {
+                Write-Host "📦 Pushing $($package.Name) to NuGet.org..."
+
+                dotnet nuget push $package.FullName `
+                  --api-key $env:NUGET_API_KEY `
+                  --source https://api.nuget.org/v3/index.json `
+                  --skip-duplicate
+
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "✅ Successfully pushed $($package.Name)"
+                } else {
+                    Write-Error "Failed to push $($package.Name)"
+                    exit 1
+                }
+            }
+        }
+
+        # Push symbols package
+        $symbolsPackage = Get-ChildItem -Path "./package" -Filter "*.snupkg" | Select-Object -First 1
+        if ($symbolsPackage) {
+            Write-Host "📦 Pushing symbols package..."
+
+            dotnet nuget push $symbolsPackage.FullName `
+              --api-key $env:NUGET_API_KEY `
+              --source https://api.nuget.org/v3/index.json `
+              --skip-duplicate
+
+            Write-Host "✅ Symbols package pushed"
+        }
+
+    # Step 4: Create GitHub Release (if tag push)
+    - name: Create GitHub Release
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        draft: false
+        prerelease: false
+        name: Release ${{ needs.build-package.outputs.package-version }}
+        body: |
+          ## CurlDotNet ${{ needs.build-package.outputs.package-version }}
+
+          ### 📦 NuGet Package
+          Available on NuGet: https://www.nuget.org/packages/CurlDotNet/${{ needs.build-package.outputs.package-version }}
+
+          ### Installation
+          ```bash
+          dotnet add package CurlDotNet --version ${{ needs.build-package.outputs.package-version }}
+          ```
+
+          ### Supported Frameworks
+          - ✅ .NET Standard 2.0
+          - ✅ .NET Framework 4.7.2
+          - ✅ .NET Framework 4.8
+          - ✅ .NET 8.0
+          - ✅ .NET 9.0
+
+          ---
+          See [CHANGELOG](https://github.com/jacob-mellor/curl-dot-net/blob/master/CHANGELOG.md) for details.
+        files: |
+          ./package/*.nupkg
+          ./package/*.snupkg
+
+  dry-run-report:
+    name: Dry Run Report
+    needs: build-package
+    runs-on: ubuntu-latest
+
+    # Only run for dry runs
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry-run == 'true'
+
+    steps:
+    - name: Report Dry Run Results
+      run: |
+        echo "# 🧪 Dry Run Complete" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Package Information" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version**: ${{ needs.build-package.outputs.package-version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: ✅ Package built and validated successfully" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Included Frameworks" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ .NET Standard 2.0" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ .NET Framework 4.7.2" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ .NET Framework 4.8" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ .NET 8.0" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ .NET 9.0" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "To deploy this package to NuGet.org:" >> $GITHUB_STEP_SUMMARY
+        echo "1. Run this workflow again" >> $GITHUB_STEP_SUMMARY
+        echo "2. Set **'Dry run'** to **false**" >> $GITHUB_STEP_SUMMARY
+        echo "3. Set **'Deploy to NuGet.org?'** to **true**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Dry run successful - package is ready for deployment**" >> $GITHUB_STEP_SUMMARY
