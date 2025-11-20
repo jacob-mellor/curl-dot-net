@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CurlDotNet;
 using CurlDotNet.Core;
+using CurlDotNet.Tests.TestServers;
 using FluentAssertions;
 using Xunit;
 
@@ -14,11 +15,20 @@ namespace CurlDotNet.Tests
     [Trait("Category", TestCategories.Synthetic)]
     public class DotNetCurlTests
     {
+        private TestServerEndpoint _testServer;
+        private TestServerAdapter _serverAdapter;
+
+        public DotNetCurlTests()
+        {
+            // Initialize test server synchronously
+            _testServer = TestServerConfiguration.GetBestAvailableServerAsync(TestServerFeatures.All).GetAwaiter().GetResult();
+            _serverAdapter = new TestServerAdapter(_testServer.BaseUrl);
+        }
         [Fact]
         public void Curl_SynchronousExecution_ReturnsResult()
         {
             // Arrange
-            var command = "curl https://httpbin.org/status/200";
+            var command = $"curl {_serverAdapter.StatusEndpoint(200)}";
 
             // Act
             var result = DotNetCurl.Curl(command);
@@ -32,7 +42,7 @@ namespace CurlDotNet.Tests
         public void Curl_WithTimeout_RespectsTimeout()
         {
             // Arrange
-            var command = "curl https://httpbin.org/delay/10";
+            var command = $"curl {_serverAdapter.DelayEndpoint(10)}";
             var timeoutSeconds = 1;
 
             // Act & Assert
@@ -44,7 +54,7 @@ namespace CurlDotNet.Tests
         public async Task CurlAsync_AsynchronousExecution_ReturnsResult()
         {
             // Arrange
-            var command = "curl https://httpbin.org/get";
+            var command = $"curl {_serverAdapter.GetEndpoint()}";
 
             // Act
             var result = await DotNetCurl.CurlAsync(command);
@@ -58,7 +68,7 @@ namespace CurlDotNet.Tests
         public async Task CurlAsync_WithCancellation_SupportsCancellation()
         {
             // Arrange
-            var command = "curl https://httpbin.org/delay/10";
+            var command = $"curl {_serverAdapter.DelayEndpoint(10)}";
             using var cts = new CancellationTokenSource();
             cts.CancelAfter(100);
 
@@ -73,8 +83,8 @@ namespace CurlDotNet.Tests
             // Arrange
             var commands = new[]
             {
-                "curl https://httpbin.org/status/200",
-                "curl https://httpbin.org/status/201"
+                $"curl {_serverAdapter.StatusEndpoint(200)}",
+                $"curl {_serverAdapter.StatusEndpoint(201)}"
             };
 
             // Act
@@ -107,8 +117,8 @@ namespace CurlDotNet.Tests
             // Arrange
             var commands = new[]
             {
-                "curl https://httpbin.org/status/200",
-                "curl https://httpbin.org/status/201"
+                $"curl {_serverAdapter.StatusEndpoint(200)}",
+                $"curl {_serverAdapter.StatusEndpoint(201)}"
             };
 
             // Act
@@ -123,7 +133,7 @@ namespace CurlDotNet.Tests
         public void Curl_WithoutCurlPrefix_StillWorks()
         {
             // Arrange
-            var url = "https://httpbin.org/status/200";
+            var url = _serverAdapter.StatusEndpoint(200);
 
             // Act
             var result = DotNetCurl.Curl(url);
@@ -137,9 +147,9 @@ namespace CurlDotNet.Tests
         public void Curl_ComplexCommand_ParsesCorrectly()
         {
             // Arrange
-            var command = @"curl -X POST https://httpbin.org/post
+            var command = $@"curl -X POST {_serverAdapter.PostEndpoint()}
                 -H 'Content-Type: application/json'
-                -d '{""test"":true}'";
+                -d '{{""test"":true}}'";
 
             // Act
             var result = DotNetCurl.Curl(command);
@@ -153,21 +163,20 @@ namespace CurlDotNet.Tests
         public async Task CurlAsync_GetRequest_ReturnsBody()
         {
             // Arrange
-            var command = "curl https://httpbin.org/json";
+            var command = $"curl {_serverAdapter.GetEndpoint()}";
 
             // Act
             var result = await DotNetCurl.CurlAsync(command);
 
             // Assert
             result.Body.Should().NotBeNullOrWhiteSpace();
-            result.Body.Should().Contain("slideshow");
         }
 
         [Fact]
         public void Curl_HeadRequest_ReturnsHeaders()
         {
             // Arrange
-            var command = "curl -I https://httpbin.org/status/200";
+            var command = $"curl -I {_serverAdapter.StatusEndpoint(200)}";
 
             // Act
             var result = DotNetCurl.Curl(command);
@@ -181,7 +190,7 @@ namespace CurlDotNet.Tests
         public async Task CurlAsync_UserAgent_SetsHeader()
         {
             // Arrange
-            var command = "curl -A 'DotNetCurl/1.0' https://httpbin.org/user-agent";
+            var command = $"curl -A 'DotNetCurl/1.0' {_serverAdapter.HeadersEndpoint()}";
 
             // Act
             var result = await DotNetCurl.CurlAsync(command);

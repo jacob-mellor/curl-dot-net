@@ -18,6 +18,7 @@ using FluentAssertions;
 using CurlDotNet;
 using CurlDotNet.Core;
 using CurlDotNet.Exceptions;
+using CurlDotNet.Tests.TestServers;
 
 namespace CurlDotNet.Tests
 {
@@ -25,14 +26,23 @@ namespace CurlDotNet.Tests
     /// Main curl functionality tests
     /// Mirrors curl's test suite structure from tests/data/
     /// </summary>
+    [Trait("Category", TestCategories.Integration)]
     public class CurlTests
     {
+        private TestServerEndpoint _testServer;
+        private TestServerAdapter _serverAdapter;
+
+        public CurlTests()
+        {
+            // Initialize test server synchronously
+            _testServer = TestServerConfiguration.GetBestAvailableServerAsync(TestServerFeatures.All).GetAwaiter().GetResult();
+            _serverAdapter = new TestServerAdapter(_testServer.BaseUrl);
+        }
         [Fact]
         public async Task Execute_SimpleGetRequest_ReturnsContent()
         {
-            // Act - Simple GET request (would need mock HTTP server for real test)
-            // This is a placeholder - in real tests we'd mock the HTTP client
-            var command = "curl https://httpbin.org/get";
+            // Act - Simple GET request
+            var command = $"curl {_serverAdapter.GetEndpoint()}";
 
             // For now, just test that it doesn't throw
             await Record.ExceptionAsync(async () => await Curl.ExecuteAsync(command));
@@ -42,7 +52,7 @@ namespace CurlDotNet.Tests
         public async Task Execute_WithHeaders_IncludesHeaders()
         {
             // Act
-            var command = "curl -H 'Accept: application/json' -H 'X-Custom: test' https://httpbin.org/headers";
+            var command = $"curl -H 'Accept: application/json' -H 'X-Custom: test' {_serverAdapter.HeadersEndpoint()}";
 
             // Test that command parsing works (would need mock for full test)
             await Record.ExceptionAsync(async () => await Curl.ExecuteAsync(command));
@@ -52,7 +62,7 @@ namespace CurlDotNet.Tests
         public async Task Execute_PostWithData_SendsPostRequest()
         {
             // Act
-            var command = "curl -X POST -d '{\"key\":\"value\"}' https://httpbin.org/post";
+            var command = $"curl -X POST -d '{{\"key\":\"value\"}}' {_serverAdapter.PostEndpoint()}";
 
             // Test command execution
             await Record.ExceptionAsync(async () => await Curl.ExecuteAsync(command));
@@ -103,7 +113,7 @@ namespace CurlDotNet.Tests
             try
             {
                 // Act
-                var command = $"curl -o {tempFile} https://httpbin.org/get";
+                var command = $"curl -o {tempFile} {_serverAdapter.GetEndpoint()}";
                 var result = await Curl.ExecuteAsync(command);
 
                 // Assert
@@ -185,11 +195,12 @@ namespace CurlDotNet.Tests
         public async Task ExecuteMultiple_RunsCommandsInParallel()
         {
             // Arrange
+            var delayEndpoint = _serverAdapter.DelayEndpoint(1);
             var commands = new[]
             {
-                "curl https://httpbin.org/delay/1",
-                "curl https://httpbin.org/delay/1",
-                "curl https://httpbin.org/delay/1"
+                $"curl {delayEndpoint}",
+                $"curl {delayEndpoint}",
+                $"curl {delayEndpoint}"
             };
 
             // Act
