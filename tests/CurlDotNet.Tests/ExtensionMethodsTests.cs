@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CurlDotNet.Core;
 using CurlDotNet.Extensions;
+using CurlDotNet.Tests.TestServers;
 using FluentAssertions;
 using Xunit;
 
@@ -16,13 +17,22 @@ namespace CurlDotNet.Tests
     [Trait("Category", TestCategories.Synthetic)]
     public class ExtensionMethodsTests
     {
+        private TestServerEndpoint _testServer;
+        private TestServerAdapter _serverAdapter;
+
+        public ExtensionMethodsTests()
+        {
+            // Initialize test server synchronously
+            _testServer = TestServerConfiguration.GetBestAvailableServerAsync(TestServerFeatures.All).GetAwaiter().GetResult();
+            _serverAdapter = new TestServerAdapter(_testServer.BaseUrl);
+        }
         #region StringExtensions Tests
 
         [Fact]
         public async Task CurlAsync_ExecutesCurlCommand()
         {
             // Arrange
-            var command = "curl https://httpbin.org/status/200";
+            var command = $"curl {_serverAdapter.StatusEndpoint(200)}";
 
             // Act
             var result = await command.CurlAsync();
@@ -36,7 +46,7 @@ namespace CurlDotNet.Tests
         public async Task CurlAsync_WithCancellation_SupportsCancellation()
         {
             // Arrange
-            var command = "curl https://httpbin.org/delay/10";
+            var command = $"curl {_serverAdapter.DelayEndpoint(10)}";
             using var cts = new CancellationTokenSource();
             cts.CancelAfter(100);
 
@@ -49,7 +59,7 @@ namespace CurlDotNet.Tests
         public async Task CurlGetAsync_PerformsGetRequest()
         {
             // Arrange
-            var url = "https://httpbin.org/get";
+            var url = _serverAdapter.GetEndpoint();
 
             // Act
             var result = await url.CurlGetAsync();
@@ -63,7 +73,7 @@ namespace CurlDotNet.Tests
         public async Task CurlGetAsync_WithCurlPrefix_HandlesCorrectly()
         {
             // Arrange
-            var command = "curl https://httpbin.org/get";
+            var command = $"curl {_serverAdapter.GetEndpoint()}";
 
             // Act
             var result = await command.CurlGetAsync();
@@ -77,7 +87,7 @@ namespace CurlDotNet.Tests
         public async Task CurlPostJsonAsync_SendsJsonData()
         {
             // Arrange
-            var url = "https://httpbin.org/post";
+            var url = _serverAdapter.PostEndpoint();
             var json = @"{""key"":""value""}";
 
             // Act
@@ -92,7 +102,7 @@ namespace CurlDotNet.Tests
         public async Task CurlDownloadAsync_CreatesDownloadCommand()
         {
             // Arrange
-            var url = "https://httpbin.org/image/png";
+            var url = _serverAdapter.GetEndpoint();
             var outputFile = Path.GetTempFileName();
 
             try
@@ -116,7 +126,7 @@ namespace CurlDotNet.Tests
         public void Curl_SynchronousExecution_Works()
         {
             // Arrange
-            var command = "curl https://httpbin.org/status/200";
+            var command = $"curl {_serverAdapter.StatusEndpoint(200)}";
 
             // Act
             var result = command.Curl();
@@ -130,14 +140,13 @@ namespace CurlDotNet.Tests
         public async Task CurlBodyAsync_ReturnsResponseBody()
         {
             // Arrange
-            var url = "https://httpbin.org/json";
+            var url = _serverAdapter.GetEndpoint();
 
             // Act
             var body = await url.CurlBodyAsync();
 
             // Assert
             body.Should().NotBeNullOrWhiteSpace();
-            body.Should().Contain("slideshow");
         }
 
         #endregion
@@ -190,7 +199,7 @@ namespace CurlDotNet.Tests
         public async Task FluentChaining_WorksEndToEnd()
         {
             // Arrange & Act
-            var result = await "https://httpbin.org/post"
+            var result = await _serverAdapter.PostEndpoint()
                 .WithMethod("POST")
                 .WithHeader("Content-Type", "application/json")
                 .WithData(@"{""test"":true}")

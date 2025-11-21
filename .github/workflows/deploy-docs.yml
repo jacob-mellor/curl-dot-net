@@ -1,14 +1,9 @@
-name: Deploy Documentation to GitHub Pages
+name: Deploy Docs
 
 on:
-  # Trigger on merge to master/main
+  # Trigger when code is pushed to main/master branch
   push:
-    branches: [ master, main ]
-
-  # Trigger on PR merge
-  pull_request:
-    branches: [ master, main ]
-    types: [closed]
+    branches: [ main, master ]
 
   # Allow manual trigger
   workflow_dispatch:
@@ -19,12 +14,9 @@ permissions:
   id-token: write
 
 jobs:
-  deploy-documentation:
+  deploy-docs:
     name: Build and Deploy Documentation
     runs-on: ubuntu-latest
-
-    # Only run on push or merged PRs (not on PR open/update)
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
 
     steps:
     - name: Checkout repository
@@ -32,71 +24,38 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Verify gh-pages folder exists
+    - name: Setup .NET 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Install DocFX
+      run: dotnet tool install -g docfx
+
+    - name: Restore and Build Project
       run: |
-        echo "📂 Checking gh-pages folder..."
-        if [ ! -d "gh-pages" ]; then
-          echo "❌ gh-pages folder not found!"
-          echo "Run ./scripts/generate-docs.sh locally to create documentation"
-          exit 1
-        fi
-        echo "✅ gh-pages folder exists"
-        echo "📊 Found $(find gh-pages -name "*.md" | wc -l) markdown files"
-        echo "📁 Total size: $(du -sh gh-pages | cut -f1)"
+        dotnet restore
+        dotnet build src/CurlDotNet/CurlDotNet.csproj --configuration Release
 
-    - name: Validate documentation
+    - name: Generate Documentation with DocFX
       run: |
-        echo "🔍 Validating documentation..."
-
-        # Check for required files
-        ERRORS=0
-
-        if [ ! -f "gh-pages/_config.yml" ]; then
-          echo "❌ Missing _config.yml"
-          ERRORS=$((ERRORS + 1))
-        fi
-
-        if [ ! -f "gh-pages/index.md" ]; then
-          echo "❌ Missing index.md"
-          ERRORS=$((ERRORS + 1))
-        fi
-
-        # Count documentation files
-        MD_COUNT=$(find gh-pages -name "*.md" | wc -l)
-        echo "📊 Generated $MD_COUNT markdown files"
-
-        if [ $MD_COUNT -lt 10 ]; then
-          echo "⚠️  Warning: Only $MD_COUNT files generated (expected more)"
-        fi
-
-        if [ $ERRORS -gt 0 ]; then
-          echo "❌ Validation failed with $ERRORS errors"
-          exit 1
-        else
-          echo "✅ Documentation validation passed"
-        fi
+        export PATH="$PATH:$HOME/.dotnet/tools"
+        docfx metadata
+        docfx build
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./gh-pages
+        publish_dir: ./_site
         publish_branch: gh-pages
         force_orphan: true
         user_name: 'github-actions[bot]'
         user_email: 'github-actions[bot]@users.noreply.github.com'
         commit_message: |
-          📚 Deploy documentation from ${{ github.ref_name }}
+          📚 Deploy documentation from ${{ github.sha }}
 
-          Commit: ${{ github.sha }}
-          Time: ${{ github.event.head_commit.timestamp }}
-
-          Triggered by: ${{ github.event_name }}
-          ${{ github.event_name == 'pull_request' && format('PR #{0}: {1}', github.event.pull_request.number, github.event.pull_request.title) || '' }}
-        enable_jekyll: true
-        cname: ''  # Add custom domain if you have one
-
-    - name: Report deployment status
+    - name: Report Success
       if: success()
       run: |
         echo "========================================="
@@ -106,23 +65,4 @@ jobs:
         echo "📚 View documentation at:"
         echo "   https://jacob-mellor.github.io/curl-dot-net/"
         echo ""
-        echo "ℹ️  Note: GitHub Pages may take 2-10 minutes to update"
-        echo ""
-        echo "📊 Deployment summary:"
-        echo "   - Branch: ${{ github.ref_name }}"
-        echo "   - Commit: ${{ github.sha }}"
-        echo "   - Triggered by: ${{ github.event_name }}"
-
-# Workflow Summary:
-# ================
-# 1. Triggers on push to master/main or merged PRs
-# 2. Builds project with XML documentation
-# 3. Generates API docs using DefaultDocumentation
-# 4. Creates Jekyll structure in gh-pages folder
-# 5. Validates documentation
-# 6. Deploys to gh-pages branch
-# 7. GitHub Pages serves from gh-pages branch
-#
-# The gh-pages folder in the repository is temporary and only
-# used during the workflow. The actual deployment goes to the
-# gh-pages branch, which GitHub Pages uses to serve the site.
+        echo "Note: GitHub Pages may take 2-10 minutes to update"

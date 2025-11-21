@@ -87,5 +87,15 @@ namespace CurlDotNet.Tests
         /// Smoke tests - Quick verification that the system is basically operational
         /// </summary>
         public const string Smoke = "Smoke";
+
+        /// <summary>
+        /// Unit tests - Tests that verify individual units of functionality in isolation
+        /// </summary>
+        public const string Unit = "Unit";
+
+        /// <summary>
+        /// Full coverage tests - Comprehensive tests that verify complete functionality
+        /// </summary>
+        public const string FullCoverage = "FullCoverage";
     }
 }

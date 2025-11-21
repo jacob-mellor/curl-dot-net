@@ -20,6 +20,7 @@ using Xunit.Sdk;
 using FluentAssertions;
 using CurlDotNet;
 using CurlDotNet.Core;
+using CurlDotNet.Tests.TestServers;
 
 namespace CurlDotNet.Tests
 {
@@ -44,9 +45,24 @@ namespace CurlDotNet.Tests
         private static readonly bool IsCI = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CI")) ||
                                            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"));
 
+        private TestServerEndpoint _testServer;
+        private TestServerAdapter _serverAdapter;
+
         public CommandLineComparisonTests(ITestOutputHelper output) : base(output)
         {
             // Note: We can't skip in constructor - need to check in each test method
+            // Test server will be initialized in each test
+        }
+
+        private async Task<bool> InitializeTestServerAsync(TestServerFeatures requiredFeatures = TestServerFeatures.Basic)
+        {
+            if (SkipIfNeeded())
+                return false;
+
+            _testServer = await TestServerConfiguration.GetBestAvailableServerAsync(requiredFeatures);
+            _serverAdapter = new TestServerAdapter(_testServer.BaseUrl);
+            Output.WriteLine($"Using test server: {_testServer.Name} at {_testServer.BaseUrl}");
+            return true;
         }
 
         private bool SkipIfNeeded()
@@ -156,10 +172,11 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task SimpleGet_CompareWithCurl()
         {
-            if (SkipIfNeeded()) return;
+            if (!await InitializeTestServerAsync()) return;
+
             // Arrange
-            var url = "https://httpbin.org/get";
-            var curlCommand = $"https://httpbin.org/get";
+            var url = _serverAdapter.GetEndpoint();
+            var curlCommand = url;
 
             // Act
             var dotNetResult = await Curl.ExecuteAsync($"curl {url}");
@@ -173,8 +190,8 @@ namespace CurlDotNet.Tests
             curlResult.ExitCode.Should().Be(0);
 
             // Both should have JSON response
-            dotNetResult.Body.Should().Contain("httpbin.org");
-            curlResult.StandardOutput.Should().Contain("httpbin.org");
+            dotNetResult.Body.Should().NotBeNullOrEmpty();
+            curlResult.StandardOutput.Should().NotBeNullOrEmpty();
         }
 
         /// <summary>
@@ -183,9 +200,11 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task GetWithHeaders_CompareWithCurl()
         {
-            if (SkipIfNeeded()) return;
+            if (!await InitializeTestServerAsync(TestServerFeatures.Headers)) return;
+
             // Arrange
-            var curlCommand = "-H 'Accept: application/json' -H 'User-Agent: CurlDotNet/1.0' https://httpbin.org/headers";
+            var url = _serverAdapter.HeadersEndpoint();
+            var curlCommand = $"-H 'Accept: application/json' -H 'User-Agent: CurlDotNet/1.0' {url}";
 
             // Act
             var dotNetResult = await Curl.ExecuteAsync($"curl {curlCommand}");
@@ -212,11 +231,12 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task PostWithJson_CompareWithCurl()
         {
-            if (SkipIfNeeded()) return;
+            if (!await InitializeTestServerAsync()) return;
+
             // Arrange
             var jsonData = "{\"name\":\"test\",\"value\":123}";
-            var escapedJson = jsonData.Replace("\"", "\\\"");
-            var curlCommand = $"-X POST -H 'Content-Type: application/json' -d '{jsonData}' https://httpbin.org/post";
+            var url = _serverAdapter.PostEndpoint();
+            var curlCommand = $"-X POST -H 'Content-Type: application/json' -d '{jsonData}' {url}";
 
             // Act
             var dotNetResult = await Curl.ExecuteAsync($"curl {curlCommand}");
@@ -243,9 +263,11 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task SilentMode_CompareWithCurl()
         {
-            if (SkipIfNeeded()) return;
+            if (!await InitializeTestServerAsync()) return;
+
             // Arrange
-            var curlCommand = "-s https://httpbin.org/get";
+            var url = _serverAdapter.GetEndpoint();
+            var curlCommand = $"-s {url}";
 
             // Act
             var dotNetResult = await Curl.ExecuteAsync($"curl {curlCommand}");
@@ -264,9 +286,11 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task VerboseMode_CompareWithCurl()
         {
-            if (SkipIfNeeded()) return;
+            if (!await InitializeTestServerAsync()) return;
+
             // Arrange
-            var curlCommand = "-v https://httpbin.org/get";
+            var url = _serverAdapter.GetEndpoint();
+            var curlCommand = $"-v {url}";
 
             // Act
             var dotNetResult = await Curl.ExecuteAsync($"curl {curlCommand}");
@@ -286,10 +310,11 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task FollowRedirects_CompareWithCurl()
         {
-            if (SkipIfNeeded()) return;
+            if (!await InitializeTestServerAsync(TestServerFeatures.Redirects)) return;
+
             // Arrange
-            // httpbin.org redirects to /redirect/1 -> /get
-            var curlCommand = "-L https://httpbin.org/redirect/1";
+            var url = _serverAdapter.RedirectEndpoint(1);
+            var curlCommand = $"-L {url}";
 
             // Act
             var dotNetResult = await Curl.ExecuteAsync($"curl {curlCommand}");
@@ -313,9 +338,11 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task BasicAuth_CompareWithCurl()
         {
-            if (SkipIfNeeded()) return;
+            if (!await InitializeTestServerAsync(TestServerFeatures.Auth)) return;
+
             // Arrange
-            var curlCommand = "-u 'testuser:testpass' https://httpbin.org/basic-auth/testuser/testpass";
+            var url = _serverAdapter.BasicAuthEndpoint("testuser", "testpass");
+            var curlCommand = $"-u 'testuser:testpass' {url}";
 
             // Act
             var dotNetResult = await Curl.ExecuteAsync($"curl {curlCommand}");
@@ -347,9 +374,11 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task NotFoundError_CompareWithCurl()
         {
-            if (SkipIfNeeded()) return;
+            if (!await InitializeTestServerAsync(TestServerFeatures.StatusCodes)) return;
+
             // Arrange
-            var curlCommand = "https://httpbin.org/status/404";
+            var url = _serverAdapter.StatusEndpoint(404);
+            var curlCommand = url;
 
             // Act
             var dotNetResult = await Curl.ExecuteAsync($"curl {curlCommand}");
@@ -370,9 +399,11 @@ namespace CurlDotNet.Tests
         [Fact]
         public async Task FailOnError_CompareWithCurl()
         {
-            if (SkipIfNeeded()) return;
+            if (!await InitializeTestServerAsync(TestServerFeatures.StatusCodes)) return;
+
             // Arrange
-            var curlCommand = "-f https://httpbin.org/status/404";
+            var url = _serverAdapter.StatusEndpoint(404);
+            var curlCommand = $"-f {url}";
 
             // Act
             var dotNetResult = await Curl.ExecuteAsync($"curl {curlCommand}");

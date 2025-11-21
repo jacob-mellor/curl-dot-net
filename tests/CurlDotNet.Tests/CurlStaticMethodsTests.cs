@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CurlDotNet;
 using CurlDotNet.Core;
+using CurlDotNet.Tests.TestServers;
 using FluentAssertions;
 using Xunit;
 
@@ -15,13 +16,22 @@ namespace CurlDotNet.Tests
     [Trait("Category", TestCategories.Synthetic)]
     public class CurlStaticMethodsTests
     {
+        private TestServerEndpoint _testServer;
+        private TestServerAdapter _serverAdapter;
+
+        public CurlStaticMethodsTests()
+        {
+            // Initialize test server synchronously
+            _testServer = TestServerConfiguration.GetBestAvailableServerAsync(TestServerFeatures.All).GetAwaiter().GetResult();
+            _serverAdapter = new TestServerAdapter(_testServer.BaseUrl);
+        }
         #region ExecuteAsync Tests
 
         [Fact]
         public async Task ExecuteAsync_SimpleCommand_ReturnsResult()
         {
             // Act
-            var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/200");
+            var result = await Curl.ExecuteAsync($"curl {_serverAdapter.StatusEndpoint(200)}");
 
             // Assert
             result.Should().NotBeNull();
@@ -37,7 +47,7 @@ namespace CurlDotNet.Tests
 
             // Act & Assert
             await Assert.ThrowsAnyAsync<Exception>(async () =>
-                await Curl.ExecuteAsync("curl https://httpbin.org/delay/10", cts.Token));
+                await Curl.ExecuteAsync($"curl {_serverAdapter.DelayEndpoint(10)}", cts.Token));
         }
 
         [Fact]
@@ -49,7 +59,7 @@ namespace CurlDotNet.Tests
                 .WithFollowRedirects(true);
 
             // Act
-            var result = await Curl.ExecuteAsync("curl https://httpbin.org/get", settings);
+            var result = await Curl.ExecuteAsync($"curl {_serverAdapter.GetEndpoint()}", settings);
 
             // Assert
             result.Should().NotBeNull();
@@ -63,7 +73,7 @@ namespace CurlDotNet.Tests
         public async Task GetAsync_SimpleUrl_PerformsGet()
         {
             // Act
-            var result = await Curl.GetAsync("https://httpbin.org/get");
+            var result = await Curl.GetAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result.Should().NotBeNull();
@@ -74,7 +84,7 @@ namespace CurlDotNet.Tests
         public async Task PostAsync_WithData_SendsData()
         {
             // Act
-            var result = await Curl.PostAsync("https://httpbin.org/post", "test=data");
+            var result = await Curl.PostAsync(_serverAdapter.PostEndpoint(), "test=data");
 
             // Assert
             result.Should().NotBeNull();
@@ -88,7 +98,7 @@ namespace CurlDotNet.Tests
             var data = new { name = "test", value = 123 };
 
             // Act
-            var result = await Curl.PostJsonAsync("https://httpbin.org/post", data);
+            var result = await Curl.PostJsonAsync(_serverAdapter.PostEndpoint(), data);
 
             // Assert
             result.Should().NotBeNull();
@@ -105,7 +115,7 @@ namespace CurlDotNet.Tests
             try
             {
                 // Act
-                var result = await Curl.DownloadAsync("https://httpbin.org/bytes/100", tempFile);
+                var result = await Curl.DownloadAsync(_serverAdapter.GetEndpoint(), tempFile);
 
                 // Assert
                 result.Should().NotBeNull();
@@ -128,8 +138,8 @@ namespace CurlDotNet.Tests
             // Arrange
             var commands = new[]
             {
-                "curl https://httpbin.org/status/200",
-                "curl https://httpbin.org/status/201"
+                $"curl {_serverAdapter.StatusEndpoint(200)}",
+                $"curl {_serverAdapter.StatusEndpoint(201)}"
             };
 
             // Act

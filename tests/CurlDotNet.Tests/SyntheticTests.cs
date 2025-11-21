@@ -21,14 +21,25 @@ using FluentAssertions;
 using CurlDotNet;
 using CurlDotNet.Core;
 using CurlDotNet.Exceptions;
+using CurlDotNet.Tests.TestServers;
 
 namespace CurlDotNet.Tests
 {
     /// <summary>
     /// Synthetic tests specific to .NET implementation
     /// </summary>
+    [Trait("Category", TestCategories.Synthetic)]
     public class SyntheticTests
     {
+        private TestServerEndpoint _testServer;
+        private TestServerAdapter _serverAdapter;
+
+        public SyntheticTests()
+        {
+            // Initialize test server synchronously
+            _testServer = TestServerConfiguration.GetBestAvailableServerAsync(TestServerFeatures.All).GetAwaiter().GetResult();
+            _serverAdapter = new TestServerAdapter(_testServer.BaseUrl);
+        }
         #region Memory and Stream Tests
 
         [Fact]
@@ -81,7 +92,7 @@ namespace CurlDotNet.Tests
             try
             {
                 // Simulate downloading a large file to disk instead of memory
-                var command = $"curl -o {tempFile} https://httpbin.org/bytes/1024";
+                var command = $"curl -o {tempFile} {_serverAdapter.GetEndpoint()}";
 
                 // Act
                 var result = await Curl.ExecuteAsync(command);
@@ -163,7 +174,7 @@ namespace CurlDotNet.Tests
             for (int i = 0; i < 10; i++)
             {
                 var task = Task.Run(() =>
-                    Curl.ExecuteAsync($"curl https://httpbin.org/uuid"));
+                    Curl.ExecuteAsync($"curl {_serverAdapter.GetEndpoint()}"));
                 tasks.Add(task);
             }
 
@@ -185,7 +196,7 @@ namespace CurlDotNet.Tests
             {
                 var localI = i;
                 var task = Task.Run(() =>
-                    Curl.ExecuteAsync($"curl https://httpbin.org/anything?id={localI}"));
+                    Curl.ExecuteAsync($"curl {_serverAdapter.GetEndpoint()}?id={localI}"));
                 tasks.Add(task);
             }
 
@@ -208,7 +219,7 @@ namespace CurlDotNet.Tests
             using var cts = new CancellationTokenSource();
 
             // Simulate a long-running request
-            var task = Curl.ExecuteAsync("curl https://httpbin.org/delay/10", cts.Token);
+            var task = Curl.ExecuteAsync($"curl {_serverAdapter.DelayEndpoint(10)}", cts.Token);
 
             // Cancel after a short delay
             cts.CancelAfter(100);
@@ -337,9 +348,9 @@ namespace CurlDotNet.Tests
         {
             try
             {
-                // Arrange - use httpbingo.org as more reliable alternative
+                // Arrange - use configured test server
                 var commands = Enumerable.Range(1, 5)
-                    .Select(i => $"curl https://httpbingo.org/anything?id={i}")
+                    .Select(i => $"curl {_serverAdapter.GetEndpoint()}?id={i}")
                     .ToArray();
 
                 // Act

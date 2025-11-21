@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CurlDotNet;
 using CurlDotNet.Core;
 using CurlDotNet.Exceptions;
+using CurlDotNet.Tests.TestServers;
 using FluentAssertions;
 using Xunit;
 
@@ -17,6 +18,15 @@ namespace CurlDotNet.Tests
     [Trait("Category", TestCategories.Synthetic)]
     public class ErgonomicExtensionsTests
     {
+        private TestServerEndpoint _testServer;
+        private TestServerAdapter _serverAdapter;
+
+        public ErgonomicExtensionsTests()
+        {
+            // Initialize test server synchronously
+            _testServer = TestServerConfiguration.GetBestAvailableServerAsync(TestServerFeatures.All).GetAwaiter().GetResult();
+            _serverAdapter = new TestServerAdapter(_testServer.BaseUrl);
+        }
         #region ParseJson Tests
 
         [Fact]
@@ -422,7 +432,7 @@ namespace CurlDotNet.Tests
         public async Task CurlApiClient_GetAsync_BuildsCorrectUrl()
         {
             // Arrange
-            var client = new CurlApiClient("https://httpbin.org");
+            var client = new CurlApiClient(_testServer.BaseUrl);
 
             // Act
             var result = await client.GetAsync("get");
@@ -436,7 +446,7 @@ namespace CurlDotNet.Tests
         public async Task CurlApiClient_PostJsonAsync_SendsData()
         {
             // Arrange
-            var client = new CurlApiClient("https://httpbin.org");
+            var client = new CurlApiClient(_testServer.BaseUrl);
             var data = new { test = "value" };
 
             // Act
@@ -451,7 +461,7 @@ namespace CurlDotNet.Tests
         public async Task CurlApiClient_PutJsonAsync_SendsData()
         {
             // Arrange
-            var client = new CurlApiClient("https://httpbin.org");
+            var client = new CurlApiClient(_testServer.BaseUrl);
             var data = new { updated = true };
 
             // Act
@@ -466,7 +476,7 @@ namespace CurlDotNet.Tests
         public async Task CurlApiClient_DeleteAsync_SendsRequest()
         {
             // Arrange
-            var client = new CurlApiClient("https://httpbin.org");
+            var client = new CurlApiClient(_testServer.BaseUrl);
 
             // Act
             var result = await client.DeleteAsync("delete");
@@ -480,7 +490,7 @@ namespace CurlDotNet.Tests
         public async Task CurlApiClient_PatchJsonAsync_SendsData()
         {
             // Arrange
-            var client = new CurlApiClient("https://httpbin.org");
+            var client = new CurlApiClient(_testServer.BaseUrl);
             var data = new { patched = true };
 
             // Act
@@ -495,7 +505,7 @@ namespace CurlDotNet.Tests
         public async Task CurlApiClient_EmptyPath_UsesBaseUrl()
         {
             // Arrange
-            var client = new CurlApiClient("https://httpbin.org/get");
+            var client = new CurlApiClient(_serverAdapter.GetEndpoint());
 
             // Act
             var result = await client.GetAsync("");

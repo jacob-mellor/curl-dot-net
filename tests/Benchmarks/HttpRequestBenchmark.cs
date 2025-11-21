@@ -16,6 +16,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Order;
 using CurlDotNet;
 using CurlDotNet.Core;
+using CurlDotNet.Tests.TestServers;
 
 namespace CurlDotNet.Benchmarks
 {
@@ -26,14 +27,18 @@ namespace CurlDotNet.Benchmarks
     {
         private HttpClient _httpClient;
         private string _testServerUrl;
+        private TestServerEndpoint _testServer;
+        private TestServerAdapter _serverAdapter;
 
         [GlobalSetup]
         public void Setup()
         {
             _httpClient = new HttpClient();
 
-            // Use httpbin.org for testing (or mock server if available)
-            _testServerUrl = "https://httpbin.org";
+            // Use test server configuration to get best available server
+            _testServer = TestServerConfiguration.GetBestAvailableServerAsync(TestServerFeatures.All).GetAwaiter().GetResult();
+            _testServerUrl = _testServer.BaseUrl;
+            _serverAdapter = new TestServerAdapter(_testServer.BaseUrl);
         }
 
         [GlobalCleanup]

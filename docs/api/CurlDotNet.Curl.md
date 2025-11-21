@@ -34,10 +34,10 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 ### Remarks
 
 <b>Why use CurlDotNet instead of HttpClient?</b>
-1. ✂️ <b>Copy &amp; Paste</b> - Use commands directly from API docs without translation
-2. 🎓 <b>No Learning Curve</b> - If you know curl (everyone does), you know this
-3. 🔄 <b>Easy Migration</b> - Move from bash scripts to C# without rewriting
-4. 📦 <b>All Features</b> - Supports all 300+ curl options out of the box
+1. ✂️ **Copy & Paste** - Use commands directly from API docs without translation
+2. 🎓 **No Learning Curve** - If you know curl (everyone does), you know this
+3. 🔄 **Easy Migration** - Move from bash scripts to C# without rewriting
+4. 📦 **All Features** - Supports all 300+ curl options out of the box
 
 <b>Thread Safety:</b> All methods are thread-safe. You can call them from multiple threads simultaneously.
 
