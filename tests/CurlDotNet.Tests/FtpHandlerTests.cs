@@ -298,7 +298,7 @@ namespace CurlDotNet.Tests
         #region Authentication Tests
 
         [Fact]
-        public async Task ExecuteAsync_WithCredentials_UsesProvidedCredentials()
+        public void ExecuteAsync_WithCredentials_UsesProvidedCredentials()
         {
             // Arrange
             var options = new CurlOptions
@@ -315,7 +315,7 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
-        public async Task ExecuteAsync_WithoutCredentials_UsesAnonymous()
+        public void ExecuteAsync_WithoutCredentials_UsesAnonymous()
         {
             // Arrange
             var options = new CurlOptions

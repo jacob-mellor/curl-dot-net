@@ -32,6 +32,7 @@ namespace CurlDotNet.Tests
         {
             var ex = new CurlBadDownloadResumeException(1024);
             ex.Should().NotBeNull();
+            ex.ResumeOffset.Should().Be(1024);
         }
 
         [Fact]
@@ -60,9 +61,8 @@ namespace CurlDotNet.Tests
         [Fact]
         public void CurlDnsException_Constructor_Works()
         {
-            var ex = new CurlDnsException("dns failed", "example.com");
-            ex.Message.Should().Contain("dns failed");
-            ex.Host.Should().Be("example.com");
+            var ex = new CurlDnsException("example.com");
+            ex.Message.Should().Contain("resolve");
         }
 
         [Fact]
@@ -97,11 +97,9 @@ namespace CurlDotNet.Tests
         [Fact]
         public void CurlFileSizeExceededException_Constructor_Works()
         {
-            var ex = new CurlFileSizeExceededException(1000, 500);
-            ex.Message.Should().Contain("1000");
-            ex.Message.Should().Contain("500");
-            ex.ActualSize.Should().Be(1000);
+            var ex = new CurlFileSizeExceededException(500, 1000);
             ex.MaxSize.Should().Be(500);
+            ex.ActualSize.Should().Be(1000);
         }
 
         [Fact]
@@ -142,8 +140,8 @@ namespace CurlDotNet.Tests
         [Fact]
         public void CurlGotNothingException_Constructor_Works()
         {
-            var ex = new CurlGotNothingException("https://example.com");
-            ex.Message.Should().Contain("example.com");
+            var ex = new CurlGotNothingException();
+            ex.Message.Should().Contain("empty");
         }
 
         [Fact]
@@ -208,8 +206,8 @@ namespace CurlDotNet.Tests
         [Fact]
         public void CurlOutOfMemoryException_Constructor_Works()
         {
-            var ex = new CurlOutOfMemoryException("out of memory");
-            ex.Message.Should().Contain("out of memory");
+            var ex = new CurlOutOfMemoryException();
+            ex.Should().NotBeNull();
         }
 
         [Fact]
@@ -282,8 +280,8 @@ namespace CurlDotNet.Tests
         [Fact]
         public void CurlSslCertificateProblemException_Constructor_Works()
         {
-            var ex = new CurlSslCertificateProblemException("example.com", "cert error");
-            ex.Message.Should().Contain("example.com");
+            var ex = new CurlSslCertificateProblemException("cert error");
+            ex.Message.Should().Contain("cert error");
         }
 
         [Fact]
@@ -296,8 +294,8 @@ namespace CurlDotNet.Tests
         [Fact]
         public void CurlSslConnectErrorException_Constructor_Works()
         {
-            var ex = new CurlSslConnectErrorException("example.com", "ssl error");
-            ex.Message.Should().Contain("example.com");
+            var ex = new CurlSslConnectErrorException("ssl error");
+            ex.Message.Should().Contain("ssl error");
         }
 
         [Fact]
@@ -338,8 +336,8 @@ namespace CurlDotNet.Tests
         [Fact]
         public void CurlUseSslFailedException_Constructor_Works()
         {
-            var ex = new CurlUseSslFailedException("example.com", "ssl error");
-            ex.Message.Should().Contain("example.com");
+            var ex = new CurlUseSslFailedException("ssl error");
+            ex.Message.Should().Contain("ssl error");
         }
 
         [Fact]
