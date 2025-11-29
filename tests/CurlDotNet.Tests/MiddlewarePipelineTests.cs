@@ -20,7 +20,7 @@ namespace CurlDotNet.Tests
         public void Constructor_InitializesEmptyPipeline()
         {
             // Arrange
-            Func<CurlContext, Task<CurlResult>> handler = async (ctx) => new CurlResult();
+            Func<CurlContext, Task<CurlResult>> handler = (ctx) => Task.FromResult(new CurlResult());
 
             // Act
             var pipeline = new CurlMiddlewarePipeline(handler);
@@ -34,7 +34,7 @@ namespace CurlDotNet.Tests
         public void Use_AddsMiddlewareToPipeline()
         {
             // Arrange
-            var pipeline = new CurlMiddlewarePipeline(async (ctx) => new CurlResult());
+            var pipeline = new CurlMiddlewarePipeline((ctx) => Task.FromResult(new CurlResult()));
             var middleware = new TestMiddleware();
 
             // Act
@@ -49,7 +49,7 @@ namespace CurlDotNet.Tests
         public void Use_WithFunc_AddsMiddlewareToPipeline()
         {
             // Arrange
-            var pipeline = new CurlMiddlewarePipeline(async (ctx) => new CurlResult());
+            var pipeline = new CurlMiddlewarePipeline((ctx) => Task.FromResult(new CurlResult()));
 
             // Act
             var result = pipeline.Use(async (context, next) =>
@@ -66,7 +66,7 @@ namespace CurlDotNet.Tests
         public void Clear_RemovesAllMiddleware()
         {
             // Arrange
-            var pipeline = new CurlMiddlewarePipeline(async (ctx) => new CurlResult());
+            var pipeline = new CurlMiddlewarePipeline((ctx) => Task.FromResult(new CurlResult()));
             pipeline.Use(new TestMiddleware());
             pipeline.Use(new TestMiddleware());
 
@@ -86,10 +86,10 @@ namespace CurlDotNet.Tests
         {
             // Arrange
             var handlerExecuted = false;
-            var pipeline = new CurlMiddlewarePipeline(async (ctx) =>
+            var pipeline = new CurlMiddlewarePipeline((ctx) =>
             {
                 handlerExecuted = true;
-                return new CurlResult { Body = "Success" };
+                return Task.FromResult(new CurlResult { Body = "Success" });
             });
             var context = new CurlContext { Options = new CurlOptions { Url = "https://api.example.com" } };
 
@@ -106,10 +106,10 @@ namespace CurlDotNet.Tests
         {
             // Arrange
             var executionOrder = "";
-            var pipeline = new CurlMiddlewarePipeline(async (ctx) =>
+            var pipeline = new CurlMiddlewarePipeline((ctx) =>
             {
                 executionOrder += "H";
-                return new CurlResult();
+                return Task.FromResult(new CurlResult());
             });
 
             pipeline.Use(async (context, next) =>

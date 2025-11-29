@@ -6,6 +6,7 @@ using CurlDotNet;
 using CurlDotNet.Extensions;
 using CurlDotNet.Core;
 using CurlDotNet.Lib;
+using CurlDotNet.Tests.TestServers;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
@@ -19,13 +20,20 @@ namespace CurlDotNet.Tests
     [Trait("Category", TestCategories.FullCoverage)]
     public class StringExtensionsTests : CurlTestBase
     {
-       public StringExtensionsTests(ITestOutputHelper output) : base(output) { }
+        private TestServerEndpoint _testServer;
+        private TestServerAdapter _serverAdapter;
+
+        public StringExtensionsTests(ITestOutputHelper output) : base(output)
+        {
+            _testServer = TestServerConfiguration.GetBestAvailableServerAsync(TestServerFeatures.All).GetAwaiter().GetResult();
+            _serverAdapter = new TestServerAdapter(_testServer.BaseUrl);
+        }
 
         [Fact]
         public async Task CurlAsync_WithCommand_ExecutesSuccessfully()
         {
             // Act
-            var result = await "curl https://httpbin.org/get".CurlAsync();
+            var result = await $"curl {_serverAdapter.GetEndpoint()}".CurlAsync();
 
             // Assert
             result.Should().NotBeNull();
@@ -39,7 +47,7 @@ namespace CurlDotNet.Tests
             using var cts = new CancellationTokenSource();
 
             // Act
-            var result = await "curl https://httpbin.org/get".CurlAsync(cts.Token);
+            var result = await $"curl {_serverAdapter.GetEndpoint()}".CurlAsync(cts.Token);
 
             // Assert
             result.Should().NotBeNull();
@@ -50,7 +58,7 @@ namespace CurlDotNet.Tests
         public async Task CurlGetAsync_WithUrl_PerformsGetRequest()
         {
             // Act
-            var result = await "https://httpbin.org/get".CurlGetAsync();
+            var result = await _serverAdapter.GetEndpoint().CurlGetAsync();
 
             // Assert
             result.Should().NotBeNull();
@@ -62,7 +70,7 @@ namespace CurlDotNet.Tests
         public async Task CurlGetAsync_WithCurlPrefix_HandlesCorrectly()
         {
             // Act
-            var result = await "curl https://httpbin.org/get".CurlGetAsync();
+            var result = await $"curl {_serverAdapter.GetEndpoint()}".CurlGetAsync();
 
             // Assert
             result.Should().NotBeNull();
@@ -73,7 +81,7 @@ namespace CurlDotNet.Tests
         public async Task CurlPostJsonAsync_WithJsonData_PostsSuccessfully()
         {
             // Act
-            var result = await "https://httpbin.org/post".CurlPostJsonAsync("{\"test\":\"value\"}");
+            var result = await _serverAdapter.PostEndpoint().CurlPostJsonAsync("{\"test\":\"value\"}");
 
             // Assert
             result.Should().NotBeNull();
@@ -89,7 +97,7 @@ namespace CurlDotNet.Tests
             try
             {
                 // Act
-                var result = await "https://httpbin.org/bytes/100".CurlDownloadAsync(tempFile);
+                var result = await _serverAdapter.GetEndpoint().CurlDownloadAsync(tempFile);
 
                 // Assert
                 result.Should().NotBeNull();
@@ -106,7 +114,7 @@ namespace CurlDotNet.Tests
         public void Curl_SynchronousExecution_Works()
         {
             // Act
-            var result = "curl https://httpbin.org/get".Curl();
+            var result = $"curl {_serverAdapter.GetEndpoint()}".Curl();
 
             // Assert
             result.Should().NotBeNull();
@@ -117,7 +125,7 @@ namespace CurlDotNet.Tests
         public async Task CurlBodyAsync_ReturnsBodyString()
         {
             // Act
-            var body = await "https://httpbin.org/get".CurlBodyAsync();
+            var body = await _serverAdapter.GetEndpoint().CurlBodyAsync();
 
             // Assert
             body.Should().NotBeNullOrEmpty();
@@ -131,13 +139,20 @@ namespace CurlDotNet.Tests
     [Trait("Category", TestCategories.FullCoverage)]
     public class FluentExtensionsTests : CurlTestBase
     {
-        public FluentExtensionsTests(ITestOutputHelper output) : base(output) { }
+        private TestServerEndpoint _testServer;
+        private TestServerAdapter _serverAdapter;
+
+        public FluentExtensionsTests(ITestOutputHelper output) : base(output)
+        {
+            _testServer = TestServerConfiguration.GetBestAvailableServerAsync(TestServerFeatures.All).GetAwaiter().GetResult();
+            _serverAdapter = new TestServerAdapter(_testServer.BaseUrl);
+        }
 
         [Fact]
         public async Task ToCurl_ReturnsBuilder()
         {
             // Act
-            var builder = "https://httpbin.org/get".ToCurl();
+            var builder = _serverAdapter.GetEndpoint().ToCurl();
 
             // Assert
             builder.Should().NotBeNull();
@@ -151,7 +166,7 @@ namespace CurlDotNet.Tests
         public async Task WithHeader_AddsHeaderToBuilder()
         {
             // Act
-            var builder = "https://httpbin.org/get".WithHeader("X-Custom-Header", "test-value");
+            var builder = _serverAdapter.GetEndpoint().WithHeader("X-Custom-Header", "test-value");
 
             // Assert
             builder.Should().NotBeNull();
@@ -163,7 +178,7 @@ namespace CurlDotNet.Tests
         public async Task WithMethod_SetsHttpMethod()
         {
             // Act
-            var builder = "https://httpbin.org/post".WithMethod("POST");
+            var builder = _serverAdapter.PostEndpoint().WithMethod("POST");
 
             // Assert
             builder.Should().NotBeNull();
@@ -172,14 +187,21 @@ namespace CurlDotNet.Tests
         }
     }
 
-   /// <summary>
+    /// <summary>
     /// Comprehensive tests for LibCurl to achieve 90%+ coverage.
     /// </summary>
     [Trait("Category", TestCategories.Unit)]
     [Trait("Category", TestCategories.FullCoverage)]
     public class LibCurlTests : CurlTestBase
     {
-        public LibCurlTests(ITestOutputHelper output) : base(output) { }
+        private TestServerEndpoint _testServer;
+        private TestServerAdapter _serverAdapter;
+
+        public LibCurlTests(ITestOutputHelper output) : base(output)
+        {
+            _testServer = TestServerConfiguration.GetBestAvailableServerAsync(TestServerFeatures.All).GetAwaiter().GetResult();
+            _serverAdapter = new TestServerAdapter(_testServer.BaseUrl);
+        }
 
         [Fact]
         public async Task GetAsync_SimpleGet_Works()
@@ -188,7 +210,7 @@ namespace CurlDotNet.Tests
             using var curl = new LibCurl();
 
             // Act
-            var result = await curl.GetAsync("https://httpbin.org/get");
+            var result = await curl.GetAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result.Should().NotBeNull();
@@ -203,7 +225,7 @@ namespace CurlDotNet.Tests
             using var curl = new LibCurl();
 
             // Act
-            var result = await curl.GetAsync("https://httpbin.org/get", opts => opts.Verbose = true);
+            var result = await curl.GetAsync(_serverAdapter.GetEndpoint(), opts => opts.Verbose = true);
 
             // Assert
             result.Should().NotBeNull();
@@ -218,7 +240,7 @@ namespace CurlDotNet.Tests
             var data = new { name = "test", value = 123 };
 
             // Act
-            var result = await curl.PostAsync("https://httpbin.org/post", data);
+            var result = await curl.PostAsync(_serverAdapter.PostEndpoint(), data);
 
             // Assert
             result.Should().NotBeNull();
@@ -232,7 +254,7 @@ namespace CurlDotNet.Tests
             using var curl = new LibCurl();
 
             // Act
-            var result = await curl.PostAsync("https://httpbin.org/post", "raw data");
+            var result = await curl.PostAsync(_serverAdapter.PostEndpoint(), "raw data");
 
             // Assert
             result.Should().NotBeNull();
@@ -246,7 +268,7 @@ namespace CurlDotNet.Tests
             using var curl = new LibCurl();
 
             // Act
-            var result = await curl.PostAsync("https://httpbin.org/post", null);
+            var result = await curl.PostAsync(_serverAdapter.PostEndpoint(), null);
 
             // Assert
             result.Should().NotBeNull();
@@ -261,7 +283,7 @@ namespace CurlDotNet.Tests
             var data = new { updated = true };
 
             // Act
-            var result = await curl.PutAsync("https://httpbin.org/put", data);
+            var result = await curl.PutAsync($"{_testServer.BaseUrl}/put", data);
 
             // Assert
             result.Should().NotBeNull();
@@ -276,7 +298,7 @@ namespace CurlDotNet.Tests
             var data = new { patched = true };
 
             // Act
-            var result = await curl.PatchAsync("https://httpbin.org/patch", data);
+            var result = await curl.PatchAsync($"{_testServer.BaseUrl}/patch", data);
 
             // Assert
             result.Should().NotBeNull();
@@ -290,7 +312,7 @@ namespace CurlDotNet.Tests
             using var curl = new LibCurl();
 
             // Act
-            var result = await curl.DeleteAsync("https://httpbin.org/delete");
+            var result = await curl.DeleteAsync($"{_testServer.BaseUrl}/delete");
 
             // Assert
             result.Should().NotBeNull();
@@ -304,7 +326,7 @@ namespace CurlDotNet.Tests
             using var curl = new LibCurl();
 
             // Act
-            var result = await curl.HeadAsync("https://httpbin.org/get");
+            var result = await curl.HeadAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result.Should().NotBeNull();
@@ -318,7 +340,7 @@ namespace CurlDotNet.Tests
             using var curl = new LibCurl();
             var options = new CurlOptions
             {
-                Url = "https://httpbin.org/get",
+                Url = _serverAdapter.GetEndpoint(),
                 Method = "GET"
             };
 
@@ -338,7 +360,7 @@ namespace CurlDotNet.Tests
 
             // Act
             curl.WithHeader("X-Custom", "value");
-            var result = await curl.GetAsync("https://httpbin.org/get");
+            var result = await curl.GetAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result.Should().NotBeNull();
@@ -353,7 +375,7 @@ namespace CurlDotNet.Tests
 
             // Act
             curl.WithBearerToken("test-token-123");
-            var result = await curl.GetAsync("https://httpbin.org/get");
+            var result = await curl.GetAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result.Should().NotBeNull();
@@ -368,7 +390,7 @@ namespace CurlDotNet.Tests
 
             // Act
             curl.WithBasicAuth("user", "pass");
-            var result = await curl.GetAsync("https://httpbin.org/basic-auth/user/pass");
+            var result = await curl.GetAsync(_serverAdapter.BasicAuthEndpoint("user", "pass"));
 
             // Assert
             result.Should().NotBeNull();
@@ -383,7 +405,7 @@ namespace CurlDotNet.Tests
 
             // Act
             curl.WithTimeout(TimeSpan.FromSeconds(30));
-            var result = await curl.GetAsync("https://httpbin.org/get");
+            var result = await curl.GetAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result.Should().NotBeNull();
@@ -398,7 +420,7 @@ namespace CurlDotNet.Tests
 
             // Act
             curl.WithConnectTimeout(TimeSpan.FromSeconds(10));
-            var result = await curl.GetAsync("https://httpbin.org/get");
+            var result = await curl.GetAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result.Should().NotBeNull();
@@ -413,7 +435,7 @@ namespace CurlDotNet.Tests
 
             // Act
             curl.WithFollowRedirects(10);
-            var result = await curl.GetAsync("https://httpbin.org/redirect/1");
+            var result = await curl.GetAsync(_serverAdapter.RedirectEndpoint(1));
 
             // Assert
             result.Should().NotBeNull();
@@ -428,7 +450,7 @@ namespace CurlDotNet.Tests
 
             // Act
             curl.WithInsecureSsl();
-            var result = await curl.GetAsync("https://httpbin.org/get");
+            var result = await curl.GetAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result.Should().NotBeNull();
@@ -436,29 +458,28 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
-        public async Task WithProxy_SetsProxy()
+        public void WithProxy_SetsProxy()
         {
             // Arrange
             using var curl = new LibCurl();
 
-            // Act - setting proxy but not actually using it for this test
-            curl.WithProxy("http://proxy.example.com:8080");
+            // Act - using local test server as proxy URL for testing
+            curl.WithProxy($"{_testServer.BaseUrl}/proxy");
             
-            // We can't test actual proxy without a real proxy server
-            // But we can verify the fluent API works
+            // We're just testing the fluent API works
             curl.Should().NotBeNull();
         }
 
         [Fact]
-        public async Task WithProxy_WithCredentials_SetsProxyAuth()
+        public void WithProxy_WithCredentials_SetsProxyAuth()
         {
             // Arrange
             using var curl = new LibCurl();
 
-            // Act
-            curl.WithProxy("http://proxy.example.com:8080", "user", "pass");
+            // Act - using local test server as proxy URL
+            curl.WithProxy($"{_testServer.BaseUrl}/proxy", "user", "pass");
             
-            // Verify fluent API
+            // Verify fluent API works
             curl.Should().NotBeNull();
         }
 
@@ -470,7 +491,7 @@ namespace CurlDotNet.Tests
 
             // Act
             curl.WithUserAgent("CustomAgent/1.0");
-            var result = await curl.GetAsync("https://httpbin.org/get");
+            var result = await curl.GetAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result.Should().NotBeNull();
@@ -488,7 +509,7 @@ namespace CurlDotNet.Tests
             {
                 // Act
                 curl.WithOutputFile(tempFile);
-                var result = await curl.GetAsync("https://httpbin.org/get");
+                var result = await curl.GetAsync(_serverAdapter.GetEndpoint());
 
                 // Assert
                 result.Should().NotBeNull();
@@ -509,7 +530,7 @@ namespace CurlDotNet.Tests
 
             // Act
             curl.WithVerbose();
-            var result = await curl.GetAsync("https://httpbin.org/get");
+            var result = await curl.GetAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result.Should().NotBeNull();
@@ -528,7 +549,7 @@ namespace CurlDotNet.Tests
                 opts.FollowLocation = true;
                 opts.MaxTime = 60;
             });
-            var result = await curl.GetAsync("https://httpbin.org/get");
+            var result = await curl.GetAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result.Should().NotBeNull();
@@ -543,7 +564,7 @@ namespace CurlDotNet.Tests
 
             // Act
             curl.Configure(null);
-            var result = await curl.GetAsync("https://httpbin.org/get");
+            var result = await curl.GetAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result.Should().NotBeNull();
@@ -562,7 +583,7 @@ namespace CurlDotNet.Tests
                 .WithUserAgent("TestAgent/1.0")
                 .WithFollowRedirects();
 
-            var result = await curl.GetAsync("https://httpbin.org/get");
+            var result = await curl.GetAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result.Should().NotBeNull();
@@ -577,8 +598,8 @@ namespace CurlDotNet.Tests
             curl.WithHeader("X-Test", "value");
 
             // Act
-            var result1 = await curl.GetAsync("https://httpbin.org/get");
-            var result2 = await curl.GetAsync("https://httpbin.org/get");
+            var result1 = await curl.GetAsync(_serverAdapter.GetEndpoint());
+            var result2 = await curl.GetAsync(_serverAdapter.GetEndpoint());
 
             // Assert
             result1.IsSuccess.Should().BeTrue();
