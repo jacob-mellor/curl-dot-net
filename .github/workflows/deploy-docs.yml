@@ -8,52 +8,41 @@ on:
   # Allow manual trigger
   workflow_dispatch:
 
+# Sets permissions for GitHub Pages deployment
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   deploy-docs:
-    name: Build and Deploy Documentation
+    name: Deploy Documentation to GitHub Pages
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Build with Jekyll
+      uses: actions/jekyll-build-pages@v1
       with:
-        fetch-depth: 0
+        source: ./docs
+        destination: ./_site
 
-    - name: Setup .NET 8.0
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-
-    - name: Install DocFX
-      run: dotnet tool install -g docfx
-
-    - name: Restore and Build Project
-      run: |
-        dotnet restore
-        dotnet build src/CurlDotNet/CurlDotNet.csproj --configuration Release
-
-    - name: Generate Documentation with DocFX
-      run: |
-        export PATH="$PATH:$HOME/.dotnet/tools"
-        docfx metadata
-        docfx build
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
 
     - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./_site
-        publish_branch: gh-pages
-        force_orphan: true
-        user_name: 'github-actions[bot]'
-        user_email: 'github-actions[bot]@users.noreply.github.com'
-        commit_message: |
-          📚 Deploy documentation from ${{ github.sha }}
+      id: deployment
+      uses: actions/deploy-pages@v4
 
     - name: Report Success
       if: success()
@@ -65,4 +54,4 @@ jobs:
         echo "📚 View documentation at:"
         echo "   https://jacob-mellor.github.io/curl-dot-net/"
         echo ""
-        echo "Note: GitHub Pages may take 2-10 minutes to update"
+        echo "Note: GitHub Pages may take 2-5 minutes to update"
