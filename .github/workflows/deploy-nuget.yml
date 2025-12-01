@@ -35,6 +35,10 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
 
+    - name: Clean output directory
+      run: Remove-Item -Path ./nupkg -Recurse -Force -ErrorAction SilentlyContinue
+      shell: pwsh
+
     - name: Build Project
       run: dotnet build src/CurlDotNet/CurlDotNet.csproj --configuration Release
 
