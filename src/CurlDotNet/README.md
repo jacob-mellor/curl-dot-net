@@ -1,6 +1,6 @@
 # CurlDotNet
 
-![Icon](https://raw.githubusercontent.com/jacob-mellor/curl-dot-net/master/src/CurlDotNet/icon128.png)
+![Icon](https://api.nuget.org/v3-flatcontainer/curldotnet/9.0.0/icon)
 
 **The Industry Standard curl Experience for C# and .NET**
 
