@@ -1,17 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <!-- Detect if running in GitHub Actions or other CI -->
+    <IsGitHubActions Condition="'$(GITHUB_ACTIONS)' == 'true'">true</IsGitHubActions>
+    <IsGitHubActions Condition="'$(IsGitHubActions)' == ''">false</IsGitHubActions>
+
     <!-- Multi-framework testing support -->
-    <!-- Note: net472 removed for Mac compatibility, library still targets it -->
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows'))">net8.0;net472</TargetFrameworks>
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows'))">net8.0</TargetFrameworks>
-    <!-- Note: .NET 10 support will be added when released -->
-    <!-- Note: .NET 10 is not available yet, will add when released -->
-    <!-- For now using .NET 8.0 for primary testing -->
-    <!-- net6.0 for LTS compatibility -->
-    <!-- netcoreapp3.1 for legacy .NET Core support (EOL but included) -->
-    <!-- net472 for .NET Framework 4.7.2 compatibility (Windows only) -->
-    <!-- The library targets netstandard2.0 which supports Xamarin -->
+    <!-- Windows: Full framework support including .NET Framework -->
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' != 'true'">net10.0;net48;net472</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">net8.0;net9.0;net472;net48</TargetFrameworks>
+
+    <!-- Mac/Linux Local: .NET 10 and .NET 4.8 (with Mono) -->
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' != 'true'">net10.0;net48</TargetFrameworks>
+
+    <!-- Mac/Linux CI: No .NET 4.8 (Ubuntu doesn't have Mono), No .NET 10 (not in CI yet) -->
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">net8.0;net9.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <LangVersion>8.0</LangVersion>

@@ -227,6 +227,7 @@ await Curl.GetAsync("https://example.com")
 |----------|---------|---------|
 | .NET | 10, 9, 8, 7, 6, 5 | ✅ Full Support |
 | .NET Core | 3.1, 3.0, 2.1 | ✅ Full Support |
+| .NET Framework | 4.8 | ✅ Native (Windows, Mac, Linux via Mono) |
 | .NET Framework | 4.7.2+ | ✅ via .NET Standard 2.0 |
 | .NET Standard | 2.0+ | ✅ Maximum Compatibility |
 | Windows | 10, 11, Server 2016+ | ✅ Native |

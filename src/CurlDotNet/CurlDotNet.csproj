@@ -10,12 +10,12 @@
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' != 'true'">netstandard2.0;net472;net48;net8.0;net9.0;net10.0</TargetFrameworks>
 
     <!-- Local Mac/Linux with .NET 10 -->
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' != 'true'">netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' != 'true'">netstandard2.0;net48;net8.0;net9.0;net10.0</TargetFrameworks>
 
     <!-- GitHub Actions Windows (no .NET 10) -->
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">netstandard2.0;net472;net48;net8.0;net9.0</TargetFrameworks>
 
-    <!-- GitHub Actions Linux/Mac (no .NET 10) -->
+    <!-- GitHub Actions Linux/Mac (no .NET 10, no net48 - Ubuntu doesn't have Mono) -->
     <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">netstandard2.0;net8.0;net9.0</TargetFrameworks>
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
@@ -31,9 +31,9 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>1.2.39</Version>
-    <AssemblyVersion>1.2.39.0</AssemblyVersion>
-    <FileVersion>1.2.39.0</FileVersion>
+    <Version>1.2.41</Version>
+    <AssemblyVersion>1.2.41.0</AssemblyVersion>
+    <FileVersion>1.2.41.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
@@ -59,6 +59,7 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 • .NET 10.0 (future-ready, opt-in support!)
 • .NET 9.0 (latest &amp; greatest!)
 • .NET 8.0 (current LTS)
+• .NET Framework 4.8 (Windows, Mac, Linux via Mono)
 • .NET Framework 4.7.2+ (Windows)
 • .NET Standard 2.0 (maximum compatibility)
 • Xamarin, Unity, Blazor, MAUI
@@ -79,14 +80,12 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 1.2.34 - Version bump for deployment
-🎯 Test Coverage: Maintained 704 tests with 672 passing
-📊 Coverage Status: ~75% line coverage achieved
-✅ Previous Release: Added 60 tests targeting 0% coverage classes
-🔍 Test Areas: FtpHandler, Extension Methods, Static Methods
-🚀 Strategy: Easy wins approach successful
-📈 Next Steps: Focus on fixing failing tests
-🛠️ Build: Ready for deployment
+    <PackageReleaseNotes>Version 1.2.41 - Fix CI/CD for .NET 4.8 Cross-Platform
+🐛 FIX: Ubuntu CI no longer tries to run .NET 4.8 tests without Mono
+✅ Local Dev: .NET 4.8 still works on Mac/Linux with Mono installed
+🔧 CI/CD: Properly configured framework targets for GitHub Actions
+📦 Frameworks: netstandard2.0, net48, net472, net8.0, net9.0, net10.0
+🚀 Deployment: NuGet and GitHub Pages workflows verified
 💎 Sponsored by IronSoftware
 
 Documentation: https://jacob-mellor.github.io/curl-dot-net/
