@@ -1,16 +1,12 @@
 # CurlDotNet - curl for C# and .NET
 
-[![NuGet Version](https://img.shields.io/nuget/v/CurlDotNet.svg)](https://www.nuget.org/packages/CurlDotNet/)
+[![NuGet Version](https://img.shields.io/nuget/v/CurlDotNet.svg?cacheSeconds=0)](https://www.nuget.org/packages/CurlDotNet/)
 [![Downloads](https://img.shields.io/nuget/dt/CurlDotNet.svg)](https://www.nuget.org/packages/CurlDotNet/)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/jacob-mellor/curl-dot-net/ci-smoke.yml?branch=master)](https://github.com/jacob-mellor/curl-dot-net/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/jacob-mellor/curl-dot-net/blob/master/LICENSE)
 ![Coverage](https://img.shields.io/badge/coverage-65.9%25-yellow)
 
 ![CurlDotNet - Why .NET Needs a POSIX/GNU Userland](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/1o4hlr4tbp6b8k86ew6c.jpg)
-
-<div align="center">
-  <img src="https://github.com/jacob-mellor/curl-dot-net/blob/master/src/CurlDotNet/icon128.png?raw=true" alt="CurlDotNet Icon" width="128" height="128"/>
-</div>
 
 ## 🆕 New to curl? Start Here!
 
