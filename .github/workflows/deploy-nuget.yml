@@ -37,7 +37,7 @@ jobs:
 
     - name: Build and Pack NuGet Package
       run: |
-        dotnet pack src/CurlDotNet/CurlDotNet.csproj --configuration Release --no-restore --output ./nupkg
+        dotnet pack src/CurlDotNet/CurlDotNet.csproj --configuration Release --output ./nupkg
 
     - name: Verify Package
       shell: pwsh

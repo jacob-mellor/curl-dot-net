@@ -31,9 +31,9 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>1.3.1</Version>
-    <AssemblyVersion>1.3.1.0</AssemblyVersion>
-    <FileVersion>1.3.1.0</FileVersion>
+    <Version>1.3.2</Version>
+    <AssemblyVersion>1.3.2.0</AssemblyVersion>
+    <FileVersion>1.3.2.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
@@ -80,11 +80,11 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 1.3.1 - Simplified Automatic Deployments
-🚀 FIX: Docs deploy automatically without approval (removed environment requirement)
-🔧 FIX: NuGet packs all frameworks correctly (net472 now included)
-📚 SIMPLIFIED: Direct GitHub Pages deployment, no build steps
-✅ AUTOMATED: Both docs and NuGet deploy on every master merge
+    <PackageReleaseNotes>Version 1.3.2 - Fixed NuGet Pack Build Step
+🔧 FIX: NuGet pack now builds automatically (was missing build step)
+🚀 WORKING: Docs deploy automatically without approval
+✅ AUTOMATED: Both workflows now fully automatic on master merge
+📚 SIMPLIFIED: Direct GitHub Pages deployment
 📦 Frameworks: netstandard2.0, net472, net48, net8.0, net9.0, net10.0
 💎 Sponsored by IronSoftware
 
