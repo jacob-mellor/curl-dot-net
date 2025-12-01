@@ -1,51 +1,38 @@
 name: Deploy Docs
 
 on:
-  # Trigger when code is pushed to main/master branch
   push:
     branches: [ main, master ]
-
-  # Allow manual trigger
   workflow_dispatch:
 
-# Sets permissions for GitHub Pages deployment
+# Simple permissions for pushing to gh-pages
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  contents: write
 
 jobs:
   deploy-docs:
     name: Deploy Documentation to GitHub Pages
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
-
-    - name: Build with Jekyll
-      uses: actions/jekyll-build-pages@v1
-      with:
-        source: ./docs
-        destination: ./_site
-
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-
     - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs
+        publish_branch: gh-pages
+        force_orphan: true
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        commit_message: |
+          📚 Deploy documentation from ${{ github.sha }}
+
+          ---
+          Author: Jacob Mellor (https://ironsoftware.com/about-us/authors/jacobmellor/)
+          Sponsored by IronSoftware.com (https://ironsoftware.com)
 
     - name: Report Success
       if: success()
