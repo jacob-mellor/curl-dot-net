@@ -31,9 +31,9 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>9.1.0</Version>
-    <AssemblyVersion>9.1.0.0</AssemblyVersion>
-    <FileVersion>9.1.0.0</FileVersion>
+    <Version>9.2.0</Version>
+    <AssemblyVersion>9.2.0.0</AssemblyVersion>
+    <FileVersion>9.2.0.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
@@ -80,14 +80,14 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 9.0.0 - Major Release
-🚀 MAJOR: Updated to version 9.0.0 (matches release tag v9)
-📄 FIX: Fixed NuGet README markup for better display
-📄 FIX: Added index.html for GitHub Pages documentation
-✅ AUTOMATED: NuGet deployment fully automated
-📚 COMPLETE: Full documentation at GitHub Pages
-📦 Frameworks: netstandard2.0, net472, net48, net8.0, net9.0, net10.0
-💎 Sponsored by IronSoftware
+    <PackageReleaseNotes>Version 9.2.0 - Perfect README and Documentation Links
+FIXED: All GitHub Pages documentation links working
+VERIFIED: Every link tested and functional
+SYNCED: Main and NuGet READMEs fully synchronized
+ICON: NuGet-hosted icon (100% trusted)
+DOCS: Complete documentation accessible
+Frameworks: netstandard2.0, net472, net48, net8.0, net9.0, net10.0
+Sponsored by IronSoftware
 
 Documentation: https://jacob-mellor.github.io/curl-dot-net/
 Repository: https://github.com/jacob-mellor/curl-dot-net

@@ -10,7 +10,7 @@
 
 ## 🆕 New to curl? Start Here!
 
-**[📖 Complete Beginner's Guide to curl in C# →](https://jacob-mellor.github.io/curl-dot-net/new-to-curl)**
+**[📖 Complete Beginner's Guide to curl in C# →](https://jacob-mellor.github.io/curl-dot-net/new-to-curl.md)**
 
 ## The Industry Standard curl Experience for C# and .NET Developers
 
@@ -245,17 +245,17 @@ CurlDotNet treats **Ubuntu/Linux syntax as the canonical source of truth** when 
 
 - Paste commands directly from Linux/macOS shells (including multi-line `\` continuations).
 - Windows users can keep familiar `%VAR%` or `$env:VAR` environment variables—we expand them transparently.
-- Trouble with quoting? See the dedicated guide: [curl CLI Compatibility Reference](https://jacob-mellor.github.io/curl-dot-net/reference/curl-cli-compatibility).
+- Trouble with quoting? See the dedicated guide: [curl CLI Compatibility Reference](https://jacob-mellor.github.io/curl-dot-net/reference/index.md).
 
 When in doubt, author the command in an Ubuntu shell (or WSL), then copy it into your C# source—CurlDotNet will behave exactly like curl.
 
 ## 📚 Documentation
 
 - **[📖 Full Documentation](https://jacob-mellor.github.io/curl-dot-net/)** - Comprehensive guides and tutorials
-- **[🔧 API Reference](https://jacob-mellor.github.io/curl-dot-net/api/)** - Complete API documentation
-- **[👨‍🍳 Cookbook](https://jacob-mellor.github.io/curl-dot-net/cookbook/)** - Ready-to-use recipes
-- **[🎓 Tutorials](https://jacob-mellor.github.io/curl-dot-net/tutorials/)** - Step-by-step learning
-- **[🔄 Migration Guides](https://jacob-mellor.github.io/curl-dot-net/migration/)** - Move from HttpClient/RestSharp
+- **[🔧 API Reference](https://jacob-mellor.github.io/curl-dot-net/api/index.md)** - Complete API documentation
+- **[👨‍🍳 Cookbook](https://jacob-mellor.github.io/curl-dot-net/cookbook/index.md)** - Ready-to-use recipes
+- **[🎓 Tutorials](https://jacob-mellor.github.io/curl-dot-net/tutorials/index.md)** - Step-by-step learning
+- **[🔄 Migration Guides](https://jacob-mellor.github.io/curl-dot-net/migration/index.md)** - Move from HttpClient/RestSharp
 
 ## ✅ Tests & Coverage
 
@@ -369,7 +369,7 @@ That's it! You're now using the power of curl in C# and .NET.
 - **NuGet** – https://www.nuget.org/packages/CurlDotNet
 - **CI/CD Integration Guide** – https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/articles/ci-cd-integration.md
 - **Logging & Observability Guide** – https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/guides/logging-observability.md
-- **Shell Compatibility Guide** – https://jacob-mellor.github.io/curl-dot-net/reference/curl-cli-compatibility
+- **Shell Compatibility Guide** – https://jacob-mellor.github.io/curl-dot-net/reference/index.md
 
 ## 📖 Our Story
 

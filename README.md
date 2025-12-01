@@ -14,7 +14,7 @@
 
 ## 🆕 New to curl? Start Here!
 
-**[📖 Complete Beginner's Guide to curl in C# →](https://jacob-mellor.github.io/curl-dot-net/new-to-curl)**
+**[📖 Complete Beginner's Guide to curl in C# →](https://jacob-mellor.github.io/curl-dot-net/new-to-curl.md)**
 
 ## The Industry Standard curl Experience for C# and .NET Developers
 
@@ -242,12 +242,11 @@ await Curl.GetAsync("https://example.com")
 
 ## 📖 Documentation
 
-- **[🆕 Beginner's Guide](https://jacob-mellor.github.io/curl-dot-net/new-to-curl)** - New to curl? Start here
-- **[📚 API Reference](https://jacob-mellor.github.io/curl-dot-net/api/)** - Complete API documentation
-- **[👨‍🍳 Cookbook](https://jacob-mellor.github.io/curl-dot-net/cookbook/)** - Ready-to-use recipes
-- **[📝 Tutorials](https://jacob-mellor.github.io/curl-dot-net/tutorials/)** - Step-by-step guides
-- **[🔄 Migration from HttpClient](https://jacob-mellor.github.io/curl-dot-net/migration/httpclient)** - Upgrade guide
-- **[🔄 Migration from RestSharp](https://jacob-mellor.github.io/curl-dot-net/migration/restsharp)** - Transition guide
+- **[🆕 Beginner's Guide](https://jacob-mellor.github.io/curl-dot-net/new-to-curl.md)** - New to curl? Start here
+- **[📚 API Reference](https://jacob-mellor.github.io/curl-dot-net/api/index.md)** - Complete API documentation
+- **[👨‍🍳 Cookbook](https://jacob-mellor.github.io/curl-dot-net/cookbook/index.md)** - Ready-to-use recipes
+- **[📝 Tutorials](https://jacob-mellor.github.io/curl-dot-net/tutorials/index.md)** - Step-by-step guides
+- **[🔄 Migration Guides](https://jacob-mellor.github.io/curl-dot-net/migration/index.md)** - Migration from HttpClient/RestSharp
 
 ## 💡 Use Cases
 
@@ -439,7 +438,7 @@ That's it! You're now using the power of curl in C# and .NET.
 - **NuGet** – https://www.nuget.org/packages/CurlDotNet
 - **CI/CD Integration Guide** – https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/articles/ci-cd-integration.md
 - **Logging & Observability Guide** – https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/guides/logging-observability.md
-- **Shell Compatibility Guide** – https://jacob-mellor.github.io/curl-dot-net/reference/curl-cli-compatibility
+- **Shell Compatibility Guide** – https://jacob-mellor.github.io/curl-dot-net/reference/index.md
 
 ## 📖 Our Story
 
