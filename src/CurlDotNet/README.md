@@ -1,7 +1,5 @@
 # CurlDotNet
 
-![Icon](https://api.nuget.org/v3-flatcontainer/curldotnet/9.0.0/icon)
-
 **The Industry Standard curl Experience for C# and .NET**
 
 [![NuGet](https://img.shields.io/nuget/v/CurlDotNet.svg?cacheSeconds=0)](https://www.nuget.org/packages/CurlDotNet/) [![Downloads](https://img.shields.io/nuget/dt/CurlDotNet.svg)](https://www.nuget.org/packages/CurlDotNet/) [![Build](https://img.shields.io/github/actions/workflow/status/jacob-mellor/curl-dot-net/ci-smoke.yml?branch=master)](https://github.com/jacob-mellor/curl-dot-net/actions) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/jacob-mellor/curl-dot-net/blob/master/LICENSE) ![Coverage](https://img.shields.io/badge/coverage-65.9%25-yellow)

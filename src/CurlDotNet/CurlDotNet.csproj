@@ -31,9 +31,9 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>9.2.0</Version>
-    <AssemblyVersion>9.2.0.0</AssemblyVersion>
-    <FileVersion>9.2.0.0</FileVersion>
+    <Version>9.2.1</Version>
+    <AssemblyVersion>9.2.1.0</AssemblyVersion>
+    <FileVersion>9.2.1.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
@@ -80,12 +80,11 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 9.2.0 - Perfect README and Documentation Links
-FIXED: All GitHub Pages documentation links working
-VERIFIED: Every link tested and functional
-SYNCED: Main and NuGet READMEs fully synchronized
-ICON: NuGet-hosted icon (100% trusted)
-DOCS: Complete documentation accessible
+    <PackageReleaseNotes>Version 9.2.1 - Clean README Display
+FIXED: Removed broken icon URL from README
+CLEAN: NuGet.org displays package icon automatically
+VERIFIED: All documentation links working
+SYNCED: READMEs optimized for NuGet display
 Frameworks: netstandard2.0, net472, net48, net8.0, net9.0, net10.0
 Sponsored by IronSoftware
 
