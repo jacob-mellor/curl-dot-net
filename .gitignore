@@ -88,6 +88,8 @@ gh-pages/  # Generated documentation folder
 docs/**/*.html
 docs/api/*.html
 docs/articles/*.html
+# But allow the root index.html (landing page)
+!docs/index.html
 
 # Benchmark Results
 BenchmarkDotNet.Artifacts/
