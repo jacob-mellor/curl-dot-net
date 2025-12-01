@@ -35,9 +35,11 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
 
-    - name: Build and Pack NuGet Package
-      run: |
-        dotnet pack src/CurlDotNet/CurlDotNet.csproj --configuration Release --output ./nupkg
+    - name: Build Project
+      run: dotnet build src/CurlDotNet/CurlDotNet.csproj --configuration Release
+
+    - name: Pack NuGet Package
+      run: dotnet pack src/CurlDotNet/CurlDotNet.csproj --configuration Release --no-build --output ./nupkg
 
     - name: Verify Package
       shell: pwsh
