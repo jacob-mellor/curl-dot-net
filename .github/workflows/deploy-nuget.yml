@@ -84,8 +84,16 @@ jobs:
         Write-Host "✅ Package verification passed!"
 
     - name: Push to NuGet.org
+      shell: pwsh
       run: |
-        dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        $package = Get-ChildItem -Path "./nupkg" -Filter "*.nupkg" | Where-Object { $_.Name -notlike "*.symbols.*" } | Select-Object -First 1
+        if ($package) {
+          Write-Host "📤 Pushing package: $($package.Name)"
+          dotnet nuget push $package.FullName --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+        } else {
+          Write-Error "No package found to push!"
+          exit 1
+        }
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
 
