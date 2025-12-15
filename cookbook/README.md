@@ -110,12 +110,12 @@ Console.WriteLine(result.Body);
 ## 🆘 Getting Help
 
 ### Can't Find a Recipe?
-- Browse [API Guide](../api-guide/README.html)
-- Check [Tutorials](../tutorials/README.html)
+- Browse [API Guide](../api-guide/)
+- Check [Tutorials](../tutorials/)
 - Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
 
 ### Recipe Not Working?
-- Check [Troubleshooting](../troubleshooting/README.html)
+- Check [Troubleshooting](../troubleshooting/)
 - Verify your CurlDotNet version
 - Make sure you have all required packages
 
@@ -130,9 +130,9 @@ Have a great recipe? We'd love to include it!
 
 ## 📚 Related Resources
 
-- [Tutorials](../tutorials/README.html) - Learn the basics
-- [API Guide](../api-guide/README.html) - Detailed reference
-- [Troubleshooting](../troubleshooting/README.html) - Fix common issues
+- [Tutorials](../tutorials/) - Learn the basics
+- [API Guide](../api-guide/) - Detailed reference
+- [Troubleshooting](../troubleshooting/) - Fix common issues
 
 ---
 

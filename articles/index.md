@@ -22,7 +22,7 @@ Install-Package CurlDotNet
 ## 📚 Articles in This Section
 
 ### Available Articles
-- **[Getting Started](../getting-started/README.html)** - Complete guide to getting started with CurlDotNet, from installation to your first request
+- **[Getting Started](../getting-started/)** - Complete guide to getting started with CurlDotNet, from installation to your first request
 - **[Installation Guide](../getting-started/installation.html)** - Detailed installation instructions for all platforms and environments
 - **[CI/CD Integration](ci-cd-integration.html)** - Run CurlDotNet smoke tests inside GitHub Actions, Azure DevOps, or any pipeline
 
@@ -32,22 +32,22 @@ Install-Package CurlDotNet
 - **[Complete Getting Started Section](../getting-started/)** - Comprehensive getting started documentation
   - [Installation Guide](../getting-started/installation.html) - Detailed setup instructions
   - [Quick Start](../getting-started/quickstart.html) - Make your first request in 5 minutes
-  - [Full Guide](../getting-started/README.html) - Complete getting started documentation
+  - [Full Guide](../getting-started/) - Complete getting started documentation
 
 ### Tutorials
-- [Complete Tutorial Series](../tutorials/README.html) - Step-by-step learning path
+- [Complete Tutorial Series](../tutorials/) - Step-by-step learning path
 - [What is .NET?](../tutorials/01-what-is-dotnet.html) - For beginners new to .NET
 - [What is curl?](../tutorials/02-what-is-curl.html) - Understanding curl fundamentals
 - [Your First Request](../tutorials/04-your-first-request.html) - Make your first HTTP request
 
 ### API Guide
-- [Complete API Reference](../api-guide/README.html) - Detailed API documentation
+- [Complete API Reference](../api-guide/) - Detailed API documentation
 - String API - Simple curl command execution
 - Builder API - Fluent interface for request building
 - LibCurl API - Low-level curl implementation
 
 ### Cookbook
-- [Cookbook](../cookbook/README.html) - Practical recipes and examples
+- [Cookbook](../cookbook/) - Practical recipes and examples
 - [Simple GET Request](../cookbook/beginner/simple-get.html) - Basic HTTP GET
 - [POST JSON Data](../cookbook/beginner/send-json.html) - Sending JSON payloads
 - [File Upload/Download](../cookbook/beginner/upload-file.html) - File operations
@@ -55,7 +55,7 @@ Install-Package CurlDotNet
 
 ### Troubleshooting
 - [Common Issues](../troubleshooting/common-issues.html) - Solutions to frequent problems
-- [FAQ](../troubleshooting/README.html) - Frequently asked questions
+- [FAQ](../troubleshooting/) - Frequently asked questions
 
 ## Quick Examples
 
@@ -91,10 +91,10 @@ var result = await new CurlRequestBuilder()
 
 ## Navigation
 
-- **Beginners**: Start with [Tutorials](../tutorials/README.html)
-- **Quick Reference**: Check the [Cookbook](../cookbook/README.html)
-- **API Details**: See the [API Guide](../api-guide/README.html)
-- **Having Issues?**: Visit [Troubleshooting](../troubleshooting/README.html)
+- **Beginners**: Start with [Tutorials](../tutorials/)
+- **Quick Reference**: Check the [Cookbook](../cookbook/)
+- **API Details**: See the [API Guide](../api-guide/)
+- **Having Issues?**: Visit [Troubleshooting](../troubleshooting/)
 
 ## Why CurlDotNet?
 

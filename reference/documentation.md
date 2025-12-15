@@ -12,7 +12,7 @@ All documentation is available directly in this repository. You can read it on G
 ### 🚀 Getting Started
 - [**Installation Guide**](docs/getting-started/installation.html) - Get CurlDotNet installed and configured
 - [**Quick Start Tutorial**](docs/tutorials/04-your-first-request.html) - Make your first request in 5 minutes
-- [**README**](docs/getting-started/README.html) - Overview of getting started
+- [**README**](docs/getting-started/) - Overview of getting started
 
 ### 📘 User Manual
 Complete user manual with all documentation:
@@ -23,27 +23,27 @@ Complete user manual with all documentation:
 - [**Async Programming**](docs/tutorials/03-what-is-async.html) - Understanding async/await
 
 #### API Documentation
-- [**API Guide**](docs/api-guide/README.html) - Complete API reference
-- [**String API**](docs/api-guide/curl-class/README.html) - Using curl command strings
-- [**Builder API**](docs/api-guide/curl-request-builder/README.html) - Fluent interface
-- [**LibCurl API**](docs/api-guide/libcurl/README.html) - Low-level access
+- [**API Guide**](docs/api-guide/) - Complete API reference
+- [**String API**](docs/api-guide/curl-class/) - Using curl command strings
+- [**Builder API**](docs/api-guide/curl-request-builder/) - Fluent interface
+- [**LibCurl API**](docs/api-guide/libcurl/) - Low-level access
 
 #### Practical Examples
-- [**Cookbook**](docs/cookbook/README.html) - Ready-to-use code recipes
+- [**Cookbook**](docs/cookbook/) - Ready-to-use code recipes
 - [**Simple GET Request**](docs/cookbook/beginner/simple-get.html) - Basic HTTP GET
 - [**POST JSON Data**](docs/cookbook/beginner/send-json.html) - Sending JSON
 - [**File Upload**](docs/cookbook/beginner/upload-file.html) - Uploading files
 - [**Error Handling**](docs/cookbook/beginner/handle-errors.html) - Handle errors properly
 
 #### Authentication
-- [**Authentication Guide**](docs/authentication/README.html) - All auth methods
+- [**Authentication Guide**](docs/authentication/) - All auth methods
 - [**Basic Auth**](docs/authentication/basic-auth.html) - Username/password auth
 - [**Bearer Tokens**](docs/authentication/bearer-tokens.html) - Token authentication
 - [**API Keys**](docs/authentication/api-keys.html) - API key authentication
 
 #### Advanced Topics
 - [**Performance**](docs/advanced/performance.html) - Optimization techniques
-- [**Middleware**](docs/advanced/middleware/README.html) - Custom middleware
+- [**Middleware**](docs/advanced/middleware/) - Custom middleware
 - [**Testing**](docs/advanced/testing.html) - Testing strategies
 - [**Circuit Breaker**](docs/advanced/circuit-breaker.html) - Resilience patterns
 
@@ -53,7 +53,7 @@ Complete user manual with all documentation:
 
 #### Troubleshooting
 - [**Common Issues**](docs/troubleshooting/common-issues.html) - Solutions to common problems
-- [**FAQ**](docs/troubleshooting/README.html) - Frequently asked questions
+- [**FAQ**](docs/troubleshooting/) - Frequently asked questions
 
 ## 🔍 Quick Code Examples
 
@@ -122,10 +122,10 @@ docs/
 | I want to... | Go to... |
 |-------------|----------|
 | Install CurlDotNet | [Installation Guide](docs/getting-started/installation.html) |
-| Learn the basics | [Tutorials](docs/tutorials/README.html) |
-| See code examples | [Cookbook](docs/cookbook/README.html) |
-| Read API docs | [API Guide](docs/api-guide/README.html) |
-| Solve a problem | [Troubleshooting](docs/troubleshooting/README.html) |
+| Learn the basics | [Tutorials](docs/tutorials/) |
+| See code examples | [Cookbook](docs/cookbook/) |
+| Read API docs | [API Guide](docs/api-guide/) |
+| Solve a problem | [Troubleshooting](docs/troubleshooting/) |
 | Migrate from HttpClient | [Migration Guide](docs/migration/from-httpclient.html) |
 
 ## 💡 Why Read Docs on GitHub?

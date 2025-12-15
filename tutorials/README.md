@@ -88,10 +88,10 @@ Or jump to a specific topic from the list above.
 ## 🤔 Stuck?
 
 - Each tutorial has a "Common Problems" section
-- Check the [Troubleshooting Guide](../troubleshooting/README.html)
+- Check the [Troubleshooting Guide](../troubleshooting/)
 - Ask in [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
 
 Remember: Everyone starts as a beginner. Take your time, try the examples, and have fun!
 
 ---
-*These tutorials assume no prior programming knowledge. If you already know .NET, you might want to jump straight to the [API Guide](../api-guide/README.html) or [Cookbook](../cookbook/README.html).*
+*These tutorials assume no prior programming knowledge. If you already know .NET, you might want to jump straight to the [API Guide](../api-guide/) or [Cookbook](../cookbook/).*

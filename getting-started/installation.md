@@ -459,7 +459,7 @@ dotnet add package CurlDotNet
 3. Add to PATH: `export PATH=$PATH:/usr/local/share/dotnet`
 4. Add to shell profile: `echo 'export PATH=$PATH:/usr/local/share/dotnet' >> ~/.bashrc`
 
-For more details, see the [troubleshooting guide](../troubleshooting/README.html).
+For more details, see the [troubleshooting guide](../troubleshooting/).
 
 ### Problem: "Package 'CurlDotNet' not found"
 
@@ -477,7 +477,7 @@ dotnet restore
 dotnet add package CurlDotNet
 ```
 
-For more details, see the [troubleshooting guide](../troubleshooting/README.html).
+For more details, see the [troubleshooting guide](../troubleshooting/).
 
 ### Problem: "The target framework 'netX.X' is not supported"
 
@@ -503,7 +503,7 @@ dotnet --version
 2. Check installed SDKs: `dotnet --list-sdks`
 3. If empty, reinstall .NET SDK from [dotnet.microsoft.com](https://dotnet.microsoft.com/)
 
-For more details, see the [troubleshooting guide](../troubleshooting/README.html).
+For more details, see the [troubleshooting guide](../troubleshooting/).
 
 ### Problem: SSL/TLS Errors on First Run
 
@@ -526,7 +526,7 @@ sudo apt-get update
 sudo apt-get install --reinstall ca-certificates
 ```
 
-For more details, see the [troubleshooting guide](../troubleshooting/README.html).
+For more details, see the [troubleshooting guide](../troubleshooting/).
 
 ### Problem: Permission Errors
 
@@ -546,9 +546,9 @@ sudo chown -R $USER ~/.nuget
 Now that CurlDotNet is installed:
 
 1. **Try it out** → [Your First Request](../tutorials/04-your-first-request.html)
-2. **Learn the basics** → [Tutorials](../tutorials/README.html)
-3. **Explore recipes** → [Cookbook](../cookbook/README.html)
-4. **Read API docs** → [API Guide](../api-guide/README.html)
+2. **Learn the basics** → [Tutorials](../tutorials/)
+3. **Explore recipes** → [Cookbook](../cookbook/)
+4. **Read API docs** → [API Guide](../api-guide/)
 
 ## 📚 Additional Resources
 
@@ -566,9 +566,9 @@ Now that CurlDotNet is installed:
 
 ### Learning Resources
 
-- [Tutorial Series](../tutorials/README.html) - Step-by-step learning
-- [Cookbook Recipes](../cookbook/README.html) - Ready-to-use samples
-- [API Reference](../api-guide/README.html) - Complete API reference
+- [Tutorial Series](../tutorials/) - Step-by-step learning
+- [Cookbook Recipes](../cookbook/) - Ready-to-use samples
+- [API Reference](../api-guide/) - Complete API reference
 
 ## 🎯 Quick Reference
 

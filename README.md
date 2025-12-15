@@ -27,42 +27,42 @@ Install-Package CurlDotNet
 **"I'm new to .NET and programming"**
 1. Start here → [What is .NET and C#?](tutorials/01-what-is-dotnet.html)
 2. Then → [Your First Request](tutorials/04-your-first-request.html)
-3. Next → [Explore Recipes](cookbook/README.html)
+3. Next → [Explore Recipes](cookbook/)
 
 ### 💼 Experienced Developer?
 **"I know .NET, just show me how to use CurlDotNet"**
 1. Jump to → [Installation](getting-started/installation.html)
-2. Check out → [API Guide](api-guide/README.html)
-3. Browse → [Cookbook](cookbook/README.html)
+2. Check out → [API Guide](api-guide/)
+3. Browse → [Cookbook](cookbook/)
 
 ### 🔄 Migrating from Another Library?
 **"I'm switching from HttpClient/RestSharp/etc."**
-- See the [API Guide](api-guide/README.html) to understand CurlDotNet
+- See the [API Guide](api-guide/) to understand CurlDotNet
 
 ## 📖 Documentation Structure
 
-### [🎓 Tutorials](tutorials/README.html)
+### [🎓 Tutorials](tutorials/)
 **Learn the basics in plain English**
 - No prior .NET knowledge required
 - Step-by-step explanations
 - Lots of analogies and examples
-- [Start Tutorial Series →](tutorials/README.html)
+- [Start Tutorial Series →](tutorials/)
 
-### [👨‍🍳 Cookbook](cookbook/README.html)
+### [👨‍🍳 Cookbook](cookbook/)
 **"How do I..." recipes**
 - Task-focused solutions
 - Copy-paste ready code
 - Real-world scenarios
-- [Browse Recipes →](cookbook/README.html)
+- [Browse Recipes →](cookbook/)
 
-### [📘 API Guide](api-guide/README.html)
+### [📘 API Guide](api-guide/)
 **Complete API reference with examples**
 - Every class and method documented
 - Multiple examples per feature
 - Best practices included
-- [Explore API →](api-guide/README.html)
+- [Explore API →](api-guide/)
 
-### [👨‍💻 Advanced Features](api-guide/README.html)
+### [👨‍💻 Advanced Features](api-guide/)
 **Advanced topics and techniques**
 - Working with middleware
 - Custom HTTP clients
@@ -84,13 +84,13 @@ Install-Package CurlDotNet
 
 ### Working with APIs
 - [Call a REST API](cookbook/beginner/call-api.html)
-- [Build API clients](api-guide/README.html)
+- [Build API clients](api-guide/)
 - [Error handling](cookbook/beginner/handle-errors.html)
 
 ### Advanced Features
-- [API Reference](api-guide/README.html)
-- [Curl String API](api-guide/README.html)
-- [Builder API](api-guide/README.html)
+- [API Reference](api-guide/)
+- [Curl String API](api-guide/)
+- [Builder API](api-guide/)
 
 ## 🔍 Quick Reference
 
@@ -125,28 +125,28 @@ var result = await curl.GetAsync("https://api.example.com");
 2. [What is curl?](tutorials/02-what-is-curl.html)
 3. [Understanding async/await](tutorials/03-what-is-async.html)
 4. [Your first request](tutorials/04-your-first-request.html)
-5. [API Guide](api-guide/README.html)
-6. [Cookbook](cookbook/README.html)
+5. [API Guide](api-guide/)
+6. [Cookbook](cookbook/)
 
 ### Path 2: Web Developer
 1. [Installation](getting-started/installation.html)
-2. [Cookbook](cookbook/README.html)
-3. [API Guide](api-guide/README.html)
+2. [Cookbook](cookbook/)
+3. [API Guide](api-guide/)
 4. [Error handling](cookbook/beginner/handle-errors.html)
 5. [API client patterns](cookbook/beginner/call-api.html)
 
 ### Path 3: Enterprise Developer
-1. [API Reference](api-guide/README.html)
+1. [API Reference](api-guide/)
 2. [Error handling](cookbook/beginner/handle-errors.html)
-3. [API Guide](api-guide/README.html)
-4. [Troubleshooting](troubleshooting/README.html)
-5. [Best practices](cookbook/README.html)
+3. [API Guide](api-guide/)
+4. [Troubleshooting](troubleshooting/)
+5. [Best practices](cookbook/)
 
 ## 🆘 Getting Help
 
 ### Can't Find Something?
 - Use the [search](#) feature
-- Check [Troubleshooting](troubleshooting/README.html)
+- Check [Troubleshooting](troubleshooting/)
 - Browse [Common Issues](troubleshooting/common-issues.html)
 
 ### Still Stuck?

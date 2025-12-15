@@ -444,7 +444,7 @@ Now that you can call APIs:
 
 1. Try [Sending JSON Data](send-json.html)
 2. Learn about [Error Handling](handle-errors.html)
-3. Build reusable API clients with [CurlRequestBuilder](../../api-guide/README.html)
+3. Build reusable API clients with [CurlRequestBuilder](../../api-guide/)
 
 ## 📚 Related Recipes
 

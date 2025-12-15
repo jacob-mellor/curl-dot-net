@@ -592,7 +592,7 @@ A: HTTP requests take time. `await` tells C# to wait for the request to complete
 A: Check `result.IsSuccess`. If it's `false`, look at `result.StatusCode` to see what went wrong.
 
 **Q: Can I make multiple requests at once?**
-A: Yes! You can use `Curl.ExecuteMany()` to run multiple requests in parallel. Check the [API Guide](../api-guide/README.html) for details.
+A: Yes! You can use `Curl.ExecuteMany()` to run multiple requests in parallel. Check the [API Guide](../api-guide/) for details.
 
 **Q: How do I send data with my request?**
 A: We'll cover POST requests in detail in later tutorials. For now, you can use:
@@ -620,4 +620,4 @@ This is the foundation for everything else you'll do with CurlDotNet.
 
 **Ready for more?** → [Check the Tutorials](README.html)
 
-**Need help?** Check the [Troubleshooting Guide](../troubleshooting/README.html) or ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check the [Troubleshooting Guide](../troubleshooting/) or ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)

@@ -526,7 +526,7 @@ Now that you can send JSON:
 
 1. Learn to [Handle API Responses](handle-errors.html)
 2. Try [Uploading Files](upload-file.html)
-3. Check the [API Guide](../../api-guide/README.html) for bearer tokens and authentication
+3. Check the [API Guide](../../api-guide/) for bearer tokens and authentication
 
 ## 📚 Related Recipes
 
@@ -545,4 +545,4 @@ Now that you can send JSON:
 
 ---
 
-**Need help?** Check [Troubleshooting](../../troubleshooting/README.html) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check [Troubleshooting](../../troubleshooting/) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)

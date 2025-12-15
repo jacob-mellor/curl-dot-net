@@ -759,7 +759,7 @@ Now that you can handle errors:
 1. Build [Robust API Client](call-api.html)
 2. Learn [Simple GET](simple-get.html) with error handling
 3. Explore [Send JSON](send-json.html) with validation
-4. Check [Troubleshooting Guide](../../troubleshooting/README.html)
+4. Check [Troubleshooting Guide](../../troubleshooting/)
 
 ## 📚 Related Recipes
 

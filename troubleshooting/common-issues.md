@@ -1106,4 +1106,4 @@ When reporting issues, include:
 
 ---
 
-**Back to:** [Troubleshooting Guide](README.html) | [Documentation Home](../README.html)
+**Back to:** [Troubleshooting Guide](README.html) | [Documentation Home](../)
