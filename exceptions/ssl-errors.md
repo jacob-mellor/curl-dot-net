@@ -85,5 +85,5 @@ var result = await curl.ExecuteAsync(
 ```
 
 ## Related Documentation
-- [Authentication Errors](auth-errors.md)
-- [Security Best Practices](/guides/security.md)
+- [Authentication Errors](auth-errors.html)
+- [Security Best Practices](/guides/security.html)

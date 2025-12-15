@@ -31,7 +31,7 @@ Console.WriteLine($"Body: {result.Body}");
 
 ## Next Steps
 
-- [Installation Guide](installation.md)
-- [Tutorials](../tutorials/README.md)
-- [API Reference](../api-guide/README.md)
-- [Cookbook Recipes](../cookbook/README.md)
+- [Installation Guide](installation.html)
+- [Tutorials](../tutorials/README.html)
+- [API Reference](../api-guide/README.html)
+- [Cookbook Recipes](../cookbook/README.html)

@@ -318,10 +318,10 @@ public class RedirectOptions
 
 ## Related Documentation
 
-- [HTTP Error Handling](http-errors.md)
-- [DNS Errors](dns-errors.md)
-- [Timeout Errors](timeout-errors.md)
-- [CurlDotNet Redirect API Reference](/api/CurlDotNet.Exceptions.CurlRedirectException.md)
+- [HTTP Error Handling](http-errors.html)
+- [DNS Errors](dns-errors.html)
+- [Timeout Errors](timeout-errors.html)
+- [CurlDotNet Redirect API Reference](/api/CurlDotNet.Exceptions.CurlRedirectException.html)
 
 ## Error Prevention Checklist
 

@@ -77,6 +77,6 @@ public async Task<CurlResult> ExecuteWithRetry(string url)
 ```
 
 ## Related Documentation
-- [Authentication Errors](auth-errors.md)
-- [Rate Limiting Guide](/guides/rate-limiting.md)
+- [Authentication Errors](auth-errors.html)
+- [Rate Limiting Guide](/guides/rate-limiting.html)
 - [HTTP Status Codes Reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)

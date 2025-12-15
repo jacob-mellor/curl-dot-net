@@ -65,7 +65,7 @@ Stateful client for reusable configuration
 
 ### Exception Classes
 
-All CurlDotNet exceptions inherit from `CurlException`. See [Troubleshooting](../troubleshooting/README.md) for details.
+All CurlDotNet exceptions inherit from `CurlException`. See [Troubleshooting](../troubleshooting/README.html) for details.
 
 Common exceptions:
 - `CurlHttpException` - HTTP errors (4xx, 5xx)
@@ -222,9 +222,9 @@ var result = await Curl.ExecuteAsync(
 
 ## 🔗 Related Documentation
 
-- [Tutorials](../tutorials/README.md) - Learn the basics
-- [Cookbook](../cookbook/README.md) - Ready-to-use recipes
-- [Troubleshooting](../troubleshooting/README.md) - Fix common issues
+- [Tutorials](../tutorials/README.html) - Learn the basics
+- [Cookbook](../cookbook/README.html) - Ready-to-use recipes
+- [Troubleshooting](../troubleshooting/README.html) - Fix common issues
 
 ---
 

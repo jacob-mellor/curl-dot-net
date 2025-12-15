@@ -100,4 +100,4 @@ Run it from any orchestrator to confirm APIs behave before or after deployments.
 
 - Add targeted smoke or contract tests under `tests/` so pipelines can run `dotnet test --filter Category=Smoke`.
 - Combine CurlDotNet with approval gates to validate external dependencies before promoting builds.
-- Explore [Logging & Observability](../guides/logging-observability.md) to capture verbose output automatically in CI logs.
+- Explore [Logging & Observability](../guides/logging-observability.html) to capture verbose output automatically in CI logs.

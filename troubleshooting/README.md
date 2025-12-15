@@ -4,7 +4,7 @@ Welcome to the CurlDotNet troubleshooting guide. This page will help you diagnos
 
 ## 🎯 Quick Links
 
-- **[Common Issues](common-issues.md)** - Most frequent problems and solutions
+- **[Common Issues](common-issues.html)** - Most frequent problems and solutions
 - **[Error Code Reference](#error-code-reference)** - Understanding error codes
 - **[Diagnostic Tools](#diagnostic-tools)** - Tools for debugging
 - **[Getting Help](#getting-help)** - Where to ask for help
@@ -197,7 +197,7 @@ catch (CurlException ex)
 | 53 | CurlSslException | Crypto engine not found | [SSL Errors](common-issues.md#ssl-errors) |
 | 60 | CurlSslException | Peer certificate cannot be authenticated | [SSL Errors](common-issues.md#ssl-errors) |
 
-For a complete list, see [common-issues.md](common-issues.md).
+For a complete list, see [common-issues.md](common-issues.html).
 
 ## 🛠 Diagnostic Tools
 
@@ -489,11 +489,11 @@ CurlSslException: SSL certificate problem: unable to get local issuer certificat
 
 ## 📚 Additional Resources
 
-- **[Common Issues Guide](common-issues.md)** - Detailed solutions
-- **[Installation Guide](../getting-started/installation.md)** - Setup help
-- **[API Guide](../api-guide/README.md)** - Complete API reference
-- **[Tutorials](../tutorials/README.md)** - Step-by-step learning
-- **[Cookbook](../cookbook/README.md)** - Ready-to-use recipes
+- **[Common Issues Guide](common-issues.html)** - Detailed solutions
+- **[Installation Guide](../getting-started/installation.html)** - Setup help
+- **[API Guide](../api-guide/README.html)** - Complete API reference
+- **[Tutorials](../tutorials/README.html)** - Step-by-step learning
+- **[Cookbook](../cookbook/README.html)** - Ready-to-use recipes
 
 ## 🎯 Quick Reference
 
@@ -536,6 +536,6 @@ catch (Exception ex)
 
 ---
 
-**Need immediate help?** Start with [Common Issues](common-issues.md) for the most frequent problems and solutions.
+**Need immediate help?** Start with [Common Issues](common-issues.html) for the most frequent problems and solutions.
 
 **Still stuck?** Ask in [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions) - the community is here to help!

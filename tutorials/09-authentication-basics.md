@@ -511,8 +511,8 @@ Authentication is crucial for API security:
 
 ## What's Next?
 
-Learn about [working with files and downloads](10-files-and-downloads.md) in the next tutorial.
+Learn about [working with files and downloads](10-files-and-downloads.html) in the next tutorial.
 
 ---
 
-[← Previous: Headers Explained](08-headers-explained.md) | [Next: Files and Downloads →](10-files-and-downloads.md)
+[← Previous: Headers Explained](08-headers-explained.html) | [Next: Files and Downloads →](10-files-and-downloads.html)

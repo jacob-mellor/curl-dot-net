@@ -796,6 +796,6 @@ public class LoggingApiClient
 ## Further Resources
 
 - [CurlDotNet API Reference](https://jacob-mellor.github.io/curl-dot-net)
-- [Sample Applications](../samples/README.md)
-- [libcurl Mapping Guide](LIBCURL_MAPPING.md)
-- [Troubleshooting Guide](../docs/troubleshooting/README.md)
+- [Sample Applications](../samples/README.html)
+- [libcurl Mapping Guide](LIBCURL_MAPPING.html)
+- [Troubleshooting Guide](../docs/troubleshooting/README.html)

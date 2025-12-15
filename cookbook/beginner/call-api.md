@@ -442,15 +442,15 @@ var iss = await Curl.ExecuteAsync(
 
 Now that you can call APIs:
 
-1. Try [Sending JSON Data](send-json.md)
-2. Learn about [Error Handling](handle-errors.md)
-3. Build reusable API clients with [CurlRequestBuilder](../../api-guide/README.md)
+1. Try [Sending JSON Data](send-json.html)
+2. Learn about [Error Handling](handle-errors.html)
+3. Build reusable API clients with [CurlRequestBuilder](../../api-guide/README.html)
 
 ## 📚 Related Recipes
 
-- [Simple GET Request](simple-get.md)
-- [POST JSON Data](send-json.md)
-- [Handle Errors](handle-errors.md)
+- [Simple GET Request](simple-get.html)
+- [POST JSON Data](send-json.html)
+- [Handle Errors](handle-errors.html)
 
 ## 🎓 Key Takeaways
 
@@ -462,4 +462,4 @@ Now that you can call APIs:
 
 ---
 
-**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.md) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.html) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)

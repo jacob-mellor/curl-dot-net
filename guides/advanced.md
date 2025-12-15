@@ -331,12 +331,12 @@ CurlOptions.UseMockProvider(mock =>
 
 ## Migration from HttpClient
 
-See the [Migration Guide](https://jacob-mellor.github.io/curl-dot-net/migration/httpclient.md) for detailed instructions on migrating from HttpClient to CurlDotNet.
+See the [Migration Guide](https://jacob-mellor.github.io/curl-dot-net/migration/httpclient.html) for detailed instructions on migrating from HttpClient to CurlDotNet.
 
 ## Further Resources
 
 - [API Reference](https://jacob-mellor.github.io/curl-dot-net/api/)
-- [Examples](../samples/README.md)
-- [Troubleshooting](troubleshooting/README.md)
+- [Examples](../samples/README.html)
+- [Troubleshooting](troubleshooting/README.html)
 - [Performance Benchmarks](https://github.com/jacob-mellor/curl-dot-net/tree/master/benchmarks)
-- [Contributing Guide](https://github.com/jacob-mellor/curl-dot-net/blob/master/CONTRIBUTING.md)
+- [Contributing Guide](https://github.com/jacob-mellor/curl-dot-net/blob/master/CONTRIBUTING.html)

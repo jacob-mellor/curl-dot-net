@@ -479,8 +479,8 @@ File operations with CurlDotNet:
 
 ## What's Next?
 
-Learn about [working with forms and data](11-forms-and-data.md) in the next tutorial.
+Learn about [working with forms and data](11-forms-and-data.html) in the next tutorial.
 
 ---
 
-[← Previous: Authentication Basics](09-authentication-basics.md) | [Next: Forms and Data →](11-forms-and-data.md)
+[← Previous: Authentication Basics](09-authentication-basics.html) | [Next: Forms and Data →](11-forms-and-data.html)

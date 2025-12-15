@@ -756,16 +756,16 @@ if (!result.IsSuccess)
 
 Now that you can handle errors:
 
-1. Build [Robust API Client](call-api.md)
-2. Learn [Simple GET](simple-get.md) with error handling
-3. Explore [Send JSON](send-json.md) with validation
-4. Check [Troubleshooting Guide](../../troubleshooting/README.md)
+1. Build [Robust API Client](call-api.html)
+2. Learn [Simple GET](simple-get.html) with error handling
+3. Explore [Send JSON](send-json.html) with validation
+4. Check [Troubleshooting Guide](../../troubleshooting/README.html)
 
 ## 📚 Related Recipes
 
-- [Simple GET](simple-get.md) - Basic requests with error handling
-- [Call API](call-api.md) - Building robust API clients
-- [Send JSON](send-json.md) - JSON requests with validation
+- [Simple GET](simple-get.html) - Basic requests with error handling
+- [Call API](call-api.html) - Building robust API clients
+- [Send JSON](send-json.html) - JSON requests with validation
 
 ## 🎓 Key Takeaways
 
@@ -781,4 +781,4 @@ Now that you can handle errors:
 
 ---
 
-**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.md) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.html) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)

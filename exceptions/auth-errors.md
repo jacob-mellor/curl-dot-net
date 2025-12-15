@@ -73,5 +73,5 @@ public async Task<CurlResult> ExecuteWithTokenRefresh(string url)
 ```
 
 ## Related Documentation
-- [HTTP Errors](http-errors.md)
-- [Security Best Practices](/guides/security.md)
+- [HTTP Errors](http-errors.html)
+- [Security Best Practices](/guides/security.html)

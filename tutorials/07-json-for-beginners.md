@@ -440,8 +440,8 @@ Working with JSON in CurlDotNet is straightforward:
 
 ## What's Next?
 
-Learn about [HTTP headers](08-headers-explained.md) and how they control request and response behavior.
+Learn about [HTTP headers](08-headers-explained.html) and how they control request and response behavior.
 
 ---
 
-[← Previous: Handling Errors](06-handling-errors.md) | [Next: Headers Explained →](08-headers-explained.md)
+[← Previous: Handling Errors](06-handling-errors.html) | [Next: Headers Explained →](08-headers-explained.html)

@@ -37,7 +37,7 @@ var result = await curl.GetAsync("https://api.github.com");
 
 ## Quick Links
 
-- [Curl Class](CurlDotNet.Curl.md)
-- [CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.md)
-- [LibCurl](CurlDotNet.Lib.LibCurl.md)
-- [CurlResult](CurlDotNet.Core.CurlResult.md)
+- [Curl Class](CurlDotNet.Curl.html)
+- [CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.html)
+- [LibCurl](CurlDotNet.Lib.LibCurl.html)
+- [CurlResult](CurlDotNet.Core.CurlResult.html)

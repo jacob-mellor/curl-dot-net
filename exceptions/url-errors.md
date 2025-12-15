@@ -72,5 +72,5 @@ public string BuildUrl(string host, string path, Dictionary<string, string> quer
 ```
 
 ## Related Documentation
-- [URL Encoding Guide](/guides/url-encoding.md)
+- [URL Encoding Guide](/guides/url-encoding.html)
 - [HTTP Protocol Reference](https://tools.ietf.org/html/rfc3986)

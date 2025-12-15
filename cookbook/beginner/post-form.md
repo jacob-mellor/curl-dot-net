@@ -626,17 +626,17 @@ else
 
 Now that you can submit forms:
 
-1. Learn to [Upload Files](upload-file.md) with multipart forms
-2. Try [Send JSON](send-json.md) for API requests
-3. Explore [Error Handling](handle-errors.md)
-4. Build [API Client](call-api.md)
+1. Learn to [Upload Files](upload-file.html) with multipart forms
+2. Try [Send JSON](send-json.html) for API requests
+3. Explore [Error Handling](handle-errors.html)
+4. Build [API Client](call-api.html)
 
 ## 📚 Related Recipes
 
-- [Send JSON](send-json.md) - Alternative to form data
-- [Upload Files](upload-file.md) - Multipart form uploads
-- [Simple GET](simple-get.md) - Fetching data
-- [Handle Errors](handle-errors.md) - Robust error handling
+- [Send JSON](send-json.html) - Alternative to form data
+- [Upload Files](upload-file.html) - Multipart form uploads
+- [Simple GET](simple-get.html) - Fetching data
+- [Handle Errors](handle-errors.html) - Robust error handling
 
 ## 🎓 Key Takeaways
 
@@ -689,4 +689,4 @@ await Curl.ExecuteAsync($@"
 
 ---
 
-**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.md) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.html) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)

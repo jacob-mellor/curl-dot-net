@@ -23,13 +23,13 @@ Install-Package CurlDotNet
 
 ### 🍳 [Beginner Recipes](beginner/)
 Perfect for getting started with CurlDotNet:
-- **[Simple GET Request](beginner/simple-get.md)** - Fetch data from an API
-- **[Send JSON Data](beginner/send-json.md)** - POST JSON to an endpoint
-- **[Handle Errors](beginner/handle-errors.md)** - Robust error handling
-- **[Upload Files](beginner/upload-file.md)** - Upload files to servers
-- **[Download Files](beginner/download-file.md)** - Download and save files
-- **[POST Forms](beginner/post-form.md)** - Submit form data
-- **[Call APIs](beginner/call-api.md)** - Build API client applications
+- **[Simple GET Request](beginner/simple-get.html)** - Fetch data from an API
+- **[Send JSON Data](beginner/send-json.html)** - POST JSON to an endpoint
+- **[Handle Errors](beginner/handle-errors.html)** - Robust error handling
+- **[Upload Files](beginner/upload-file.html)** - Upload files to servers
+- **[Download Files](beginner/download-file.html)** - Download and save files
+- **[POST Forms](beginner/post-form.html)** - Submit form data
+- **[Call APIs](beginner/call-api.html)** - Build API client applications
 
 ### 🥘 Intermediate Recipes (Coming Soon)
 Take your skills to the next level:
@@ -120,25 +120,25 @@ Every recipe follows this format:
 ## Finding the Right Recipe
 
 ### By Task
-- **Fetching data?** → [Simple GET Request](beginner/simple-get.md)
-- **Sending data?** → [Send JSON Data](beginner/send-json.md)
-- **Uploading files?** → [Upload Files](beginner/upload-file.md)
-- **Downloading files?** → [Download Files](beginner/download-file.md)
-- **Submitting forms?** → [POST Forms](beginner/post-form.md)
-- **Building an API client?** → [Call APIs](beginner/call-api.md)
-- **Handling errors?** → [Handle Errors](beginner/handle-errors.md)
+- **Fetching data?** → [Simple GET Request](beginner/simple-get.html)
+- **Sending data?** → [Send JSON Data](beginner/send-json.html)
+- **Uploading files?** → [Upload Files](beginner/upload-file.html)
+- **Downloading files?** → [Download Files](beginner/download-file.html)
+- **Submitting forms?** → [POST Forms](beginner/post-form.html)
+- **Building an API client?** → [Call APIs](beginner/call-api.html)
+- **Handling errors?** → [Handle Errors](beginner/handle-errors.html)
 
 ### By HTTP Method
-- **GET** → [Simple GET Request](beginner/simple-get.md)
-- **POST** → [Send JSON Data](beginner/send-json.md), [POST Forms](beginner/post-form.md)
-- **PUT/PATCH** → [Send JSON Data](beginner/send-json.md) (includes PUT examples)
-- **DELETE** → [Call APIs](beginner/call-api.md) (includes DELETE examples)
+- **GET** → [Simple GET Request](beginner/simple-get.html)
+- **POST** → [Send JSON Data](beginner/send-json.html), [POST Forms](beginner/post-form.html)
+- **PUT/PATCH** → [Send JSON Data](beginner/send-json.html) (includes PUT examples)
+- **DELETE** → [Call APIs](beginner/call-api.html) (includes DELETE examples)
 
 ### By Feature
-- **Authentication** → [Call APIs](beginner/call-api.md)
+- **Authentication** → [Call APIs](beginner/call-api.html)
 - **Headers** → Most recipes include header examples
-- **Error Handling** → [Handle Errors](beginner/handle-errors.md)
-- **File Operations** → [Upload Files](beginner/upload-file.md), [Download Files](beginner/download-file.md)
+- **Error Handling** → [Handle Errors](beginner/handle-errors.html)
+- **File Operations** → [Upload Files](beginner/upload-file.html), [Download Files](beginner/download-file.html)
 
 ## Contributing Recipes
 
@@ -162,4 +162,4 @@ We welcome recipe contributions! If you have a useful pattern or example:
 
 ---
 
-Ready to cook? Start with a **[Simple GET Request](beginner/simple-get.md)** →
+Ready to cook? Start with a **[Simple GET Request](beginner/simple-get.html)** →

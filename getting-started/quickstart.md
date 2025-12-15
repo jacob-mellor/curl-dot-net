@@ -273,16 +273,16 @@ public async Task<CurlResult> GetWithRetry(string url, int maxAttempts = 3)
 
 Now that you're up and running:
 
-1. **[Read the Tutorials](../tutorials/01-what-is-dotnet.md)** - Step-by-step learning path
-2. **[Explore the Cookbook](../cookbook/index.md)** - Ready-to-use recipes
+1. **[Read the Tutorials](../tutorials/01-what-is-dotnet.html)** - Step-by-step learning path
+2. **[Explore the Cookbook](../cookbook/index.html)** - Ready-to-use recipes
 3. **[Check the Examples](https://github.com/jacob-mellor/curl-dot-net/tree/master/examples)** - Complete applications
-4. **[API Reference](../api/index.md)** - Detailed documentation
+4. **[API Reference](../api/index.html)** - Detailed documentation
 
 ## Need Help?
 
 - **[GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues)** - Report bugs or ask questions
-- **[Documentation](../index.md)** - Complete documentation
-- **[Migration Guides](../migration/index.md)** - Moving from other HTTP clients
+- **[Documentation](../index.html)** - Complete documentation
+- **[Migration Guides](../migration/index.html)** - Moving from other HTTP clients
 
 ## Tips for Success
 

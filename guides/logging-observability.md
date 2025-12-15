@@ -117,5 +117,5 @@ telemetryClient.TrackDependency(telemetry);
 
 ## Next Steps
 
-- Combine this guide with the [CI/CD Integration](../articles/ci-cd-integration.md) doc to stream logs straight into your pipeline console.
+- Combine this guide with the [CI/CD Integration](../articles/ci-cd-integration.html) doc to stream logs straight into your pipeline console.
 - Extend middleware to push telemetry to OpenTelemetry exporters for unified traces across services.

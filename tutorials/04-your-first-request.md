@@ -9,9 +9,9 @@
 
 ## 📚 Prerequisites
 
-- [Tutorial 1: What is .NET and C#?](01-what-is-dotnet.md)
-- [Tutorial 2: What is curl?](02-what-is-curl.md)
-- [Tutorial 3: Understanding Async/Await](03-what-is-async.md)
+- [Tutorial 1: What is .NET and C#?](01-what-is-dotnet.html)
+- [Tutorial 2: What is curl?](02-what-is-curl.html)
+- [Tutorial 3: Understanding Async/Await](03-what-is-async.html)
 - .NET SDK installed
 - CurlDotNet package added to your project
 
@@ -569,7 +569,7 @@ result.TotalTime          // How long the request took
 
 Now that you can make requests:
 
-1. **Next Tutorial** → [Understanding Results](05-understanding-results.md)
+1. **Next Tutorial** → [Understanding Results](05-understanding-results.html)
 2. **Try different APIs** - [Public APIs List](https://github.com/public-apis/public-apis)
 3. **Practice** - Make 10 different requests to different endpoints
 4. **Experiment** - What happens if you change the URL? Add headers?
@@ -586,13 +586,13 @@ Now that you can make requests:
 ## 🤔 Questions You Might Have
 
 **Q: Why do I need `await`?**
-A: HTTP requests take time. `await` tells C# to wait for the request to complete without freezing your program. See [Tutorial 3](03-what-is-async.md) for details.
+A: HTTP requests take time. `await` tells C# to wait for the request to complete without freezing your program. See [Tutorial 3](03-what-is-async.html) for details.
 
 **Q: What if the request fails?**
 A: Check `result.IsSuccess`. If it's `false`, look at `result.StatusCode` to see what went wrong.
 
 **Q: Can I make multiple requests at once?**
-A: Yes! You can use `Curl.ExecuteMany()` to run multiple requests in parallel. Check the [API Guide](../api-guide/README.md) for details.
+A: Yes! You can use `Curl.ExecuteMany()` to run multiple requests in parallel. Check the [API Guide](../api-guide/README.html) for details.
 
 **Q: How do I send data with my request?**
 A: We'll cover POST requests in detail in later tutorials. For now, you can use:
@@ -618,6 +618,6 @@ This is the foundation for everything else you'll do with CurlDotNet.
 
 ---
 
-**Ready for more?** → [Check the Tutorials](README.md)
+**Ready for more?** → [Check the Tutorials](README.html)
 
-**Need help?** Check the [Troubleshooting Guide](../troubleshooting/README.md) or ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check the [Troubleshooting Guide](../troubleshooting/README.html) or ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)

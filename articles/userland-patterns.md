@@ -245,7 +245,7 @@ public static class MarkdownCommandLoader
 }
 
 // Usage
-foreach (var operation in MarkdownCommandLoader.LoadFromMarkdown(File.ReadAllText("docs/payments.md")))
+foreach (var operation in MarkdownCommandLoader.LoadFromMarkdown(File.ReadAllText("docs/payments.html")))
 {
     var response = await operation();
     Console.WriteLine(response.StatusCode);

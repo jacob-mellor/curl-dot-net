@@ -5,28 +5,28 @@ Welcome! These tutorials are designed for complete beginners. We explain everyth
 ## 📚 Tutorial Series
 
 ### Foundation (Start Here!)
-1. **[What is .NET and C#?](01-what-is-dotnet.md)** - Understanding the basics
-2. **[What is curl?](02-what-is-curl.md)** - The tool we're bringing to .NET
-3. **[Understanding Async/Await](03-what-is-async.md)** - Why we use `async` and `await`
+1. **[What is .NET and C#?](01-what-is-dotnet.html)** - Understanding the basics
+2. **[What is curl?](02-what-is-curl.html)** - The tool we're bringing to .NET
+3. **[Understanding Async/Await](03-what-is-async.html)** - Why we use `async` and `await`
 
 ### Getting Started
-4. **[Your First Request](04-your-first-request.md)** - Make your first HTTP request
-5. **[Understanding Results](05-understanding-results.md)** - Working with CurlResult
-6. **[Handling Errors](06-handling-errors.md)** - When things go wrong
+4. **[Your First Request](04-your-first-request.html)** - Make your first HTTP request
+5. **[Understanding Results](05-understanding-results.html)** - Working with CurlResult
+6. **[Handling Errors](06-handling-errors.html)** - When things go wrong
 
 ### Working with Data
-7. **[JSON for Beginners](07-json-for-beginners.md)** - Understanding JSON responses
-8. **[Headers Explained](08-headers-explained.md)** - What are headers and why use them
-9. **[Authentication Basics](09-authentication-basics.md)** - Logging in and API keys
+7. **[JSON for Beginners](07-json-for-beginners.html)** - Understanding JSON responses
+8. **[Headers Explained](08-headers-explained.html)** - What are headers and why use them
+9. **[Authentication Basics](09-authentication-basics.html)** - Logging in and API keys
 
 ### Files and Forms
-10. **[Files and Downloads](10-files-and-downloads.md)** - Downloading and uploading
-11. **[Forms and Data](11-forms-and-data.md)** - Submitting forms
+10. **[Files and Downloads](10-files-and-downloads.html)** - Downloading and uploading
+11. **[Forms and Data](11-forms-and-data.html)** - Submitting forms
 
 ### Advanced Concepts
-12. **[Cancellation Tokens](12-cancellation-tokens.md)** - Stopping requests
-13. **[Parallel Requests](13-parallel-requests.md)** - Multiple requests at once
-14. **[Debugging Requests](14-debugging-requests.md)** - Finding and fixing problems
+12. **[Cancellation Tokens](12-cancellation-tokens.html)** - Stopping requests
+13. **[Parallel Requests](13-parallel-requests.html)** - Multiple requests at once
+14. **[Debugging Requests](14-debugging-requests.html)** - Finding and fixing problems
 
 ## 🎯 Learning Goals
 
@@ -81,17 +81,17 @@ Each tutorial follows this structure:
 
 ## 🚀 Ready to Start?
 
-Begin with → **[Tutorial 1: What is .NET and C#?](01-what-is-dotnet.md)**
+Begin with → **[Tutorial 1: What is .NET and C#?](01-what-is-dotnet.html)**
 
 Or jump to a specific topic from the list above.
 
 ## 🤔 Stuck?
 
 - Each tutorial has a "Common Problems" section
-- Check the [Troubleshooting Guide](../troubleshooting/README.md)
+- Check the [Troubleshooting Guide](../troubleshooting/README.html)
 - Ask in [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
 
 Remember: Everyone starts as a beginner. Take your time, try the examples, and have fun!
 
 ---
-*These tutorials assume no prior programming knowledge. If you already know .NET, you might want to jump straight to the [API Guide](../api-guide/README.md) or [Cookbook](../cookbook/README.md).*
+*These tutorials assume no prior programming knowledge. If you already know .NET, you might want to jump straight to the [API Guide](../api-guide/README.html) or [Cookbook](../cookbook/README.html).*

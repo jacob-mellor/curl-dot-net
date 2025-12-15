@@ -459,7 +459,7 @@ if (fileInfo.Length > maxSize)
 }
 ```
 
-For more details, see the [troubleshooting guide](../../troubleshooting/README.md).
+For more details, see the [troubleshooting guide](../../troubleshooting/README.html).
 
 ### Problem: Upload Timeout
 
@@ -473,7 +473,7 @@ var result = await Curl.ExecuteAsync($@"
 ");
 ```
 
-For more details, see the [troubleshooting guide](../../troubleshooting/README.md).
+For more details, see the [troubleshooting guide](../../troubleshooting/README.html).
 
 ### Problem: Authentication Required
 
@@ -596,17 +596,17 @@ if (result.IsSuccess)
 
 Now that you can upload files:
 
-1. Learn to [Download Files](download-file.md)
-2. Try [POST Form Data](post-form.md)
-3. Explore [Error Handling](handle-errors.md)
-4. Build [API Client](call-api.md)
+1. Learn to [Download Files](download-file.html)
+2. Try [POST Form Data](post-form.html)
+3. Explore [Error Handling](handle-errors.html)
+4. Build [API Client](call-api.html)
 
 ## 📚 Related Recipes
 
-- [Download Files](download-file.md) - Getting files from servers
-- [POST Form Data](post-form.md) - Submitting forms
-- [Send JSON](send-json.md) - Sending structured data
-- [Handle Errors](handle-errors.md) - Robust error handling
+- [Download Files](download-file.html) - Getting files from servers
+- [POST Form Data](post-form.html) - Submitting forms
+- [Send JSON](send-json.html) - Sending structured data
+- [Handle Errors](handle-errors.html) - Robust error handling
 
 ## 🎓 Key Takeaways
 
@@ -655,4 +655,4 @@ await Curl.ExecuteAsync(@"
 
 ---
 
-**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.md) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.html) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)

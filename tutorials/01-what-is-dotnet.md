@@ -269,7 +269,7 @@ Console.WriteLine("Hello");
 
 Now that you understand the basics:
 
-1. **Next Tutorial** → [What is curl?](02-what-is-curl.md)
+1. **Next Tutorial** → [What is curl?](02-what-is-curl.html)
 2. **Try changing the example** - Make it fetch your favorite website
 3. **Experiment** - What happens if you change different parts?
 
@@ -298,6 +298,6 @@ A: Websites, desktop apps, mobile apps, games, APIs, and more!
 
 ---
 
-**Ready for the next tutorial?** → [What is curl?](02-what-is-curl.md)
+**Ready for the next tutorial?** → [What is curl?](02-what-is-curl.html)
 
-**Need help?** Check the [Troubleshooting Guide](../troubleshooting/common-issues.md) or ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check the [Troubleshooting Guide](../troubleshooting/common-issues.html) or ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)

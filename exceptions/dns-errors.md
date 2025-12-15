@@ -300,10 +300,10 @@ public void AddHostsEntry(string hostname, string ipAddress)
 
 ## Related Documentation
 
-- [Connection Errors](connection-errors.md)
-- [Timeout Errors](timeout-errors.md)
-- [Network Troubleshooting Guide](/guides/network-troubleshooting.md)
-- [CurlDotNet DNS API Reference](/api/CurlDotNet.Exceptions.CurlDnsException.md)
+- [Connection Errors](connection-errors.html)
+- [Timeout Errors](timeout-errors.html)
+- [Network Troubleshooting Guide](/guides/network-troubleshooting.html)
+- [CurlDotNet DNS API Reference](/api/CurlDotNet.Exceptions.CurlDnsException.html)
 
 ## Error Prevention Checklist
 

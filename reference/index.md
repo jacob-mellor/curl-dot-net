@@ -2,6 +2,6 @@
 
 Technical reference documentation for CurlDotNet.
 
-- [Documentation Overview](documentation.md)
-- [libcurl Mapping](libcurl-mapping.md)
-- [curl CLI Compatibility](curl-cli-compatibility.md)
+- [Documentation Overview](documentation.html)
+- [libcurl Mapping](libcurl-mapping.html)
+- [curl CLI Compatibility](curl-cli-compatibility.html)

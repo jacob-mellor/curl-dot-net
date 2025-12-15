@@ -508,8 +508,8 @@ Working with forms and data in CurlDotNet:
 
 ## What's Next?
 
-Learn about [cancellation tokens](12-cancellation-tokens.md) for managing long-running requests.
+Learn about [cancellation tokens](12-cancellation-tokens.html) for managing long-running requests.
 
 ---
 
-[← Previous: Files and Downloads](10-files-and-downloads.md) | [Next: Cancellation Tokens →](12-cancellation-tokens.md)
+[← Previous: Files and Downloads](10-files-and-downloads.html) | [Next: Cancellation Tokens →](12-cancellation-tokens.html)

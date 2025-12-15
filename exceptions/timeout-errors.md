@@ -75,5 +75,5 @@ public class TimeoutManager
 ```
 
 ## Related Documentation
-- [Connection Errors](connection-errors.md)
-- [Network Troubleshooting](/guides/network-troubleshooting.md)
+- [Connection Errors](connection-errors.html)
+- [Network Troubleshooting](/guides/network-troubleshooting.html)

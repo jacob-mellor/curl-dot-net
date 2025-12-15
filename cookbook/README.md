@@ -6,13 +6,13 @@ Welcome to the CurlDotNet Cookbook! Find ready-to-use recipes for common tasks.
 
 ### 🆕 [Beginner Recipes](beginner/)
 Perfect for getting started
-- [Simple GET Request](beginner/simple-get.md)
-- [POST JSON Data](beginner/send-json.md)
-- [Download a File](beginner/download-file.md)
-- [Upload a File](beginner/upload-file.md)
-- [Submit a Form](beginner/post-form.md)
-- [Call an API](beginner/call-api.md)
-- [Handle Errors Gracefully](beginner/handle-errors.md)
+- [Simple GET Request](beginner/simple-get.html)
+- [POST JSON Data](beginner/send-json.html)
+- [Download a File](beginner/download-file.html)
+- [Upload a File](beginner/upload-file.html)
+- [Submit a Form](beginner/post-form.html)
+- [Call an API](beginner/call-api.html)
+- [Handle Errors Gracefully](beginner/handle-errors.html)
 
 
 ## 🔍 Quick Recipe Finder
@@ -22,24 +22,24 @@ Perfect for getting started
 **"I want to..."**
 
 #### Download Something
-- [Download a webpage](beginner/simple-get.md)
-- [Download a file](beginner/download-file.md)
+- [Download a webpage](beginner/simple-get.html)
+- [Download a file](beginner/download-file.html)
 
 #### Upload Something
-- [Upload a file](beginner/upload-file.md)
-- [Upload with form data](beginner/post-form.md)
+- [Upload a file](beginner/upload-file.html)
+- [Upload with form data](beginner/post-form.html)
 
 #### Work with APIs
-- [Call a REST API](beginner/call-api.md)
-- [Send JSON data](beginner/send-json.md)
-- [Handle API errors](beginner/handle-errors.md)
+- [Call a REST API](beginner/call-api.html)
+- [Send JSON data](beginner/send-json.html)
+- [Handle API errors](beginner/handle-errors.html)
 - Check the API Guide for advanced patterns
 
 #### Authentication
-- [API keys and bearer tokens](beginner/call-api.md)
+- [API keys and bearer tokens](beginner/call-api.html)
 
 #### Error Handling
-- [Basic error handling](beginner/handle-errors.md)
+- [Basic error handling](beginner/handle-errors.html)
 
 ## 📝 Recipe Format
 
@@ -56,7 +56,7 @@ Each recipe includes:
 ## 🎯 How to Use This Cookbook
 
 ### For Beginners
-1. Start with [Simple GET Request](beginner/simple-get.md)
+1. Start with [Simple GET Request](beginner/simple-get.html)
 2. Try each beginner recipe in order
 3. Move to intermediate when comfortable
 
@@ -110,12 +110,12 @@ Console.WriteLine(result.Body);
 ## 🆘 Getting Help
 
 ### Can't Find a Recipe?
-- Browse [API Guide](../api-guide/README.md)
-- Check [Tutorials](../tutorials/README.md)
+- Browse [API Guide](../api-guide/README.html)
+- Check [Tutorials](../tutorials/README.html)
 - Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
 
 ### Recipe Not Working?
-- Check [Troubleshooting](../troubleshooting/README.md)
+- Check [Troubleshooting](../troubleshooting/README.html)
 - Verify your CurlDotNet version
 - Make sure you have all required packages
 
@@ -130,12 +130,12 @@ Have a great recipe? We'd love to include it!
 
 ## 📚 Related Resources
 
-- [Tutorials](../tutorials/README.md) - Learn the basics
-- [API Guide](../api-guide/README.md) - Detailed reference
-- [Troubleshooting](../troubleshooting/README.md) - Fix common issues
+- [Tutorials](../tutorials/README.html) - Learn the basics
+- [API Guide](../api-guide/README.html) - Detailed reference
+- [Troubleshooting](../troubleshooting/README.html) - Fix common issues
 
 ---
 
-**Ready to cook?** Start with → [Simple GET Request](beginner/simple-get.md)
+**Ready to cook?** Start with → [Simple GET Request](beginner/simple-get.html)
 
 *All recipes are tested with CurlDotNet 1.0.1+ and work on .NET Framework 4.7.2+, .NET Core 2.0+, and .NET 5-10*

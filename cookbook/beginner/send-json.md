@@ -524,16 +524,16 @@ var safeJson = JsonSerializer.Serialize(new
 
 Now that you can send JSON:
 
-1. Learn to [Handle API Responses](handle-errors.md)
-2. Try [Uploading Files](upload-file.md)
-3. Check the [API Guide](../../api-guide/README.md) for bearer tokens and authentication
+1. Learn to [Handle API Responses](handle-errors.html)
+2. Try [Uploading Files](upload-file.html)
+3. Check the [API Guide](../../api-guide/README.html) for bearer tokens and authentication
 
 ## 📚 Related Recipes
 
-- [Call an API](call-api.md)
-- [Simple GET Request](simple-get.md)
-- [POST Form Data](post-form.md)
-- [Handle Errors](handle-errors.md)
+- [Call an API](call-api.html)
+- [Simple GET Request](simple-get.html)
+- [POST Form Data](post-form.html)
+- [Handle Errors](handle-errors.html)
 
 ## 🎓 Key Takeaways
 
@@ -545,4 +545,4 @@ Now that you can send JSON:
 
 ---
 
-**Need help?** Check [Troubleshooting](../../troubleshooting/README.md) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check [Troubleshooting](../../troubleshooting/README.html) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
