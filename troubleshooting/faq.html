@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frequently Asked Questions | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+
+        /* Breadcrumb styles */
+        .breadcrumb-nav {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .breadcrumb-nav a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+        .breadcrumb-nav a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb-nav .separator {
+            color: #6a737d;
+            margin: 0 8px;
+        }
+
+        /* Footer nav styles */
+        .footer-nav {
+            border-top: 1px solid #e1e4e8;
+            margin-top: 32px;
+            padding-top: 16px;
+            font-size: 14px;
+        }
+        .footer-nav a {
+            color: #0366d6;
+            text-decoration: none;
+            margin-right: 16px;
+        }
+        .footer-nav a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body class="markdown-body">
+<nav class="breadcrumb-nav">
+<a href="/">Documentation Home</a> <span class="separator">›</span> <a href="/troubleshooting/">Troubleshooting</a>
+</nav>
+<h1>Frequently Asked Questions</h1>
+<p>Answers to common questions about CurlDotNet.</p>
+<h2>General Questions</h2>
+<h3>What is CurlDotNet?</h3>
+<p>CurlDotNet is a pure .NET implementation of curl that allows you to execute curl commands directly in your C# applications. Instead of translating curl commands to HttpClient code, you can paste curl commands as strings and execute them directly.</p>
+<h3>Why use CurlDotNet instead of HttpClient?</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>CurlDotNet</th>
+<th>HttpClient</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Copy/paste curl commands</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Learning curve</td>
+<td>None (if you know curl)</td>
+<td>Moderate</td>
+</tr>
+<tr>
+<td>Migration from bash</td>
+<td>Easy</td>
+<td>Manual translation</td>
+</tr>
+<tr>
+<td>All curl options</td>
+<td>300+ supported</td>
+<td>Limited</td>
+</tr>
+<tr>
+<td>Code generation</td>
+<td>Built-in</td>
+<td>External tools</td>
+</tr>
+</tbody></table>
+<p>CurlDotNet is ideal when:</p>
+<ul>
+<li>You have curl commands from API documentation</li>
+<li>You&#39;re migrating from bash scripts</li>
+<li>You want quick prototyping</li>
+<li>You need curl-specific features</li>
+</ul>
+<p>HttpClient is better when:</p>
+<ul>
+<li>You want maximum performance</li>
+<li>You need fine-grained control</li>
+<li>You&#39;re building a library</li>
+</ul>
+<h3>Does CurlDotNet use the native curl library?</h3>
+<p>No. CurlDotNet is a <strong>pure .NET implementation</strong>. It doesn&#39;t use P/Invoke or native binaries. This means:</p>
+<ul>
+<li>No native dependencies to install</li>
+<li>Works everywhere .NET runs</li>
+<li>Single NuGet package deployment</li>
+</ul>
+<h3>What platforms are supported?</h3>
+<p>CurlDotNet supports:</p>
+<ul>
+<li>.NET 10.0 (Preview)</li>
+<li>.NET 9.0</li>
+<li>.NET 8.0 (LTS - Recommended)</li>
+<li>.NET 6.0 (LTS)</li>
+<li>.NET Framework 4.7.2+</li>
+<li>.NET Standard 2.0</li>
+<li>Xamarin, Unity, Blazor, MAUI</li>
+</ul>
+<hr>
+<h2>Technical Questions</h2>
+<h3>Do I need to include &quot;curl&quot; in the command string?</h3>
+<p>No, the &quot;curl&quot; prefix is optional:</p>
+<pre><code class="language-csharp">// Both work identically:
+await Curl.ExecuteAsync(&quot;curl https://api.example.com&quot;);
+await Curl.ExecuteAsync(&quot;https://api.example.com&quot;);
+</code></pre>
+<h3>How do I handle authentication?</h3>
+<p>CurlDotNet supports various authentication methods:</p>
+<pre><code class="language-csharp">// Basic auth
+await Curl.ExecuteAsync(&quot;curl -u username:password https://api.example.com&quot;);
+
+// Bearer token
+await Curl.ExecuteAsync(&quot;curl -H &#39;Authorization: Bearer token123&#39; https://api.example.com&quot;);
+
+// API key
+await Curl.ExecuteAsync(&quot;curl -H &#39;X-API-Key: mykey&#39; https://api.example.com&quot;);
+</code></pre>
+<h3>How do I send JSON data?</h3>
+<pre><code class="language-csharp">// Using PostJson (easiest)
+var result = await Curl.PostJsonAsync(&quot;https://api.example.com&quot;, new { name = &quot;John&quot; });
+
+// Using curl command
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -X POST https://api.example.com \
+      -H &#39;Content-Type: application/json&#39; \
+      -d &#39;{&quot;&quot;name&quot;&quot;: &quot;&quot;John&quot;&quot;}&#39;
+&quot;);
+</code></pre>
+<h3>How do I download files?</h3>
+<pre><code class="language-csharp">// Using Download method
+await Curl.DownloadAsync(&quot;https://example.com/file.pdf&quot;, &quot;output.pdf&quot;);
+
+// Using curl command
+await Curl.ExecuteAsync(&quot;curl -o output.pdf https://example.com/file.pdf&quot;);
+</code></pre>
+<h3>Is CurlDotNet thread-safe?</h3>
+<p>Yes, all methods are thread-safe. You can call them from multiple threads simultaneously.</p>
+<h3>How do I handle errors?</h3>
+<p>Check <code>IsSuccess</code> or catch specific exceptions:</p>
+<pre><code class="language-csharp">// Method 1: Check IsSuccess
+var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com&quot;);
+if (result.IsSuccess)
+{
+    Console.WriteLine(result.Body);
+}
+else
+{
+    Console.WriteLine($&quot;Error: {result.StatusCode}&quot;);
+}
+
+// Method 2: Catch exceptions
+try
+{
+    var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com&quot;);
+}
+catch (CurlTimeoutException ex)
+{
+    Console.WriteLine($&quot;Timed out after {ex.Timeout}s&quot;);
+}
+catch (CurlHttpException ex)
+{
+    Console.WriteLine($&quot;HTTP {ex.StatusCode}: {ex.ResponseBody}&quot;);
+}
+</code></pre>
+<h3>How do I set a timeout?</h3>
+<pre><code class="language-csharp">// Global timeout for all requests
+Curl.DefaultMaxTimeSeconds = 30;
+
+// Per-request timeout
+await Curl.ExecuteAsync(&quot;curl --max-time 10 https://api.example.com&quot;);
+
+// Using CancellationToken
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+await Curl.ExecuteAsync(&quot;curl https://api.example.com&quot;, cts.Token);
+</code></pre>
+<hr>
+<h2>Performance Questions</h2>
+<h3>Is CurlDotNet fast?</h3>
+<p>CurlDotNet is designed for developer productivity, not raw performance. Under the hood, it uses HttpClient, so performance is comparable. For high-throughput scenarios, consider:</p>
+<ul>
+<li>Reusing the same command pattern</li>
+<li>Using <code>ExecuteManyAsync</code> for parallel requests</li>
+<li>Using HttpClient directly for maximum performance</li>
+</ul>
+<h3>Can I make parallel requests?</h3>
+<p>Yes, use <code>ExecuteManyAsync</code>:</p>
+<pre><code class="language-csharp">var results = await Curl.ExecuteManyAsync(
+    &quot;curl https://api.example.com/users/1&quot;,
+    &quot;curl https://api.example.com/users/2&quot;,
+    &quot;curl https://api.example.com/users/3&quot;
+);
+// All three requests run in parallel!
+</code></pre>
+<h3>Does it support streaming?</h3>
+<p>Yes, responses are streamed internally. For large file downloads:</p>
+<pre><code class="language-csharp">// Downloads are streamed, not loaded fully into memory
+await Curl.DownloadAsync(&quot;https://example.com/large-file.zip&quot;, &quot;output.zip&quot;);
+</code></pre>
+<hr>
+<h2>Compatibility Questions</h2>
+<h3>Does CurlDotNet support all curl options?</h3>
+<p>CurlDotNet supports 300+ curl options. Most common options work exactly as expected. Some rarely-used options may not be implemented. If you find an unsupported option, please <a href="https://github.com/jacob-mellor/curl-dot-net/issues">open an issue</a>.</p>
+<h3>Can I use CurlDotNet with ASP.NET Core?</h3>
+<p>Yes! Configure it in your startup:</p>
+<pre><code class="language-csharp">// In Program.cs
+Curl.DefaultMaxTimeSeconds = 30;
+Curl.DefaultFollowRedirects = true;
+
+// In a controller
+[HttpGet]
+public async Task&lt;IActionResult&gt; GetData()
+{
+    var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com&quot;);
+    return Ok(result.Body);
+}
+</code></pre>
+<h3>Does it work with .NET Framework?</h3>
+<p>Yes, CurlDotNet supports .NET Framework 4.7.2 and later via .NET Standard 2.0.</p>
+<h3>Can I use CurlDotNet in a Blazor app?</h3>
+<p>Yes, CurlDotNet works in Blazor Server. For Blazor WebAssembly, note that browser security restrictions apply to HTTP requests.</p>
+<hr>
+<h2>Troubleshooting Questions</h2>
+<h3>Why am I getting SSL errors?</h3>
+<p>SSL errors typically occur with:</p>
+<ul>
+<li>Self-signed certificates</li>
+<li>Expired certificates</li>
+<li>Mismatched domains</li>
+</ul>
+<p><strong>Development solution</strong> (NOT for production):</p>
+<pre><code class="language-csharp">await Curl.ExecuteAsync(&quot;curl -k https://localhost:5001&quot;);
+</code></pre>
+<p><strong>Production solution:</strong></p>
+<ul>
+<li>Install proper SSL certificates</li>
+<li>Use <code>--cacert</code> to specify custom CA bundle</li>
+</ul>
+<h3>Why does my curl command work in terminal but not in CurlDotNet?</h3>
+<p>Common reasons:</p>
+<ol>
+<li><strong>Environment variables</strong> - CurlDotNet doesn&#39;t read shell variables like <code>$TOKEN</code></li>
+<li><strong>Shell expansion</strong> - Backticks and <code>$(...)</code> aren&#39;t supported</li>
+<li><strong>File paths</strong> - Ensure paths are absolute or correct relative paths</li>
+</ol>
+<h3>Why am I getting a 401 Unauthorized error?</h3>
+<p>Common causes:</p>
+<ol>
+<li>Missing or incorrect authentication</li>
+<li>Token expired</li>
+<li>Wrong authentication method</li>
+</ol>
+<p>Check your headers:</p>
+<pre><code class="language-csharp">// Ensure correct authorization header
+await Curl.ExecuteAsync(&quot;curl -H &#39;Authorization: Bearer YOUR_ACTUAL_TOKEN&#39; https://api.example.com&quot;);
+</code></pre>
+<h3>How do I debug requests?</h3>
+<p>Use verbose mode to see what&#39;s happening:</p>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl -v https://api.example.com&quot;);
+// Verbose output shows headers sent and received
+</code></pre>
+<p>Or validate your command first:</p>
+<pre><code class="language-csharp">var validation = Curl.Validate(&quot;curl -X POST https://api.example.com&quot;);
+if (!validation.IsValid)
+{
+    Console.WriteLine($&quot;Invalid: {validation.ErrorMessage}&quot;);
+}
+</code></pre>
+<hr>
+<h2>Migration Questions</h2>
+<h3>How do I migrate from HttpClient to CurlDotNet?</h3>
+<p>Use the code conversion tools:</p>
+<pre><code class="language-csharp">// If you have curl commands, just paste them
+var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com&quot;);
+
+// If you want to see equivalent HttpClient code
+string httpClientCode = Curl.ToHttpClient(&quot;curl -X POST -d &#39;data&#39; https://api.example.com&quot;);
+Console.WriteLine(httpClientCode);
+</code></pre>
+<h3>Can I convert CurlDotNet code to other languages?</h3>
+<p>Yes! CurlDotNet can generate equivalent code:</p>
+<pre><code class="language-csharp">// To JavaScript fetch()
+string jsCode = Curl.ToFetch(&quot;curl https://api.example.com&quot;);
+
+// To Python requests
+string pythonCode = Curl.ToPythonRequests(&quot;curl https://api.example.com&quot;);
+
+// To PowerShell
+string psCode = Curl.ToPowershellCode(&quot;curl https://api.example.com&quot;);
+</code></pre>
+<hr>
+<h2>Still Have Questions?</h2>
+<ul>
+<li><a href="common-issues.html">Common Issues</a> - Solutions to frequent problems</li>
+<li><a href="error-reference.html">Error Reference</a> - All exception types explained</li>
+<li><a href="https://github.com/jacob-mellor/curl-dot-net/issues">GitHub Issues</a> - Ask questions or report bugs</li>
+<li><a href="https://github.com/jacob-mellor/curl-dot-net/discussions">GitHub Discussions</a> - Community help</li>
+</ul>
+
+
+<nav class="footer-nav">
+<a href="/">← Documentation Home</a> |
+<a href="https://github.com/jacob-mellor/curl-dot-net">View on GitHub</a> |
+<a href="https://www.nuget.org/packages/CurlDotNet/">NuGet Package</a>
+</nav>
+</body>
+</html>

@@ -145,7 +145,7 @@ var result = await curl.GetAsync("https://api.example.com");
 ## 🆘 Getting Help
 
 ### Can't Find Something?
-- Use the [search](#) feature
+- Use the search feature in your browser (Ctrl+F / Cmd+F)
 - Check [Troubleshooting](troubleshooting/)
 - Browse [Common Issues](troubleshooting/common-issues.html)
 

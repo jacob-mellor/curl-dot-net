@@ -11,9 +11,49 @@
         @media (max-width: 767px) { .markdown-body { padding: 15px; } }
         a { color: #0366d6; }
         pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+
+        /* Breadcrumb styles */
+        .breadcrumb-nav {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .breadcrumb-nav a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+        .breadcrumb-nav a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb-nav .separator {
+            color: #6a737d;
+            margin: 0 8px;
+        }
+
+        /* Footer nav styles */
+        .footer-nav {
+            border-top: 1px solid #e1e4e8;
+            margin-top: 32px;
+            padding-top: 16px;
+            font-size: 14px;
+        }
+        .footer-nav a {
+            color: #0366d6;
+            text-decoration: none;
+            margin-right: 16px;
+        }
+        .footer-nav a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body class="markdown-body">
+<nav class="breadcrumb-nav">
+<a href="/">Documentation Home</a> <span class="separator">›</span> <a href="/api/">API Reference</a>
+</nav>
 <h4><a href="index.md" title="index">CurlDotNet</a></h4>
 <h3><a href="CurlDotNet.md" title="CurlDotNet">CurlDotNet</a>.<a href="CurlDotNet.CurlApiClient.md" title="CurlDotNet.CurlApiClient">CurlApiClient</a></h3>
 <h2>CurlApiClient.DeleteAsync(string) Method</h2>
@@ -27,7 +67,10 @@
 <p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">System.Threading.Tasks.Task&lt;</a><a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">&gt;</a></p>
 
 
-<hr>
-<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+<nav class="footer-nav">
+<a href="/">← Documentation Home</a> |
+<a href="https://github.com/jacob-mellor/curl-dot-net">View on GitHub</a> |
+<a href="https://www.nuget.org/packages/CurlDotNet/">NuGet Package</a>
+</nav>
 </body>
 </html>

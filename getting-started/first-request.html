@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your First Request | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+
+        /* Breadcrumb styles */
+        .breadcrumb-nav {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .breadcrumb-nav a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+        .breadcrumb-nav a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb-nav .separator {
+            color: #6a737d;
+            margin: 0 8px;
+        }
+
+        /* Footer nav styles */
+        .footer-nav {
+            border-top: 1px solid #e1e4e8;
+            margin-top: 32px;
+            padding-top: 16px;
+            font-size: 14px;
+        }
+        .footer-nav a {
+            color: #0366d6;
+            text-decoration: none;
+            margin-right: 16px;
+        }
+        .footer-nav a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body class="markdown-body">
+<nav class="breadcrumb-nav">
+<a href="/">Documentation Home</a> <span class="separator">›</span> <a href="/getting-started/">Getting Started</a>
+</nav>
+<h1>Your First Request</h1>
+<p>This guide walks you through making your first HTTP request with CurlDotNet.</p>
+<h2>Prerequisites</h2>
+<p>Before you begin, ensure you have:</p>
+<ul>
+<li>CurlDotNet installed (<code>dotnet add package CurlDotNet</code>)</li>
+<li>A .NET project ready to go</li>
+</ul>
+<p>See the <a href="installation.html">Installation Guide</a> if you need help setting up.</p>
+<h2>The Simplest Request</h2>
+<p>The easiest way to make a request is to just paste a curl command:</p>
+<pre><code class="language-csharp">using CurlDotNet;
+
+// Make a GET request - it&#39;s that simple!
+var result = await Curl.ExecuteAsync(&quot;curl https://httpbin.org/get&quot;);
+
+Console.WriteLine(result.Body);
+</code></pre>
+<p>That&#39;s it! You&#39;ve made your first HTTP request with CurlDotNet.</p>
+<h2>Understanding the Response</h2>
+<p>Every request returns a <code>CurlResult</code> object with useful properties:</p>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl https://httpbin.org/get&quot;);
+
+// Check if the request succeeded (status 200-299)
+Console.WriteLine($&quot;Success: {result.IsSuccess}&quot;);
+
+// Get the HTTP status code
+Console.WriteLine($&quot;Status Code: {result.StatusCode}&quot;);
+
+// Get the response body as a string
+Console.WriteLine($&quot;Body: {result.Body}&quot;);
+
+// Access response headers
+foreach (var header in result.Headers)
+{
+    Console.WriteLine($&quot;{header.Key}: {header.Value}&quot;);
+}
+</code></pre>
+<h2>Three Ways to Make Requests</h2>
+<p>CurlDotNet offers three approaches - use whichever fits your style:</p>
+<h3>1. String API (Copy &amp; Paste)</h3>
+<p>Perfect for when you have a curl command from documentation:</p>
+<pre><code class="language-csharp">// Just paste any curl command from API docs, Stack Overflow, etc.
+var result = await Curl.ExecuteAsync(@&quot;
+    curl https://api.github.com/users/octocat \
+      -H &#39;User-Agent: MyApp&#39;
+&quot;);
+</code></pre>
+<h3>2. Builder API (Type-Safe)</h3>
+<p>Get IntelliSense and compile-time checking:</p>
+<pre><code class="language-csharp">var result = await CurlRequestBuilder
+    .Get(&quot;https://api.github.com/users/octocat&quot;)
+    .WithHeader(&quot;User-Agent&quot;, &quot;MyApp&quot;)
+    .ExecuteAsync();
+</code></pre>
+<h3>3. Quick Methods</h3>
+<p>Convenience methods for simple operations:</p>
+<pre><code class="language-csharp">// Simple GET
+var result = await Curl.GetAsync(&quot;https://httpbin.org/get&quot;);
+
+// POST with data
+var result = await Curl.PostAsync(&quot;https://httpbin.org/post&quot;, &quot;name=John&quot;);
+
+// POST with JSON
+var result = await Curl.PostJsonAsync(&quot;https://httpbin.org/post&quot;, new { name = &quot;John&quot; });
+
+// Download a file
+await Curl.DownloadAsync(&quot;https://example.com/file.pdf&quot;, &quot;output.pdf&quot;);
+</code></pre>
+<h2>Working with JSON</h2>
+<p>Most APIs return JSON. CurlDotNet makes it easy to work with:</p>
+<pre><code class="language-csharp">// Define your model
+public class GitHubUser
+{
+    public string Login { get; set; }
+    public string Name { get; set; }
+    public int Followers { get; set; }
+}
+
+// Make the request and parse JSON
+var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com/users/octocat&quot;);
+
+if (result.IsSuccess)
+{
+    var user = result.ParseJson&lt;GitHubUser&gt;();
+    Console.WriteLine($&quot;User: {user.Name} has {user.Followers} followers&quot;);
+}
+</code></pre>
+<h2>Error Handling</h2>
+<p>Always handle potential errors:</p>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com/data&quot;);
+
+    if (result.IsSuccess)
+    {
+        Console.WriteLine(&quot;Success!&quot;);
+        Console.WriteLine(result.Body);
+    }
+    else
+    {
+        Console.WriteLine($&quot;HTTP Error: {result.StatusCode}&quot;);
+    }
+}
+catch (CurlDotNet.Exceptions.CurlTimeoutException ex)
+{
+    Console.WriteLine($&quot;Request timed out after {ex.Timeout} seconds&quot;);
+}
+catch (CurlDotNet.Exceptions.CurlCouldntResolveHostException ex)
+{
+    Console.WriteLine($&quot;Could not resolve host: {ex.Hostname}&quot;);
+}
+catch (CurlDotNet.Exceptions.CurlException ex)
+{
+    Console.WriteLine($&quot;Curl error: {ex.Message}&quot;);
+}
+</code></pre>
+<h2>Common curl Options</h2>
+<p>Here are some frequently used curl options:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>-X METHOD</code></td>
+<td>Set HTTP method</td>
+<td><code>-X POST</code></td>
+</tr>
+<tr>
+<td><code>-H &#39;Header: Value&#39;</code></td>
+<td>Add header</td>
+<td><code>-H &#39;Authorization: Bearer token&#39;</code></td>
+</tr>
+<tr>
+<td><code>-d &#39;data&#39;</code></td>
+<td>Send data in body</td>
+<td><code>-d &#39;{&quot;name&quot;:&quot;John&quot;}&#39;</code></td>
+</tr>
+<tr>
+<td><code>-u user:pass</code></td>
+<td>Basic authentication</td>
+<td><code>-u admin:secret</code></td>
+</tr>
+<tr>
+<td><code>-o file</code></td>
+<td>Save output to file</td>
+<td><code>-o response.json</code></td>
+</tr>
+<tr>
+<td><code>-L</code></td>
+<td>Follow redirects</td>
+<td><code>-L</code></td>
+</tr>
+<tr>
+<td><code>-k</code></td>
+<td>Skip SSL verification</td>
+<td><code>-k</code> (dev only!)</td>
+</tr>
+<tr>
+<td><code>--max-time 30</code></td>
+<td>Timeout in seconds</td>
+<td><code>--max-time 30</code></td>
+</tr>
+</tbody></table>
+<h2>Complete Example</h2>
+<p>Here&#39;s a complete example that puts it all together:</p>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class Program
+{
+    static async Task Main()
+    {
+        Console.WriteLine(&quot;Fetching GitHub user information...\n&quot;);
+
+        try
+        {
+            // Make the request
+            var result = await Curl.ExecuteAsync(@&quot;
+                curl https://api.github.com/users/octocat \
+                  -H &#39;User-Agent: CurlDotNet-Example&#39; \
+                  -H &#39;Accept: application/json&#39;
+            &quot;);
+
+            // Check result
+            if (result.IsSuccess)
+            {
+                var user = result.ParseJson&lt;dynamic&gt;();
+                Console.WriteLine($&quot;Username: {user.login}&quot;);
+                Console.WriteLine($&quot;Name: {user.name}&quot;);
+                Console.WriteLine($&quot;Public Repos: {user.public_repos}&quot;);
+                Console.WriteLine($&quot;Followers: {user.followers}&quot;);
+            }
+            else
+            {
+                Console.WriteLine($&quot;Error: {result.StatusCode}&quot;);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($&quot;Failed: {ex.Message}&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>Next Steps</h2>
+<p>Now that you&#39;ve made your first request:</p>
+<ol>
+<li><a href="configuration.html">Configure CurlDotNet</a> - Set timeouts, proxies, and more</li>
+<li><a href="../cookbook/">Browse the Cookbook</a> - Ready-to-use recipes</li>
+<li><a href="../tutorials/">Learn More Tutorials</a> - Deep dive into features</li>
+<li><a href="../api/index.html">API Reference</a> - Complete API documentation</li>
+</ol>
+<h2>Need Help?</h2>
+<ul>
+<li><a href="../troubleshooting/common-issues.html">Common Issues</a> - Solutions to frequent problems</li>
+<li><a href="../troubleshooting/faq.html">FAQ</a> - Frequently asked questions</li>
+<li><a href="https://github.com/jacob-mellor/curl-dot-net/issues">GitHub Issues</a> - Report bugs or ask questions</li>
+</ul>
+
+
+<nav class="footer-nav">
+<a href="/">← Documentation Home</a> |
+<a href="https://github.com/jacob-mellor/curl-dot-net">View on GitHub</a> |
+<a href="https://www.nuget.org/packages/CurlDotNet/">NuGet Package</a>
+</nav>
+</body>
+</html>

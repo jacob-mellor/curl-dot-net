@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+
+        /* Breadcrumb styles */
+        .breadcrumb-nav {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .breadcrumb-nav a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+        .breadcrumb-nav a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb-nav .separator {
+            color: #6a737d;
+            margin: 0 8px;
+        }
+
+        /* Footer nav styles */
+        .footer-nav {
+            border-top: 1px solid #e1e4e8;
+            margin-top: 32px;
+            padding-top: 16px;
+            font-size: 14px;
+        }
+        .footer-nav a {
+            color: #0366d6;
+            text-decoration: none;
+            margin-right: 16px;
+        }
+        .footer-nav a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body class="markdown-body">
+<nav class="breadcrumb-nav">
+<a href="/">Documentation Home</a> <span class="separator">›</span> <a href="/getting-started/">Getting Started</a>
+</nav>
+<h1>Configuration</h1>
+<p>Learn how to configure CurlDotNet for timeouts, SSL, proxies, and more.</p>
+<h2>Global Settings</h2>
+<p>CurlDotNet provides static properties to configure default behavior for all requests:</p>
+<pre><code class="language-csharp">using CurlDotNet;
+
+// Set default timeout for all requests (30 seconds)
+Curl.DefaultMaxTimeSeconds = 30;
+
+// Set connection timeout (10 seconds to establish connection)
+Curl.DefaultConnectTimeoutSeconds = 10;
+
+// Enable redirect following globally
+Curl.DefaultFollowRedirects = true;
+
+// Skip SSL verification (DEVELOPMENT ONLY!)
+#if DEBUG
+Curl.DefaultInsecure = true;
+#endif
+</code></pre>
+<h2>Timeout Configuration</h2>
+<h3>Max Time (Overall Timeout)</h3>
+<p>Sets the maximum time a request can take:</p>
+<pre><code class="language-csharp">// Global default for all requests
+Curl.DefaultMaxTimeSeconds = 30;
+
+// Per-request override using curl option
+var result = await Curl.ExecuteAsync(&quot;curl --max-time 60 https://slow-api.example.com&quot;);
+</code></pre>
+<h3>Connect Timeout</h3>
+<p>Sets how long to wait for the connection to be established:</p>
+<pre><code class="language-csharp">// Global default
+Curl.DefaultConnectTimeoutSeconds = 10;
+
+// Per-request override
+var result = await Curl.ExecuteAsync(&quot;curl --connect-timeout 5 https://api.example.com&quot;);
+</code></pre>
+<h3>Timeout with CancellationToken</h3>
+<p>For more control, use a CancellationToken:</p>
+<pre><code class="language-csharp">using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+try
+{
+    var result = await Curl.ExecuteAsync(
+        &quot;curl https://api.example.com&quot;,
+        cts.Token
+    );
+}
+catch (OperationCanceledException)
+{
+    Console.WriteLine(&quot;Request timed out or was cancelled&quot;);
+}
+</code></pre>
+<h2>SSL/TLS Configuration</h2>
+<h3>Ignoring SSL Errors (Development Only)</h3>
+<p>Use <code>-k</code> or <code>--insecure</code> to skip SSL certificate verification:</p>
+<pre><code class="language-csharp">// WARNING: Only use in development!
+var result = await Curl.ExecuteAsync(&quot;curl -k https://localhost:5001&quot;);
+
+// Or set globally for development
+#if DEBUG
+Curl.DefaultInsecure = true;
+#endif
+</code></pre>
+<h3>Custom Certificates</h3>
+<p>Specify custom CA certificates:</p>
+<pre><code class="language-csharp">// Use a specific CA certificate
+var result = await Curl.ExecuteAsync(
+    &quot;curl --cacert /path/to/ca-bundle.crt https://api.example.com&quot;
+);
+
+// Use client certificate authentication
+var result = await Curl.ExecuteAsync(
+    &quot;curl --cert /path/to/client.pem --key /path/to/key.pem https://api.example.com&quot;
+);
+</code></pre>
+<h2>Proxy Configuration</h2>
+<h3>HTTP Proxy</h3>
+<pre><code class="language-csharp">// Use an HTTP proxy
+var result = await Curl.ExecuteAsync(
+    &quot;curl -x http://proxy.example.com:8080 https://api.example.com&quot;
+);
+
+// Proxy with authentication
+var result = await Curl.ExecuteAsync(
+    &quot;curl -x http://user:pass@proxy.example.com:8080 https://api.example.com&quot;
+);
+</code></pre>
+<h3>SOCKS Proxy</h3>
+<pre><code class="language-csharp">// SOCKS5 proxy
+var result = await Curl.ExecuteAsync(
+    &quot;curl --socks5 localhost:9050 https://api.example.com&quot;
+);
+
+// SOCKS5 with hostname resolution through proxy
+var result = await Curl.ExecuteAsync(
+    &quot;curl --socks5-hostname localhost:9050 https://api.example.com&quot;
+);
+</code></pre>
+<h2>Redirect Behavior</h2>
+<h3>Following Redirects</h3>
+<pre><code class="language-csharp">// Enable globally
+Curl.DefaultFollowRedirects = true;
+
+// Or per-request with -L flag
+var result = await Curl.ExecuteAsync(&quot;curl -L https://short.link/abc&quot;);
+
+// Limit maximum redirects
+var result = await Curl.ExecuteAsync(
+    &quot;curl -L --max-redirs 5 https://example.com&quot;
+);
+</code></pre>
+<h3>Preserving Authentication on Redirects</h3>
+<pre><code class="language-csharp">// Keep auth when redirected to different host
+var result = await Curl.ExecuteAsync(
+    &quot;curl -L --location-trusted -u user:pass https://api.example.com&quot;
+);
+</code></pre>
+<h2>Advanced Settings with CurlSettings</h2>
+<p>For advanced scenarios, use the <code>CurlSettings</code> class:</p>
+<pre><code class="language-csharp">var settings = new CurlSettings
+{
+    // Retry configuration
+    RetryCount = 3,
+    RetryDelay = TimeSpan.FromSeconds(2),
+
+    // Progress callback for downloads
+    OnProgress = (bytesReceived, totalBytes) =&gt;
+    {
+        var percent = (bytesReceived * 100.0) / totalBytes;
+        Console.WriteLine($&quot;Progress: {percent:F1}%&quot;);
+    }
+};
+
+var result = await Curl.ExecuteAsync(
+    &quot;curl https://example.com/large-file.zip&quot;,
+    settings
+);
+</code></pre>
+<h2>HTTP Version</h2>
+<p>Force a specific HTTP version:</p>
+<pre><code class="language-csharp">// Force HTTP/1.1
+var result = await Curl.ExecuteAsync(
+    &quot;curl --http1.1 https://api.example.com&quot;
+);
+
+// Force HTTP/2
+var result = await Curl.ExecuteAsync(
+    &quot;curl --http2 https://api.example.com&quot;
+);
+</code></pre>
+<h2>User Agent Configuration</h2>
+<p>Set a custom user agent:</p>
+<pre><code class="language-csharp">// Using -A flag
+var result = await Curl.ExecuteAsync(
+    &quot;curl -A &#39;MyApp/1.0&#39; https://api.example.com&quot;
+);
+
+// Using --user-agent
+var result = await Curl.ExecuteAsync(
+    &quot;curl --user-agent &#39;MyApp/1.0 (Windows 10)&#39; https://api.example.com&quot;
+);
+</code></pre>
+<h2>Cookie Configuration</h2>
+<h3>Sending Cookies</h3>
+<pre><code class="language-csharp">// Send cookies with request
+var result = await Curl.ExecuteAsync(
+    &quot;curl -b &#39;session=abc123; token=xyz&#39; https://api.example.com&quot;
+);
+
+// Load cookies from file
+var result = await Curl.ExecuteAsync(
+    &quot;curl -b cookies.txt https://api.example.com&quot;
+);
+</code></pre>
+<h3>Saving Cookies</h3>
+<pre><code class="language-csharp">// Save cookies to file
+var result = await Curl.ExecuteAsync(
+    &quot;curl -c cookies.txt https://api.example.com/login&quot;
+);
+</code></pre>
+<h2>DNS Configuration</h2>
+<h3>Custom DNS Servers</h3>
+<pre><code class="language-csharp">// Use specific DNS servers
+var result = await Curl.ExecuteAsync(
+    &quot;curl --dns-servers 8.8.8.8,8.8.4.4 https://api.example.com&quot;
+);
+</code></pre>
+<h3>DNS Override (Host Resolution)</h3>
+<pre><code class="language-csharp">// Force hostname to resolve to specific IP
+var result = await Curl.ExecuteAsync(
+    &quot;curl --resolve api.example.com:443:192.168.1.100 https://api.example.com&quot;
+);
+</code></pre>
+<h2>Speed Limits</h2>
+<h3>Download Speed Limit</h3>
+<pre><code class="language-csharp">// Limit download to 100KB/s
+var result = await Curl.ExecuteAsync(
+    &quot;curl --limit-rate 100K https://example.com/file.zip&quot;
+);
+</code></pre>
+<h2>Keep-Alive Settings</h2>
+<pre><code class="language-csharp">// Set keep-alive time
+var result = await Curl.ExecuteAsync(
+    &quot;curl --keepalive-time 60 https://api.example.com&quot;
+);
+</code></pre>
+<h2>Environment-Specific Configuration</h2>
+<h3>Development</h3>
+<pre><code class="language-csharp">public static class CurlConfiguration
+{
+    public static void ConfigureForDevelopment()
+    {
+        Curl.DefaultMaxTimeSeconds = 60;  // Longer timeout for debugging
+        Curl.DefaultConnectTimeoutSeconds = 30;
+        Curl.DefaultInsecure = true;  // Accept self-signed certs
+        Curl.DefaultFollowRedirects = true;
+    }
+}
+</code></pre>
+<h3>Production</h3>
+<pre><code class="language-csharp">public static class CurlConfiguration
+{
+    public static void ConfigureForProduction()
+    {
+        Curl.DefaultMaxTimeSeconds = 30;
+        Curl.DefaultConnectTimeoutSeconds = 10;
+        Curl.DefaultInsecure = false;  // Never skip SSL in production!
+        Curl.DefaultFollowRedirects = true;
+    }
+}
+</code></pre>
+<h3>ASP.NET Core Integration</h3>
+<pre><code class="language-csharp">// In Program.cs or Startup.cs
+public void ConfigureServices(IServiceCollection services)
+{
+    // Configure CurlDotNet based on environment
+    if (Environment.IsDevelopment())
+    {
+        Curl.DefaultInsecure = true;
+        Curl.DefaultMaxTimeSeconds = 60;
+    }
+    else
+    {
+        Curl.DefaultInsecure = false;
+        Curl.DefaultMaxTimeSeconds = 30;
+    }
+}
+</code></pre>
+<h2>Configuration Summary Table</h2>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Global Property</th>
+<th>Curl Option</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Request timeout</td>
+<td><code>DefaultMaxTimeSeconds</code></td>
+<td><code>--max-time</code></td>
+<td>0 (none)</td>
+</tr>
+<tr>
+<td>Connect timeout</td>
+<td><code>DefaultConnectTimeoutSeconds</code></td>
+<td><code>--connect-timeout</code></td>
+<td>0 (none)</td>
+</tr>
+<tr>
+<td>Follow redirects</td>
+<td><code>DefaultFollowRedirects</code></td>
+<td><code>-L</code></td>
+<td>false</td>
+</tr>
+<tr>
+<td>Skip SSL verify</td>
+<td><code>DefaultInsecure</code></td>
+<td><code>-k</code></td>
+<td>false</td>
+</tr>
+<tr>
+<td>User agent</td>
+<td>(per-request)</td>
+<td><code>-A</code></td>
+<td>curl default</td>
+</tr>
+<tr>
+<td>Proxy</td>
+<td>(per-request)</td>
+<td><code>-x</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td>Max redirects</td>
+<td>(per-request)</td>
+<td><code>--max-redirs</code></td>
+<td>50</td>
+</tr>
+</tbody></table>
+<h2>Next Steps</h2>
+<ul>
+<li><a href="first-request.html">First Request</a> - Make your first request</li>
+<li><a href="../cookbook/">Cookbook</a> - Practical examples</li>
+<li><a href="../troubleshooting/">Troubleshooting</a> - Solve common issues</li>
+<li><a href="../api/index.html">API Reference</a> - Complete API documentation</li>
+</ul>
+
+
+<nav class="footer-nav">
+<a href="/">← Documentation Home</a> |
+<a href="https://github.com/jacob-mellor/curl-dot-net">View on GitHub</a> |
+<a href="https://www.nuget.org/packages/CurlDotNet/">NuGet Package</a>
+</nav>
+</body>
+</html>

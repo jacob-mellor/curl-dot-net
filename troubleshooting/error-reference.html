@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Reference | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+
+        /* Breadcrumb styles */
+        .breadcrumb-nav {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .breadcrumb-nav a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+        .breadcrumb-nav a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb-nav .separator {
+            color: #6a737d;
+            margin: 0 8px;
+        }
+
+        /* Footer nav styles */
+        .footer-nav {
+            border-top: 1px solid #e1e4e8;
+            margin-top: 32px;
+            padding-top: 16px;
+            font-size: 14px;
+        }
+        .footer-nav a {
+            color: #0366d6;
+            text-decoration: none;
+            margin-right: 16px;
+        }
+        .footer-nav a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body class="markdown-body">
+<nav class="breadcrumb-nav">
+<a href="/">Documentation Home</a> <span class="separator">›</span> <a href="/troubleshooting/">Troubleshooting</a>
+</nav>
+<h1>Error Reference</h1>
+<p>CurlDotNet provides specific exception types for each curl error code, making it easy to handle different error conditions precisely.</p>
+<h2>Exception Hierarchy</h2>
+<p>All CurlDotNet exceptions inherit from <code>CurlException</code>:</p>
+<pre><code>CurlException (base class)
+├── CurlHttpException (HTTP 4xx/5xx errors)
+├── CurlFtpException (FTP errors)
+├── CurlTimeoutException (CURLE_OPERATION_TIMEDOUT)
+├── CurlSslException (SSL/TLS errors)
+├── CurlCouldntResolveHostException (DNS failures)
+├── CurlCouldntConnectException (Connection failures)
+├── CurlParsingException (Invalid curl command)
+└── ... (91 total exception types)
+</code></pre>
+<h2>Common Exceptions</h2>
+<h3>CurlTimeoutException</h3>
+<p><strong>Error Code:</strong> CURLE_OPERATION_TIMEDOUT (28)</p>
+<p>Thrown when the request takes longer than the configured timeout.</p>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(&quot;curl --max-time 5 https://slow-api.com&quot;);
+}
+catch (CurlTimeoutException ex)
+{
+    Console.WriteLine($&quot;Request timed out after {ex.Timeout} seconds&quot;);
+    Console.WriteLine($&quot;Error code: {ex.CurlErrorCode}&quot;);
+}
+</code></pre>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li>Increase the timeout: <code>--max-time 60</code></li>
+<li>Check if the server is responding</li>
+<li>Use <code>DefaultMaxTimeSeconds</code> for global timeout</li>
+</ul>
+<hr>
+<h3>CurlCouldntResolveHostException</h3>
+<p><strong>Error Code:</strong> CURLE_COULDNT_RESOLVE_HOST (6)</p>
+<p>Thrown when DNS lookup fails for the hostname.</p>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(&quot;curl https://nonexistent-domain.com&quot;);
+}
+catch (CurlCouldntResolveHostException ex)
+{
+    Console.WriteLine($&quot;Could not find host: {ex.Hostname}&quot;);
+}
+</code></pre>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li>Verify the URL is spelled correctly</li>
+<li>Check your internet connection</li>
+<li>Check DNS settings</li>
+<li>Try using IP address directly</li>
+</ul>
+<hr>
+<h3>CurlCouldntConnectException</h3>
+<p><strong>Error Code:</strong> CURLE_COULDNT_CONNECT (7)</p>
+<p>Thrown when the connection to the host cannot be established.</p>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com:9999&quot;);
+}
+catch (CurlCouldntConnectException ex)
+{
+    Console.WriteLine($&quot;Could not connect to {ex.Host}:{ex.Port}&quot;);
+}
+</code></pre>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li>Verify the server is running</li>
+<li>Check firewall settings</li>
+<li>Verify the port is correct</li>
+<li>Try with <code>--connect-timeout</code> to fail faster</li>
+</ul>
+<hr>
+<h3>CurlSslException</h3>
+<p><strong>Error Codes:</strong> CURLE_SSL_CONNECT_ERROR (35), CURLE_PEER_FAILED_VERIFICATION (60)</p>
+<p>Thrown for SSL/TLS certificate problems.</p>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(&quot;curl https://self-signed-cert.example.com&quot;);
+}
+catch (CurlSslException ex)
+{
+    Console.WriteLine($&quot;SSL error: {ex.Message}&quot;);
+    if (ex.CertificateError != null)
+    {
+        Console.WriteLine($&quot;Certificate issue: {ex.CertificateError}&quot;);
+    }
+}
+</code></pre>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li><strong>Development only:</strong> Use <code>-k</code> or <code>--insecure</code></li>
+<li>Install the CA certificate</li>
+<li>Update system certificates</li>
+<li>Use <code>--cacert</code> to specify custom CA bundle</li>
+</ul>
+<hr>
+<h3>CurlHttpException</h3>
+<p>Thrown for HTTP error status codes (4xx, 5xx).</p>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(&quot;curl -f https://api.example.com/notfound&quot;);
+}
+catch (CurlHttpException ex)
+{
+    Console.WriteLine($&quot;HTTP Error: {ex.StatusCode}&quot;);
+    Console.WriteLine($&quot;Response body: {ex.ResponseBody}&quot;);
+
+    switch (ex.StatusCode)
+    {
+        case 400: Console.WriteLine(&quot;Bad request - check your parameters&quot;); break;
+        case 401: Console.WriteLine(&quot;Unauthorized - check your credentials&quot;); break;
+        case 403: Console.WriteLine(&quot;Forbidden - you don&#39;t have permission&quot;); break;
+        case 404: Console.WriteLine(&quot;Not found - resource doesn&#39;t exist&quot;); break;
+        case 429: Console.WriteLine(&quot;Rate limited - slow down requests&quot;); break;
+        case 500: Console.WriteLine(&quot;Server error - try again later&quot;); break;
+    }
+}
+</code></pre>
+<hr>
+<h3>CurlMalformedUrlException</h3>
+<p><strong>Error Code:</strong> CURLE_URL_MALFORMAT (3)</p>
+<p>Thrown when the URL is invalid or malformed.</p>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(&quot;curl not-a-valid-url&quot;);
+}
+catch (CurlMalformedUrlException ex)
+{
+    Console.WriteLine($&quot;Invalid URL: {ex.MalformedUrl}&quot;);
+}
+</code></pre>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li>Include the protocol (http:// or https://)</li>
+<li>Check for typos in the URL</li>
+<li>URL-encode special characters</li>
+</ul>
+<hr>
+<h3>CurlUnsupportedProtocolException</h3>
+<p><strong>Error Code:</strong> CURLE_UNSUPPORTED_PROTOCOL (1)</p>
+<p>Thrown when the URL uses an unsupported protocol.</p>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(&quot;curl gopher://example.com&quot;);
+}
+catch (CurlUnsupportedProtocolException ex)
+{
+    Console.WriteLine($&quot;Unsupported protocol: {ex.Protocol}&quot;);
+}
+</code></pre>
+<p><strong>Supported protocols:</strong> http, https, ftp, ftps, file</p>
+<hr>
+<h3>CurlParsingException</h3>
+<p>Thrown when the curl command cannot be parsed.</p>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(&quot;curl --invalid-option https://api.example.com&quot;);
+}
+catch (CurlParsingException ex)
+{
+    Console.WriteLine($&quot;Invalid command: {ex.Message}&quot;);
+    Console.WriteLine($&quot;Position: {ex.ErrorPosition}&quot;);
+}
+</code></pre>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li>Check curl option spelling</li>
+<li>Verify quote matching</li>
+<li>Use <code>Curl.Validate()</code> to check commands before executing</li>
+</ul>
+<hr>
+<h2>Complete Error Code Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Exception</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>CurlUnsupportedProtocolException</code></td>
+<td>Unsupported protocol</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>CurlFailedInitException</code></td>
+<td>Initialization failed</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>CurlMalformedUrlException</code></td>
+<td>Invalid URL format</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>CurlCouldntResolveProxyException</code></td>
+<td>Cannot resolve proxy</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>CurlCouldntResolveHostException</code></td>
+<td>Cannot resolve host (DNS)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>CurlCouldntConnectException</code></td>
+<td>Cannot connect to host</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>CurlWeirdServerReplyException</code></td>
+<td>Unexpected server response</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>CurlRemoteAccessDeniedException</code></td>
+<td>Access denied</td>
+</tr>
+<tr>
+<td>22</td>
+<td><code>CurlHttpException</code></td>
+<td>HTTP error (4xx/5xx)</td>
+</tr>
+<tr>
+<td>23</td>
+<td><code>CurlWriteException</code></td>
+<td>Write error</td>
+</tr>
+<tr>
+<td>26</td>
+<td><code>CurlReadException</code></td>
+<td>Read error</td>
+</tr>
+<tr>
+<td>27</td>
+<td><code>CurlOutOfMemoryException</code></td>
+<td>Out of memory</td>
+</tr>
+<tr>
+<td>28</td>
+<td><code>CurlTimeoutException</code></td>
+<td>Operation timed out</td>
+</tr>
+<tr>
+<td>33</td>
+<td><code>CurlRangeException</code></td>
+<td>Range error</td>
+</tr>
+<tr>
+<td>35</td>
+<td><code>CurlSslConnectException</code></td>
+<td>SSL connection error</td>
+</tr>
+<tr>
+<td>47</td>
+<td><code>CurlTooManyRedirectsException</code></td>
+<td>Too many redirects</td>
+</tr>
+<tr>
+<td>51</td>
+<td><code>CurlPeerFailedVerificationException</code></td>
+<td>SSL peer verification failed</td>
+</tr>
+<tr>
+<td>52</td>
+<td><code>CurlGotNothingException</code></td>
+<td>Empty response</td>
+</tr>
+<tr>
+<td>55</td>
+<td><code>CurlSendException</code></td>
+<td>Send error</td>
+</tr>
+<tr>
+<td>56</td>
+<td><code>CurlReceiveException</code></td>
+<td>Receive error</td>
+</tr>
+<tr>
+<td>60</td>
+<td><code>CurlSslCertificateException</code></td>
+<td>SSL certificate problem</td>
+</tr>
+<tr>
+<td>67</td>
+<td><code>CurlLoginDeniedException</code></td>
+<td>Login denied</td>
+</tr>
+</tbody></table>
+<h2>Best Practices for Error Handling</h2>
+<h3>1. Catch Specific Exceptions First</h3>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(command);
+}
+catch (CurlTimeoutException ex)
+{
+    // Handle timeout specifically
+    await RetryWithLongerTimeout();
+}
+catch (CurlCouldntResolveHostException ex)
+{
+    // Handle DNS failure
+    Log.Error($&quot;Unknown host: {ex.Hostname}&quot;);
+}
+catch (CurlHttpException ex) when (ex.StatusCode == 429)
+{
+    // Handle rate limiting
+    await Task.Delay(TimeSpan.FromSeconds(60));
+    await RetryRequest();
+}
+catch (CurlException ex)
+{
+    // Handle all other curl errors
+    Log.Error($&quot;Curl error {ex.CurlErrorCode}: {ex.Message}&quot;);
+}
+</code></pre>
+<h3>2. Use Pattern Matching</h3>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(command);
+}
+catch (CurlException ex)
+{
+    var message = ex switch
+    {
+        CurlTimeoutException =&gt; &quot;The request timed out. Please try again.&quot;,
+        CurlCouldntResolveHostException e =&gt; $&quot;Could not find {e.Hostname}&quot;,
+        CurlSslException =&gt; &quot;SSL certificate error. Check your connection.&quot;,
+        CurlHttpException { StatusCode: 401 } =&gt; &quot;Please log in first.&quot;,
+        CurlHttpException { StatusCode: 404 } =&gt; &quot;Resource not found.&quot;,
+        _ =&gt; $&quot;Request failed: {ex.Message}&quot;
+    };
+
+    Console.WriteLine(message);
+}
+</code></pre>
+<h3>3. Access Exception Properties</h3>
+<p>All CurlDotNet exceptions provide useful properties:</p>
+<pre><code class="language-csharp">catch (CurlException ex)
+{
+    Console.WriteLine($&quot;Error code: {ex.CurlErrorCode}&quot;);
+    Console.WriteLine($&quot;Message: {ex.Message}&quot;);
+    Console.WriteLine($&quot;Command: {ex.Command}&quot;);
+
+    // For HTTP errors
+    if (ex is CurlHttpException httpEx)
+    {
+        Console.WriteLine($&quot;Status: {httpEx.StatusCode}&quot;);
+        Console.WriteLine($&quot;Body: {httpEx.ResponseBody}&quot;);
+        Console.WriteLine($&quot;Headers: {string.Join(&quot;, &quot;, httpEx.ResponseHeaders)}&quot;);
+    }
+}
+</code></pre>
+<h2>Related Topics</h2>
+<ul>
+<li><a href="common-issues.html">Common Issues</a> - Solutions to frequent problems</li>
+<li><a href="faq.html">FAQ</a> - Frequently asked questions</li>
+<li><a href="../getting-started/configuration.html">Configuration</a> - Set timeouts and other options</li>
+</ul>
+
+
+<nav class="footer-nav">
+<a href="/">← Documentation Home</a> |
+<a href="https://github.com/jacob-mellor/curl-dot-net">View on GitHub</a> |
+<a href="https://www.nuget.org/packages/CurlDotNet/">NuGet Package</a>
+</nav>
+</body>
+</html>

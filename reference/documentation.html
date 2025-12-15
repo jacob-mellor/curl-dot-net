@@ -11,9 +11,49 @@
         @media (max-width: 767px) { .markdown-body { padding: 15px; } }
         a { color: #0366d6; }
         pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+
+        /* Breadcrumb styles */
+        .breadcrumb-nav {
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .breadcrumb-nav a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+        .breadcrumb-nav a:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb-nav .separator {
+            color: #6a737d;
+            margin: 0 8px;
+        }
+
+        /* Footer nav styles */
+        .footer-nav {
+            border-top: 1px solid #e1e4e8;
+            margin-top: 32px;
+            padding-top: 16px;
+            font-size: 14px;
+        }
+        .footer-nav a {
+            color: #0366d6;
+            text-decoration: none;
+            margin-right: 16px;
+        }
+        .footer-nav a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body class="markdown-body">
+<nav class="breadcrumb-nav">
+<a href="/">Documentation Home</a> <span class="separator">›</span> <a href="/reference/">Reference</a>
+</nav>
 <h1>📚 CurlDotNet Documentation Overview</h1>
 <p>Welcome to CurlDotNet! This file provides quick access to all documentation, whether you&#39;re browsing on GitHub or our documentation site.</p>
 <h2>🌐 Online Documentation</h2>
@@ -22,56 +62,46 @@
 <p>All documentation is available directly in this repository. You can read it on GitHub without leaving this page:</p>
 <h3>🚀 Getting Started</h3>
 <ul>
-<li><a href="docs/getting-started/installation.html"><strong>Installation Guide</strong></a> - Get CurlDotNet installed and configured</li>
-<li><a href="docs/tutorials/04-your-first-request.html"><strong>Quick Start Tutorial</strong></a> - Make your first request in 5 minutes</li>
-<li><a href="docs/getting-started/"><strong>README</strong></a> - Overview of getting started</li>
+<li><a href="../getting-started/installation.html"><strong>Installation Guide</strong></a> - Get CurlDotNet installed and configured</li>
+<li><a href="../tutorials/04-your-first-request.html"><strong>Quick Start Tutorial</strong></a> - Make your first request in 5 minutes</li>
+<li><a href="../getting-started/"><strong>README</strong></a> - Overview of getting started</li>
 </ul>
 <h3>📘 User Manual</h3>
 <p>Complete user manual with all documentation:</p>
 <h4>Core Concepts</h4>
 <ul>
-<li><a href="docs/tutorials/01-what-is-dotnet.html"><strong>What is .NET?</strong></a> - For developers new to .NET</li>
-<li><a href="docs/tutorials/02-what-is-curl.html"><strong>What is curl?</strong></a> - Understanding curl basics</li>
-<li><a href="docs/tutorials/03-what-is-async.html"><strong>Async Programming</strong></a> - Understanding async/await</li>
+<li><a href="../tutorials/01-what-is-dotnet.html"><strong>What is .NET?</strong></a> - For developers new to .NET</li>
+<li><a href="../tutorials/02-what-is-curl.html"><strong>What is curl?</strong></a> - Understanding curl basics</li>
+<li><a href="../tutorials/03-what-is-async.html"><strong>Async Programming</strong></a> - Understanding async/await</li>
 </ul>
 <h4>API Documentation</h4>
 <ul>
-<li><a href="docs/api-guide/"><strong>API Guide</strong></a> - Complete API reference</li>
-<li><a href="docs/api-guide/curl-class/"><strong>String API</strong></a> - Using curl command strings</li>
-<li><a href="docs/api-guide/curl-request-builder/"><strong>Builder API</strong></a> - Fluent interface</li>
-<li><a href="docs/api-guide/libcurl/"><strong>LibCurl API</strong></a> - Low-level access</li>
+<li><a href="../api-guide/"><strong>API Guide</strong></a> - Complete API reference</li>
+<li><a href="../api/index.html"><strong>API Reference</strong></a> - Generated API documentation</li>
 </ul>
 <h4>Practical Examples</h4>
 <ul>
-<li><a href="docs/cookbook/"><strong>Cookbook</strong></a> - Ready-to-use code recipes</li>
-<li><a href="docs/cookbook/beginner/simple-get.html"><strong>Simple GET Request</strong></a> - Basic HTTP GET</li>
-<li><a href="docs/cookbook/beginner/send-json.html"><strong>POST JSON Data</strong></a> - Sending JSON</li>
-<li><a href="docs/cookbook/beginner/upload-file.html"><strong>File Upload</strong></a> - Uploading files</li>
-<li><a href="docs/cookbook/beginner/handle-errors.html"><strong>Error Handling</strong></a> - Handle errors properly</li>
+<li><a href="../cookbook/"><strong>Cookbook</strong></a> - Ready-to-use code recipes</li>
+<li><a href="../cookbook/beginner/simple-get.html"><strong>Simple GET Request</strong></a> - Basic HTTP GET</li>
+<li><a href="../cookbook/beginner/send-json.html"><strong>POST JSON Data</strong></a> - Sending JSON</li>
+<li><a href="../cookbook/beginner/upload-file.html"><strong>File Upload</strong></a> - Uploading files</li>
+<li><a href="../cookbook/beginner/handle-errors.html"><strong>Error Handling</strong></a> - Handle errors properly</li>
 </ul>
 <h4>Authentication</h4>
 <ul>
-<li><a href="docs/authentication/"><strong>Authentication Guide</strong></a> - All auth methods</li>
-<li><a href="docs/authentication/basic-auth.html"><strong>Basic Auth</strong></a> - Username/password auth</li>
-<li><a href="docs/authentication/bearer-tokens.html"><strong>Bearer Tokens</strong></a> - Token authentication</li>
-<li><a href="docs/authentication/api-keys.html"><strong>API Keys</strong></a> - API key authentication</li>
-</ul>
-<h4>Advanced Topics</h4>
-<ul>
-<li><a href="docs/advanced/performance.html"><strong>Performance</strong></a> - Optimization techniques</li>
-<li><a href="docs/advanced/middleware/"><strong>Middleware</strong></a> - Custom middleware</li>
-<li><a href="docs/advanced/testing.html"><strong>Testing</strong></a> - Testing strategies</li>
-<li><a href="docs/advanced/circuit-breaker.html"><strong>Circuit Breaker</strong></a> - Resilience patterns</li>
+<li><a href="../tutorials/09-authentication-basics.html"><strong>Authentication Tutorial</strong></a> - All auth methods explained</li>
+<li><a href="../cookbook/beginner/call-api.html"><strong>Call API with Auth</strong></a> - Bearer tokens and API keys</li>
 </ul>
 <h4>Migration Guides</h4>
 <ul>
-<li><a href="docs/migration/from-httpclient.html"><strong>From HttpClient</strong></a> - Migrate from HttpClient</li>
-<li><a href="docs/migration/from-restsharp.html"><strong>From RestSharp</strong></a> - Migrate from RestSharp</li>
+<li><a href="../migration/httpclient.html"><strong>From HttpClient</strong></a> - Migrate from HttpClient</li>
+<li><a href="../migration/restsharp.html"><strong>From RestSharp</strong></a> - Migrate from RestSharp</li>
 </ul>
 <h4>Troubleshooting</h4>
 <ul>
-<li><a href="docs/troubleshooting/common-issues.html"><strong>Common Issues</strong></a> - Solutions to common problems</li>
-<li><a href="docs/troubleshooting/"><strong>FAQ</strong></a> - Frequently asked questions</li>
+<li><a href="../troubleshooting/common-issues.html"><strong>Common Issues</strong></a> - Solutions to common problems</li>
+<li><a href="../troubleshooting/error-reference.html"><strong>Error Reference</strong></a> - All exception types</li>
+<li><a href="../troubleshooting/faq.html"><strong>FAQ</strong></a> - Frequently asked questions</li>
 </ul>
 <h2>🔍 Quick Code Examples</h2>
 <h3>Simple GET Request</h3>
@@ -97,32 +127,33 @@ var result = await Curl.ExecuteAsync($@&quot;
 </code></pre>
 <h2>📁 Documentation Structure</h2>
 <pre><code>docs/
-├── README.md                    # Main documentation index
+├── index.md                    # Main documentation index
 ├── getting-started/            # Installation and setup
 │   ├── README.md
-│   └── installation.md
-├── tutorials/                  # Step-by-step tutorials
+│   ├── installation.md
+│   ├── quickstart.md
+│   ├── first-request.md
+│   └── configuration.md
+├── tutorials/                  # Step-by-step tutorials (14 tutorials)
 │   ├── README.md
 │   ├── 01-what-is-dotnet.md
 │   ├── 02-what-is-curl.md
 │   └── ...
-├── api-guide/                  # API reference
-│   ├── README.md
-│   ├── curl-class/
-│   ├── curl-request-builder/
-│   └── libcurl/
+├── api-guide/                  # API overview
+│   └── README.md
+├── api/                        # Generated API reference
+│   └── index.md
 ├── cookbook/                   # Code recipes
 │   ├── README.md
-│   ├── beginner/
-│   ├── intermediate/
-│   └── real-world/
-├── authentication/            # Auth methods
+│   └── beginner/
+├── migration/                  # Migration guides
+│   ├── httpclient.md
+│   └── restsharp.md
+├── troubleshooting/            # Problem solving
 │   ├── README.md
-│   ├── basic-auth.md
-│   └── ...
-├── troubleshooting/          # Problem solving
-│   ├── README.md
-│   └── common-issues.md
+│   ├── common-issues.md
+│   ├── error-reference.md
+│   └── faq.md
 └── ...
 </code></pre>
 <h2>🎯 Quick Navigation</h2>
@@ -135,27 +166,27 @@ var result = await Curl.ExecuteAsync($@&quot;
 </thead>
 <tbody><tr>
 <td>Install CurlDotNet</td>
-<td><a href="docs/getting-started/installation.html">Installation Guide</a></td>
+<td><a href="../getting-started/installation.html">Installation Guide</a></td>
 </tr>
 <tr>
 <td>Learn the basics</td>
-<td><a href="docs/tutorials/">Tutorials</a></td>
+<td><a href="../tutorials/">Tutorials</a></td>
 </tr>
 <tr>
 <td>See code examples</td>
-<td><a href="docs/cookbook/">Cookbook</a></td>
+<td><a href="../cookbook/">Cookbook</a></td>
 </tr>
 <tr>
 <td>Read API docs</td>
-<td><a href="docs/api-guide/">API Guide</a></td>
+<td><a href="../api-guide/">API Guide</a></td>
 </tr>
 <tr>
 <td>Solve a problem</td>
-<td><a href="docs/troubleshooting/">Troubleshooting</a></td>
+<td><a href="../troubleshooting/">Troubleshooting</a></td>
 </tr>
 <tr>
 <td>Migrate from HttpClient</td>
-<td><a href="docs/migration/from-httpclient.html">Migration Guide</a></td>
+<td><a href="../migration/httpclient.html">Migration Guide</a></td>
 </tr>
 </tbody></table>
 <h2>💡 Why Read Docs on GitHub?</h2>
@@ -182,7 +213,10 @@ var result = await Curl.ExecuteAsync($@&quot;
 <strong>GitHub Repository</strong>: <a href="https://github.com/jacob-mellor/curl-dot-net">https://github.com/jacob-mellor/curl-dot-net</a></p>
 
 
-<hr>
-<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+<nav class="footer-nav">
+<a href="/">← Documentation Home</a> |
+<a href="https://github.com/jacob-mellor/curl-dot-net">View on GitHub</a> |
+<a href="https://www.nuget.org/packages/CurlDotNet/">NuGet Package</a>
+</nav>
 </body>
 </html>
