@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="CurlDotNet Documentation - CurlDotNet Documentation. Pure .NET implementation of curl for C#.">
-    <meta name="keywords" content="curl, .NET, C#, HTTP, REST API, NuGet, CurlDotNet">
+    <meta name="description" content="CurlDotNet - Pure .NET implementation of curl. Paste any curl command directly into your C# application.">
+    <meta name="keywords" content="curl, .NET, C#, HTTP, REST API, NuGet">
     <meta name="author" content="Jacob Mellor, IronSoftware">
-    <title>CurlDotNet Documentation | CurlDotNet Documentation</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <title>CurlDotNet - Pure .NET curl | Sponsored by IronSoftware</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -18,313 +21,253 @@
             background: #f5f5f5;
         }
 
-        /* Beautiful Header - matches homepage */
-        .site-header {
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 30px 20px;
+            padding: 60px 20px;
             text-align: center;
+            margin-bottom: 40px;
         }
-        .site-header h1 {
-            font-size: 2.5em;
-            margin-bottom: 8px;
+
+        header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
         }
-        .site-header h1 a {
-            color: white;
-            text-decoration: none;
+
+        header p {
+            font-size: 1.3em;
+            opacity: 0.95;
         }
-        .site-header h1 a:hover {
-            text-decoration: underline;
-        }
-        .site-header .tagline {
-            font-size: 1.1em;
-            opacity: 0.9;
-            margin-bottom: 15px;
-        }
-        .header-nav {
-            margin-top: 15px;
-        }
-        .header-nav a {
-            color: white;
-            text-decoration: none;
-            margin: 0 12px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.15);
+
+        .badge {
             display: inline-block;
-            font-size: 0.95em;
-            transition: background 0.2s;
-        }
-        .header-nav a:hover {
-            background: rgba(255,255,255,0.3);
-        }
-
-        /* Section Title Bar */
-        .section-bar {
-            background: #2d3748;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        .section-bar .section-name {
-            font-size: 0.9em;
-            opacity: 0.7;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .section-bar h2 {
-            font-size: 1.8em;
-            margin-top: 5px;
-        }
-
-        /* Breadcrumbs */
-        .breadcrumbs {
-            background: #e2e8f0;
-            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin: 10px 5px;
             font-size: 0.9em;
         }
-        .breadcrumbs-inner {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        .breadcrumbs a {
-            color: #667eea;
-            text-decoration: none;
-        }
-        .breadcrumbs a:hover {
-            text-decoration: underline;
-        }
-        .bc-sep {
-            color: #718096;
-            margin: 0 6px;
-        }
 
-        /* Main Content */
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 30px 20px;
-        }
-        .content-card {
+        .hero {
             background: white;
             padding: 40px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
         }
-        .markdown-body { font-size: 16px; }
-        .markdown-body pre {
-            background: #f6f8fa;
-            padding: 16px;
-            overflow: auto;
-            border-radius: 6px;
-        }
-        .markdown-body code {
-            background: #f6f8fa;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 0.9em;
-        }
-        .markdown-body pre code {
-            background: none;
-            padding: 0;
-        }
-        .markdown-body a { color: #667eea; }
-        .markdown-body h1, .markdown-body h2, .markdown-body h3 {
-            margin-top: 24px;
-            margin-bottom: 16px;
-            border-bottom: 1px solid #e1e4e8;
-            padding-bottom: 8px;
-        }
-        .markdown-body h1:first-child { margin-top: 0; }
 
-        /* Footer */
-        .site-footer {
+        .installation {
+            background: #2d3748;
+            color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .installation code {
+            color: #68d391;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .card ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .card li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .card li:last-child {
+            border-bottom: none;
+        }
+
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 5px;
+            margin: 10px;
+            font-size: 1.1em;
+            transition: background 0.3s;
+        }
+
+        .cta-button:hover {
+            background: #764ba2;
+            text-decoration: none;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 20px;
             background: #2d3748;
             color: white;
-            padding: 40px 20px;
-            text-align: center;
-            margin-top: 40px;
+            margin-top: 60px;
         }
-        .footer-links {
-            margin-bottom: 20px;
-        }
-        .footer-links a {
+
+        footer a {
             color: #68d391;
-            text-decoration: none;
-            margin: 0 15px;
-            font-size: 1em;
-        }
-        .footer-links a:hover {
-            text-decoration: underline;
-        }
-        .sponsor-info {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #4a5568;
-        }
-        .sponsor-info a {
-            color: #68d391;
-            text-decoration: none;
-        }
-        .sponsor-info a:hover {
-            text-decoration: underline;
-        }
-        .author-info {
-            margin-top: 10px;
-            font-size: 0.95em;
-            opacity: 0.9;
         }
     </style>
 </head>
 <body>
-    <header class="site-header">
-        <h1><a href="/">📦 CurlDotNet</a></h1>
-        <p class="tagline">Pure .NET implementation of curl - Paste any curl command into C#</p>
-        <nav class="header-nav">
-            <a href="/getting-started/">Get Started</a>
-            <a href="/tutorials/">Tutorials</a>
-            <a href="/cookbook/">Cookbook</a>
-            <a href="/api/">API Reference</a>
-            <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a>
-            <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a>
-        </nav>
+    <header>
+        <h1>📦 CurlDotNet</h1>
+        <p>Pure .NET implementation of curl - Paste any curl command directly into your C# application</p>
+        <div>
+            <span class="badge">✅ .NET 10</span>
+            <span class="badge">✅ .NET 9</span>
+            <span class="badge">✅ .NET 8 LTS</span>
+            <span class="badge">✅ .NET Framework 4.7.2+</span>
+            <span class="badge">✅ .NET Standard 2.0</span>
+        </div>
     </header>
 
-    <div class="section-bar">
-        <div class="section-name">Documentation</div>
-        <h2>CurlDotNet Documentation</h2>
+    <div class="container">
+        <div class="hero">
+            <h2>🚀 The Killer Feature</h2>
+            <p style="font-size: 1.2em; margin: 20px 0;">Copy and paste any curl command - it just works!</p>
+
+            <div class="installation">
+                <strong>Installation:</strong><br>
+                <code>dotnet add package CurlDotNet</code>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="getting-started/installation.html" class="cta-button">Get Started</a>
+                <a href="https://www.nuget.org/packages/CurlDotNet/" class="cta-button">View on NuGet</a>
+                <a href="https://github.com/jacob-mellor/curl-dot-net" class="cta-button">GitHub Repository</a>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h3>🆕 New to curl?</h3>
+                <p>Complete beginner-friendly tutorials</p>
+                <ul>
+                    <li><a href="tutorials/01-what-is-dotnet.html">What is .NET and C#?</a></li>
+                    <li><a href="tutorials/04-your-first-request.html">Your First Request</a></li>
+                    <li><a href="cookbook/README.html">Recipe Cookbook</a></li>
+                    <li><a href="new-to-curl.html">New to curl? Start here</a></li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>💼 Experienced Developer?</h3>
+                <p>Jump right in with guides and API docs</p>
+                <ul>
+                    <li><a href="getting-started/installation.html">Installation Guide</a></li>
+                    <li><a href="api-guide/README.html">API Guide</a></li>
+                    <li><a href="cookbook/README.html">Code Cookbook</a></li>
+                    <li><a href="api/index.html">Full API Reference</a></li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>🔄 Migrating?</h3>
+                <p>Switching from another library?</p>
+                <ul>
+                    <li><a href="migration/README.html">Migration Guides</a></li>
+                    <li><a href="api-guide/README.html">API Overview</a></li>
+                    <li><a href="troubleshooting/README.html">Troubleshooting</a></li>
+                    <li><a href="exceptions/README.html">Exception Handling</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="hero">
+            <h2>✨ Key Features</h2>
+            <div class="grid">
+                <div>
+                    <h4>🎯 Paste ANY curl command</h4>
+                    <p>Works with or without "curl" prefix</p>
+                </div>
+                <div>
+                    <h4>📋 All 300+ curl options</h4>
+                    <p>Full curl compatibility</p>
+                </div>
+                <div>
+                    <h4>💾 Stream-based</h4>
+                    <p>Memory efficient for large files</p>
+                </div>
+                <div>
+                    <h4>🔧 CI/CD Ready</h4>
+                    <p>Perfect for pipelines</p>
+                </div>
+                <div>
+                    <h4>⚠️ Type-safe exceptions</h4>
+                    <p>Every curl error has its own exception type</p>
+                </div>
+                <div>
+                    <h4>🎨 Middleware & DI</h4>
+                    <p>Supports dependency injection</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero">
+            <h2>📖 Documentation Sections</h2>
+            <ul style="list-style: none; padding: 0;">
+                <li style="padding: 10px 0;"><a href="tutorials/README.html">🎓 Tutorials</a> - Learn from scratch with beginner-friendly guides</li>
+                <li style="padding: 10px 0;"><a href="getting-started/installation.html">🚀 Getting Started</a> - Installation and quick start</li>
+                <li style="padding: 10px 0;"><a href="cookbook/README.html">📚 Cookbook</a> - Ready-to-use recipes for common tasks</li>
+                <li style="padding: 10px 0;"><a href="api-guide/README.html">🔧 API Guide</a> - Comprehensive API documentation</li>
+                <li style="padding: 10px 0;"><a href="api/index.html">📋 API Reference</a> - Complete API reference</li>
+                <li style="padding: 10px 0;"><a href="reference/README.html">📖 Reference</a> - Technical reference materials</li>
+                <li style="padding: 10px 0;"><a href="troubleshooting/README.html">🔍 Troubleshooting</a> - Common issues and solutions</li>
+                <li style="padding: 10px 0;"><a href="framework-compatibility.html">🔄 Framework Compatibility</a> - Platform support details</li>
+            </ul>
+        </div>
     </div>
 
-    <nav class="breadcrumbs">
-        <div class="breadcrumbs-inner">
-            <a href="/">Home</a>
-        </div>
-    </nav>
-
-    <main class="container">
-        <article class="content-card markdown-body">
-<h1>CurlDotNet Documentation</h1>
-<p>Welcome to <strong>CurlDotNet</strong> - the pure .NET implementation of curl that allows C# developers to execute curl commands directly in their applications.</p>
-<p><strong>Latest Version:</strong> Fully supports .NET 10, .NET 9, and .NET 8 LTS</p>
-<h2>What is CurlDotNet?</h2>
-<p>CurlDotNet eliminates the friction of translating curl commands to C# code. Simply paste any curl command from API documentation, Stack Overflow, or bash scripts directly into your .NET application, and it works immediately.</p>
-<h2>Quick Example</h2>
-<pre><code class="language-csharp">using CurlDotNet;
-
-// Just paste any curl command - it works!
-var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com/users/octocat&quot;);
-
-if (result.IsSuccess)
-{
-    Console.WriteLine(result.Data);
-}
-</code></pre>
-<h2>Installation</h2>
-<pre><code class="language-bash">dotnet add package CurlDotNet
-</code></pre>
-<h2>Getting Started</h2>
-<ul>
-<li><a href="getting-started/installation.html">Installation Guide</a> - Set up CurlDotNet in your project</li>
-<li><a href="getting-started/quickstart.html">Quick Start</a> - Make your first request in minutes</li>
-<li><a href="getting-started/first-request.html">First Request</a> - Step-by-step walkthrough</li>
-<li><a href="getting-started/configuration.html">Configuration</a> - Configure timeouts, SSL, proxies</li>
-</ul>
-<h2>Learning Paths</h2>
-<h3>New to Programming?</h3>
-<ol>
-<li><a href="tutorials/01-what-is-dotnet.html">What is .NET?</a></li>
-<li><a href="tutorials/02-what-is-curl.html">What is curl?</a></li>
-<li><a href="tutorials/03-what-is-async.html">Understanding async/await</a></li>
-<li><a href="tutorials/04-your-first-request.html">Your First Request</a></li>
-</ol>
-<h3>Experienced Developer?</h3>
-<ol>
-<li><a href="getting-started/quickstart.html">Quick Start</a></li>
-<li><a href="api-guide/">API Guide</a></li>
-<li><a href="cookbook/">Cookbook</a></li>
-</ol>
-<h2>Documentation Sections</h2>
-<table>
-<thead>
-<tr>
-<th>Section</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><a href="tutorials/">Tutorials</a></td>
-<td>Step-by-step learning for beginners</td>
-</tr>
-<tr>
-<td><a href="cookbook/">Cookbook</a></td>
-<td>Copy-paste recipes for common tasks</td>
-</tr>
-<tr>
-<td><a href="api-guide/">API Guide</a></td>
-<td>Complete API reference with examples</td>
-</tr>
-<tr>
-<td><a href="api/index.html">API Reference</a></td>
-<td>Generated API documentation</td>
-</tr>
-<tr>
-<td><a href="troubleshooting/">Troubleshooting</a></td>
-<td>Solutions to common problems</td>
-</tr>
-</tbody></table>
-<h2>The Three Ways to Use CurlDotNet</h2>
-<h3>1. String API (Simplest)</h3>
-<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com&quot;);
-</code></pre>
-<h3>2. Builder API (Type-Safe)</h3>
-<pre><code class="language-csharp">var result = await new CurlRequestBuilder()
-    .WithUrl(&quot;https://api.example.com&quot;)
-    .WithHeader(&quot;Accept&quot;, &quot;application/json&quot;)
-    .ExecuteAsync();
-</code></pre>
-<h3>3. LibCurl API (Reusable)</h3>
-<pre><code class="language-csharp">var curl = new LibCurl()
-    .WithBearerToken(&quot;token123&quot;)
-    .WithTimeout(TimeSpan.FromSeconds(30));
-
-var result = await curl.GetAsync(&quot;https://api.example.com&quot;);
-</code></pre>
-<h2>Platform Support</h2>
-<ul>
-<li>.NET 10.0 (Preview)</li>
-<li>.NET 9.0</li>
-<li>.NET 8.0 (LTS - Recommended)</li>
-<li>.NET Framework 4.7.2+</li>
-<li>.NET Standard 2.0</li>
-</ul>
-<h2>Getting Help</h2>
-<ul>
-<li><a href="https://github.com/jacob-mellor/curl-dot-net/issues">GitHub Issues</a></li>
-<li><a href="troubleshooting/">Troubleshooting Guide</a></li>
-<li><a href="troubleshooting/faq.html">FAQ</a></li>
-</ul>
-<hr>
-<p><em>CurlDotNet is sponsored by <a href="https://ironsoftware.com">IronSoftware</a></em></p>
-
-
-        </article>
-    </main>
-
-    <footer class="site-footer">
-        <div class="footer-links">
-            <a href="/">📚 Documentation Home</a>
-            <a href="https://github.com/jacob-mellor/curl-dot-net">⭐ GitHub Repository</a>
-            <a href="https://www.nuget.org/packages/CurlDotNet/">📦 NuGet Package</a>
-        </div>
-        <div class="sponsor-info">
-            <p>💎 Proudly sponsored by <a href="https://ironsoftware.com">IronSoftware</a></p>
-        </div>
-        <div class="author-info">
-            <p>Written by <a href="https://ironsoftware.com/about-us/authors/jacobmellor/">Jacob Mellor</a>, CTO at IronSoftware</p>
-        </div>
-        <p style="margin-top: 15px; font-size: 0.85em; opacity: 0.7;">
-            © 2024-2025 Jacob Mellor and IronSoftware. All rights reserved.
-        </p>
+    <footer>
+        <p>💎 Proudly sponsored by <a href="https://ironsoftware.com">IronSoftware</a></p>
+        <p>Author: <a href="https://ironsoftware.com/about-us/authors/jacobmellor/">Jacob Mellor</a></p>
+        <p><a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+        <p style="margin-top: 20px; font-size: 0.9em;">Copyright © 1996-2025 Daniel Stenberg, et al. Copyright © 2024-2025 Jacob Mellor and IronSoftware. All rights reserved.</p>
     </footer>
 </body>
 </html>
