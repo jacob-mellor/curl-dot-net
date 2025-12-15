@@ -18,7 +18,7 @@
             background: #f5f5f5;
         }
 
-        /* Beautiful Header - matches homepage */
+        /* Beautiful Header */
         .site-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -57,24 +57,6 @@
         }
         .header-nav a:hover {
             background: rgba(255,255,255,0.3);
-        }
-
-        /* Section Title Bar */
-        .section-bar {
-            background: #2d3748;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        .section-bar .section-name {
-            font-size: 0.9em;
-            opacity: 0.7;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .section-bar h2 {
-            font-size: 1.8em;
-            margin-top: 5px;
         }
 
         /* Breadcrumbs */
@@ -137,42 +119,47 @@
         }
         .markdown-body h1:first-child { margin-top: 0; }
 
-        /* Footer */
+        /* Author Box - IN THE ARTICLE for SEO */
+        .author-box {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #667eea;
+            background: #f8f9ff;
+            padding: 25px;
+            border-radius: 8px;
+        }
+        .author-box h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        .author-box p {
+            margin: 8px 0;
+            color: #4a5568;
+        }
+        .author-box a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .author-box a:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer - minimal */
         .site-footer {
             background: #2d3748;
             color: white;
-            padding: 40px 20px;
+            padding: 20px;
             text-align: center;
             margin-top: 40px;
         }
-        .footer-links {
-            margin-bottom: 20px;
-        }
-        .footer-links a {
+        .site-footer a {
             color: #68d391;
             text-decoration: none;
-            margin: 0 15px;
-            font-size: 1em;
+            margin: 0 10px;
         }
-        .footer-links a:hover {
+        .site-footer a:hover {
             text-decoration: underline;
-        }
-        .sponsor-info {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #4a5568;
-        }
-        .sponsor-info a {
-            color: #68d391;
-            text-decoration: none;
-        }
-        .sponsor-info a:hover {
-            text-decoration: underline;
-        }
-        .author-info {
-            margin-top: 10px;
-            font-size: 0.95em;
-            opacity: 0.9;
         }
     </style>
 </head>
@@ -187,13 +174,9 @@
             <a href="/api/">API Reference</a>
             <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a>
             <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a>
+            <a href="https://github.com/jacob-mellor">Author</a>
         </nav>
     </header>
-
-    <div class="section-bar">
-        <div class="section-name">API Reference</div>
-        <h2>CurlDotNet.Exceptions.CurlInterfaceFailedException.InterfaceName</h2>
-    </div>
 
     <nav class="breadcrumbs">
         <div class="breadcrumbs-inner">
@@ -212,24 +195,21 @@
 <p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
 
 
+
+            <div class="author-box">
+                <h4>About This Documentation</h4>
+                <p>💎 <strong>Sponsored by <a href="https://ironsoftware.com">IronSoftware</a></strong> - Enterprise .NET components trusted by thousands of developers worldwide.</p>
+                <p>✍️ <strong>Written by <a href="https://ironsoftware.com/about-us/authors/jacobmellor/">Jacob Mellor</a></strong>, CTO at IronSoftware.</p>
+                <p>📦 <strong>Get CurlDotNet:</strong> <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet Package</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub Repository</a></p>
+            </div>
         </article>
     </main>
 
     <footer class="site-footer">
-        <div class="footer-links">
-            <a href="/">📚 Documentation Home</a>
-            <a href="https://github.com/jacob-mellor/curl-dot-net">⭐ GitHub Repository</a>
-            <a href="https://www.nuget.org/packages/CurlDotNet/">📦 NuGet Package</a>
-        </div>
-        <div class="sponsor-info">
-            <p>💎 Proudly sponsored by <a href="https://ironsoftware.com">IronSoftware</a></p>
-        </div>
-        <div class="author-info">
-            <p>Written by <a href="https://ironsoftware.com/about-us/authors/jacobmellor/">Jacob Mellor</a>, CTO at IronSoftware</p>
-        </div>
-        <p style="margin-top: 15px; font-size: 0.85em; opacity: 0.7;">
-            © 2024-2025 Jacob Mellor and IronSoftware. All rights reserved.
-        </p>
+        <a href="/">Home</a>
+        <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a>
+        <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a>
+        <a href="https://ironsoftware.com">IronSoftware</a>
     </footer>
 </body>
 </html>

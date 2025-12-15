@@ -3523,6 +3523,30 @@
         <priority>0.8</priority>
     </url>
     <url>
+        <loc>https://jacob-mellor.github.io/curl-dot-net/guides/guides/advanced.html</loc>
+        <lastmod>2025-12-15</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://jacob-mellor.github.io/curl-dot-net/guides/guides/index.html</loc>
+        <lastmod>2025-12-15</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://jacob-mellor.github.io/curl-dot-net/guides/guides/logging-observability.html</loc>
+        <lastmod>2025-12-15</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://jacob-mellor.github.io/curl-dot-net/guides/guides/usage-guide.html</loc>
+        <lastmod>2025-12-15</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
         <loc>https://jacob-mellor.github.io/curl-dot-net/guides/index.html</loc>
         <lastmod>2025-12-15</lastmod>
         <changefreq>weekly</changefreq>
@@ -3599,6 +3623,12 @@
         <lastmod>2025-12-15</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://jacob-mellor.github.io/curl-dot-net/samples/samples/index.html</loc>
+        <lastmod>2025-12-15</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.6</priority>
     </url>
     <url>
         <loc>https://jacob-mellor.github.io/curl-dot-net/supported-protocols.html</loc>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CurlDotNet Examples - CurlDotNet Documentation. Pure .NET implementation of curl for C#.">
+    <meta name="keywords" content="curl, .NET, C#, HTTP, REST API, NuGet, CurlDotNet">
+    <meta name="author" content="Jacob Mellor, IronSoftware">
+    <title>CurlDotNet Examples | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        /* Beautiful Header */
+        .site-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .site-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 8px;
+        }
+        .site-header h1 a {
+            color: white;
+            text-decoration: none;
+        }
+        .site-header h1 a:hover {
+            text-decoration: underline;
+        }
+        .site-header .tagline {
+            font-size: 1.1em;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+        .header-nav {
+            margin-top: 15px;
+        }
+        .header-nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 12px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.15);
+            display: inline-block;
+            font-size: 0.95em;
+            transition: background 0.2s;
+        }
+        .header-nav a:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Breadcrumbs */
+        .breadcrumbs {
+            background: #e2e8f0;
+            padding: 12px 20px;
+            font-size: 0.9em;
+        }
+        .breadcrumbs-inner {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .breadcrumbs a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .breadcrumbs a:hover {
+            text-decoration: underline;
+        }
+        .bc-sep {
+            color: #718096;
+            margin: 0 6px;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        .content-card {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .markdown-body { font-size: 16px; }
+        .markdown-body pre {
+            background: #f6f8fa;
+            padding: 16px;
+            overflow: auto;
+            border-radius: 6px;
+        }
+        .markdown-body code {
+            background: #f6f8fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .markdown-body pre code {
+            background: none;
+            padding: 0;
+        }
+        .markdown-body a { color: #667eea; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #e1e4e8;
+            padding-bottom: 8px;
+        }
+        .markdown-body h1:first-child { margin-top: 0; }
+
+        /* Author Box - IN THE ARTICLE for SEO */
+        .author-box {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #667eea;
+            background: #f8f9ff;
+            padding: 25px;
+            border-radius: 8px;
+        }
+        .author-box h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        .author-box p {
+            margin: 8px 0;
+            color: #4a5568;
+        }
+        .author-box a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .author-box a:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer - minimal */
+        .site-footer {
+            background: #2d3748;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-top: 40px;
+        }
+        .site-footer a {
+            color: #68d391;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        .site-footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <h1><a href="/">📦 CurlDotNet</a></h1>
+        <p class="tagline">Pure .NET implementation of curl - Paste any curl command into C#</p>
+        <nav class="header-nav">
+            <a href="/getting-started/">Get Started</a>
+            <a href="/tutorials/">Tutorials</a>
+            <a href="/cookbook/">Cookbook</a>
+            <a href="/api/">API Reference</a>
+            <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a>
+            <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a>
+            <a href="https://github.com/jacob-mellor">Author</a>
+        </nav>
+    </header>
+
+    <nav class="breadcrumbs">
+        <div class="breadcrumbs-inner">
+            <a href="/">Home</a> <span class="bc-sep">›</span> <a href="/samples/">Samples</a> <span class="bc-sep">›</span> <a href="/samples/samples/">Samples</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <article class="content-card markdown-body">
+<hr>
+<h2>layout: page
+title: Examples &amp; Samples
+permalink: /samples/</h2>
+<h1>CurlDotNet Examples</h1>
+<h2>Basic Examples</h2>
+<h3>Simple GET Request</h3>
+<pre><code class="language-csharp">using CurlDotNet;
+
+var curl = new Curl();
+var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+Console.WriteLine(result.Body);
+</code></pre>
+<h3>POST with JSON</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+var json = &quot;{\&quot;name\&quot;:\&quot;John\&quot;,\&quot;age\&quot;:30}&quot;;
+var result = await curl.PostAsync(&quot;https://api.example.com/users&quot;, json);
+</code></pre>
+<h3>Headers and Authentication</h3>
+<pre><code class="language-csharp">var curl = new Curl()
+    .WithHeader(&quot;Authorization&quot;, &quot;Bearer YOUR_TOKEN&quot;)
+    .WithHeader(&quot;Accept&quot;, &quot;application/json&quot;);
+
+var result = await curl.GetAsync(&quot;https://api.example.com/protected&quot;);
+</code></pre>
+<h2>Advanced Examples</h2>
+<h3>Using Middleware</h3>
+<pre><code class="language-csharp">var pipeline = new CurlMiddlewarePipelineBuilder()
+    .Use&lt;RetryMiddleware&gt;(options =&gt; options.MaxRetries = 3)
+    .Use&lt;RateLimitMiddleware&gt;(options =&gt; options.RequestsPerSecond = 10)
+    .Use&lt;CachingMiddleware&gt;()
+    .Build();
+
+var curl = new Curl(pipeline);
+</code></pre>
+<h3>Error Handling</h3>
+<pre><code class="language-csharp">try
+{
+    var result = await curl.GetAsync(url);
+    Console.WriteLine($&quot;Success: {result.StatusCode}&quot;);
+}
+catch (CurlTimeoutException ex)
+{
+    Console.WriteLine($&quot;Request timed out after {ex.TimeoutSeconds}s&quot;);
+}
+catch (CurlException ex)
+{
+    Console.WriteLine($&quot;Curl error: {ex.Message}&quot;);
+}
+</code></pre>
+<h3>File Downloads</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+var fileData = await curl.DownloadAsync(&quot;https://example.com/file.pdf&quot;);
+await File.WriteAllBytesAsync(&quot;downloaded.pdf&quot;, fileData);
+</code></pre>
+<h3>Form Data</h3>
+<pre><code class="language-csharp">var formData = new Dictionary&lt;string, string&gt;
+{
+    [&quot;username&quot;] = &quot;john&quot;,
+    [&quot;password&quot;] = &quot;secret&quot;
+};
+
+var curl = new Curl();
+var result = await curl.PostFormAsync(&quot;https://api.example.com/login&quot;, formData);
+</code></pre>
+
+
+
+            <div class="author-box">
+                <h4>About This Documentation</h4>
+                <p>💎 <strong>Sponsored by <a href="https://ironsoftware.com">IronSoftware</a></strong> - Enterprise .NET components trusted by thousands of developers worldwide.</p>
+                <p>✍️ <strong>Written by <a href="https://ironsoftware.com/about-us/authors/jacobmellor/">Jacob Mellor</a></strong>, CTO at IronSoftware.</p>
+                <p>📦 <strong>Get CurlDotNet:</strong> <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet Package</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub Repository</a></p>
+            </div>
+        </article>
+    </main>
+
+    <footer class="site-footer">
+        <a href="/">Home</a>
+        <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a>
+        <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a>
+        <a href="https://ironsoftware.com">IronSoftware</a>
+    </footer>
+</body>
+</html>
