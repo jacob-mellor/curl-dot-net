@@ -321,7 +321,7 @@ public class RedirectOptions
 - [HTTP Error Handling](http-errors.md)
 - [DNS Errors](dns-errors.md)
 - [Timeout Errors](timeout-errors.md)
-- [CurlDotNet Redirect API Reference](/api/CurlDotNet.Exceptions/CurlRedirectException.html)
+- [CurlDotNet Redirect API Reference](/api/CurlDotNet.Exceptions.CurlRedirectException.md)
 
 ## Error Prevention Checklist
 

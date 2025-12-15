@@ -303,7 +303,7 @@ public void AddHostsEntry(string hostname, string ipAddress)
 - [Connection Errors](connection-errors.md)
 - [Timeout Errors](timeout-errors.md)
 - [Network Troubleshooting Guide](/guides/network-troubleshooting.md)
-- [CurlDotNet DNS API Reference](/api/CurlDotNet.Exceptions/CurlDnsException.html)
+- [CurlDotNet DNS API Reference](/api/CurlDotNet.Exceptions.CurlDnsException.md)
 
 ## Error Prevention Checklist
 
