@@ -239,7 +239,7 @@ Format: `domain flag path secure expiry name value`
 
 - [HTTP Error Handling](http-errors.md)
 - [Authentication Errors](auth-errors.md)
-- [CurlDotNet Cookie API Reference](/api/CurlDotNet.Exceptions/CurlCookieException.html)
+- [CurlDotNet Cookie API Reference](/api/CurlDotNet.Exceptions.CurlCookieException.md)
 
 ## Error Prevention Checklist
 
