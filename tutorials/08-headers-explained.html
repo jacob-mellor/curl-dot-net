@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial 8: Headers Explained | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Tutorial 8: Headers Explained</h1>
+<p>HTTP headers are key-value pairs that provide additional information about requests and responses. Understanding headers is crucial for working with APIs effectively.</p>
+<h2>What Are Headers?</h2>
+<p>Headers are metadata sent with HTTP requests and responses:</p>
+<pre><code class="language-http">GET /api/users HTTP/1.1
+Host: api.example.com
+User-Agent: CurlDotNet/1.0
+Accept: application/json
+Authorization: Bearer token123
+</code></pre>
+<h2>Setting Request Headers</h2>
+<h3>Basic Header Setting</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+
+// Add individual headers
+curl.Headers.Add(&quot;Authorization&quot;, &quot;Bearer your-token-here&quot;);
+curl.Headers.Add(&quot;X-API-Key&quot;, &quot;your-api-key&quot;);
+curl.Headers.Add(&quot;Accept&quot;, &quot;application/json&quot;);
+
+var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+</code></pre>
+<h3>Headers for Specific Requests</h3>
+<pre><code class="language-csharp">// Headers for a single request
+var request = new CurlRequest
+{
+    Url = &quot;https://api.example.com/data&quot;,
+    Method = HttpMethod.Get,
+    Headers = new Dictionary&lt;string, string&gt;
+    {
+        [&quot;Authorization&quot;] = &quot;Bearer token123&quot;,
+        [&quot;X-Request-ID&quot;] = Guid.NewGuid().ToString()
+    }
+};
+
+var result = await curl.SendAsync(request);
+</code></pre>
+<h2>Common Request Headers</h2>
+<h3>Authorization</h3>
+<pre><code class="language-csharp">// Bearer token (OAuth 2.0, JWT)
+curl.Headers.Add(&quot;Authorization&quot;, &quot;Bearer eyJhbGciOiJIUzI1NiIs...&quot;);
+
+// Basic authentication
+var credentials = Convert.ToBase64String(
+    Encoding.UTF8.GetBytes($&quot;{username}:{password}&quot;)
+);
+curl.Headers.Add(&quot;Authorization&quot;, $&quot;Basic {credentials}&quot;);
+
+// API Key
+curl.Headers.Add(&quot;X-API-Key&quot;, &quot;your-api-key-here&quot;);
+</code></pre>
+<h3>Content-Type</h3>
+<pre><code class="language-csharp">// JSON content
+curl.Headers.Add(&quot;Content-Type&quot;, &quot;application/json&quot;);
+
+// Form data
+curl.Headers.Add(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;);
+
+// Multipart form (file uploads)
+curl.Headers.Add(&quot;Content-Type&quot;, &quot;multipart/form-data&quot;);
+
+// XML content
+curl.Headers.Add(&quot;Content-Type&quot;, &quot;application/xml&quot;);
+</code></pre>
+<h3>Accept</h3>
+<pre><code class="language-csharp">// Specify what content types you can handle
+curl.Headers.Add(&quot;Accept&quot;, &quot;application/json&quot;);
+curl.Headers.Add(&quot;Accept&quot;, &quot;application/json, text/plain, */*&quot;);
+curl.Headers.Add(&quot;Accept&quot;, &quot;application/vnd.api+json&quot;);  // JSON API spec
+</code></pre>
+<h3>User-Agent</h3>
+<pre><code class="language-csharp">// Identify your application
+curl.Headers.Add(&quot;User-Agent&quot;, &quot;MyApp/1.0.0 (Windows 10)&quot;);
+curl.Headers.Add(&quot;User-Agent&quot;, &quot;CurlDotNet/1.0 MyApplication/2.0&quot;);
+</code></pre>
+<h3>Cache Control</h3>
+<pre><code class="language-csharp">// Prevent caching
+curl.Headers.Add(&quot;Cache-Control&quot;, &quot;no-cache&quot;);
+curl.Headers.Add(&quot;Pragma&quot;, &quot;no-cache&quot;);
+
+// Allow caching
+curl.Headers.Add(&quot;Cache-Control&quot;, &quot;max-age=3600&quot;);  // Cache for 1 hour
+</code></pre>
+<h2>Reading Response Headers</h2>
+<h3>Access Response Headers</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+
+if (result.IsSuccess)
+{
+    // Check if header exists
+    if (result.Headers.ContainsKey(&quot;Content-Type&quot;))
+    {
+        string contentType = result.Headers[&quot;Content-Type&quot;];
+        Console.WriteLine($&quot;Content type: {contentType}&quot;);
+    }
+
+    // Safe access with TryGetValue
+    if (result.Headers.TryGetValue(&quot;X-RateLimit-Remaining&quot;, out string remaining))
+    {
+        Console.WriteLine($&quot;API calls remaining: {remaining}&quot;);
+    }
+
+    // Iterate all headers
+    foreach (var header in result.Headers)
+    {
+        Console.WriteLine($&quot;{header.Key}: {header.Value}&quot;);
+    }
+}
+</code></pre>
+<h3>Common Response Headers</h3>
+<pre><code class="language-csharp">// Content-Type - Media type of the response
+var contentType = result.Headers[&quot;Content-Type&quot;];  // &quot;application/json; charset=utf-8&quot;
+
+// Content-Length - Size of response body
+var length = result.Headers[&quot;Content-Length&quot;];  // &quot;1234&quot;
+
+// Location - URL for redirects or created resources
+var location = result.Headers[&quot;Location&quot;];  // &quot;https://api.example.com/users/123&quot;
+
+// Set-Cookie - Cookies from server
+var setCookie = result.Headers[&quot;Set-Cookie&quot;];  // &quot;session=abc123; HttpOnly&quot;
+
+// ETag - Version identifier for caching
+var etag = result.Headers[&quot;ETag&quot;];  // &quot;W/\&quot;123456789\&quot;&quot;
+
+// Last-Modified - When resource was last changed
+var lastModified = result.Headers[&quot;Last-Modified&quot;];  // &quot;Wed, 21 Oct 2023 07:28:00 GMT&quot;
+</code></pre>
+<h2>Working with Cookies</h2>
+<h3>Sending Cookies</h3>
+<pre><code class="language-csharp">// Single cookie
+curl.Headers.Add(&quot;Cookie&quot;, &quot;session=abc123&quot;);
+
+// Multiple cookies
+curl.Headers.Add(&quot;Cookie&quot;, &quot;session=abc123; user_id=456; theme=dark&quot;);
+
+// Cookie with attributes
+var cookie = &quot;session=abc123; Path=/; Domain=.example.com&quot;;
+curl.Headers.Add(&quot;Cookie&quot;, cookie);
+</code></pre>
+<h3>Receiving Cookies</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync(&quot;https://api.example.com/login&quot;);
+
+if (result.Headers.TryGetValue(&quot;Set-Cookie&quot;, out string setCookie))
+{
+    // Parse cookie
+    // Set-Cookie: session=xyz789; Path=/; HttpOnly; Secure
+    var parts = setCookie.Split(&#39;;&#39;);
+    var sessionCookie = parts[0];  // &quot;session=xyz789&quot;
+
+    // Use cookie in subsequent requests
+    curl.Headers.Add(&quot;Cookie&quot;, sessionCookie);
+}
+</code></pre>
+<h2>Custom Headers</h2>
+<h3>API-Specific Headers</h3>
+<pre><code class="language-csharp">// Stripe API version
+curl.Headers.Add(&quot;Stripe-Version&quot;, &quot;2023-10-16&quot;);
+
+// GitHub API version
+curl.Headers.Add(&quot;X-GitHub-Api-Version&quot;, &quot;2022-11-28&quot;);
+
+// Custom correlation ID for tracking
+curl.Headers.Add(&quot;X-Correlation-ID&quot;, Guid.NewGuid().ToString());
+
+// Custom client information
+curl.Headers.Add(&quot;X-Client-Version&quot;, &quot;2.0.0&quot;);
+curl.Headers.Add(&quot;X-Client-Platform&quot;, Environment.OSVersion.ToString());
+</code></pre>
+<h3>Request ID Headers</h3>
+<pre><code class="language-csharp">// Add unique ID to each request for tracking
+public class RequestTrackingCurl : Curl
+{
+    public RequestTrackingCurl()
+    {
+        BeforeRequest = request =&gt;
+        {
+            request.Headers[&quot;X-Request-ID&quot;] = Guid.NewGuid().ToString();
+            request.Headers[&quot;X-Timestamp&quot;] = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+            return request;
+        };
+    }
+}
+</code></pre>
+<h2>Conditional Requests</h2>
+<h3>If-None-Match (ETag)</h3>
+<pre><code class="language-csharp">// First request - get ETag
+var result = await curl.GetAsync(&quot;https://api.example.com/resource&quot;);
+string etag = null;
+
+if (result.Headers.TryGetValue(&quot;ETag&quot;, out string etagValue))
+{
+    etag = etagValue;
+}
+
+// Subsequent request - use ETag
+if (etag != null)
+{
+    curl.Headers.Add(&quot;If-None-Match&quot;, etag);
+}
+
+var result2 = await curl.GetAsync(&quot;https://api.example.com/resource&quot;);
+
+if (result2.StatusCode == HttpStatusCode.NotModified)
+{
+    Console.WriteLine(&quot;Resource hasn&#39;t changed, use cached version&quot;);
+}
+</code></pre>
+<h3>If-Modified-Since</h3>
+<pre><code class="language-csharp">// Check if resource changed since last fetch
+var lastCheck = DateTime.UtcNow.AddHours(-1);
+curl.Headers.Add(&quot;If-Modified-Since&quot;, lastCheck.ToString(&quot;R&quot;));  // RFC1123 format
+
+var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+
+if (result.StatusCode == HttpStatusCode.NotModified)
+{
+    Console.WriteLine(&quot;No changes since last check&quot;);
+}
+</code></pre>
+<h2>Rate Limiting Headers</h2>
+<h3>Reading Rate Limit Info</h3>
+<pre><code class="language-csharp">public class RateLimitInfo
+{
+    public int Limit { get; set; }
+    public int Remaining { get; set; }
+    public DateTime ResetTime { get; set; }
+}
+
+public RateLimitInfo GetRateLimitInfo(CurlResult result)
+{
+    var info = new RateLimitInfo();
+
+    if (result.Headers.TryGetValue(&quot;X-RateLimit-Limit&quot;, out string limit))
+        info.Limit = int.Parse(limit);
+
+    if (result.Headers.TryGetValue(&quot;X-RateLimit-Remaining&quot;, out string remaining))
+        info.Remaining = int.Parse(remaining);
+
+    if (result.Headers.TryGetValue(&quot;X-RateLimit-Reset&quot;, out string reset))
+    {
+        // Unix timestamp to DateTime
+        var unixTime = long.Parse(reset);
+        info.ResetTime = DateTimeOffset.FromUnixTimeSeconds(unixTime).DateTime;
+    }
+
+    return info;
+}
+
+// Usage
+var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+var rateLimits = GetRateLimitInfo(result);
+
+Console.WriteLine($&quot;Calls remaining: {rateLimits.Remaining}/{rateLimits.Limit}&quot;);
+Console.WriteLine($&quot;Resets at: {rateLimits.ResetTime}&quot;);
+
+if (rateLimits.Remaining == 0)
+{
+    var waitTime = rateLimits.ResetTime - DateTime.UtcNow;
+    Console.WriteLine($&quot;Rate limited. Wait {waitTime.TotalSeconds} seconds&quot;);
+}
+</code></pre>
+<h2>CORS Headers</h2>
+<h3>Understanding CORS Headers</h3>
+<pre><code class="language-csharp">// Request headers for CORS
+curl.Headers.Add(&quot;Origin&quot;, &quot;https://myapp.com&quot;);
+curl.Headers.Add(&quot;Access-Control-Request-Method&quot;, &quot;POST&quot;);
+curl.Headers.Add(&quot;Access-Control-Request-Headers&quot;, &quot;Content-Type, Authorization&quot;);
+
+// Response headers to check
+var result = await curl.GetAsync(url);
+
+if (result.Headers.TryGetValue(&quot;Access-Control-Allow-Origin&quot;, out string allowedOrigin))
+{
+    Console.WriteLine($&quot;CORS allowed from: {allowedOrigin}&quot;);
+}
+
+if (result.Headers.TryGetValue(&quot;Access-Control-Allow-Methods&quot;, out string allowedMethods))
+{
+    Console.WriteLine($&quot;Allowed methods: {allowedMethods}&quot;);
+}
+</code></pre>
+<h2>Header Management Patterns</h2>
+<h3>Header Interceptor</h3>
+<pre><code class="language-csharp">public class ApiClient
+{
+    private readonly Curl _curl;
+    private readonly string _apiKey;
+
+    public ApiClient(string apiKey)
+    {
+        _apiKey = apiKey;
+        _curl = new Curl();
+
+        // Add default headers
+        _curl.Headers.Add(&quot;X-API-Key&quot;, _apiKey);
+        _curl.Headers.Add(&quot;Accept&quot;, &quot;application/json&quot;);
+        _curl.Headers.Add(&quot;User-Agent&quot;, &quot;MyApp/1.0&quot;);
+    }
+
+    public async Task&lt;T&gt; GetAsync&lt;T&gt;(string endpoint)
+    {
+        // Headers are automatically included
+        var result = await _curl.GetAsync($&quot;https://api.example.com{endpoint}&quot;);
+
+        if (result.IsSuccess)
+        {
+            return JsonSerializer.Deserialize&lt;T&gt;(result.Data);
+        }
+
+        throw new ApiException(result.Error);
+    }
+}
+</code></pre>
+<h3>Dynamic Headers</h3>
+<pre><code class="language-csharp">public class AuthenticatedCurl : Curl
+{
+    private string _token;
+
+    public void SetToken(string token)
+    {
+        _token = token;
+        Headers[&quot;Authorization&quot;] = $&quot;Bearer {token}&quot;;
+    }
+
+    public void ClearToken()
+    {
+        _token = null;
+        Headers.Remove(&quot;Authorization&quot;);
+    }
+
+    public bool IsAuthenticated =&gt; !string.IsNullOrEmpty(_token);
+}
+</code></pre>
+<h2>Best Practices</h2>
+<ol>
+<li><strong>Set appropriate User-Agent</strong> - Identify your application</li>
+<li><strong>Use correct Content-Type</strong> - Match your request body format</li>
+<li><strong>Handle rate limiting</strong> - Respect API limits</li>
+<li><strong>Implement caching</strong> - Use ETags and Last-Modified</li>
+<li><strong>Add request tracking</strong> - Use correlation IDs</li>
+<li><strong>Secure sensitive headers</strong> - Never log auth tokens</li>
+<li><strong>Validate response headers</strong> - Check Content-Type before parsing</li>
+<li><strong>Use header constants</strong> - Avoid typos in header names</li>
+</ol>
+<h2>Summary</h2>
+<p>Headers control how HTTP requests and responses behave:</p>
+<ul>
+<li>Set request headers to authenticate and configure requests</li>
+<li>Read response headers for metadata and rate limits</li>
+<li>Use standard headers correctly for compatibility</li>
+<li>Implement patterns for header management</li>
+<li>Respect caching and rate limiting headers</li>
+</ul>
+<h2>What&#39;s Next?</h2>
+<p>Learn about <a href="09-authentication-basics.html">authentication basics</a> and how to securely access protected APIs.</p>
+<hr>
+<p><a href="07-json-for-beginners.html">← Previous: JSON for Beginners</a> | <a href="09-authentication-basics.html">Next: Authentication Basics →</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

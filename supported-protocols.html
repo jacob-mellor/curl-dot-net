@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supported Protocols | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Supported Protocols</h1>
+<h2>Overview</h2>
+<p>CurlDotNet supports various network protocols for data transfer. This document lists all supported protocols and their usage.</p>
+<h2>Core Protocols</h2>
+<h3>HTTP/HTTPS</h3>
+<p>Most common web protocols.</p>
+<pre><code class="language-csharp">// HTTP
+var result = await curl.ExecuteAsync(&quot;curl http://example.com&quot;);
+
+// HTTPS (secure)
+var result = await curl.ExecuteAsync(&quot;curl https://example.com&quot;);
+</code></pre>
+<h3>FTP/FTPS</h3>
+<p>File Transfer Protocol.</p>
+<pre><code class="language-csharp">// FTP
+var result = await curl.ExecuteAsync(&quot;curl ftp://ftp.example.com/file.txt&quot;);
+
+// FTPS (secure)
+var result = await curl.ExecuteAsync(&quot;curl ftps://ftp.example.com/file.txt&quot;);
+</code></pre>
+<h3>FILE</h3>
+<p>Local file access.</p>
+<pre><code class="language-csharp">var result = await curl.ExecuteAsync(&quot;curl file:///path/to/local/file.txt&quot;);
+</code></pre>
+<h2>Protocol Features</h2>
+<h3>HTTP/2</h3>
+<pre><code class="language-csharp">// Force HTTP/2
+var result = await curl.ExecuteAsync(&quot;curl --http2 https://example.com&quot;);
+</code></pre>
+<h3>HTTP/3 (QUIC)</h3>
+<pre><code class="language-csharp">// Try HTTP/3 with fallback
+var result = await curl.ExecuteAsync(&quot;curl --http3 https://example.com&quot;);
+</code></pre>
+<h2>Protocol Selection</h2>
+<pre><code class="language-csharp">public string GetProtocolFromUrl(string url)
+{
+    var uri = new Uri(url);
+    return uri.Scheme switch
+    {
+        &quot;http&quot; =&gt; &quot;HTTP&quot;,
+        &quot;https&quot; =&gt; &quot;HTTPS&quot;,
+        &quot;ftp&quot; =&gt; &quot;FTP&quot;,
+        &quot;ftps&quot; =&gt; &quot;FTPS&quot;,
+        &quot;file&quot; =&gt; &quot;FILE&quot;,
+        _ =&gt; &quot;Unknown&quot;
+    };
+}
+</code></pre>
+<h2>Security Considerations</h2>
+<ul>
+<li>Always prefer HTTPS over HTTP</li>
+<li>Use FTPS instead of FTP when possible</li>
+<li>Validate certificates for secure protocols</li>
+</ul>
+<h2>Protocol-Specific Options</h2>
+<h3>HTTP/HTTPS Options</h3>
+<ul>
+<li>Headers: <code>-H &quot;Header: Value&quot;</code></li>
+<li>Methods: <code>-X GET|POST|PUT|DELETE</code></li>
+<li>Data: <code>-d &quot;data&quot;</code></li>
+</ul>
+<h3>FTP Options</h3>
+<ul>
+<li>Authentication: <code>-u user:pass</code></li>
+<li>Upload: <code>-T file</code></li>
+<li>List: <code>-l</code></li>
+</ul>
+<h2>Related Documentation</h2>
+<ul>
+<li><a href="exceptions/url-errors.html">URL Syntax Errors</a></li>
+<li><a href="exceptions/ssl-errors.html">SSL/TLS Errors</a></li>
+<li><a href="https://curl.se/docs/protdocs.html">Protocol Specifications</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

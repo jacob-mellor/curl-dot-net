@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet Documentation Articles | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>CurlDotNet Documentation Articles</h1>
+<p>Welcome to <strong>CurlDotNet</strong> - the pure .NET implementation of curl that allows C# developers to execute curl commands directly in their applications!</p>
+<h2>What is CurlDotNet?</h2>
+<p>CurlDotNet brings the power of curl to .NET. Simply paste any curl command from API documentation, Stack Overflow, or bash scripts directly into your C# code, and it works immediately. No translation required, no shell execution, just pure .NET performance.</p>
+<h2>Installation</h2>
+<p>Install CurlDotNet from NuGet: <strong><a href="https://www.nuget.org/packages/CurlDotNet/">CurlDotNet on NuGet</a></strong></p>
+<pre><code class="language-bash">dotnet add package CurlDotNet
+</code></pre>
+<p>Or via Package Manager:</p>
+<pre><code class="language-powershell">Install-Package CurlDotNet
+</code></pre>
+<h2>📚 Articles in This Section</h2>
+<h3>Available Articles</h3>
+<ul>
+<li><strong><a href="../getting-started/">Getting Started</a></strong> - Complete guide to getting started with CurlDotNet, from installation to your first request</li>
+<li><strong><a href="../getting-started/installation.html">Installation Guide</a></strong> - Detailed installation instructions for all platforms and environments</li>
+<li><strong><a href="ci-cd-integration.html">CI/CD Integration</a></strong> - Run CurlDotNet smoke tests inside GitHub Actions, Azure DevOps, or any pipeline</li>
+</ul>
+<h2>📂 Documentation Sections</h2>
+<h3>Getting Started Guide</h3>
+<ul>
+<li><strong><a href="../getting-started/">Complete Getting Started Section</a></strong> - Comprehensive getting started documentation<ul>
+<li><a href="../getting-started/installation.html">Installation Guide</a> - Detailed setup instructions</li>
+<li><a href="../getting-started/quickstart.html">Quick Start</a> - Make your first request in 5 minutes</li>
+<li><a href="../getting-started/">Full Guide</a> - Complete getting started documentation</li>
+</ul>
+</li>
+</ul>
+<h3>Tutorials</h3>
+<ul>
+<li><a href="../tutorials/">Complete Tutorial Series</a> - Step-by-step learning path</li>
+<li><a href="../tutorials/01-what-is-dotnet.html">What is .NET?</a> - For beginners new to .NET</li>
+<li><a href="../tutorials/02-what-is-curl.html">What is curl?</a> - Understanding curl fundamentals</li>
+<li><a href="../tutorials/04-your-first-request.html">Your First Request</a> - Make your first HTTP request</li>
+</ul>
+<h3>API Guide</h3>
+<ul>
+<li><a href="../api-guide/">Complete API Reference</a> - Detailed API documentation</li>
+<li>String API - Simple curl command execution</li>
+<li>Builder API - Fluent interface for request building</li>
+<li>LibCurl API - Low-level curl implementation</li>
+</ul>
+<h3>Cookbook</h3>
+<ul>
+<li><a href="../cookbook/">Cookbook</a> - Practical recipes and examples</li>
+<li><a href="../cookbook/beginner/simple-get.html">Simple GET Request</a> - Basic HTTP GET</li>
+<li><a href="../cookbook/beginner/send-json.html">POST JSON Data</a> - Sending JSON payloads</li>
+<li><a href="../cookbook/beginner/upload-file.html">File Upload/Download</a> - File operations</li>
+<li><a href="../cookbook/beginner/handle-errors.html">Error Handling</a> - Handling errors gracefully</li>
+</ul>
+<h3>Troubleshooting</h3>
+<ul>
+<li><a href="../troubleshooting/common-issues.html">Common Issues</a> - Solutions to frequent problems</li>
+<li><a href="../troubleshooting/">FAQ</a> - Frequently asked questions</li>
+</ul>
+<h2>Quick Examples</h2>
+<h3>Simple GET Request</h3>
+<pre><code class="language-csharp">using CurlDotNet;
+
+var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+Console.WriteLine(result.Body);
+</code></pre>
+<h3>POST with JSON</h3>
+<pre><code class="language-csharp">using CurlDotNet;
+
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -X POST https://api.example.com/users
+    -H &#39;Content-Type: application/json&#39;
+    -d &#39;{&quot;&quot;name&quot;&quot;:&quot;&quot;John Doe&quot;&quot;,&quot;&quot;email&quot;&quot;:&quot;&quot;john@example.com&quot;&quot;}&#39;
+&quot;);
+</code></pre>
+<h3>Using Builder API</h3>
+<pre><code class="language-csharp">using CurlDotNet;
+
+var result = await new CurlRequestBuilder()
+    .WithUrl(&quot;https://api.github.com/user&quot;)
+    .WithMethod(&quot;GET&quot;)
+    .WithHeader(&quot;Authorization&quot;, &quot;Bearer your-token&quot;)
+    .ExecuteAsync();
+</code></pre>
+<h2>Navigation</h2>
+<ul>
+<li><strong>Beginners</strong>: Start with <a href="../tutorials/">Tutorials</a></li>
+<li><strong>Quick Reference</strong>: Check the <a href="../cookbook/">Cookbook</a></li>
+<li><strong>API Details</strong>: See the <a href="../api-guide/">API Guide</a></li>
+<li><strong>Having Issues?</strong>: Visit <a href="../troubleshooting/">Troubleshooting</a></li>
+</ul>
+<h2>Why CurlDotNet?</h2>
+<ul>
+<li>🚀 <strong>Pure .NET</strong> - No WSL, no native dependencies</li>
+<li>📦 <strong>NuGet Package</strong> - Easy installation and updates</li>
+<li>🔧 <strong>Familiar Syntax</strong> - Use curl commands directly in C#</li>
+<li>🎯 <strong>Modern .NET</strong> - Full async/await support</li>
+<li>🛡️ <strong>Type Safe</strong> - Strongly typed responses and options</li>
+</ul>
+<h2>Contributing</h2>
+<p>We welcome contributions! Please see our <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub repository</a> for more information.</p>
+<h2>Support</h2>
+<ul>
+<li>📖 <a href="https://jacob-mellor.github.io/curl-dot-net/">Documentation</a></li>
+<li>💬 <a href="https://github.com/jacob-mellor/curl-dot-net/discussions">GitHub Discussions</a></li>
+<li>🐛 <a href="https://github.com/jacob-mellor/curl-dot-net/issues">Report Issues</a></li>
+<li>📦 <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet Package</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

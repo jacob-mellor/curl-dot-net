@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migration Guides | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Migration Guides</h1>
+<p>Moving to CurlDotNet from another HTTP client? These guides will help you migrate your existing code with minimal effort.</p>
+<h2>Available Migration Guides</h2>
+<h3><a href="httpclient.html">Migrating from HttpClient</a></h3>
+<p>Learn how to replace <code>System.Net.Http.HttpClient</code> with CurlDotNet, including:</p>
+<ul>
+<li>Basic request patterns</li>
+<li>Header management</li>
+<li>Content types</li>
+<li>Error handling</li>
+<li>Performance considerations</li>
+</ul>
+<h3><a href="restsharp.html">Migrating from RestSharp</a></h3>
+<p>Transition from RestSharp to CurlDotNet with:</p>
+<ul>
+<li>Request building patterns</li>
+<li>Serialization/deserialization</li>
+<li>Authentication methods</li>
+<li>Interceptors and middleware</li>
+<li>Testing strategies</li>
+</ul>
+<h2>Why Migrate to CurlDotNet?</h2>
+<h3>From HttpClient</h3>
+<ul>
+<li><strong>Better error messages</strong>: CurlDotNet provides detailed error information</li>
+<li><strong>Simpler API</strong>: Less ceremony, more productivity</li>
+<li><strong>curl compatibility</strong>: Leverage curl&#39;s proven reliability</li>
+<li><strong>Consistent behavior</strong>: Same results across all platforms</li>
+</ul>
+<h3>From RestSharp</h3>
+<ul>
+<li><strong>Pure C#</strong>: No native dependencies</li>
+<li><strong>Modern async</strong>: Built for async/await from the ground up</li>
+<li><strong>Lighter weight</strong>: Smaller package, fewer dependencies</li>
+<li><strong>Active maintenance</strong>: Regular updates and improvements</li>
+</ul>
+<h2>Quick Comparison</h2>
+<h3>HttpClient</h3>
+<pre><code class="language-csharp">// HttpClient
+using var client = new HttpClient();
+var response = await client.GetAsync(&quot;https://api.example.com/data&quot;);
+var content = await response.Content.ReadAsStringAsync();
+
+// CurlDotNet
+var curl = new Curl();
+var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+var content = result.Data;
+</code></pre>
+<h3>RestSharp</h3>
+<pre><code class="language-csharp">// RestSharp
+var client = new RestClient(&quot;https://api.example.com&quot;);
+var request = new RestRequest(&quot;data&quot;, Method.GET);
+var response = await client.ExecuteAsync(request);
+
+// CurlDotNet
+var curl = new Curl();
+var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+</code></pre>
+<h2>Migration Tools</h2>
+<p>We provide helpers to make migration easier:</p>
+<ul>
+<li><strong>Extension methods</strong>: HttpClient-like APIs for easier transition</li>
+<li><strong>Compatibility layer</strong>: Drop-in replacements for common patterns</li>
+<li><strong>Migration analyzer</strong>: Identify code that needs updating</li>
+</ul>
+<h2>Getting Started</h2>
+<ol>
+<li>Choose your migration guide based on your current client</li>
+<li>Review the key differences and benefits</li>
+<li>Follow the step-by-step migration examples</li>
+<li>Test your migrated code thoroughly</li>
+<li>Enjoy the simplicity and reliability of CurlDotNet!</li>
+</ol>
+<h2>Need Help?</h2>
+<ul>
+<li><a href="https://github.com/jacob-mellor/curl-dot-net/issues">GitHub Issues</a> - Ask questions or report problems</li>
+<li><a href="https://github.com/jacob-mellor/curl-dot-net/tree/master/examples">Examples</a> - See working code</li>
+<li><a href="../api/index.html">API Documentation</a> - Detailed API reference</li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

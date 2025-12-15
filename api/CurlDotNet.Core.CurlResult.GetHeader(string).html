@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Core.CurlResult.GetHeader(string) | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Core.md" title="CurlDotNet.Core">CurlDotNet.Core</a>.<a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a></h3>
+<h2>CurlResult.GetHeader(string) Method</h2>
+<p><b>Get a specific header value (case-insensitive).</b></p>
+<p>Easy header access with null safety. This matches curl&#39;s header behavior exactly.</p>
+<pre><code class="language-csharp">public string GetHeader(string headerName);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Core.CurlResult.GetHeader(string).headerName'></a></p>
+<p><code>headerName</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>Name of the header (case doesn&#39;t matter)</p>
+<h4>Returns</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a><br>Header value or null if not found</p>
+<h3>Example</h3>
+<pre><code class="language-csharp">// Get content type
+var contentType = result.GetHeader(&quot;Content-Type&quot;);
+if (contentType?.Contains(&quot;json&quot;) == true)
+{
+    var data = result.ParseJson&lt;MyData&gt;();
+}
+
+// Check rate limits (common in APIs)
+var remaining = result.GetHeader(&quot;X-RateLimit-Remaining&quot;);
+if (remaining != null &amp;&amp; int.Parse(remaining) &lt; 10)
+{
+    Console.WriteLine(&quot;⚠️ Only {0} API calls left!&quot;, remaining);
+}
+
+// Check cache control
+var cacheControl = result.GetHeader(&quot;Cache-Control&quot;);
+if (cacheControl?.Contains(&quot;no-cache&quot;) == true)
+{
+    Console.WriteLine(&quot;Response should not be cached&quot;);
+}
+
+// Get redirect location
+var location = result.GetHeader(&quot;Location&quot;);
+if (location != null)
+{
+    Console.WriteLine($&quot;Redirected to: {location}&quot;);
+}
+</code></pre>
+<h3>See Also</h3>
+<ul>
+<li><a href="CurlDotNet.Core.CurlResult.HasHeader(string).md" title="CurlDotNet.Core.CurlResult.HasHeader(string)">Check if header exists</a></li>
+<li><a href="CurlDotNet.Core.CurlResult.Headers.md" title="CurlDotNet.Core.CurlResult.Headers">Access all headers as dictionary</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

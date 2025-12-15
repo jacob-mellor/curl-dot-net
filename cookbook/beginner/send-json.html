@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe: Send JSON Data | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Recipe: Send JSON Data</h1>
+<h2>🎯 What You&#39;ll Build</h2>
+<p>A program that sends JSON data to an API - one of the most common tasks in modern web development.</p>
+<h2>🥘 Ingredients</h2>
+<ul>
+<li>CurlDotNet package</li>
+<li>An API endpoint that accepts JSON</li>
+<li>5 minutes</li>
+</ul>
+<h2>📖 The Recipe</h2>
+<h3>Understanding JSON</h3>
+<p>JSON (JavaScript Object Notation) is how APIs share data. It looks like this:</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;Alice&quot;,
+  &quot;age&quot;: 30,
+  &quot;email&quot;: &quot;alice@example.com&quot;
+}
+</code></pre>
+<h3>Step 1: Simple JSON POST</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class Program
+{
+    static async Task Main()
+    {
+        // Send JSON to an API
+        var result = await Curl.ExecuteAsync(@&quot;
+            curl -X POST https://httpbin.org/post \
+            -H &#39;Content-Type: application/json&#39; \
+            -d &#39;{&quot;&quot;name&quot;&quot;: &quot;&quot;Alice&quot;&quot;, &quot;&quot;age&quot;&quot;: 30}&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;JSON sent successfully!&quot;);
+            Console.WriteLine(result.Body);  // httpbin echoes back what you sent
+        }
+    }
+}
+</code></pre>
+<h3>Step 2: Using C# Objects</h3>
+<p>Instead of writing JSON strings, use C# objects:</p>
+<pre><code class="language-csharp">using System;
+using System.Text.Json;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+// Define your data structure
+public class User
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+    public string Email { get; set; }
+}
+
+class Program
+{
+    static async Task Main()
+    {
+        // Create a C# object
+        var user = new User
+        {
+            Name = &quot;Alice&quot;,
+            Age = 30,
+            Email = &quot;alice@example.com&quot;
+        };
+
+        // Convert to JSON
+        var json = JsonSerializer.Serialize(user);
+
+        // Send it
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST https://httpbin.org/post \
+            -H &#39;Content-Type: application/json&#39; \
+            -d &#39;{json}&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;User data sent!&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>🍳 Complete Examples</h2>
+<h3>Example 1: Create a User</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+public class CreateUserRequest
+{
+    public string Username { get; set; }
+    public string Password { get; set; }
+    public string Email { get; set; }
+    public string FullName { get; set; }
+}
+
+public class CreateUserResponse
+{
+    public int Id { get; set; }
+    public string Username { get; set; }
+    public string Message { get; set; }
+}
+
+class UserRegistration
+{
+    static async Task Main()
+    {
+        Console.WriteLine(&quot;=== User Registration ===&quot;);
+
+        Console.Write(&quot;Username: &quot;);
+        var username = Console.ReadLine();
+
+        Console.Write(&quot;Email: &quot;);
+        var email = Console.ReadLine();
+
+        Console.Write(&quot;Password: &quot;);
+        var password = Console.ReadLine();
+
+        Console.Write(&quot;Full Name: &quot;);
+        var fullName = Console.ReadLine();
+
+        // Create registration request
+        var registration = new CreateUserRequest
+        {
+            Username = username,
+            Password = password,
+            Email = email,
+            FullName = fullName
+        };
+
+        // Convert to JSON
+        var json = System.Text.Json.JsonSerializer.Serialize(registration);
+
+        // Send to API
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST https://reqres.in/api/users \
+            -H &#39;Content-Type: application/json&#39; \
+            -d &#39;{json}&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            var response = result.ParseJson&lt;CreateUserResponse&gt;();
+            Console.WriteLine($&quot;✅ User created! ID: {response.Id}&quot;);
+        }
+        else
+        {
+            Console.WriteLine($&quot;❌ Failed: {result.StatusCode}&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 2: Update Settings</h3>
+<pre><code class="language-csharp">using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+public class Settings
+{
+    public bool Notifications { get; set; }
+    public string Theme { get; set; }
+    public string Language { get; set; }
+    public Dictionary&lt;string, bool&gt; Features { get; set; }
+}
+
+class UpdateSettings
+{
+    static async Task Main()
+    {
+        // Create settings object
+        var settings = new Settings
+        {
+            Notifications = true,
+            Theme = &quot;dark&quot;,
+            Language = &quot;en-US&quot;,
+            Features = new Dictionary&lt;string, bool&gt;
+            {
+                [&quot;beta_features&quot;] = true,
+                [&quot;analytics&quot;] = false,
+                [&quot;recommendations&quot;] = true
+            }
+        };
+
+        // Convert to JSON
+        var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions
+        {
+            WriteIndented = true  // Pretty print
+        });
+
+        Console.WriteLine(&quot;Sending settings:&quot;);
+        Console.WriteLine(json);
+
+        // Send to API
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X PUT https://httpbin.org/put \
+            -H &#39;Content-Type: application/json&#39; \
+            -H &#39;Authorization: Bearer your-token-here&#39; \
+            -d &#39;{json}&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✅ Settings updated!&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 3: Complex Nested JSON</h3>
+<pre><code class="language-csharp">using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+public class Order
+{
+    public string OrderId { get; set; }
+    public Customer Customer { get; set; }
+    public List&lt;Item&gt; Items { get; set; }
+    public Address ShippingAddress { get; set; }
+    public decimal Total { get; set; }
+}
+
+public class Customer
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string Email { get; set; }
+}
+
+public class Item
+{
+    public string ProductId { get; set; }
+    public string Name { get; set; }
+    public int Quantity { get; set; }
+    public decimal Price { get; set; }
+}
+
+public class Address
+{
+    public string Street { get; set; }
+    public string City { get; set; }
+    public string State { get; set; }
+    public string ZipCode { get; set; }
+}
+
+class ComplexJsonExample
+{
+    static async Task Main()
+    {
+        // Create complex order object
+        var order = new Order
+        {
+            OrderId = &quot;ORD-12345&quot;,
+            Customer = new Customer
+            {
+                Id = 1001,
+                Name = &quot;John Smith&quot;,
+                Email = &quot;john@example.com&quot;
+            },
+            Items = new List&lt;Item&gt;
+            {
+                new Item
+                {
+                    ProductId = &quot;PROD-001&quot;,
+                    Name = &quot;Laptop&quot;,
+                    Quantity = 1,
+                    Price = 999.99m
+                },
+                new Item
+                {
+                    ProductId = &quot;PROD-002&quot;,
+                    Name = &quot;Mouse&quot;,
+                    Quantity = 2,
+                    Price = 25.99m
+                }
+            },
+            ShippingAddress = new Address
+            {
+                Street = &quot;123 Main St&quot;,
+                City = &quot;Springfield&quot;,
+                State = &quot;IL&quot;,
+                ZipCode = &quot;62701&quot;
+            },
+            Total = 1051.97m
+        };
+
+        // Convert to JSON with formatting
+        var json = JsonSerializer.Serialize(order, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+
+        Console.WriteLine(&quot;Sending order:&quot;);
+        Console.WriteLine(json);
+
+        // Send to API
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST https://httpbin.org/post \
+            -H &#39;Content-Type: application/json&#39; \
+            -H &#39;X-API-Key: your-api-key&#39; \
+            -d &#39;{json.Replace(&quot;\&quot;&quot;, &quot;\\\&quot;&quot;)}&#39;  // Escape quotes for shell
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✅ Order submitted!&quot;);
+
+            // Parse response
+            dynamic response = result.AsJsonDynamic();
+            Console.WriteLine($&quot;Server received: {response.json.orderId}&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>🎨 Variations</h2>
+<h3>Using Different HTTP Methods</h3>
+<pre><code class="language-csharp">// POST - Create new resource
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/users \
+    -H &#39;Content-Type: application/json&#39; \
+    -d &#39;{json}&#39;
+&quot;);
+
+// PUT - Update entire resource
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X PUT https://api.example.com/users/123 \
+    -H &#39;Content-Type: application/json&#39; \
+    -d &#39;{json}&#39;
+&quot;);
+
+// PATCH - Partial update
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X PATCH https://api.example.com/users/123 \
+    -H &#39;Content-Type: application/json&#39; \
+    -d &#39;{json}&#39;
+&quot;);
+</code></pre>
+<h3>With Authentication</h3>
+<pre><code class="language-csharp">// Bearer token
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/data \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;Authorization: Bearer {token}&#39; \
+    -d &#39;{json}&#39;
+&quot;);
+
+// API key
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/data \
+    -H &#39;Content-Type: application/json&#39; \
+    -H &#39;X-API-Key: {apiKey}&#39; \
+    -d &#39;{json}&#39;
+&quot;);
+
+// Basic auth
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/data \
+    -H &#39;Content-Type: application/json&#39; \
+    -u username:password \
+    -d &#39;{json}&#39;
+&quot;);
+</code></pre>
+<h3>JSON from File</h3>
+<pre><code class="language-csharp">// Read JSON from file
+var json = await File.ReadAllTextAsync(&quot;data.json&quot;);
+
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/import \
+    -H &#39;Content-Type: application/json&#39; \
+    -d &#39;{json}&#39;
+&quot;);
+</code></pre>
+<h2>🐛 Troubleshooting</h2>
+<h3>Problem: &quot;400 Bad Request&quot;</h3>
+<p><strong>Solution</strong>: Your JSON might be invalid</p>
+<pre><code class="language-csharp">// Validate JSON first
+try
+{
+    var doc = JsonDocument.Parse(json);
+    // JSON is valid
+}
+catch (JsonException ex)
+{
+    Console.WriteLine($&quot;Invalid JSON: {ex.Message}&quot;);
+}
+</code></pre>
+<h3>Problem: Quotes Breaking the Command</h3>
+<p><strong>Solution</strong>: Escape quotes properly</p>
+<pre><code class="language-csharp">// Method 1: Escape quotes
+var escapedJson = json.Replace(&quot;\&quot;&quot;, &quot;\\\&quot;&quot;);
+
+// Method 2: Use single quotes outside
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com \
+    -H &#39;Content-Type: application/json&#39; \
+    -d &#39;{escapedJson}&#39;
+&quot;);
+
+// Method 3: Use CurlRequestBuilder instead
+var result = await new CurlRequestBuilder()
+    .WithUrl(&quot;https://api.example.com&quot;)
+    .WithMethod(HttpMethod.Post)
+    .WithJson(yourObject)
+    .ExecuteAsync();
+</code></pre>
+<h3>Problem: &quot;415 Unsupported Media Type&quot;</h3>
+<p><strong>Solution</strong>: Add Content-Type header</p>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com \
+    -H &#39;Content-Type: application/json&#39; \  {/* Always include this! */}
+    -d &#39;{json}&#39;
+&quot;);
+</code></pre>
+<h3>Problem: Special Characters in JSON</h3>
+<p><strong>Solution</strong>: Properly escape special characters</p>
+<pre><code class="language-csharp">// Use JsonSerializer to handle escaping
+var safeJson = JsonSerializer.Serialize(new
+{
+    message = &quot;Hello \&quot;World\&quot;&quot;,  // Quotes
+    path = @&quot;C:\Users\file.txt&quot;,  // Backslashes
+    unicode = &quot;Hello 世界 🌍&quot;      // Unicode
+});
+</code></pre>
+<h2>📊 Common JSON Patterns</h2>
+<h3>Single Object</h3>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;Alice&quot;,
+  &quot;age&quot;: 30
+}
+</code></pre>
+<h3>Array of Objects</h3>
+<pre><code class="language-json">[
+  {&quot;id&quot;: 1, &quot;name&quot;: &quot;Alice&quot;},
+  {&quot;id&quot;: 2, &quot;name&quot;: &quot;Bob&quot;}
+]
+</code></pre>
+<h3>Nested Objects</h3>
+<pre><code class="language-json">{
+  &quot;user&quot;: {
+    &quot;name&quot;: &quot;Alice&quot;,
+    &quot;address&quot;: {
+      &quot;city&quot;: &quot;New York&quot;,
+      &quot;country&quot;: &quot;USA&quot;
+    }
+  }
+}
+</code></pre>
+<h3>Mixed Types</h3>
+<pre><code class="language-json">{
+  &quot;string&quot;: &quot;text&quot;,
+  &quot;number&quot;: 123,
+  &quot;boolean&quot;: true,
+  &quot;null&quot;: null,
+  &quot;array&quot;: [1, 2, 3],
+  &quot;object&quot;: {&quot;key&quot;: &quot;value&quot;}
+}
+</code></pre>
+<h2>🚀 Next Steps</h2>
+<p>Now that you can send JSON:</p>
+<ol>
+<li>Learn to <a href="handle-errors.html">Handle API Responses</a></li>
+<li>Try <a href="upload-file.html">Uploading Files</a></li>
+<li>Check the <a href="../../api-guide/">API Guide</a> for bearer tokens and authentication</li>
+</ol>
+<h2>📚 Related Recipes</h2>
+<ul>
+<li><a href="call-api.html">Call an API</a></li>
+<li><a href="simple-get.html">Simple GET Request</a></li>
+<li><a href="post-form.html">POST Form Data</a></li>
+<li><a href="handle-errors.html">Handle Errors</a></li>
+</ul>
+<h2>🎓 Key Takeaways</h2>
+<ul>
+<li>Always set <code>Content-Type: application/json</code></li>
+<li>Use C# objects and serialize to JSON</li>
+<li>Escape quotes in JSON strings</li>
+<li>Check response status before using data</li>
+<li>Use proper HTTP method (POST, PUT, PATCH)</li>
+</ul>
+<hr>
+<p><strong>Need help?</strong> Check <a href="../../troubleshooting/">Troubleshooting</a> | <strong>Have questions?</strong> Ask in <a href="https://github.com/jacob-mellor/curl-dot-net/discussions">Discussions</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial 3: Understanding Async/Await (In Plain English) | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Tutorial 3: Understanding Async/Await (In Plain English)</h1>
+<h2>🎯 What You&#39;ll Learn</h2>
+<ul>
+<li>What <code>async</code> and <code>await</code> mean</li>
+<li>Why we use them</li>
+<li>How to use them correctly</li>
+<li>Common mistakes to avoid</li>
+</ul>
+<h2>📚 Prerequisites</h2>
+<ul>
+<li><a href="01-what-is-dotnet.html">Tutorial 1: What is .NET and C#?</a></li>
+</ul>
+<h2>🍳 The Restaurant Analogy</h2>
+<p>Imagine you&#39;re at a restaurant. There are two ways to get your food:</p>
+<h3>Method 1: Stand and Wait (Synchronous)</h3>
+<pre><code>1. You order a burger
+2. You stand at the counter
+3. You can&#39;t do anything else
+4. You just wait... and wait...
+5. Finally get your burger
+6. Now you can do the next thing
+</code></pre>
+<h3>Method 2: Take a Number (Asynchronous)</h3>
+<pre><code>1. You order a burger
+2. They give you a number
+3. You sit down and chat with friends
+4. You check your phone
+5. They call your number
+6. You get your burger
+</code></pre>
+<p><strong>Async/Await is Method 2!</strong> Your program doesn&#39;t freeze while waiting.</p>
+<h2>💻 In Code Terms</h2>
+<h3>Without Async (Program Freezes)</h3>
+<pre><code class="language-csharp">// DON&#39;T DO THIS - Your program will freeze!
+public static void Main()
+{
+    Console.WriteLine(&quot;Starting download...&quot;);
+
+    // This BLOCKS - program frozen here!
+    var result = DownloadWebpage(&quot;https://slow-website.com&quot;);  // Wait..... wait..... wait.....
+
+    Console.WriteLine(&quot;Finally done!&quot;);  // Only runs after download finishes
+}
+</code></pre>
+<h3>With Async (Program Stays Responsive)</h3>
+<pre><code class="language-csharp">public static async Task Main()  // Note: async Task
+{
+    Console.WriteLine(&quot;Starting download...&quot;);
+
+    // This DOESN&#39;T BLOCK - program can do other things
+    var result = await DownloadWebpageAsync(&quot;https://slow-website.com&quot;);
+
+    Console.WriteLine(&quot;Done!&quot;);  // Runs after download, but program wasn&#39;t frozen
+}
+</code></pre>
+<h2>🔑 The Golden Rules</h2>
+<h3>Rule 1: Async Methods End with &quot;Async&quot;</h3>
+<pre><code class="language-csharp">// Regular methods (avoid these for web requests)
+Curl.Execute()
+File.ReadAllText()
+Download()
+
+// Async methods (use these!)
+Curl.ExecuteAsync()
+File.ReadAllTextAsync()
+DownloadAsync()
+</code></pre>
+<h3>Rule 2: Always Use &#39;await&#39; with Async Methods</h3>
+<pre><code class="language-csharp">// WRONG - Missing await
+var result = Curl.ExecuteAsync(&quot;curl https://api.com&quot;);
+
+// RIGHT - With await
+var result = await Curl.ExecuteAsync(&quot;curl https://api.com&quot;);
+</code></pre>
+<h3>Rule 3: Methods Using &#39;await&#39; Must Be &#39;async&#39;</h3>
+<pre><code class="language-csharp">// WRONG - Method not marked as async
+static Task&lt;string&gt; GetData()
+{
+    var result = await Curl.ExecuteAsync(&quot;curl https://api.com&quot;);  // ERROR!
+    return result.Body;
+}
+
+// RIGHT - Method marked as async
+static async Task&lt;string&gt; GetData()
+{
+    var result = await Curl.ExecuteAsync(&quot;curl https://api.com&quot;);  // Works!
+    return result.Body;
+}
+</code></pre>
+<h2>🎯 Real Examples with CurlDotNet</h2>
+<h3>Example 1: Simple Async Call</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class Program
+{
+    static async Task Main()  // async Task for Main
+    {
+        Console.WriteLine(&quot;Fetching data...&quot;);
+
+        // await tells C# to wait here (but not freeze)
+        var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+
+        Console.WriteLine($&quot;Got {result.Body.Length} characters&quot;);
+    }
+}
+</code></pre>
+<h3>Example 2: Multiple Async Calls (One at a Time)</h3>
+<pre><code class="language-csharp">static async Task Main()
+{
+    // These happen one after another
+    var result1 = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+    Console.WriteLine(&quot;Got first response&quot;);
+
+    var result2 = await Curl.ExecuteAsync(&quot;curl https://api.bitbucket.org&quot;);
+    Console.WriteLine(&quot;Got second response&quot;);
+
+    var result3 = await Curl.ExecuteAsync(&quot;curl https://api.gitlab.com&quot;);
+    Console.WriteLine(&quot;Got third response&quot;);
+}
+</code></pre>
+<h3>Example 3: Multiple Async Calls (All at Once!)</h3>
+<pre><code class="language-csharp">static async Task Main()
+{
+    // Start all three at the same time!
+    var task1 = Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+    var task2 = Curl.ExecuteAsync(&quot;curl https://api.bitbucket.org&quot;);
+    var task3 = Curl.ExecuteAsync(&quot;curl https://api.gitlab.com&quot;);
+
+    // Wait for all to complete
+    var results = await Task.WhenAll(task1, task2, task3);
+
+    Console.WriteLine(&quot;Got all three responses at once!&quot;);
+}
+</code></pre>
+<h2>🤔 What&#39;s Really Happening?</h2>
+<p>When you use <code>await</code>:</p>
+<ol>
+<li><strong>Request Starts</strong> - The HTTP request begins</li>
+<li><strong>Control Returns</strong> - Your program can do other things</li>
+<li><strong>Request Completes</strong> - The server responds</li>
+<li><strong>Code Resumes</strong> - Your code continues from the await line</li>
+</ol>
+<p>It&#39;s like ordering pizza:</p>
+<ol>
+<li>You call and order (start request)</li>
+<li>You watch TV while waiting (program does other things)</li>
+<li>Doorbell rings (request completes)</li>
+<li>You eat pizza (code continues)</li>
+</ol>
+<h2>⚡ Async vs Sync Comparison</h2>
+<h3>Synchronous (Blocking)</h3>
+<pre><code class="language-csharp">// THIS FREEZES YOUR PROGRAM
+public void DownloadFiles()
+{
+    var file1 = DownloadFile(&quot;file1.zip&quot;);  // Wait 5 seconds...
+    var file2 = DownloadFile(&quot;file2.zip&quot;);  // Wait 5 seconds...
+    var file3 = DownloadFile(&quot;file3.zip&quot;);  // Wait 5 seconds...
+    // Total time: 15 seconds, program frozen the whole time
+}
+</code></pre>
+<h3>Asynchronous (Non-Blocking)</h3>
+<pre><code class="language-csharp">// THIS DOESN&#39;T FREEZE
+public async Task DownloadFilesAsync()
+{
+    var task1 = DownloadFileAsync(&quot;file1.zip&quot;);
+    var task2 = DownloadFileAsync(&quot;file2.zip&quot;);
+    var task3 = DownloadFileAsync(&quot;file3.zip&quot;);
+
+    await Task.WhenAll(task1, task2, task3);
+    // Total time: 5 seconds, all download at once!
+}
+</code></pre>
+<h2>❌ Common Mistakes</h2>
+<h3>Mistake 1: Forgetting await</h3>
+<pre><code class="language-csharp">// WRONG - This doesn&#39;t wait for the result!
+static async Task Main()
+{
+    var resultTask = Curl.ExecuteAsync(&quot;curl https://api.com&quot;);
+    Console.WriteLine(resultTask.Body);  // ERROR! resultTask is a Task, not a result
+}
+
+// RIGHT - Use await to get the actual result
+static async Task Main()
+{
+    var result = await Curl.ExecuteAsync(&quot;curl https://api.com&quot;);
+    Console.WriteLine(result.Body);  // Works! result is the actual response
+}
+</code></pre>
+<h3>Mistake 2: Using .Result or .Wait()</h3>
+<pre><code class="language-csharp">// WRONG - Can cause deadlocks!
+static void Main()
+{
+    var result = Curl.ExecuteAsync(&quot;curl https://api.com&quot;).Result;  // BAD!
+    // or
+    var task = Curl.ExecuteAsync(&quot;curl https://api.com&quot;);
+    task.Wait();  // ALSO BAD!
+}
+
+// RIGHT - Use async/await all the way
+static async Task Main()
+{
+    var result = await Curl.ExecuteAsync(&quot;curl https://api.com&quot;);  // GOOD!
+}
+</code></pre>
+<h3>Mistake 3: Not Making Method Async</h3>
+<pre><code class="language-csharp">// WRONG - Method not async
+static Task&lt;string&gt; GetData()
+{
+    var result = await Curl.ExecuteAsync(&quot;curl https://api.com&quot;);  // ERROR!
+    return result.Body;
+}
+
+// RIGHT - Method is async
+static async Task&lt;string&gt; GetData()
+{
+    var result = await Curl.ExecuteAsync(&quot;curl https://api.com&quot;);  // Works!
+    return result.Body;
+}
+</code></pre>
+<h2>🎮 Interactive Example</h2>
+<p>Try this code and see the difference:</p>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using System.Diagnostics;
+using CurlDotNet;
+
+class Program
+{
+    static async Task Main()
+    {
+        // Method 1: One at a time (slow)
+        var stopwatch = Stopwatch.StartNew();
+
+        var result1 = await Curl.ExecuteAsync(&quot;curl https://httpbin.org/delay/1&quot;);
+        var result2 = await Curl.ExecuteAsync(&quot;curl https://httpbin.org/delay/1&quot;);
+        var result3 = await Curl.ExecuteAsync(&quot;curl https://httpbin.org/delay/1&quot;);
+
+        Console.WriteLine($&quot;Sequential: {stopwatch.ElapsedMilliseconds}ms (about 3 seconds)&quot;);
+
+        // Method 2: All at once (fast!)
+        stopwatch.Restart();
+
+        var task1 = Curl.ExecuteAsync(&quot;curl https://httpbin.org/delay/1&quot;);
+        var task2 = Curl.ExecuteAsync(&quot;curl https://httpbin.org/delay/1&quot;);
+        var task3 = Curl.ExecuteAsync(&quot;curl https://httpbin.org/delay/1&quot;);
+
+        await Task.WhenAll(task1, task2, task3);
+
+        Console.WriteLine($&quot;Parallel: {stopwatch.ElapsedMilliseconds}ms (about 1 second)&quot;);
+    }
+}
+</code></pre>
+<h2>📊 Quick Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Keyword</th>
+<th>What It Does</th>
+<th>When to Use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>async</code></td>
+<td>Marks a method as asynchronous</td>
+<td>When method contains <code>await</code></td>
+</tr>
+<tr>
+<td><code>await</code></td>
+<td>Waits for async operation</td>
+<td>Before any <code>...Async()</code> method</td>
+</tr>
+<tr>
+<td><code>Task</code></td>
+<td>Represents an ongoing operation</td>
+<td>Return type for async methods</td>
+</tr>
+<tr>
+<td><code>Task&lt;T&gt;</code></td>
+<td>Ongoing operation with result</td>
+<td>When async method returns value</td>
+</tr>
+</tbody></table>
+<h2>🎯 Simple Rules to Remember</h2>
+<ol>
+<li><strong>See <code>Async</code> in method name?</strong> → Use <code>await</code></li>
+<li><strong>Using <code>await</code> in method?</strong> → Mark method as <code>async</code></li>
+<li><strong>Method is <code>async</code>?</strong> → Return <code>Task</code> or <code>Task&lt;T&gt;</code></li>
+<li><strong>Multiple operations?</strong> → Consider <code>Task.WhenAll()</code></li>
+</ol>
+<h2>🚀 Next Steps</h2>
+<p>Now that you understand async/await:</p>
+<ol>
+<li><strong>Next Tutorial</strong> → <a href="04-your-first-request.html">Your First Request</a></li>
+<li><strong>Practice</strong> → Try the interactive example above</li>
+<li><strong>Experiment</strong> → What happens without <code>await</code>?</li>
+</ol>
+<h2>🤔 FAQs</h2>
+<p><strong>Q: Why not just use synchronous methods?</strong>
+A: Your application would freeze during network requests. Users hate frozen apps!</p>
+<p><strong>Q: Can I use async without await?</strong>
+A: Technically yes, but you usually shouldn&#39;t. You&#39;d lose the benefit.</p>
+<p><strong>Q: Is async/await faster?</strong>
+A: For single operations, no. For multiple operations or keeping UI responsive, yes!</p>
+<p><strong>Q: Do I always need async/await?</strong>
+A: For network requests, file I/O, and database calls - yes! For simple calculations - no.</p>
+<h2>📚 Summary</h2>
+<ul>
+<li><strong>Async</strong> = Non-blocking (doesn&#39;t freeze)</li>
+<li><strong>Await</strong> = Wait for result (but nicely)</li>
+<li><strong>Always use together</strong> = <code>await</code> + <code>Async</code> methods</li>
+<li><strong>Mark methods</strong> = <code>async Task</code> when using <code>await</code></li>
+<li><strong>Better user experience</strong> = Responsive applications</li>
+</ul>
+<hr>
+<p><strong>Ready to make your first request?</strong> → <a href="04-your-first-request.html">Your First Request</a></p>
+<p><strong>Still confused?</strong> That&#39;s normal! Try the examples and it will click. Check <a href="../troubleshooting/common-issues.html">Common Issues</a> if you get stuck.</p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

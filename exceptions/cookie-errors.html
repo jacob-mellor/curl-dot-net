@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Handling Errors | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Cookie Handling Errors</h1>
+<h2>Overview</h2>
+<p>Cookie-related errors occur when CurlDotNet has problems managing HTTP cookies, including reading from or writing to cookie jar files, parsing cookie data, or handling cookie headers.</p>
+<h2>Common Error Scenarios</h2>
+<h3>1. Cookie Jar File Access Issues</h3>
+<p><strong>Problem:</strong> Cannot read or write to the specified cookie jar file.</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>File permissions are too restrictive</li>
+<li>Directory doesn&#39;t exist</li>
+<li>Disk is full</li>
+<li>Invalid file path</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<pre><code class="language-csharp">// Ensure directory exists
+var cookieJarPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), &quot;myapp&quot;, &quot;cookies.txt&quot;);
+Directory.CreateDirectory(Path.GetDirectoryName(cookieJarPath));
+
+// Use the cookie jar with proper error handling
+try
+{
+    var result = await curl.ExecuteAsync($&quot;curl --cookie-jar {cookieJarPath} --cookie {cookieJarPath} https://example.com&quot;);
+}
+catch (CurlCookieException ex)
+{
+    // Check if it&#39;s a file access issue
+    if (!string.IsNullOrEmpty(ex.CookieJarPath))
+    {
+        Console.WriteLine($&quot;Cookie jar issue with: {ex.CookieJarPath}&quot;);
+
+        // Try alternative location
+        var tempCookieJar = Path.GetTempFileName();
+        result = await curl.ExecuteAsync($&quot;curl --cookie-jar {tempCookieJar} https://example.com&quot;);
+    }
+}
+</code></pre>
+<h3>2. Malformed Cookie Data</h3>
+<p><strong>Problem:</strong> Cookie data in the jar file or from the server is malformed.</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Corrupted cookie jar file</li>
+<li>Invalid cookie format from server</li>
+<li>Manual editing of cookie jar file</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<pre><code class="language-csharp">// Clear and recreate cookie jar if corrupted
+if (File.Exists(cookieJarPath))
+{
+    File.Delete(cookieJarPath);
+}
+
+// Start fresh with new cookies
+var result = await curl.ExecuteAsync($&quot;curl --cookie-jar {cookieJarPath} https://example.com&quot;);
+</code></pre>
+<h3>3. Cookie Security Issues</h3>
+<p><strong>Problem:</strong> Cookies are rejected due to security policies.</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Secure cookie on non-HTTPS connection</li>
+<li>HttpOnly cookie access attempt from JavaScript</li>
+<li>SameSite policy violations</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<pre><code class="language-csharp">// Ensure HTTPS for secure cookies
+var url = &quot;https://secure.example.com&quot;;  // Use HTTPS, not HTTP
+
+// Handle cookie policies
+var result = await curl.ExecuteAsync($&quot;curl --cookie-jar {cookieJarPath} {url}&quot;);
+</code></pre>
+<h2>Best Practices</h2>
+<h3>1. Cookie Jar Management</h3>
+<pre><code class="language-csharp">public class CookieManager
+{
+    private readonly string _cookieJarPath;
+
+    public CookieManager(string appName)
+    {
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var cookieDir = Path.Combine(appData, appName);
+        Directory.CreateDirectory(cookieDir);
+        _cookieJarPath = Path.Combine(cookieDir, &quot;cookies.txt&quot;);
+    }
+
+    public async Task&lt;CurlResult&gt; ExecuteWithCookies(string url)
+    {
+        var curl = new Curl();
+        return await curl.ExecuteAsync($&quot;curl --cookie-jar {_cookieJarPath} --cookie {_cookieJarPath} {url}&quot;);
+    }
+
+    public void ClearCookies()
+    {
+        if (File.Exists(_cookieJarPath))
+        {
+            File.Delete(_cookieJarPath);
+        }
+    }
+}
+</code></pre>
+<h3>2. Session Management</h3>
+<pre><code class="language-csharp">// Maintain session across requests
+public class SessionManager
+{
+    private readonly string _sessionCookieJar;
+
+    public SessionManager()
+    {
+        _sessionCookieJar = Path.GetTempFileName();
+    }
+
+    public async Task&lt;CurlResult&gt; Login(string username, string password)
+    {
+        var curl = new Curl();
+        var loginData = $&quot;username={Uri.EscapeDataString(username)}&amp;password={Uri.EscapeDataString(password)}&quot;;
+
+        return await curl.ExecuteAsync(
+            $&quot;curl --cookie-jar {_sessionCookieJar} &quot; +
+            $&quot;--data \&quot;{loginData}\&quot; &quot; +
+            $&quot;https://example.com/login&quot;
+        );
+    }
+
+    public async Task&lt;CurlResult&gt; AuthenticatedRequest(string url)
+    {
+        var curl = new Curl();
+        return await curl.ExecuteAsync(
+            $&quot;curl --cookie {_sessionCookieJar} {url}&quot;
+        );
+    }
+
+    public void Logout()
+    {
+        if (File.Exists(_sessionCookieJar))
+        {
+            File.Delete(_sessionCookieJar);
+        }
+    }
+}
+</code></pre>
+<h2>Debugging Tips</h2>
+<h3>1. Inspect Cookie Jar Contents</h3>
+<pre><code class="language-csharp">// Read and display cookie jar contents for debugging
+if (File.Exists(cookieJarPath))
+{
+    var cookies = File.ReadAllLines(cookieJarPath);
+    Console.WriteLine(&quot;Current cookies:&quot;);
+    foreach (var cookie in cookies)
+    {
+        if (!cookie.StartsWith(&quot;#&quot;))
+        {
+            Console.WriteLine(cookie);
+        }
+    }
+}
+</code></pre>
+<h3>2. Enable Verbose Mode</h3>
+<pre><code class="language-csharp">// Use verbose mode to see cookie handling
+var result = await curl.ExecuteAsync($&quot;curl -v --cookie-jar {cookieJarPath} https://example.com&quot;);
+Console.WriteLine(result.StdErr); // Contains verbose output including cookie operations
+</code></pre>
+<h3>3. Test Cookie Handling</h3>
+<pre><code class="language-csharp">// Test basic cookie functionality
+public async Task&lt;bool&gt; TestCookieHandling()
+{
+    var testCookieJar = Path.GetTempFileName();
+    try
+    {
+        var curl = new Curl();
+
+        // Test writing cookies
+        var writeResult = await curl.ExecuteAsync(
+            $&quot;curl --cookie-jar {testCookieJar} https://httpbin.org/cookies/set?test=value&quot;
+        );
+
+        // Test reading cookies
+        var readResult = await curl.ExecuteAsync(
+            $&quot;curl --cookie {testCookieJar} https://httpbin.org/cookies&quot;
+        );
+
+        // Verify cookie was preserved
+        return readResult.StdOut.Contains(&quot;test&quot;) &amp;&amp; readResult.StdOut.Contains(&quot;value&quot;);
+    }
+    finally
+    {
+        if (File.Exists(testCookieJar))
+        {
+            File.Delete(testCookieJar);
+        }
+    }
+}
+</code></pre>
+<h2>Common Cookie Jar Format</h2>
+<p>The cookie jar file follows the Netscape cookie format:</p>
+<pre><code># Netscape HTTP Cookie File
+# This is a generated file! Do not edit.
+
+.example.com	TRUE	/	FALSE	1234567890	sessionid	abc123def456
+.example.com	TRUE	/	TRUE	1234567890	secure_token	xyz789
+</code></pre>
+<p>Format: <code>domain flag path secure expiry name value</code></p>
+<h2>Related Documentation</h2>
+<ul>
+<li><a href="http-errors.html">HTTP Error Handling</a></li>
+<li><a href="auth-errors.html">Authentication Errors</a></li>
+<li><a href="/api/CurlDotNet.Exceptions.CurlCookieException.html">CurlDotNet Cookie API Reference</a></li>
+</ul>
+<h2>Error Prevention Checklist</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Ensure cookie jar directory exists before use</li>
+<li><input disabled="" type="checkbox"> Check file permissions on cookie jar</li>
+<li><input disabled="" type="checkbox"> Use absolute paths for cookie jar files</li>
+<li><input disabled="" type="checkbox"> Clean up temporary cookie jars after use</li>
+<li><input disabled="" type="checkbox"> Handle cookie jar corruption gracefully</li>
+<li><input disabled="" type="checkbox"> Use HTTPS for secure cookies</li>
+<li><input disabled="" type="checkbox"> Implement proper session management</li>
+<li><input disabled="" type="checkbox"> Clear cookies on logout</li>
+<li><input disabled="" type="checkbox"> Validate cookie data format</li>
+<li><input disabled="" type="checkbox"> Test cookie persistence across requests</li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

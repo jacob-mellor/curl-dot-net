@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Core.CurlResult.HasHeader(string) | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Core.md" title="CurlDotNet.Core">CurlDotNet.Core</a>.<a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a></h3>
+<h2>CurlResult.HasHeader(string) Method</h2>
+<p><b>Check if a header exists.</b></p>
+<p>Test for header presence before accessing. This is case-insensitive, matching curl&#39;s behavior.</p>
+<pre><code class="language-csharp">public bool HasHeader(string headerName);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Core.CurlResult.HasHeader(string).headerName'></a></p>
+<p><code>headerName</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>Name of the header to check (case-insensitive)</p>
+<h4>Returns</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.boolean" title="System.Boolean">System.Boolean</a><br>true if the header exists, false otherwise</p>
+<h3>Example</h3>
+<pre><code class="language-csharp">// Check for cookies
+if (result.HasHeader(&quot;Set-Cookie&quot;))
+{
+    var cookie = result.GetHeader(&quot;Set-Cookie&quot;);
+    Console.WriteLine($&quot;Cookie received: {cookie}&quot;);
+}
+
+// Check for authentication requirements
+if (result.HasHeader(&quot;WWW-Authenticate&quot;))
+{
+    Console.WriteLine(&quot;Authentication required&quot;);
+}
+
+// Check for custom headers
+if (result.HasHeader(&quot;X-Custom-Header&quot;))
+{
+    var value = result.GetHeader(&quot;X-Custom-Header&quot;);
+    ProcessCustomValue(value);
+}
+
+// Conditional logic based on headers
+if (result.HasHeader(&quot;Content-Encoding&quot;) &amp;&amp; 
+    result.GetHeader(&quot;Content-Encoding&quot;).Contains(&quot;gzip&quot;))
+{
+    Console.WriteLine(&quot;Response is gzip compressed&quot;);
+}
+</code></pre>
+<h3>See Also</h3>
+<ul>
+<li><a href="CurlDotNet.Core.CurlResult.GetHeader(string).md" title="CurlDotNet.Core.CurlResult.GetHeader(string)">Get header value</a></li>
+<li><a href="CurlDotNet.Core.CurlResult.Headers.md" title="CurlDotNet.Core.CurlResult.Headers">Access all headers</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

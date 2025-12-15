@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet Usage Guide | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>CurlDotNet Usage Guide</h1>
+<p>This comprehensive guide covers common usage scenarios for CurlDotNet, from basic requests to advanced patterns.</p>
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#getting-started">Getting Started</a></li>
+<li><a href="#basic-http-operations">Basic HTTP Operations</a></li>
+<li><a href="#working-with-json">Working with JSON</a></li>
+<li><a href="#authentication">Authentication</a></li>
+<li><a href="#file-operations">File Operations</a></li>
+<li><a href="#advanced-patterns">Advanced Patterns</a></li>
+<li><a href="#error-handling">Error Handling</a></li>
+<li><a href="#performance-optimization">Performance Optimization</a></li>
+<li><a href="#testing-and-mocking">Testing and Mocking</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ol>
+<h2>Getting Started</h2>
+<h3>Installation</h3>
+<pre><code class="language-bash">dotnet add package CurlDotNet
+</code></pre>
+<h3>Basic Setup</h3>
+<pre><code class="language-csharp">using CurlDotNet;
+using CurlDotNet.Core;
+
+// Simplest usage - direct curl command
+var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com&quot;);
+
+// Using convenience methods
+var result = await Curl.GetAsync(&quot;https://api.example.com&quot;);
+</code></pre>
+<h2>Basic HTTP Operations</h2>
+<h3>GET Requests</h3>
+<pre><code class="language-csharp">// Simple GET
+var result = await Curl.GetAsync(&quot;https://api.example.com/users&quot;);
+
+// GET with query parameters
+var result = await Curl.GetAsync(&quot;https://api.example.com/users?page=1&amp;limit=10&quot;);
+
+// GET with headers
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/users&quot;)
+    .AddHeader(&quot;Accept&quot;, &quot;application/json&quot;)
+    .AddHeader(&quot;X-API-Version&quot;, &quot;2.0&quot;)
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h3>POST Requests</h3>
+<pre><code class="language-csharp">// POST with JSON body
+var json = &quot;{\&quot;name\&quot;:\&quot;John Doe\&quot;,\&quot;email\&quot;:\&quot;john@example.com\&quot;}&quot;;
+var result = await Curl.PostAsync(
+    &quot;https://api.example.com/users&quot;,
+    json,
+    &quot;application/json&quot;
+);
+
+// POST with form data
+var formData = &quot;username=john&amp;password=secret&quot;;
+var result = await Curl.PostAsync(
+    &quot;https://api.example.com/login&quot;,
+    formData,
+    &quot;application/x-www-form-urlencoded&quot;
+);
+
+// POST with custom headers
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/users&quot;)
+    .SetMethod(&quot;POST&quot;)
+    .SetBody(json)
+    .AddHeader(&quot;Content-Type&quot;, &quot;application/json&quot;)
+    .AddHeader(&quot;X-Request-ID&quot;, Guid.NewGuid().ToString())
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h3>PUT Requests</h3>
+<pre><code class="language-csharp">// PUT to update resource
+var updateData = &quot;{\&quot;name\&quot;:\&quot;Jane Doe\&quot;,\&quot;email\&quot;:\&quot;jane@example.com\&quot;}&quot;;
+var result = await Curl.PutAsync(
+    &quot;https://api.example.com/users/123&quot;,
+    updateData,
+    &quot;application/json&quot;
+);
+
+// PUT with file upload
+var fileContent = File.ReadAllBytes(&quot;document.pdf&quot;);
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/files/document.pdf&quot;)
+    .SetMethod(&quot;PUT&quot;)
+    .SetBody(fileContent)
+    .AddHeader(&quot;Content-Type&quot;, &quot;application/pdf&quot;)
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h3>DELETE Requests</h3>
+<pre><code class="language-csharp">// Simple DELETE
+var result = await Curl.DeleteAsync(&quot;https://api.example.com/users/123&quot;);
+
+// DELETE with confirmation header
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/users/123&quot;)
+    .SetMethod(&quot;DELETE&quot;)
+    .AddHeader(&quot;X-Confirm-Delete&quot;, &quot;true&quot;)
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h3>PATCH Requests</h3>
+<pre><code class="language-csharp">// PATCH for partial updates
+var patchData = &quot;[{\&quot;op\&quot;:\&quot;replace\&quot;,\&quot;path\&quot;:\&quot;/email\&quot;,\&quot;value\&quot;:\&quot;new@example.com\&quot;}]&quot;;
+var result = await Curl.PatchAsync(
+    &quot;https://api.example.com/users/123&quot;,
+    patchData,
+    &quot;application/json-patch+json&quot;
+);
+</code></pre>
+<h2>Working with JSON</h2>
+<h3>Parsing JSON Responses</h3>
+<pre><code class="language-csharp">using System.Text.Json;
+
+// Basic JSON parsing
+var result = await Curl.GetAsync(&quot;https://api.example.com/user/123&quot;);
+var json = JsonDocument.Parse(result.Body);
+var userName = json.RootElement.GetProperty(&quot;name&quot;).GetString();
+
+// Deserialize to strongly-typed objects
+public class User
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string Email { get; set; }
+}
+
+var result = await Curl.GetAsync(&quot;https://api.example.com/user/123&quot;);
+var user = JsonSerializer.Deserialize&lt;User&gt;(result.Body);
+</code></pre>
+<h3>Sending JSON Data</h3>
+<pre><code class="language-csharp">// Using anonymous objects
+var data = new
+{
+    name = &quot;John Doe&quot;,
+    email = &quot;john@example.com&quot;,
+    age = 30
+};
+
+var json = JsonSerializer.Serialize(data);
+var result = await Curl.PostAsync(&quot;https://api.example.com/users&quot;, json, &quot;application/json&quot;);
+
+// Using strongly-typed objects
+var user = new User { Name = &quot;Jane Doe&quot;, Email = &quot;jane@example.com&quot; };
+var json = JsonSerializer.Serialize(user);
+var result = await Curl.PostAsync(&quot;https://api.example.com/users&quot;, json, &quot;application/json&quot;);
+</code></pre>
+<h3>Working with JSON Arrays</h3>
+<pre><code class="language-csharp">// Parse JSON array
+var result = await Curl.GetAsync(&quot;https://api.example.com/users&quot;);
+var users = JsonSerializer.Deserialize&lt;List&lt;User&gt;&gt;(result.Body);
+
+foreach (var user in users)
+{
+    Console.WriteLine($&quot;{user.Name} - {user.Email}&quot;);
+}
+
+// Send JSON array
+var users = new[]
+{
+    new User { Name = &quot;User1&quot;, Email = &quot;user1@example.com&quot; },
+    new User { Name = &quot;User2&quot;, Email = &quot;user2@example.com&quot; }
+};
+
+var json = JsonSerializer.Serialize(users);
+var result = await Curl.PostAsync(&quot;https://api.example.com/users/bulk&quot;, json, &quot;application/json&quot;);
+</code></pre>
+<h2>Authentication</h2>
+<h3>Basic Authentication</h3>
+<pre><code class="language-csharp">// Using curl command syntax
+var result = await Curl.ExecuteAsync(&quot;curl -u username:password https://api.example.com/secure&quot;);
+
+// Using builder
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/secure&quot;)
+    .SetAuthentication(&quot;username&quot;, &quot;password&quot;)
+    .Build()
+    .ExecuteAsync();
+
+// Using Authorization header
+var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(&quot;username:password&quot;));
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/secure&quot;)
+    .AddHeader(&quot;Authorization&quot;, $&quot;Basic {credentials}&quot;)
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h3>Bearer Token Authentication</h3>
+<pre><code class="language-csharp">// Using Authorization header
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/secure&quot;)
+    .AddHeader(&quot;Authorization&quot;, &quot;Bearer your-token-here&quot;)
+    .Build()
+    .ExecuteAsync();
+
+// Reusable authenticated client
+public class AuthenticatedApiClient
+{
+    private readonly string _token;
+
+    public AuthenticatedApiClient(string token)
+    {
+        _token = token;
+    }
+
+    public async Task&lt;CurlResult&gt; GetAsync(string endpoint)
+    {
+        return await new CurlRequestBuilder()
+            .SetUrl($&quot;https://api.example.com{endpoint}&quot;)
+            .AddHeader(&quot;Authorization&quot;, $&quot;Bearer {_token}&quot;)
+            .Build()
+            .ExecuteAsync();
+    }
+}
+</code></pre>
+<h3>API Key Authentication</h3>
+<pre><code class="language-csharp">// API key in header
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/data&quot;)
+    .AddHeader(&quot;X-API-Key&quot;, &quot;your-api-key&quot;)
+    .Build()
+    .ExecuteAsync();
+
+// API key in query parameter
+var result = await Curl.GetAsync(&quot;https://api.example.com/data?api_key=your-api-key&quot;);
+</code></pre>
+<h3>OAuth 2.0 Flow</h3>
+<pre><code class="language-csharp">// Step 1: Get access token
+var tokenRequest = new
+{
+    grant_type = &quot;client_credentials&quot;,
+    client_id = &quot;your-client-id&quot;,
+    client_secret = &quot;your-client-secret&quot;
+};
+
+var tokenResult = await Curl.PostAsync(
+    &quot;https://auth.example.com/token&quot;,
+    JsonSerializer.Serialize(tokenRequest),
+    &quot;application/json&quot;
+);
+
+var tokenResponse = JsonDocument.Parse(tokenResult.Body);
+var accessToken = tokenResponse.RootElement.GetProperty(&quot;access_token&quot;).GetString();
+
+// Step 2: Use access token
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/protected&quot;)
+    .AddHeader(&quot;Authorization&quot;, $&quot;Bearer {accessToken}&quot;)
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h2>File Operations</h2>
+<h3>Downloading Files</h3>
+<pre><code class="language-csharp">// Download to memory
+var result = await Curl.GetAsync(&quot;https://example.com/file.pdf&quot;);
+File.WriteAllBytes(&quot;downloaded.pdf&quot;, Encoding.UTF8.GetBytes(result.Body));
+
+// Download with progress tracking
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://example.com/largefile.zip&quot;)
+    .SetProgressCallback((downloaded, total) =&gt;
+    {
+        var percent = (downloaded / (double)total) * 100;
+        Console.WriteLine($&quot;Downloaded: {percent:F2}%&quot;);
+    })
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h3>Uploading Files</h3>
+<pre><code class="language-csharp">// Upload file as binary
+var fileBytes = File.ReadAllBytes(&quot;document.pdf&quot;);
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/upload&quot;)
+    .SetMethod(&quot;POST&quot;)
+    .SetBody(fileBytes)
+    .AddHeader(&quot;Content-Type&quot;, &quot;application/pdf&quot;)
+    .Build()
+    .ExecuteAsync();
+
+// Multipart form upload
+var boundary = $&quot;----Boundary{Guid.NewGuid():N}&quot;;
+var content = new MultipartFormDataContent(boundary);
+content.Add(new StringContent(&quot;John Doe&quot;), &quot;name&quot;);
+content.Add(new ByteArrayContent(fileBytes), &quot;file&quot;, &quot;document.pdf&quot;);
+
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/upload&quot;)
+    .SetMethod(&quot;POST&quot;)
+    .SetBody(await content.ReadAsStringAsync())
+    .AddHeader(&quot;Content-Type&quot;, $&quot;multipart/form-data; boundary={boundary}&quot;)
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h3>Working with Streams</h3>
+<pre><code class="language-csharp">// Stream response handling
+var result = await Curl.GetAsync(&quot;https://api.example.com/stream&quot;);
+using var stream = new MemoryStream(Encoding.UTF8.GetBytes(result.Body));
+using var reader = new StreamReader(stream);
+
+string line;
+while ((line = await reader.ReadLineAsync()) != null)
+{
+    Console.WriteLine($&quot;Received: {line}&quot;);
+}
+</code></pre>
+<h2>Advanced Patterns</h2>
+<h3>Retry Logic</h3>
+<pre><code class="language-csharp">public async Task&lt;CurlResult&gt; ExecuteWithRetry(string url, int maxRetries = 3)
+{
+    for (int i = 0; i &lt;= maxRetries; i++)
+    {
+        try
+        {
+            var result = await Curl.GetAsync(url);
+            if (result.IsSuccess)
+                return result;
+
+            if (i &lt; maxRetries &amp;&amp; IsRetryableStatusCode(result.StatusCode))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i))); // Exponential backoff
+                continue;
+            }
+
+            return result;
+        }
+        catch (CurlTimeoutException) when (i &lt; maxRetries)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i)));
+        }
+    }
+
+    throw new Exception($&quot;Failed after {maxRetries} retries&quot;);
+}
+
+private bool IsRetryableStatusCode(int statusCode)
+{
+    return statusCode == 429 || statusCode &gt;= 500;
+}
+</code></pre>
+<h3>Rate Limiting</h3>
+<pre><code class="language-csharp">public class RateLimitedClient
+{
+    private readonly SemaphoreSlim _semaphore;
+    private readonly TimeSpan _resetInterval;
+    private DateTime _nextReset;
+
+    public RateLimitedClient(int requestsPerInterval, TimeSpan interval)
+    {
+        _semaphore = new SemaphoreSlim(requestsPerInterval);
+        _resetInterval = interval;
+        _nextReset = DateTime.UtcNow.Add(interval);
+    }
+
+    public async Task&lt;CurlResult&gt; ExecuteAsync(string url)
+    {
+        await _semaphore.WaitAsync();
+
+        try
+        {
+            if (DateTime.UtcNow &gt; _nextReset)
+            {
+                _nextReset = DateTime.UtcNow.Add(_resetInterval);
+                _semaphore.Release(Math.Min(_semaphore.CurrentCount + 1, 10));
+            }
+
+            return await Curl.GetAsync(url);
+        }
+        finally
+        {
+            _ = Task.Delay(_resetInterval).ContinueWith(_ =&gt; _semaphore.Release());
+        }
+    }
+}
+</code></pre>
+<h3>Parallel Requests</h3>
+<pre><code class="language-csharp">// Execute multiple requests in parallel
+var urls = new[]
+{
+    &quot;https://api.example.com/data1&quot;,
+    &quot;https://api.example.com/data2&quot;,
+    &quot;https://api.example.com/data3&quot;
+};
+
+var tasks = urls.Select(url =&gt; Curl.GetAsync(url));
+var results = await Task.WhenAll(tasks);
+
+foreach (var result in results)
+{
+    Console.WriteLine($&quot;Status: {result.StatusCode}, Body length: {result.Body.Length}&quot;);
+}
+
+// Parallel with cancellation
+var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+var tasks = urls.Select(url =&gt; Curl.GetAsync(url, cts.Token));
+var results = await Task.WhenAll(tasks);
+</code></pre>
+<h3>Connection Pooling</h3>
+<pre><code class="language-csharp">// Reuse connections for multiple requests
+public class ApiClient : IDisposable
+{
+    private readonly HttpClient _httpClient;
+
+    public ApiClient()
+    {
+        _httpClient = new HttpClient
+        {
+            BaseAddress = new Uri(&quot;https://api.example.com&quot;),
+            Timeout = TimeSpan.FromSeconds(30)
+        };
+    }
+
+    public async Task&lt;string&gt; GetDataAsync(string endpoint)
+    {
+        // CurlDotNet can work with HttpClient for connection pooling
+        var response = await _httpClient.GetAsync(endpoint);
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    public void Dispose()
+    {
+        _httpClient?.Dispose();
+    }
+}
+</code></pre>
+<h2>Error Handling</h2>
+<h3>Basic Error Handling</h3>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.GetAsync(&quot;https://api.example.com/data&quot;);
+    result.EnsureSuccessStatusCode();
+    // Process successful result
+}
+catch (CurlHttpException httpEx)
+{
+    Console.WriteLine($&quot;HTTP Error {httpEx.StatusCode}: {httpEx.Message}&quot;);
+    if (httpEx.IsRateLimited)
+    {
+        var retryAfter = httpEx.GetRetryAfter();
+        Console.WriteLine($&quot;Rate limited. Retry after: {retryAfter}&quot;);
+    }
+}
+catch (CurlTimeoutException timeoutEx)
+{
+    Console.WriteLine($&quot;Request timed out: {timeoutEx.Message}&quot;);
+}
+catch (CurlException curlEx)
+{
+    Console.WriteLine($&quot;Curl error: {curlEx.Message}&quot;);
+    foreach (var suggestion in curlEx.Suggestions)
+    {
+        Console.WriteLine($&quot;  - {suggestion}&quot;);
+    }
+}
+</code></pre>
+<h3>Custom Error Handling</h3>
+<pre><code class="language-csharp">public class ApiErrorHandler
+{
+    public async Task&lt;T&gt; ExecuteWithHandling&lt;T&gt;(
+        Func&lt;Task&lt;CurlResult&gt;&gt; request,
+        Func&lt;CurlResult, T&gt; processResult)
+    {
+        try
+        {
+            var result = await request();
+
+            if (!result.IsSuccess)
+            {
+                throw result.StatusCode switch
+                {
+                    401 =&gt; new UnauthorizedException(&quot;Authentication required&quot;),
+                    403 =&gt; new ForbiddenException(&quot;Access denied&quot;),
+                    404 =&gt; new NotFoundException(&quot;Resource not found&quot;),
+                    429 =&gt; new RateLimitException(&quot;Too many requests&quot;),
+                    &gt;= 500 =&gt; new ServerException(&quot;Server error&quot;),
+                    _ =&gt; new ApiException($&quot;Request failed: {result.StatusCode}&quot;)
+                };
+            }
+
+            return processResult(result);
+        }
+        catch (CurlException ex)
+        {
+            throw new ApiException(&quot;Network error&quot;, ex);
+        }
+    }
+}
+</code></pre>
+<h2>Performance Optimization</h2>
+<h3>Caching Responses</h3>
+<pre><code class="language-csharp">public class CachedApiClient
+{
+    private readonly MemoryCache _cache;
+
+    public CachedApiClient()
+    {
+        _cache = new MemoryCache(new MemoryCacheOptions
+        {
+            SizeLimit = 100
+        });
+    }
+
+    public async Task&lt;string&gt; GetCachedAsync(string url)
+    {
+        if (_cache.TryGetValue(url, out string cached))
+        {
+            return cached;
+        }
+
+        var result = await Curl.GetAsync(url);
+
+        if (result.IsSuccess)
+        {
+            _cache.Set(url, result.Body, new MemoryCacheEntryOptions
+            {
+                Size = 1,
+                SlidingExpiration = TimeSpan.FromMinutes(5)
+            });
+        }
+
+        return result.Body;
+    }
+}
+</code></pre>
+<h3>Request Compression</h3>
+<pre><code class="language-csharp">// Enable gzip compression for requests and responses
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/data&quot;)
+    .AddHeader(&quot;Accept-Encoding&quot;, &quot;gzip, deflate&quot;)
+    .AddHeader(&quot;Content-Encoding&quot;, &quot;gzip&quot;)
+    .SetBody(CompressString(jsonData))
+    .Build()
+    .ExecuteAsync();
+
+private byte[] CompressString(string text)
+{
+    var bytes = Encoding.UTF8.GetBytes(text);
+    using var output = new MemoryStream();
+    using (var gzip = new GZipStream(output, CompressionLevel.Optimal))
+    {
+        gzip.Write(bytes, 0, bytes.Length);
+    }
+    return output.ToArray();
+}
+</code></pre>
+<h2>Testing and Mocking</h2>
+<h3>Unit Testing with CurlDotNet</h3>
+<pre><code class="language-csharp">[TestClass]
+public class ApiClientTests
+{
+    [TestMethod]
+    public async Task GetUser_ReturnsValidUser()
+    {
+        // Arrange
+        var expectedUser = new User { Id = 1, Name = &quot;Test User&quot; };
+
+        // Act
+        var result = await Curl.GetAsync(&quot;https://jsonplaceholder.typicode.com/users/1&quot;);
+        var user = JsonSerializer.Deserialize&lt;User&gt;(result.Body);
+
+        // Assert
+        Assert.IsNotNull(user);
+        Assert.AreEqual(1, user.Id);
+        Assert.IsFalse(string.IsNullOrEmpty(user.Name));
+    }
+}
+</code></pre>
+<h3>Integration Testing</h3>
+<pre><code class="language-csharp">[TestClass]
+[TestCategory(&quot;Integration&quot;)]
+public class ApiIntegrationTests
+{
+    private string _baseUrl = &quot;https://api.example.com&quot;;
+
+    [TestMethod]
+    public async Task CreateAndDeleteUser_Workflow()
+    {
+        // Create user
+        var createData = JsonSerializer.Serialize(new { name = &quot;Test User&quot; });
+        var createResult = await Curl.PostAsync($&quot;{_baseUrl}/users&quot;, createData, &quot;application/json&quot;);
+        Assert.AreEqual(201, createResult.StatusCode);
+
+        var userId = JsonDocument.Parse(createResult.Body)
+            .RootElement.GetProperty(&quot;id&quot;).GetInt32();
+
+        // Verify user exists
+        var getResult = await Curl.GetAsync($&quot;{_baseUrl}/users/{userId}&quot;);
+        Assert.AreEqual(200, getResult.StatusCode);
+
+        // Delete user
+        var deleteResult = await Curl.DeleteAsync($&quot;{_baseUrl}/users/{userId}&quot;);
+        Assert.AreEqual(204, deleteResult.StatusCode);
+
+        // Verify user deleted
+        var verifyResult = await Curl.GetAsync($&quot;{_baseUrl}/users/{userId}&quot;);
+        Assert.AreEqual(404, verifyResult.StatusCode);
+    }
+}
+</code></pre>
+<h2>Troubleshooting</h2>
+<h3>Common Issues and Solutions</h3>
+<h4>Connection Timeouts</h4>
+<pre><code class="language-csharp">// Increase timeout for slow endpoints
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://slow-api.example.com/data&quot;)
+    .SetTimeout(TimeSpan.FromMinutes(5))
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h4>SSL Certificate Issues</h4>
+<pre><code class="language-csharp">// Disable SSL verification (development only!)
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://self-signed.example.com&quot;)
+    .SetSslVerification(false)
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h4>Proxy Configuration</h4>
+<pre><code class="language-csharp">// Use proxy server
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/data&quot;)
+    .SetProxy(&quot;http://proxy.company.com:8080&quot;)
+    .SetProxyAuthentication(&quot;username&quot;, &quot;password&quot;)
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h4>Debugging Requests</h4>
+<pre><code class="language-csharp">// Enable verbose output for debugging
+var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/data&quot;)
+    .SetVerbose(true)
+    .SetDebugCallback((type, data) =&gt;
+    {
+        Console.WriteLine($&quot;[{type}] {data}&quot;);
+    })
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h3>Logging</h3>
+<pre><code class="language-csharp">public class LoggingApiClient
+{
+    private readonly ILogger&lt;LoggingApiClient&gt; _logger;
+
+    public LoggingApiClient(ILogger&lt;LoggingApiClient&gt; logger)
+    {
+        _logger = logger;
+    }
+
+    public async Task&lt;CurlResult&gt; ExecuteAsync(string url)
+    {
+        _logger.LogInformation(&quot;Executing request to {Url}&quot;, url);
+        var stopwatch = Stopwatch.StartNew();
+
+        try
+        {
+            var result = await Curl.GetAsync(url);
+
+            _logger.LogInformation(
+                &quot;Request completed: {StatusCode} in {ElapsedMs}ms&quot;,
+                result.StatusCode,
+                stopwatch.ElapsedMilliseconds
+            );
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                &quot;Request failed after {ElapsedMs}ms&quot;,
+                stopwatch.ElapsedMilliseconds
+            );
+            throw;
+        }
+    }
+}
+</code></pre>
+<h2>Best Practices</h2>
+<ol>
+<li><strong>Always dispose resources</strong>: Use <code>using</code> statements or implement <code>IDisposable</code></li>
+<li><strong>Handle errors gracefully</strong>: Catch specific exception types</li>
+<li><strong>Use timeouts</strong>: Prevent hanging requests</li>
+<li><strong>Validate inputs</strong>: Check URLs and parameters before sending</li>
+<li><strong>Log requests</strong>: Track API usage and errors</li>
+<li><strong>Use connection pooling</strong>: Reuse HTTP connections</li>
+<li><strong>Implement retry logic</strong>: Handle transient failures</li>
+<li><strong>Respect rate limits</strong>: Implement throttling</li>
+<li><strong>Secure credentials</strong>: Never hardcode secrets</li>
+<li><strong>Test thoroughly</strong>: Unit and integration tests</li>
+</ol>
+<h2>Further Resources</h2>
+<ul>
+<li><a href="https://jacob-mellor.github.io/curl-dot-net">CurlDotNet API Reference</a></li>
+<li><a href="../samples/">Sample Applications</a></li>
+<li><a href="LIBCURL_MAPPING.html">libcurl Mapping Guide</a></li>
+<li><a href="../docs/troubleshooting/">Troubleshooting Guide</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

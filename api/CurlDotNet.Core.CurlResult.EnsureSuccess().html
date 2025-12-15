@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Core.CurlResult.EnsureSuccess() | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Core.md" title="CurlDotNet.Core">CurlDotNet.Core</a>.<a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a></h3>
+<h2>CurlResult.EnsureSuccess() Method</h2>
+<p><b>Throw an exception if the request wasn&#39;t successful (not 200-299).</b></p>
+<p>Use this when you expect success and want to fail fast. This matches curl&#39;s <code>-f</code> (fail) flag behavior.</p>
+<pre><code class="language-csharp">public CurlDotNet.Core.CurlResult EnsureSuccess();
+</code></pre>
+<h4>Returns</h4>
+<p><a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a><br>This result if successful (for chaining)</p>
+<h4>Exceptions</h4>
+<p><a href="CurlDotNet.Core.CurlHttpException.md" title="CurlDotNet.Core.CurlHttpException">CurlHttpException</a><br>Thrown if status is not 200-299. The exception contains <a href="CurlDotNet.Core.CurlHttpException.StatusCode.md" title="CurlDotNet.Core.CurlHttpException.StatusCode">StatusCode</a> and <a href="CurlDotNet.Core.CurlHttpException.ResponseBody.md" title="CurlDotNet.Core.CurlHttpException.ResponseBody">ResponseBody</a>.</p>
+<h3>Example</h3>
+<pre><code class="language-csharp">// Fail fast pattern
+try
+{
+    var data = result
+        .EnsureSuccess()      // Throws if not 200-299
+        .ParseJson&lt;Data&gt;();  // Only runs if successful
+}
+catch (CurlHttpException ex)
+{
+    Console.WriteLine($&quot;HTTP {ex.StatusCode}: {ex.Message}&quot;);
+    Console.WriteLine($&quot;Response body: {ex.ResponseBody}&quot;);
+}
+
+// Common API pattern - get user data
+var user = (await Curl.ExecuteAsync(&quot;curl https://api.example.com/user/123&quot;))
+    .EnsureSuccess()        // Throws on 404, 500, etc.
+    .ParseJson&lt;User&gt;();    // Safe to parse, we know it&#39;s 200
+
+// Chain multiple operations
+var response = await Curl.ExecuteAsync(&quot;curl https://api.example.com/data&quot;);
+var processed = response
+    .EnsureSuccess()           // Ensure 200-299
+    .SaveToFile(&quot;backup.json&quot;) // Save backup
+    .ParseJson&lt;DataModel&gt;(); // Then parse
+
+// Different handling for different status codes
+try
+{
+    result.EnsureSuccess();
+    ProcessData(result.Body);
+}
+catch (CurlHttpException ex) when (ex.StatusCode == 404)
+{
+    Console.WriteLine(&quot;Resource not found&quot;);
+}
+catch (CurlHttpException ex) when (ex.StatusCode &gt;= 500)
+{
+    Console.WriteLine(&quot;Server error - retry later&quot;);
+}
+</code></pre>
+<h3>See Also</h3>
+<ul>
+<li><a href="CurlDotNet.Core.CurlResult.EnsureStatus(int).md" title="CurlDotNet.Core.CurlResult.EnsureStatus(int)">Ensure specific status code</a></li>
+<li><a href="CurlDotNet.Core.CurlResult.EnsureContains(string).md" title="CurlDotNet.Core.CurlResult.EnsureContains(string)">Ensure response contains text</a></li>
+<li><a href="CurlDotNet.Core.CurlResult.IsSuccess.md" title="CurlDotNet.Core.CurlResult.IsSuccess">Check success without throwing</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

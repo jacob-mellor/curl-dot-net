@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Curl.Validate(string) | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.md" title="CurlDotNet">CurlDotNet</a>.<a href="CurlDotNet.Curl.md" title="CurlDotNet.Curl">Curl</a></h3>
+<h2>Curl.Validate(string) Method</h2>
+<p><b>Check if a curl command is valid without executing it.</b></p>
+<p>Useful for validating user input or checking commands before running them.
+             This only checks syntax, not whether the URL actually exists.</p>
+<p><b>Example:</b></p>
+<pre><code class="language-csharp">// Check if command is valid
+var validation = Curl.Validate(&quot;curl -X POST https://api.example.com&quot;);
+
+if (validation.IsValid)
+{
+    Console.WriteLine(&quot;✅ Command is valid!&quot;);
+    // Safe to execute
+    var result = await Curl.Execute(command);
+}
+else
+{
+    Console.WriteLine($&quot;❌ Invalid command: {validation.ErrorMessage}&quot;);
+    Console.WriteLine($&quot;Problem at position {validation.ErrorPosition}&quot;);
+}
+</code></pre>
+<p><b>Validate User Input:</b></p>
+<pre><code class="language-csharp">Console.Write(&quot;Enter curl command: &quot;);
+var userCommand = Console.ReadLine();
+
+var validation = Curl.Validate(userCommand);
+if (!validation.IsValid)
+{
+    Console.WriteLine($&quot;Error: {validation.ErrorMessage}&quot;);
+    if (validation.Suggestions.Any())
+    {
+        Console.WriteLine(&quot;Did you mean:&quot;);
+        foreach (var suggestion in validation.Suggestions)
+        {
+            Console.WriteLine($&quot;  - {suggestion}&quot;);
+        }
+    }
+}
+</code></pre>
+<pre><code class="language-csharp">public static CurlDotNet.Core.ValidationResult Validate(string command);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Curl.Validate(string).command'></a></p>
+<p><code>command</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>The curl command string to validate.</p>
+<h4>Returns</h4>
+<p><a href="CurlDotNet.Core.ValidationResult.md" title="CurlDotNet.Core.ValidationResult">ValidationResult</a><br>A <a href="CurlDotNet.Core.ValidationResult.md" title="CurlDotNet.Core.ValidationResult">ValidationResult</a> containing:</p>
+<ul>
+<li><b>IsValid</b> - true if command is valid</li>
+<li><b>ErrorMessage</b> - Description of what&#39;s wrong (if invalid)</li>
+<li><b>ErrorPosition</b> - Character position of error</li>
+<li><b>Suggestions</b> - Possible fixes for common mistakes</li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Core.CurlResult.StatusCode | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Core.md" title="CurlDotNet.Core">CurlDotNet.Core</a>.<a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a></h3>
+<h2>CurlResult.StatusCode Property</h2>
+<p><b>The HTTP status code - tells you what happened.</b></p>
+<p>Common codes you&#39;ll see:</p>
+<pre><code class="language-csharp">200 = OK, it worked!
+201 = Created something new
+204 = Success, but no content returned
+400 = Bad request (you sent something wrong)
+401 = Unauthorized (need to login)
+403 = Forbidden (not allowed)
+404 = Not found
+429 = Too many requests (slow down!)
+500 = Server error (their fault, not yours)
+503 = Service unavailable (try again later)
+</code></pre>
+<p><b>Example - Handle different statuses:</b></p>
+<pre><code class="language-csharp">switch (result.StatusCode)
+{
+    case 200: ProcessData(result.Body); break;
+    case 404: Console.WriteLine(&quot;Not found&quot;); break;
+    case 401: RedirectToLogin(); break;
+    case &gt;= 500: Console.WriteLine(&quot;Server error, retry later&quot;); break;
+}
+</code></pre>
+<pre><code class="language-csharp">public int StatusCode { get; set; }
+</code></pre>
+<h4>Property Value</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.int32" title="System.Int32">System.Int32</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Start Guide | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Quick Start Guide</h1>
+<p>Get up and running with CurlDotNet in under 5 minutes!</p>
+<h2>Installation</h2>
+<h3>Using Package Manager Console</h3>
+<pre><code class="language-powershell">Install-Package CurlDotNet
+</code></pre>
+<h3>Using .NET CLI</h3>
+<pre><code class="language-bash">dotnet add package CurlDotNet
+</code></pre>
+<h3>Using PackageReference</h3>
+<pre><code class="language-xml">&lt;PackageReference Include=&quot;CurlDotNet&quot; Version=&quot;1.*&quot; /&gt;
+</code></pre>
+<h2>Your First Request</h2>
+<h3>1. Create a Console Application</h3>
+<pre><code class="language-bash">dotnet new console -n MyCurlApp
+cd MyCurlApp
+dotnet add package CurlDotNet
+</code></pre>
+<h3>2. Write Your Code</h3>
+<p>Replace the contents of <code>Program.cs</code>:</p>
+<pre><code class="language-csharp">using CurlDotNet;
+
+// Create a Curl instance
+var curl = new Curl();
+
+// Make a GET request
+var result = await curl.GetAsync(&quot;https://api.github.com/users/github&quot;);
+
+// Check if successful and display the result
+if (result.IsSuccess)
+{
+    Console.WriteLine(&quot;Success! Response:&quot;);
+    Console.WriteLine(result.Data);
+}
+else
+{
+    Console.WriteLine($&quot;Error: {result.Error}&quot;);
+}
+</code></pre>
+<h3>3. Run Your Application</h3>
+<pre><code class="language-bash">dotnet run
+</code></pre>
+<p>That&#39;s it! You&#39;ve made your first HTTP request with CurlDotNet.</p>
+<h2>Common Operations</h2>
+<h3>GET Request</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+Console.WriteLine(result.Data);
+</code></pre>
+<h3>POST JSON</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+var data = new { name = &quot;John&quot;, age = 30 };
+var result = await curl.PostJsonAsync(&quot;https://api.example.com/users&quot;, data);
+</code></pre>
+<h3>With Headers</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+curl.Headers.Add(&quot;Authorization&quot;, &quot;Bearer your-token&quot;);
+curl.Headers.Add(&quot;X-API-Key&quot;, &quot;your-api-key&quot;);
+
+var result = await curl.GetAsync(&quot;https://api.example.com/protected&quot;);
+</code></pre>
+<h3>Download File</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+await curl.DownloadFileAsync(
+    &quot;https://example.com/file.pdf&quot;,
+    &quot;downloaded-file.pdf&quot;
+);
+</code></pre>
+<h3>Handle Errors</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+
+if (result.IsSuccess)
+{
+    // Process successful response
+    ProcessData(result.Data);
+}
+else
+{
+    // Handle error
+    Console.WriteLine($&quot;Request failed: {result.Error}&quot;);
+    Console.WriteLine($&quot;Status code: {result.StatusCode}&quot;);
+}
+</code></pre>
+<h2>Complete Example: GitHub User Info</h2>
+<p>Here&#39;s a complete example that fetches and displays GitHub user information:</p>
+<pre><code class="language-csharp">using CurlDotNet;
+using System.Text.Json;
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        // Create Curl instance
+        var curl = new Curl();
+
+        // GitHub requires a User-Agent header
+        curl.Headers.Add(&quot;User-Agent&quot;, &quot;CurlDotNet-QuickStart&quot;);
+
+        // Get user info
+        Console.Write(&quot;Enter a GitHub username: &quot;);
+        var username = Console.ReadLine();
+
+        var result = await curl.GetAsync($&quot;https://api.github.com/users/{username}&quot;);
+
+        if (result.IsSuccess)
+        {
+            // Parse JSON response
+            var options = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            var user = JsonSerializer.Deserialize&lt;GitHubUser&gt;(result.Data, options);
+
+            // Display user info
+            Console.WriteLine($&quot;\n=== GitHub User: {user.Login} ===&quot;);
+            Console.WriteLine($&quot;Name: {user.Name ?? &quot;N/A&quot;}&quot;);
+            Console.WriteLine($&quot;Company: {user.Company ?? &quot;N/A&quot;}&quot;);
+            Console.WriteLine($&quot;Location: {user.Location ?? &quot;N/A&quot;}&quot;);
+            Console.WriteLine($&quot;Bio: {user.Bio ?? &quot;N/A&quot;}&quot;);
+            Console.WriteLine($&quot;Public Repos: {user.PublicRepos}&quot;);
+            Console.WriteLine($&quot;Followers: {user.Followers}&quot;);
+            Console.WriteLine($&quot;Following: {user.Following}&quot;);
+            Console.WriteLine($&quot;Created: {user.CreatedAt:yyyy-MM-dd}&quot;);
+        }
+        else
+        {
+            Console.WriteLine($&quot;Error: {result.Error}&quot;);
+
+            if (result.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                Console.WriteLine(&quot;User not found. Please check the username.&quot;);
+            }
+        }
+    }
+}
+
+public class GitHubUser
+{
+    public string Login { get; set; }
+    public string Name { get; set; }
+    public string Company { get; set; }
+    public string Location { get; set; }
+    public string Bio { get; set; }
+    public int PublicRepos { get; set; }
+    public int Followers { get; set; }
+    public int Following { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+</code></pre>
+<h2>What Makes CurlDotNet Special?</h2>
+<h3>1. Simplicity</h3>
+<pre><code class="language-csharp">// HttpClient way (complex)
+using var client = new HttpClient();
+var response = await client.GetAsync(url);
+response.EnsureSuccessStatusCode();
+var content = await response.Content.ReadAsStringAsync();
+
+// CurlDotNet way (simple)
+var curl = new Curl();
+var result = await curl.GetAsync(url);
+var content = result.Data;
+</code></pre>
+<h3>2. Better Error Handling</h3>
+<pre><code class="language-csharp">// No try-catch needed
+var result = await curl.GetAsync(url);
+if (!result.IsSuccess)
+{
+    Console.WriteLine($&quot;Error: {result.Error}&quot;);
+}
+</code></pre>
+<h3>3. curl Compatibility</h3>
+<pre><code class="language-bash"># curl command
+curl -H &quot;Authorization: Bearer token&quot; https://api.example.com/data
+
+# Equivalent CurlDotNet code
+var curl = new Curl();
+curl.Headers.Add(&quot;Authorization&quot;, &quot;Bearer token&quot;);
+var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+</code></pre>
+<h2>Common Patterns</h2>
+<h3>API Client</h3>
+<pre><code class="language-csharp">public class ApiClient
+{
+    private readonly Curl _curl;
+
+    public ApiClient(string apiKey)
+    {
+        _curl = new Curl();
+        _curl.Headers.Add(&quot;X-API-Key&quot;, apiKey);
+        _curl.Headers.Add(&quot;Accept&quot;, &quot;application/json&quot;);
+    }
+
+    public async Task&lt;T&gt; GetAsync&lt;T&gt;(string endpoint)
+    {
+        var result = await _curl.GetAsync($&quot;https://api.example.com{endpoint}&quot;);
+
+        if (result.IsSuccess)
+        {
+            return JsonSerializer.Deserialize&lt;T&gt;(result.Data);
+        }
+
+        throw new Exception($&quot;API request failed: {result.Error}&quot;);
+    }
+}
+</code></pre>
+<h3>Retry Logic</h3>
+<pre><code class="language-csharp">public async Task&lt;CurlResult&gt; GetWithRetry(string url, int maxAttempts = 3)
+{
+    var curl = new Curl();
+
+    for (int i = 0; i &lt; maxAttempts; i++)
+    {
+        var result = await curl.GetAsync(url);
+
+        if (result.IsSuccess)
+            return result;
+
+        if (i &lt; maxAttempts - 1)
+            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i)));
+    }
+
+    throw new Exception($&quot;Failed after {maxAttempts} attempts&quot;);
+}
+</code></pre>
+<h2>Next Steps</h2>
+<p>Now that you&#39;re up and running:</p>
+<ol>
+<li><strong><a href="../tutorials/01-what-is-dotnet.html">Read the Tutorials</a></strong> - Step-by-step learning path</li>
+<li><strong><a href="../cookbook/index.html">Explore the Cookbook</a></strong> - Ready-to-use recipes</li>
+<li><strong><a href="https://github.com/jacob-mellor/curl-dot-net/tree/master/examples">Check the Examples</a></strong> - Complete applications</li>
+<li><strong><a href="../api/index.html">API Reference</a></strong> - Detailed documentation</li>
+</ol>
+<h2>Need Help?</h2>
+<ul>
+<li><strong><a href="https://github.com/jacob-mellor/curl-dot-net/issues">GitHub Issues</a></strong> - Report bugs or ask questions</li>
+<li><strong><a href="../index.html">Documentation</a></strong> - Complete documentation</li>
+<li><strong><a href="../migration/index.html">Migration Guides</a></strong> - Moving from other HTTP clients</li>
+</ul>
+<h2>Tips for Success</h2>
+<ol>
+<li><strong>Reuse Curl instances</strong> - Create once, use many times</li>
+<li><strong>Always check IsSuccess</strong> - Before accessing response data</li>
+<li><strong>Use async/await</strong> - All methods are async</li>
+<li><strong>Set appropriate timeouts</strong> - Don&#39;t wait forever</li>
+<li><strong>Log errors</strong> - Track what goes wrong</li>
+</ol>
+<hr>
+<p>Welcome to the CurlDotNet community! Happy coding! 🚀</p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

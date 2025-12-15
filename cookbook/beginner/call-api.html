@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe: Call an API (Complete Beginner Guide) | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Recipe: Call an API (Complete Beginner Guide)</h1>
+<h2>🎯 What You&#39;ll Build</h2>
+<p>A simple program that calls an API and displays the results. We&#39;ll use real APIs that don&#39;t require authentication to get you started quickly.</p>
+<h2>🥘 Ingredients</h2>
+<ul>
+<li>CurlDotNet package</li>
+<li>No API key needed (we&#39;ll use free public APIs)</li>
+<li>5 minutes</li>
+</ul>
+<h2>📖 The Recipe</h2>
+<h3>Step 1: Understanding APIs</h3>
+<p>An API is like a restaurant menu:</p>
+<ul>
+<li>You look at the menu (API documentation)</li>
+<li>You order something (make a request)</li>
+<li>You get your food (receive response)</li>
+</ul>
+<h3>Step 2: Your First API Call</h3>
+<p>Let&#39;s get information about Bitcoin price:</p>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class Program
+{
+    static async Task Main()
+    {
+        // Call the API
+        var result = await Curl.ExecuteAsync(
+            &quot;curl https://api.coindesk.com/v1/bpi/currentprice.json&quot;
+        );
+
+        // Check if it worked
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;Bitcoin Prices:&quot;);
+            Console.WriteLine(result.Body);
+        }
+        else
+        {
+            Console.WriteLine($&quot;Error: {result.StatusCode}&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Step 3: Parse the JSON Response</h3>
+<p>APIs usually return JSON. Let&#39;s parse it:</p>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+// Classes that match the API response
+public class BitcoinPrice
+{
+    public Time Time { get; set; }
+    public Bpi Bpi { get; set; }
+}
+
+public class Time
+{
+    public string Updated { get; set; }
+}
+
+public class Bpi
+{
+    public Currency USD { get; set; }
+    public Currency EUR { get; set; }
+}
+
+public class Currency
+{
+    public string Code { get; set; }
+    public string Rate { get; set; }
+    public string Description { get; set; }
+}
+
+class Program
+{
+    static async Task Main()
+    {
+        var result = await Curl.ExecuteAsync(
+            &quot;curl https://api.coindesk.com/v1/bpi/currentprice.json&quot;
+        );
+
+        if (result.IsSuccess)
+        {
+            // Parse JSON to our classes
+            var prices = result.ParseJson&lt;BitcoinPrice&gt;();
+
+            Console.WriteLine($&quot;Bitcoin Price Update: {prices.Time.Updated}&quot;);
+            Console.WriteLine($&quot;USD: {prices.Bpi.USD.Rate}&quot;);
+            Console.WriteLine($&quot;EUR: {prices.Bpi.EUR.Rate}&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>🍳 Complete Examples</h2>
+<h3>Example 1: Weather API</h3>
+<p>Get current weather for any city:</p>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class WeatherApp
+{
+    static async Task Main()
+    {
+        Console.Write(&quot;Enter city name: &quot;);
+        var city = Console.ReadLine();
+
+        // Call weather API
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl &#39;https://wttr.in/{city}?format=3&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine($&quot;Weather: {result.Body}&quot;);
+        }
+        else
+        {
+            Console.WriteLine(&quot;Couldn&#39;t get weather data&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 2: Random User Generator</h3>
+<p>Get random user data for testing:</p>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+public class RandomUser
+{
+    public Result[] Results { get; set; }
+}
+
+public class Result
+{
+    public Name Name { get; set; }
+    public string Email { get; set; }
+    public Location Location { get; set; }
+}
+
+public class Name
+{
+    public string First { get; set; }
+    public string Last { get; set; }
+}
+
+public class Location
+{
+    public string City { get; set; }
+    public string Country { get; set; }
+}
+
+class Program
+{
+    static async Task Main()
+    {
+        // Get 5 random users
+        var result = await Curl.ExecuteAsync(
+            &quot;curl https://randomuser.me/api/?results=5&quot;
+        );
+
+        if (result.IsSuccess)
+        {
+            var data = result.ParseJson&lt;RandomUser&gt;();
+
+            Console.WriteLine(&quot;Random Users:&quot;);
+            foreach (var user in data.Results)
+            {
+                Console.WriteLine($&quot;- {user.Name.First} {user.Name.Last}&quot;);
+                Console.WriteLine($&quot;  Email: {user.Email}&quot;);
+                Console.WriteLine($&quot;  Location: {user.Location.City}, {user.Location.Country}&quot;);
+                Console.WriteLine();
+            }
+        }
+    }
+}
+</code></pre>
+<h3>Example 3: REST API with Multiple Endpoints</h3>
+<p>Working with a complete REST API:</p>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+public class Post
+{
+    public int Id { get; set; }
+    public string Title { get; set; }
+    public string Body { get; set; }
+    public int UserId { get; set; }
+}
+
+class BlogApiClient
+{
+    private const string BaseUrl = &quot;https://jsonplaceholder.typicode.com&quot;;
+
+    // GET all posts
+    public static async Task&lt;Post[]&gt; GetAllPosts()
+    {
+        var result = await Curl.ExecuteAsync($&quot;curl {BaseUrl}/posts&quot;);
+        return result.IsSuccess
+            ? result.ParseJson&lt;Post[]&gt;()
+            : new Post[0];
+    }
+
+    // GET single post
+    public static async Task&lt;Post&gt; GetPost(int id)
+    {
+        var result = await Curl.ExecuteAsync($&quot;curl {BaseUrl}/posts/{id}&quot;);
+        return result.IsSuccess
+            ? result.ParseJson&lt;Post&gt;()
+            : null;
+    }
+
+    // POST new post
+    public static async Task&lt;Post&gt; CreatePost(string title, string body)
+    {
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST {BaseUrl}/posts \
+            -H &#39;Content-Type: application/json&#39; \
+            -d &#39;{% raw %}{{{% endraw %}
+                &quot;&quot;title&quot;&quot;: &quot;&quot;{title}&quot;&quot;,
+                &quot;&quot;body&quot;&quot;: &quot;&quot;{body}&quot;&quot;,
+                &quot;&quot;userId&quot;&quot;: 1
+            {% raw %}}}{% endraw %}&#39;
+        &quot;);
+
+        return result.IsSuccess
+            ? result.ParseJson&lt;Post&gt;()
+            : null;
+    }
+
+    // DELETE post
+    public static async Task&lt;bool&gt; DeletePost(int id)
+    {
+        var result = await Curl.ExecuteAsync($&quot;curl -X DELETE {BaseUrl}/posts/{id}&quot;);
+        return result.IsSuccess;
+    }
+
+    static async Task Main()
+    {
+        // Get all posts
+        Console.WriteLine(&quot;Getting all posts...&quot;);
+        var posts = await GetAllPosts();
+        Console.WriteLine($&quot;Found {posts.Length} posts&quot;);
+
+        // Get specific post
+        Console.WriteLine(&quot;\nGetting post #1...&quot;);
+        var post = await GetPost(1);
+        if (post != null)
+        {
+            Console.WriteLine($&quot;Title: {post.Title}&quot;);
+        }
+
+        // Create new post
+        Console.WriteLine(&quot;\nCreating new post...&quot;);
+        var newPost = await CreatePost(&quot;My Title&quot;, &quot;My content here&quot;);
+        if (newPost != null)
+        {
+            Console.WriteLine($&quot;Created post with ID: {newPost.Id}&quot;);
+        }
+
+        // Delete post
+        Console.WriteLine(&quot;\nDeleting post #1...&quot;);
+        var deleted = await DeletePost(1);
+        Console.WriteLine(deleted ? &quot;Deleted!&quot; : &quot;Failed to delete&quot;);
+    }
+}
+</code></pre>
+<h2>🎨 Variations</h2>
+<h3>With API Key</h3>
+<p>Many APIs require authentication:</p>
+<pre><code class="language-csharp">// API key in header
+var result = await Curl.ExecuteAsync(@&quot;
+    curl https://api.example.com/data \
+    -H &#39;X-API-Key: your-api-key-here&#39;
+&quot;);
+
+// API key in query string
+var result = await Curl.ExecuteAsync(
+    &quot;curl &#39;https://api.example.com/data?api_key=your-api-key-here&#39;&quot;
+);
+
+// Bearer token
+var result = await Curl.ExecuteAsync(@&quot;
+    curl https://api.example.com/data \
+    -H &#39;Authorization: Bearer your-token-here&#39;
+&quot;);
+</code></pre>
+<h3>With Request Body</h3>
+<p>Sending data to the API:</p>
+<pre><code class="language-csharp">// JSON body
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -X POST https://api.example.com/users \
+    -H &#39;Content-Type: application/json&#39; \
+    -d &#39;{&quot;&quot;name&quot;&quot;: &quot;&quot;John&quot;&quot;, &quot;&quot;age&quot;&quot;: 30}&#39;
+&quot;);
+
+// Form data
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -X POST https://api.example.com/form \
+    -d &#39;name=John&amp;age=30&#39;
+&quot;);
+</code></pre>
+<h3>With Custom Headers</h3>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(@&quot;
+    curl https://api.example.com/data \
+    -H &#39;Accept: application/json&#39; \
+    -H &#39;Accept-Language: en-US&#39; \
+    -H &#39;User-Agent: MyApp/1.0&#39;
+&quot;);
+</code></pre>
+<h2>🐛 Troubleshooting</h2>
+<h3>Problem: &quot;401 Unauthorized&quot;</h3>
+<p><strong>Solution</strong>: You need to provide authentication (API key, token, etc.)</p>
+<pre><code class="language-csharp">// Add authentication
+var result = await Curl.ExecuteAsync(@&quot;
+    curl https://api.example.com \
+    -H &#39;Authorization: Bearer YOUR_TOKEN&#39;
+&quot;);
+</code></pre>
+<h3>Problem: &quot;404 Not Found&quot;</h3>
+<p><strong>Solution</strong>: Check the URL - you might have a typo</p>
+<pre><code class="language-csharp">// Double-check the URL
+var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com/correct-endpoint&quot;);
+</code></pre>
+<h3>Problem: JSON Parsing Fails</h3>
+<p><strong>Solution</strong>: Your classes don&#39;t match the response structure</p>
+<pre><code class="language-csharp">// First, check what the API actually returns
+var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com&quot;);
+Console.WriteLine(result.Body);  // Look at the actual JSON
+
+// Then create matching classes
+public class CorrectStructure
+{
+    // Properties that match the JSON
+}
+</code></pre>
+<h3>Problem: &quot;429 Too Many Requests&quot;</h3>
+<p><strong>Solution</strong>: You&#39;re calling the API too fast</p>
+<pre><code class="language-csharp">// Add delay between requests
+await Task.Delay(1000);  // Wait 1 second
+</code></pre>
+<h2>📊 Common API Status Codes</h2>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+<th>What to Do</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>200</td>
+<td>Success</td>
+<td>Use the response</td>
+</tr>
+<tr>
+<td>201</td>
+<td>Created</td>
+<td>Item was created successfully</td>
+</tr>
+<tr>
+<td>400</td>
+<td>Bad Request</td>
+<td>Check your request format</td>
+</tr>
+<tr>
+<td>401</td>
+<td>Unauthorized</td>
+<td>Add authentication</td>
+</tr>
+<tr>
+<td>403</td>
+<td>Forbidden</td>
+<td>Check permissions</td>
+</tr>
+<tr>
+<td>404</td>
+<td>Not Found</td>
+<td>Check the URL</td>
+</tr>
+<tr>
+<td>429</td>
+<td>Too Many Requests</td>
+<td>Slow down</td>
+</tr>
+<tr>
+<td>500</td>
+<td>Server Error</td>
+<td>Try again later</td>
+</tr>
+</tbody></table>
+<h2>🎯 Practice APIs</h2>
+<p>Try these free APIs to practice:</p>
+<pre><code class="language-csharp">// Joke API
+var joke = await Curl.ExecuteAsync(
+    &quot;curl https://official-joke-api.appspot.com/random_joke&quot;
+);
+
+// Cat Facts
+var catFact = await Curl.ExecuteAsync(
+    &quot;curl https://catfact.ninja/fact&quot;
+);
+
+// Random Quote
+var quote = await Curl.ExecuteAsync(
+    &quot;curl https://api.quotable.io/random&quot;
+);
+
+// Country Information
+var country = await Curl.ExecuteAsync(
+    &quot;curl https://restcountries.com/v3.1/name/canada&quot;
+);
+
+// Space Station Location
+var iss = await Curl.ExecuteAsync(
+    &quot;curl http://api.open-notify.org/iss-now.json&quot;
+);
+</code></pre>
+<h2>🚀 Next Steps</h2>
+<p>Now that you can call APIs:</p>
+<ol>
+<li>Try <a href="send-json.html">Sending JSON Data</a></li>
+<li>Learn about <a href="handle-errors.html">Error Handling</a></li>
+<li>Build reusable API clients with <a href="../../api-guide/">CurlRequestBuilder</a></li>
+</ol>
+<h2>📚 Related Recipes</h2>
+<ul>
+<li><a href="simple-get.html">Simple GET Request</a></li>
+<li><a href="send-json.html">POST JSON Data</a></li>
+<li><a href="handle-errors.html">Handle Errors</a></li>
+</ul>
+<h2>🎓 Key Takeaways</h2>
+<ul>
+<li>APIs return data in JSON format</li>
+<li>Always check <code>IsSuccess</code> before using the response</li>
+<li>Parse JSON to C# classes for easy access</li>
+<li>Different APIs need different authentication</li>
+<li>Status codes tell you what happened</li>
+</ul>
+<hr>
+<p><strong>Need help?</strong> Check <a href="../../troubleshooting/common-issues.html">Troubleshooting</a> | <strong>Have questions?</strong> Ask in <a href="https://github.com/jacob-mellor/curl-dot-net/discussions">Discussions</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

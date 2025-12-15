@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Curl.DefaultMaxTimeSeconds | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.md" title="CurlDotNet">CurlDotNet</a>.<a href="CurlDotNet.Curl.md" title="CurlDotNet.Curl">Curl</a></h3>
+<h2>Curl.DefaultMaxTimeSeconds Property</h2>
+<p><b>Sets a global timeout for all curl operations (in seconds).</b></p>
+<p>This is like adding <code>--max-time</code> to every curl command automatically.
+             Set to 0 (default) for no timeout. Individual commands can still override this.</p>
+<p><b>Example:</b></p>
+<pre><code class="language-csharp">// Set 30 second timeout for all operations
+Curl.DefaultMaxTimeSeconds = 30;
+
+// Now all commands timeout after 30 seconds
+await Curl.Execute(&quot;curl https://slow-api.example.com&quot;);  // Times out after 30s
+
+// Override for specific command
+await Curl.Execute(&quot;curl --max-time 60 https://very-slow-api.example.com&quot;);  // 60s timeout
+</code></pre>
+<p><b>Learn more:</b><a href="https://curl.se/docs/manpage.html#-m" title="https://curl.se/docs/manpage.html#-m">curl --max-time documentation</a></p>
+<pre><code class="language-csharp">public static int DefaultMaxTimeSeconds { get; set; }
+</code></pre>
+<h4>Property Value</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.int32" title="System.Int32">System.Int32</a><br>Timeout in seconds. 0 = no timeout (wait forever). Default is 0.</p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

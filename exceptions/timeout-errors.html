@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeout Errors | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Timeout Errors</h1>
+<h2>Overview</h2>
+<p>Timeout errors occur when operations exceed configured time limits. CurlDotNet supports connection timeouts and total operation timeouts.</p>
+<h2>Timeout Types</h2>
+<h3>Connection Timeout</h3>
+<p>Time to establish initial connection to the server.</p>
+<h3>Operation Timeout</h3>
+<p>Total time for the entire request/response cycle.</p>
+<h2>Common Scenarios &amp; Solutions</h2>
+<h3>1. Slow Server Response</h3>
+<pre><code class="language-csharp">try
+{
+    // Default timeout might be too short
+    var result = await curl.ExecuteAsync(&quot;curl --max-time 5 https://slow-api.example.com&quot;);
+}
+catch (CurlTimeoutException ex)
+{
+    // Retry with longer timeout
+    var result = await curl.ExecuteAsync(&quot;curl --max-time 30 https://slow-api.example.com&quot;);
+}
+</code></pre>
+<h3>2. Large File Downloads</h3>
+<pre><code class="language-csharp">// No timeout for large files
+var result = await curl.ExecuteAsync(&quot;curl --max-time 0 https://example.com/largefile.zip&quot;);
+
+// Or set appropriate timeout based on file size
+var timeoutSeconds = estimatedFileSizeMB * 10; // 10 seconds per MB
+var result = await curl.ExecuteAsync($&quot;curl --max-time {timeoutSeconds} {url}&quot;);
+</code></pre>
+<h3>3. Connection vs Operation Timeout</h3>
+<pre><code class="language-csharp">// Set different timeouts for connection and total operation
+var result = await curl.ExecuteAsync(
+    &quot;curl --connect-timeout 10 --max-time 300 https://example.com&quot;
+);
+</code></pre>
+<h2>Best Practices</h2>
+<pre><code class="language-csharp">public class TimeoutManager
+{
+    public async Task&lt;CurlResult&gt; ExecuteWithRetry(string url, int initialTimeout = 10)
+    {
+        var timeouts = new[] { initialTimeout, initialTimeout * 2, initialTimeout * 4 };
+
+        foreach (var timeout in timeouts)
+        {
+            try
+            {
+                return await curl.ExecuteAsync($&quot;curl --max-time {timeout} {url}&quot;);
+            }
+            catch (CurlTimeoutException)
+            {
+                if (timeout == timeouts.Last()) throw;
+                await Task.Delay(1000); // Wait before retry
+            }
+        }
+    }
+}
+</code></pre>
+<h2>Related Documentation</h2>
+<ul>
+<li><a href="connection-errors.html">Connection Errors</a></li>
+<li><a href="/guides/network-troubleshooting.html">Network Troubleshooting</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

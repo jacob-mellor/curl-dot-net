@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet Examples | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<hr>
+<h2>layout: page
+title: Examples &amp; Samples
+permalink: /samples/</h2>
+<h1>CurlDotNet Examples</h1>
+<h2>Basic Examples</h2>
+<h3>Simple GET Request</h3>
+<pre><code class="language-csharp">using CurlDotNet;
+
+var curl = new Curl();
+var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+Console.WriteLine(result.Body);
+</code></pre>
+<h3>POST with JSON</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+var json = &quot;{\&quot;name\&quot;:\&quot;John\&quot;,\&quot;age\&quot;:30}&quot;;
+var result = await curl.PostAsync(&quot;https://api.example.com/users&quot;, json);
+</code></pre>
+<h3>Headers and Authentication</h3>
+<pre><code class="language-csharp">var curl = new Curl()
+    .WithHeader(&quot;Authorization&quot;, &quot;Bearer YOUR_TOKEN&quot;)
+    .WithHeader(&quot;Accept&quot;, &quot;application/json&quot;);
+
+var result = await curl.GetAsync(&quot;https://api.example.com/protected&quot;);
+</code></pre>
+<h2>Advanced Examples</h2>
+<h3>Using Middleware</h3>
+<pre><code class="language-csharp">var pipeline = new CurlMiddlewarePipelineBuilder()
+    .Use&lt;RetryMiddleware&gt;(options =&gt; options.MaxRetries = 3)
+    .Use&lt;RateLimitMiddleware&gt;(options =&gt; options.RequestsPerSecond = 10)
+    .Use&lt;CachingMiddleware&gt;()
+    .Build();
+
+var curl = new Curl(pipeline);
+</code></pre>
+<h3>Error Handling</h3>
+<pre><code class="language-csharp">try
+{
+    var result = await curl.GetAsync(url);
+    Console.WriteLine($&quot;Success: {result.StatusCode}&quot;);
+}
+catch (CurlTimeoutException ex)
+{
+    Console.WriteLine($&quot;Request timed out after {ex.TimeoutSeconds}s&quot;);
+}
+catch (CurlException ex)
+{
+    Console.WriteLine($&quot;Curl error: {ex.Message}&quot;);
+}
+</code></pre>
+<h3>File Downloads</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+var fileData = await curl.DownloadAsync(&quot;https://example.com/file.pdf&quot;);
+await File.WriteAllBytesAsync(&quot;downloaded.pdf&quot;, fileData);
+</code></pre>
+<h3>Form Data</h3>
+<pre><code class="language-csharp">var formData = new Dictionary&lt;string, string&gt;
+{
+    [&quot;username&quot;] = &quot;john&quot;,
+    [&quot;password&quot;] = &quot;secret&quot;
+};
+
+var curl = new Curl();
+var result = await curl.PostFormAsync(&quot;https://api.example.com/login&quot;, formData);
+</code></pre>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

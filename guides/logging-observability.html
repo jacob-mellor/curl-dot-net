@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logging & Observability with CurlDotNet | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Logging &amp; Observability with CurlDotNet</h1>
+<p>Reliable HTTP automation depends on rich diagnostics. This guide shows how to capture verbose traces, integrate with your logging framework, and emit metrics for production observability.</p>
+<h2>1. Built-in Verbose Output</h2>
+<p>When troubleshooting, start with curl’s native verbose mode:</p>
+<pre><code class="language-csharp">var response = await Curl.ExecuteAsync(@&quot;
+    curl -v https://api.example.com/users/42
+      -H &#39;Accept: application/json&#39;
+&quot;);
+
+Console.WriteLine(response.Body);      // response payload
+Console.WriteLine(response.Headers);   // header dictionary
+</code></pre>
+<p>The <code>-v</code> flag mirrors the CLI, showing DNS, TLS, and header exchanges. Use it sparingly in production because it may reveal secrets.</p>
+<h2>2. Structured Logging with Middleware</h2>
+<p>Wrap requests in a custom middleware to push structured logs to Serilog, Microsoft.Extensions.Logging, etc.</p>
+<pre><code class="language-csharp">public class SerilogMiddleware : ICurlMiddleware
+{
+    private readonly ILogger _logger;
+
+    public SerilogMiddleware(ILogger logger) =&gt; _logger = logger;
+
+    public async Task&lt;CurlResult&gt; ExecuteAsync(CurlContext context, Func&lt;Task&lt;CurlResult&gt;&gt; next)
+    {
+        var sw = Stopwatch.StartNew();
+        try
+        {
+            var result = await next();
+            _logger.Information(&quot;Curl {Method} {Url} =&gt; {Status} in {Elapsed}ms&quot;,
+                context.Options.Method ?? &quot;GET&quot;,
+                context.Options.Url,
+                result.StatusCode,
+                sw.ElapsedMilliseconds);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, &quot;Curl {Url} failed after {Elapsed}ms&quot;, context.Options.Url, sw.ElapsedMilliseconds);
+            throw;
+        }
+    }
+}
+</code></pre>
+<p>Register it:</p>
+<pre><code class="language-csharp">var pipeline = CurlMiddlewarePipeline.CreateBuilder()
+    .Use(new SerilogMiddleware(logger))
+    .WithHandler(ctx =&gt; Curl.ExecuteAsync(ctx.Command))
+    .Build();
+</code></pre>
+<h2>3. Exporting Metrics</h2>
+<p>Track latency and failure counts via <code>CurlResult.Timings</code>:</p>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com/health&quot;);
+
+metrics.Record(&quot;curl.request.duration&quot;, result.Timings.Total, new TagList
+{
+    { &quot;endpoint&quot;, &quot;/health&quot; },
+    { &quot;status&quot;, result.StatusCode }
+});
+</code></pre>
+<p>For Prometheus-style scrapers, emit stats to stdout:</p>
+<pre><code>curl_request_duration_milliseconds{endpoint=&quot;/health&quot;,status=&quot;200&quot;} 142
+</code></pre>
+<h2>4. Capturing Request/Response Bodies Safely</h2>
+<p>Never log secrets. Use redaction helpers before writing payloads:</p>
+<pre><code class="language-csharp">string Redact(string body) =&gt;
+    body.Replace(&quot;access_token&quot;, &quot;****&quot;).Replace(&quot;password&quot;, &quot;****&quot;);
+
+logger.Debug(&quot;Response: {Body}&quot;, Redact(result.Body ?? string.Empty));
+</code></pre>
+<h2>5. Integrating with Application Insights</h2>
+<pre><code class="language-csharp">var telemetry = new DependencyTelemetry(
+    dependencyTypeName: &quot;HTTP&quot;,
+    target: new Uri(result.Command ?? context.Options.Url).Host,
+    dependencyName: context.Options.Method + &quot; &quot; + context.Options.Url,
+    data: context.Command,
+    startTime: context.StartTime,
+    duration: TimeSpan.FromMilliseconds(result.Timings.Total),
+    success: result.IsSuccess
+);
+
+telemetryClient.TrackDependency(telemetry);
+</code></pre>
+<h2>6. Troubleshooting Checklist</h2>
+<ol>
+<li><strong>Enable verbose mode</strong> only locally or behind secure storage.</li>
+<li><strong>Add correlation IDs</strong> via <code>.WithHeader(&quot;X-Correlation-Id&quot;, ...)</code>.</li>
+<li><strong>Log retries</strong> by tracking <code>settings.RetryCount</code> and failure reasons.</li>
+<li><strong>Surface headers</strong> such as <code>Request-Id</code>, <code>Retry-After</code>, and rate-limit counters.</li>
+<li><strong>Capture curl commands</strong> (from <code>result.Command</code>) for quick CLI reproduction.</li>
+</ol>
+<h2>Next Steps</h2>
+<ul>
+<li>Combine this guide with the <a href="../articles/ci-cd-integration.html">CI/CD Integration</a> doc to stream logs straight into your pipeline console.</li>
+<li>Extend middleware to push telemetry to OpenTelemetry exporters for unified traces across services.</li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet Exception Documentation | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>CurlDotNet Exception Documentation</h1>
+<p>CurlDotNet provides detailed exception handling with specific exception types for every curl error code.</p>
+<h2>Exception Categories</h2>
+<h3><a href="auth-errors.html">Authentication Errors</a></h3>
+<ul>
+<li>Login denied, authentication failures</li>
+<li>Credential issues</li>
+</ul>
+<h3><a href="cookie-errors.html">Cookie Errors</a></h3>
+<ul>
+<li>Cookie handling problems</li>
+<li>Session management issues</li>
+</ul>
+<h3><a href="dns-errors.html">DNS Errors</a></h3>
+<ul>
+<li>Host resolution failures</li>
+<li>Proxy resolution issues</li>
+</ul>
+<h3><a href="http-errors.html">HTTP Errors</a></h3>
+<ul>
+<li>HTTP protocol errors</li>
+<li>Status code issues</li>
+</ul>
+<h3><a href="init-errors.html">Initialization Errors</a></h3>
+<ul>
+<li>Curl initialization failures</li>
+<li>Configuration problems</li>
+</ul>
+<h3><a href="redirect-errors.html">Redirect Errors</a></h3>
+<ul>
+<li>Too many redirects</li>
+<li>Redirect loop detection</li>
+</ul>
+<h3><a href="ssl-errors.html">SSL/TLS Errors</a></h3>
+<ul>
+<li>Certificate validation failures</li>
+<li>SSL handshake issues</li>
+<li>Cipher problems</li>
+</ul>
+<h3><a href="timeout-errors.html">Timeout Errors</a></h3>
+<ul>
+<li>Connection timeouts</li>
+<li>Operation timeouts</li>
+<li>Transfer timeouts</li>
+</ul>
+<h3><a href="url-errors.html">URL Errors</a></h3>
+<ul>
+<li>Malformed URLs</li>
+<li>Unsupported protocols</li>
+</ul>
+<h2>Using Exception Types</h2>
+<p>Each exception provides:</p>
+<ul>
+<li>Specific error code</li>
+<li>Descriptive message</li>
+<li>Diagnostic information</li>
+<li>Link to relevant documentation</li>
+</ul>
+<h2>Example</h2>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(&quot;curl https://example.com&quot;);
+}
+catch (CurlTimeoutException ex)
+{
+    Console.WriteLine($&quot;Timeout: {ex.Message}&quot;);
+    Console.WriteLine($&quot;Diagnostic: {ex.DiagnosticInfo}&quot;);
+}
+catch (CurlSslException ex)
+{
+    Console.WriteLine($&quot;SSL Error: {ex.Message}&quot;);
+    Console.WriteLine($&quot;Certificate Issue: {ex.CertificateError}&quot;);
+}
+</code></pre>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

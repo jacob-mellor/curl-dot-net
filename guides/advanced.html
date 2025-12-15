@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Features | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Advanced Features</h1>
+<p>CurlDotNet provides powerful advanced features for complex scenarios and enterprise applications.</p>
+<h2>Table of Contents</h2>
+<ul>
+<li><a href="#middleware-system">Middleware System</a></li>
+<li><a href="#protocol-handlers">Protocol Handlers</a></li>
+<li><a href="#custom-authentication">Custom Authentication</a></li>
+<li><a href="#performance-optimization">Performance Optimization</a></li>
+<li><a href="#error-recovery">Error Recovery</a></li>
+<li><a href="#extensions">Extensions</a></li>
+</ul>
+<h2>Middleware System</h2>
+<p>CurlDotNet includes a sophisticated middleware pipeline that allows you to intercept and modify requests and responses.</p>
+<h3>Built-in Middleware</h3>
+<h4>Retry Middleware</h4>
+<pre><code class="language-csharp">var options = new CurlOptions()
+    .WithRetry(maxAttempts: 3, delay: TimeSpan.FromSeconds(1));
+
+var result = await Curl.PerformAsync(options);
+</code></pre>
+<h4>Logging Middleware</h4>
+<pre><code class="language-csharp">var options = new CurlOptions()
+    .WithLogging(LogLevel.Debug);
+
+// All requests and responses will be logged
+</code></pre>
+<h4>Rate Limiting Middleware</h4>
+<pre><code class="language-csharp">var options = new CurlOptions()
+    .WithRateLimit(requestsPerSecond: 10);
+</code></pre>
+<h3>Custom Middleware</h3>
+<p>Create your own middleware by implementing <code>ICurlMiddleware</code>:</p>
+<pre><code class="language-csharp">public class CustomHeaderMiddleware : ICurlMiddleware
+{
+    public async Task&lt;CurlResponse&gt; ExecuteAsync(
+        CurlOptions options,
+        Func&lt;CurlOptions, Task&lt;CurlResponse&gt;&gt; next)
+    {
+        // Add custom header before request
+        options.Headers.Add(&quot;X-Custom-Header&quot;, &quot;Value&quot;);
+
+        // Execute the request
+        var response = await next(options);
+
+        // Process response
+        Console.WriteLine($&quot;Response received: {response.StatusCode}&quot;);
+
+        return response;
+    }
+}
+
+// Register middleware
+var options = new CurlOptions()
+    .UseMiddleware(new CustomHeaderMiddleware());
+</code></pre>
+<h2>Protocol Handlers</h2>
+<p>CurlDotNet supports multiple protocols with specialized handlers:</p>
+<h3>HTTP/HTTPS Handler</h3>
+<pre><code class="language-csharp">var options = new CurlOptions()
+    .WithHttp2()
+    .WithHttp3()  // Experimental HTTP/3 support
+    .WithConnectionReuse();
+</code></pre>
+<h3>FTP/FTPS Handler</h3>
+<pre><code class="language-csharp">var options = new CurlOptions(&quot;ftp://ftp.example.com/file.txt&quot;)
+    .WithFtpSsl()
+    .WithCredentials(&quot;username&quot;, &quot;password&quot;)
+    .WithFtpCreateMissingDirs();
+</code></pre>
+<h3>WebSocket Handler</h3>
+<pre><code class="language-csharp">var options = new CurlOptions(&quot;ws://example.com/socket&quot;)
+    .WithWebSocket()
+    .OnMessage((data) =&gt; Console.WriteLine($&quot;Received: {data}&quot;));
+
+var connection = await Curl.ConnectWebSocketAsync(options);
+await connection.SendAsync(&quot;Hello Server&quot;);
+</code></pre>
+<h3>Custom Protocol Handler</h3>
+<pre><code class="language-csharp">public class CustomProtocolHandler : IProtocolHandler
+{
+    public bool CanHandle(Uri uri) =&gt; uri.Scheme == &quot;custom&quot;;
+
+    public async Task&lt;CurlResponse&gt; ExecuteAsync(CurlOptions options)
+    {
+        // Custom protocol implementation
+        return new CurlResponse();
+    }
+}
+
+CurlOptions.RegisterProtocolHandler(new CustomProtocolHandler());
+</code></pre>
+<h2>Custom Authentication</h2>
+<h3>OAuth 2.0</h3>
+<pre><code class="language-csharp">var options = new CurlOptions()
+    .WithOAuth2(
+        clientId: &quot;your-client-id&quot;,
+        clientSecret: &quot;your-secret&quot;,
+        tokenEndpoint: &quot;https://auth.example.com/token&quot;,
+        scopes: new[] { &quot;read&quot;, &quot;write&quot; }
+    );
+</code></pre>
+<h3>Custom Authentication Provider</h3>
+<pre><code class="language-csharp">public class CustomAuthProvider : IAuthenticationProvider
+{
+    public async Task AuthenticateAsync(CurlOptions options)
+    {
+        var token = await GetTokenAsync();
+        options.Headers[&quot;Authorization&quot;] = $&quot;Custom {token}&quot;;
+    }
+}
+
+var options = new CurlOptions()
+    .WithAuthentication(new CustomAuthProvider());
+</code></pre>
+<h2>Performance Optimization</h2>
+<h3>Connection Pooling</h3>
+<pre><code class="language-csharp">// Global connection pool configuration
+CurlOptions.ConfigureConnectionPool(
+    maxConnections: 100,
+    maxConnectionsPerHost: 10,
+    connectionTimeout: TimeSpan.FromSeconds(30),
+    idleTimeout: TimeSpan.FromMinutes(5)
+);
+</code></pre>
+<h3>Request Pipelining</h3>
+<pre><code class="language-csharp">var options = new CurlOptions()
+    .WithPipelining(maxRequests: 5)
+    .WithMultiplexing();  // HTTP/2 multiplexing
+</code></pre>
+<h3>Compression</h3>
+<pre><code class="language-csharp">var options = new CurlOptions()
+    .WithCompression(CompressionAlgorithm.Brotli | CompressionAlgorithm.Gzip)
+    .WithAutoDecompression();
+</code></pre>
+<h3>DNS Caching</h3>
+<pre><code class="language-csharp">var options = new CurlOptions()
+    .WithDnsCache(TimeSpan.FromMinutes(5))
+    .WithDnsPreResolve(new[] { &quot;api.example.com&quot;, &quot;cdn.example.com&quot; });
+</code></pre>
+<h2>Error Recovery</h2>
+<h3>Automatic Retry with Backoff</h3>
+<pre><code class="language-csharp">var options = new CurlOptions()
+    .WithRetryPolicy(new ExponentialBackoffPolicy
+    {
+        MaxAttempts = 5,
+        InitialDelay = TimeSpan.FromSeconds(1),
+        MaxDelay = TimeSpan.FromSeconds(30),
+        RetryableStatusCodes = new[] { 429, 503, 504 }
+    });
+</code></pre>
+<h3>Circuit Breaker Pattern</h3>
+<pre><code class="language-csharp">var options = new CurlOptions()
+    .WithCircuitBreaker(
+        failureThreshold: 5,
+        recoveryTimeout: TimeSpan.FromSeconds(30),
+        onOpen: () =&gt; Console.WriteLine(&quot;Circuit opened&quot;),
+        onClose: () =&gt; Console.WriteLine(&quot;Circuit closed&quot;)
+    );
+</code></pre>
+<h3>Fallback Mechanism</h3>
+<pre><code class="language-csharp">var options = new CurlOptions(&quot;https://primary.example.com/api&quot;)
+    .WithFallback(&quot;https://secondary.example.com/api&quot;)
+    .WithFallback(&quot;https://tertiary.example.com/api&quot;);
+</code></pre>
+<h2>Extensions</h2>
+<h3>Metrics and Telemetry</h3>
+<pre><code class="language-csharp">var options = new CurlOptions()
+    .WithMetrics(metrics =&gt;
+    {
+        Console.WriteLine($&quot;DNS: {metrics.DnsLookupTime}ms&quot;);
+        Console.WriteLine($&quot;Connect: {metrics.ConnectTime}ms&quot;);
+        Console.WriteLine($&quot;TLS: {metrics.TlsHandshakeTime}ms&quot;);
+        Console.WriteLine($&quot;FirstByte: {metrics.TimeToFirstByte}ms&quot;);
+        Console.WriteLine($&quot;Total: {metrics.TotalTime}ms&quot;);
+    });
+</code></pre>
+<h3>Request/Response Transformation</h3>
+<pre><code class="language-csharp">var options = new CurlOptions()
+    .TransformRequest(req =&gt;
+    {
+        // Modify request before sending
+        req.Headers[&quot;X-Request-Id&quot;] = Guid.NewGuid().ToString();
+        return req;
+    })
+    .TransformResponse(async resp =&gt;
+    {
+        // Process response before returning
+        if (resp.ContentType == &quot;application/json&quot;)
+        {
+            resp.ParsedContent = JsonSerializer.Deserialize&lt;dynamic&gt;(resp.Body);
+        }
+        return resp;
+    });
+</code></pre>
+<h3>Streaming Support</h3>
+<pre><code class="language-csharp">// Stream large downloads
+var options = new CurlOptions()
+    .WithStreaming()
+    .OnDataReceived(async (chunk) =&gt;
+    {
+        await fileStream.WriteAsync(chunk);
+    });
+
+// Stream uploads
+using var fileStream = File.OpenRead(&quot;large-file.zip&quot;);
+var options = new CurlOptions()
+    .WithStreamUpload(fileStream)
+    .OnUploadProgress((sent, total) =&gt;
+    {
+        Console.WriteLine($&quot;Uploaded {sent}/{total} bytes&quot;);
+    });
+</code></pre>
+<h3>Proxy Configuration</h3>
+<pre><code class="language-csharp">var options = new CurlOptions()
+    .WithProxy(&quot;http://proxy.example.com:8080&quot;)
+    .WithProxyAuth(&quot;username&quot;, &quot;password&quot;)
+    .WithProxyType(ProxyType.Socks5)
+    .BypassProxyFor(new[] { &quot;*.internal.com&quot;, &quot;192.168.*&quot; });
+</code></pre>
+<h2>Best Practices</h2>
+<h3>1. Resource Management</h3>
+<p>Always dispose of resources properly:</p>
+<pre><code class="language-csharp">using var curl = new CurlClient();
+var response = await curl.ExecuteAsync(options);
+</code></pre>
+<h3>2. Error Handling</h3>
+<p>Implement comprehensive error handling:</p>
+<pre><code class="language-csharp">try
+{
+    var response = await Curl.PerformAsync(options);
+}
+catch (CurlTimeoutException ex)
+{
+    // Handle timeout
+}
+catch (CurlNetworkException ex)
+{
+    // Handle network errors
+}
+catch (CurlException ex)
+{
+    // Handle general curl errors
+}
+</code></pre>
+<h3>3. Configuration Management</h3>
+<p>Centralize configuration:</p>
+<pre><code class="language-csharp">public static class CurlConfig
+{
+    public static CurlOptions DefaultOptions =&gt; new CurlOptions()
+        .WithTimeout(TimeSpan.FromSeconds(30))
+        .WithRetry(3)
+        .WithCompression()
+        .WithMetrics();
+}
+</code></pre>
+<h3>4. Testing</h3>
+<p>Use the mock provider for testing:</p>
+<pre><code class="language-csharp">// In tests
+CurlOptions.UseMockProvider(mock =&gt;
+{
+    mock.Setup(&quot;https://api.example.com/users&quot;)
+        .Returns(new CurlResponse
+        {
+            StatusCode = 200,
+            Body = &quot;[{\&quot;id\&quot;:1,\&quot;name\&quot;:\&quot;Test User\&quot;}]&quot;
+        });
+});
+</code></pre>
+<h2>Migration from HttpClient</h2>
+<p>See the <a href="https://jacob-mellor.github.io/curl-dot-net/migration/httpclient.html">Migration Guide</a> for detailed instructions on migrating from HttpClient to CurlDotNet.</p>
+<h2>Further Resources</h2>
+<ul>
+<li><a href="https://jacob-mellor.github.io/curl-dot-net/api/">API Reference</a></li>
+<li><a href="../samples/">Examples</a></li>
+<li><a href="troubleshooting/">Troubleshooting</a></li>
+<li><a href="https://github.com/jacob-mellor/curl-dot-net/tree/master/benchmarks">Performance Benchmarks</a></li>
+<li><a href="https://github.com/jacob-mellor/curl-dot-net/blob/master/CONTRIBUTING.html">Contributing Guide</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial 1: What is .NET and C? | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Tutorial 1: What is .NET and C#?</h1>
+<h2>🎯 What You&#39;ll Learn</h2>
+<ul>
+<li>What .NET is (in simple terms)</li>
+<li>What C# is and how it relates to .NET</li>
+<li>How to write your first C# program</li>
+<li>How CurlDotNet fits into the picture</li>
+</ul>
+<h2>📚 Prerequisites</h2>
+<p>None! This is the beginning.</p>
+<h2>🌍 The Big Picture</h2>
+<p>Let&#39;s use a simple analogy:</p>
+<ul>
+<li><strong>.NET</strong> is like a smartphone operating system (iOS or Android)</li>
+<li><strong>C#</strong> is like the language you use to write apps</li>
+<li><strong>CurlDotNet</strong> is like an app that helps you access the internet</li>
+</ul>
+<h3>Breaking It Down</h3>
+<h4>What is .NET?</h4>
+<p>.NET (pronounced &quot;dot net&quot;) is a free platform made by Microsoft for building applications. Think of it as a foundation that:</p>
+<ul>
+<li>Runs your programs</li>
+<li>Provides built-in tools (like internet access, file handling)</li>
+<li>Works on Windows, Mac, and Linux</li>
+<li>Is completely free to use</li>
+</ul>
+<h4>What is C#?</h4>
+<p>C# (pronounced &quot;see sharp&quot;) is a programming language. It&#39;s how you tell the computer what to do. It looks like this:</p>
+<pre><code class="language-csharp">// This is C# code
+var message = &quot;Hello, World!&quot;;
+Console.WriteLine(message);
+</code></pre>
+<h4>What is CurlDotNet?</h4>
+<p>CurlDotNet is a tool (called a &quot;library&quot; or &quot;package&quot;) that makes it easy to:</p>
+<ul>
+<li>Download web pages</li>
+<li>Call APIs</li>
+<li>Upload files</li>
+<li>Interact with web services</li>
+</ul>
+<h2>💻 Your First C# Program</h2>
+<p>Let&#39;s write a simple program that uses CurlDotNet:</p>
+<pre><code class="language-csharp">using System;                // This gives us basic C# features
+using System.Threading.Tasks; // This lets us use async/await
+using CurlDotNet;            // This is our library!
+
+namespace MyFirstProgram     // This is like a folder for our code
+{
+    class Program            // A &quot;class&quot; is a container for our code
+    {
+        static async Task Main(string[] args)  // This is where the program starts
+        {
+            // Let&#39;s fetch Google&#39;s homepage
+            Console.WriteLine(&quot;Fetching Google...&quot;);
+
+            var result = await Curl.ExecuteAsync(&quot;curl https://www.google.com&quot;);
+
+            if (result.IsSuccess)
+            {
+                Console.WriteLine(&quot;Success! Got a response.&quot;);
+                Console.WriteLine($&quot;The page is {result.Body.Length} characters long.&quot;);
+            }
+            else
+            {
+                Console.WriteLine(&quot;Something went wrong!&quot;);
+            }
+        }
+    }
+}
+</code></pre>
+<h3>What&#39;s Happening Here?</h3>
+<ol>
+<li><strong>using statements</strong> - Tell C# what tools we want to use</li>
+<li><strong>namespace</strong> - Organizes our code (like a folder)</li>
+<li><strong>class</strong> - A container for our code</li>
+<li><strong>Main method</strong> - Where the program starts running</li>
+<li><strong>Curl.ExecuteAsync</strong> - Fetches a webpage</li>
+<li><strong>Console.WriteLine</strong> - Prints to the screen</li>
+</ol>
+<h2>🏗 Setting Up Your Environment</h2>
+<h3>Step 1: Install .NET</h3>
+<ol>
+<li>Go to <a href="https://dotnet.microsoft.com">dotnet.microsoft.com</a></li>
+<li>Click &quot;Download&quot;</li>
+<li>Install it (just click Next, Next, Finish)</li>
+</ol>
+<h3>Step 2: Install Visual Studio Code</h3>
+<ol>
+<li>Go to <a href="https://code.visualstudio.com">code.visualstudio.com</a></li>
+<li>Download and install</li>
+<li>Open it</li>
+</ol>
+<h3>Step 3: Create Your First Project</h3>
+<p>Open a terminal/command prompt and type:</p>
+<pre><code class="language-bash"># Create a new folder
+mkdir MyFirstCurlApp
+cd MyFirstCurlApp
+
+# Create a new C# project
+dotnet new console
+
+# Add CurlDotNet
+dotnet add package CurlDotNet
+</code></pre>
+<h3>Step 4: Run Your Program</h3>
+<pre><code class="language-bash">dotnet run
+</code></pre>
+<h2>🎨 Understanding the Code Structure</h2>
+<p>Every C# program has this basic structure:</p>
+<pre><code class="language-csharp">using [Tools You Need];       // Step 1: Import tools
+
+namespace [YourProgramName]   // Step 2: Name your program
+{
+    class Program              // Step 3: Create a container
+    {
+        static async Task Main()  // Step 4: Starting point
+        {
+            // Your code goes here!
+        }
+    }
+}
+</code></pre>
+<h2>🔧 C# Basics You&#39;ll See Often</h2>
+<h3>Variables (Storing Information)</h3>
+<pre><code class="language-csharp">// Storing text
+string name = &quot;Alice&quot;;
+var message = &quot;Hello!&quot;;  // &#39;var&#39; figures out the type automatically
+
+// Storing numbers
+int age = 25;
+var price = 19.99;
+
+// Storing yes/no values
+bool isLoggedIn = true;
+var isAdmin = false;
+</code></pre>
+<h3>If Statements (Making Decisions)</h3>
+<pre><code class="language-csharp">if (result.IsSuccess)
+{
+    // Do this if successful
+    Console.WriteLine(&quot;It worked!&quot;);
+}
+else
+{
+    // Do this if it failed
+    Console.WriteLine(&quot;It didn&#39;t work.&quot;);
+}
+</code></pre>
+<h3>Methods (Reusable Code)</h3>
+<pre><code class="language-csharp">// A method that fetches a webpage
+async Task&lt;string&gt; FetchWebpage(string url)
+{
+    var result = await Curl.ExecuteAsync($&quot;curl {url}&quot;);
+    return result.Body;
+}
+
+// Using the method
+var content = await FetchWebpage(&quot;https://example.com&quot;);
+</code></pre>
+<h2>🎯 Try It Yourself</h2>
+<h3>Exercise 1: Modify the Message</h3>
+<p>Change this code to print your name:</p>
+<pre><code class="language-csharp">Console.WriteLine(&quot;Fetching Google...&quot;);
+// Change to: Console.WriteLine(&quot;YourName is fetching Google...&quot;);
+</code></pre>
+<h3>Exercise 2: Fetch a Different Website</h3>
+<p>Change the URL to fetch a different site:</p>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl https://www.github.com&quot;);
+</code></pre>
+<h3>Exercise 3: Print More Information</h3>
+<p>Add these lines to see more details:</p>
+<pre><code class="language-csharp">Console.WriteLine($&quot;Status Code: {result.StatusCode}&quot;);
+Console.WriteLine($&quot;Has Headers: {result.Headers.Count &gt; 0}&quot;);
+</code></pre>
+<h2>❌ Common Mistakes</h2>
+<h3>Mistake 1: Forgetting &#39;await&#39;</h3>
+<pre><code class="language-csharp">// Wrong - missing await
+var result = Curl.ExecuteAsync(&quot;curl https://google.com&quot;);
+
+// Right - with await
+var result = await Curl.ExecuteAsync(&quot;curl https://google.com&quot;);
+</code></pre>
+<h3>Mistake 2: Wrong Quotes</h3>
+<pre><code class="language-csharp">// Wrong - using wrong quotes
+var result = await Curl.ExecuteAsync(&quot;curl https://google.com&quot;);
+
+// Right - using straight quotes
+var result = await Curl.ExecuteAsync(&quot;curl https://google.com&quot;);
+</code></pre>
+<h3>Mistake 3: Missing Semicolon</h3>
+<pre><code class="language-csharp">// Wrong - no semicolon
+Console.WriteLine(&quot;Hello&quot;)
+
+// Right - with semicolon
+Console.WriteLine(&quot;Hello&quot;);
+</code></pre>
+<h2>📊 Quick Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>What It Means</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>.NET</td>
+<td>The platform that runs your code</td>
+<td>Like Windows or macOS</td>
+</tr>
+<tr>
+<td>C#</td>
+<td>The language you write in</td>
+<td>Like English or Spanish</td>
+</tr>
+<tr>
+<td>CurlDotNet</td>
+<td>A tool for web requests</td>
+<td>Like a web browser</td>
+</tr>
+<tr>
+<td><code>using</code></td>
+<td>Import tools</td>
+<td><code>using CurlDotNet;</code></td>
+</tr>
+<tr>
+<td><code>var</code></td>
+<td>Create a variable</td>
+<td><code>var name = &quot;Alice&quot;;</code></td>
+</tr>
+<tr>
+<td><code>async/await</code></td>
+<td>Handle slow operations</td>
+<td><code>await Curl.ExecuteAsync()</code></td>
+</tr>
+<tr>
+<td><code>Console.WriteLine</code></td>
+<td>Print to screen</td>
+<td><code>Console.WriteLine(&quot;Hi!&quot;);</code></td>
+</tr>
+</tbody></table>
+<h2>🚀 Next Steps</h2>
+<p>Now that you understand the basics:</p>
+<ol>
+<li><strong>Next Tutorial</strong> → <a href="02-what-is-curl.html">What is curl?</a></li>
+<li><strong>Try changing the example</strong> - Make it fetch your favorite website</li>
+<li><strong>Experiment</strong> - What happens if you change different parts?</li>
+</ol>
+<h2>🤔 Questions You Might Have</h2>
+<p><strong>Q: Do I need to pay for .NET or C#?</strong>
+A: No! Everything is completely free.</p>
+<p><strong>Q: Will this work on Mac/Linux?</strong>
+A: Yes! .NET works on Windows, Mac, and Linux.</p>
+<p><strong>Q: Is C# hard to learn?</strong>
+A: It&#39;s one of the easier languages to learn, especially with good tutorials!</p>
+<p><strong>Q: What can I build with this?</strong>
+A: Websites, desktop apps, mobile apps, games, APIs, and more!</p>
+<h2>📚 Summary</h2>
+<ul>
+<li><strong>.NET</strong> is the platform (foundation)</li>
+<li><strong>C#</strong> is the language (how you write)</li>
+<li><strong>CurlDotNet</strong> is a tool (for web requests)</li>
+<li>Programs start in the <code>Main</code> method</li>
+<li>Use <code>await</code> with async operations</li>
+<li>Everything is free to use!</li>
+</ul>
+<hr>
+<p><strong>Ready for the next tutorial?</strong> → <a href="02-what-is-curl.html">What is curl?</a></p>
+<p><strong>Need help?</strong> Check the <a href="../troubleshooting/common-issues.html">Troubleshooting Guide</a> or ask in <a href="https://github.com/jacob-mellor/curl-dot-net/discussions">Discussions</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

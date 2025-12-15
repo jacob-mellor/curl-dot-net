@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Core | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h2>CurlDotNet.Core Namespace</h2>
+<table>
+<thead>
+<tr>
+<th align="left">Classes</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Core.CommandParser.md" title="CurlDotNet.Core.CommandParser">CommandParser</a></td>
+<td align="left">Parses curl command strings into CurlOptions, following curl&#39;s command-line syntax exactly. This parser is inspired by curl&#39;s tool_getparam.c which handles all parameter parsing.    Supports all curl options including short forms (-X POST), long forms (--request POST), combined short options (-sS), option arguments, quote handling, and line continuations. The parser normalizes different shell syntaxes (bash, PowerShell, cmd, zsh) into a consistent format.  <b>Cross-Shell Compatibility:</b> Paste curl commands from any shell and they work:...  For curl option reference: <a href="https://curl.se/docs/manpage.html#OPTIONS">https://curl.se/docs/manpage.html#OPTIONS</a></td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlEngine.md" title="CurlDotNet.Core.CurlEngine">CurlEngine</a></td>
+<td align="left">Core engine that processes and executes curl commands.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlFtpException.md" title="CurlDotNet.Core.CurlFtpException">CurlFtpException</a></td>
+<td align="left">FTP-specific exception.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlHttpException.md" title="CurlDotNet.Core.CurlHttpException">CurlHttpException</a></td>
+<td align="left"><b>Exception for HTTP errors (4xx, 5xx status codes).</b>  Thrown by EnsureSuccess() when request fails:`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.md" title="CurlDotNet.Core.CurlOptions">CurlOptions</a></td>
+<td align="left">Represents parsed curl command options.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.md" title="CurlDotNet.Core.CurlRequestBuilder">CurlRequestBuilder</a></td>
+<td align="left"><b>🎨 Fluent Builder API - Build curl requests programmatically!</b>  For developers who prefer a fluent API over curl command strings.              This builder lets you construct HTTP requests using method chaining,              perfect for IntelliSense and compile-time checking.  <b>When to use Builder vs Curl String:</b>...  <b>Quick Example:</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a></td>
+<td align="left"><b>🎯 The response from your curl command - everything you need is here!</b>  After running any curl command, you get this object back. It has the status code,              response body, headers, and helpful methods to work with the data.  <b>The API is designed to be intuitive - just type what you want to do:</b>...  <b>Quick Example:</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.md" title="CurlDotNet.Core.CurlSettings">CurlSettings</a></td>
+<td align="left">Fluent builder for .NET-specific curl settings.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlTimings.md" title="CurlDotNet.Core.CurlTimings">CurlTimings</a></td>
+<td align="left"><b>Detailed timing breakdown of the curl operation.</b>  See where time was spent (like curl -w):`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.FileHandler.md" title="CurlDotNet.Core.FileHandler">FileHandler</a></td>
+<td align="left">Handler for file:// protocol.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.FtpHandler.md" title="CurlDotNet.Core.FtpHandler">FtpHandler</a></td>
+<td align="left">Handler for FTP and FTPS protocols.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.HttpHandler.md" title="CurlDotNet.Core.HttpHandler">HttpHandler</a></td>
+<td align="left">Handler for HTTP and HTTPS protocols.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.ValidationResult.md" title="CurlDotNet.Core.ValidationResult">ValidationResult</a></td>
+<td align="left">Result of command validation.</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th align="left">Interfaces</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Core.ICommandParser.md" title="CurlDotNet.Core.ICommandParser">ICommandParser</a></td>
+<td align="left">Interface for parsing curl command strings into options.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.IProtocolHandler.md" title="CurlDotNet.Core.IProtocolHandler">IProtocolHandler</a></td>
+<td align="left">Interface for protocol-specific handlers (HTTP, FTP, FILE, etc.).</td>
+</tr>
+</tbody></table>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

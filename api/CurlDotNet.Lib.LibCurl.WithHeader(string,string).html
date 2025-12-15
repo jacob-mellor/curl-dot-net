@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Lib.LibCurl.WithHeader(string,string) | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Lib.md" title="CurlDotNet.Lib">CurlDotNet.Lib</a>.<a href="CurlDotNet.Lib.LibCurl.md" title="CurlDotNet.Lib.LibCurl">LibCurl</a></h3>
+<h2>LibCurl.WithHeader(string, string) Method</h2>
+<p>Set a default header for all requests.</p>
+<pre><code class="language-csharp">public CurlDotNet.Lib.LibCurl WithHeader(string key, string value);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Lib.LibCurl.WithHeader(string,string).key'></a></p>
+<p><code>key</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>Header name</p>
+<p><a name='CurlDotNet.Lib.LibCurl.WithHeader(string,string).value'></a></p>
+<p><code>value</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>Header value</p>
+<h4>Returns</h4>
+<p><a href="CurlDotNet.Lib.LibCurl.md" title="CurlDotNet.Lib.LibCurl">LibCurl</a><br>This instance for method chaining</p>
+<h3>Example</h3>
+<pre><code class="language-csharp">using (var curl = new LibCurl())
+{
+    curl.WithHeader(&quot;Accept&quot;, &quot;application/json&quot;)
+        .WithHeader(&quot;X-API-Key&quot;, &quot;your-key&quot;);
+    
+    // All subsequent requests will include these headers
+    var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+}
+</code></pre>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

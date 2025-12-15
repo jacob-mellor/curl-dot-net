@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Core.CurlResult.Retry() | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Core.md" title="CurlDotNet.Core">CurlDotNet.Core</a>.<a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a></h3>
+<h2>CurlResult.Retry() Method</h2>
+<p><b>Retry the same curl command again.</b></p>
+<p>Simple retry for transient failures:</p>
+<pre><code class="language-csharp">// First attempt
+var result = await Curl.Execute(&quot;curl https://flaky-api.example.com&quot;);
+
+// Retry if it failed
+if (!result.IsSuccess)
+{
+    result = await result.Retry();
+}
+
+// Retry with delay
+if (result.StatusCode == 429)  // Too many requests
+{
+    await Task.Delay(5000);
+    result = await result.Retry();
+}
+</code></pre>
+<pre><code class="language-csharp">public System.Threading.Tasks.Task&lt;CurlDotNet.Core.CurlResult&gt; Retry();
+</code></pre>
+<h4>Returns</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">System.Threading.Tasks.Task&lt;</a><a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">&gt;</a><br>New result from retrying the command</p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

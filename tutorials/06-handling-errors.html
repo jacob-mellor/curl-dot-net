@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial 6: Handling Errors | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Tutorial 6: Handling Errors</h1>
+<p>Network requests can fail for many reasons. This tutorial teaches you how to handle errors gracefully and build resilient applications with CurlDotNet.</p>
+<h2>Types of Errors</h2>
+<h3>1. Network Errors</h3>
+<p>These occur when the request can&#39;t reach the server:</p>
+<pre><code class="language-csharp">var result = await curl.GetAsync(&quot;https://unreachable-server.example.com&quot;);
+
+if (!result.IsSuccess)
+{
+    // Common network errors:
+    // - &quot;Could not resolve host&quot;
+    // - &quot;Connection timeout&quot;
+    // - &quot;Connection refused&quot;
+    // - &quot;Network is unreachable&quot;
+    Console.WriteLine($&quot;Network error: {result.Error}&quot;);
+}
+</code></pre>
+<h3>2. HTTP Errors</h3>
+<p>The server responds but with an error status:</p>
+<pre><code class="language-csharp">var result = await curl.GetAsync(&quot;https://api.example.com/missing&quot;);
+
+// Check both IsSuccess and StatusCode
+if (result.StatusCode == HttpStatusCode.NotFound)
+{
+    Console.WriteLine(&quot;Resource not found (404)&quot;);
+}
+else if (result.StatusCode == HttpStatusCode.InternalServerError)
+{
+    Console.WriteLine(&quot;Server error (500)&quot;);
+}
+</code></pre>
+<h3>3. Timeout Errors</h3>
+<p>The request takes too long:</p>
+<pre><code class="language-csharp">var curl = new Curl
+{
+    Timeout = TimeSpan.FromSeconds(5)  // 5 second timeout
+};
+
+var result = await curl.GetAsync(&quot;https://slow-api.example.com&quot;);
+
+if (!result.IsSuccess &amp;&amp; result.Error.Contains(&quot;timeout&quot;))
+{
+    Console.WriteLine(&quot;Request timed out after 5 seconds&quot;);
+}
+</code></pre>
+<h2>Error Handling Patterns</h2>
+<h3>Basic Error Handling</h3>
+<pre><code class="language-csharp">public async Task&lt;string&gt; GetDataSafely(string url)
+{
+    var curl = new Curl();
+    var result = await curl.GetAsync(url);
+
+    if (result.IsSuccess)
+    {
+        return result.Data;
+    }
+    else
+    {
+        // Log the error
+        _logger.LogError($&quot;Failed to get {url}: {result.Error}&quot;);
+
+        // Return a default or throw
+        return null;  // or throw new ApplicationException(result.Error);
+    }
+}
+</code></pre>
+<h3>Detailed Error Handling</h3>
+<pre><code class="language-csharp">public async Task&lt;User&gt; GetUserWithErrorHandling(int userId)
+{
+    var curl = new Curl();
+    var result = await curl.GetAsync($&quot;/api/users/{userId}&quot;);
+
+    // Handle specific status codes
+    switch (result.StatusCode)
+    {
+        case HttpStatusCode.OK:
+            return JsonSerializer.Deserialize&lt;User&gt;(result.Data);
+
+        case HttpStatusCode.NotFound:
+            // User doesn&#39;t exist - might be expected
+            _logger.LogInformation($&quot;User {userId} not found&quot;);
+            return null;
+
+        case HttpStatusCode.Unauthorized:
+            // Need to authenticate
+            throw new UnauthorizedException(&quot;Please log in&quot;);
+
+        case HttpStatusCode.TooManyRequests:
+            // Rate limited
+            throw new RateLimitException(&quot;Too many requests, please wait&quot;);
+
+        case HttpStatusCode.InternalServerError:
+        case HttpStatusCode.BadGateway:
+        case HttpStatusCode.ServiceUnavailable:
+            // Server errors - might want to retry
+            throw new ServerException($&quot;Server error: {result.StatusCode}&quot;);
+
+        default:
+            // Unexpected error
+            throw new ApplicationException($&quot;Unexpected error: {result.StatusCode} - {result.Error}&quot;);
+    }
+}
+</code></pre>
+<h2>Retry Logic</h2>
+<h3>Simple Retry</h3>
+<pre><code class="language-csharp">public async Task&lt;CurlResult&gt; GetWithRetry(string url, int maxRetries = 3)
+{
+    var curl = new Curl();
+
+    for (int attempt = 0; attempt &lt; maxRetries; attempt++)
+    {
+        var result = await curl.GetAsync(url);
+
+        if (result.IsSuccess)
+        {
+            return result;
+        }
+
+        // Log retry attempt
+        _logger.LogWarning($&quot;Attempt {attempt + 1} failed: {result.Error}&quot;);
+
+        // Wait before retrying (except on last attempt)
+        if (attempt &lt; maxRetries - 1)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));  // Exponential backoff
+        }
+    }
+
+    // All retries failed
+    throw new ApplicationException($&quot;Failed after {maxRetries} attempts&quot;);
+}
+</code></pre>
+<h3>Smart Retry (Only for Retryable Errors)</h3>
+<pre><code class="language-csharp">public async Task&lt;CurlResult&gt; SmartRetry(string url, int maxRetries = 3)
+{
+    var curl = new Curl();
+
+    for (int attempt = 0; attempt &lt; maxRetries; attempt++)
+    {
+        var result = await curl.GetAsync(url);
+
+        if (result.IsSuccess)
+        {
+            return result;
+        }
+
+        // Check if error is retryable
+        bool shouldRetry = IsRetryableError(result);
+
+        if (!shouldRetry)
+        {
+            // Don&#39;t retry for permanent failures
+            return result;
+        }
+
+        // Calculate delay with exponential backoff
+        if (attempt &lt; maxRetries - 1)
+        {
+            var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+            _logger.LogInformation($&quot;Retrying in {delay.TotalSeconds} seconds...&quot;);
+            await Task.Delay(delay);
+        }
+    }
+
+    return new CurlResult { IsSuccess = false, Error = &quot;Max retries exceeded&quot; };
+}
+
+private bool IsRetryableError(CurlResult result)
+{
+    // Network errors are often retryable
+    if (result.Error.Contains(&quot;timeout&quot;) ||
+        result.Error.Contains(&quot;connection&quot;) ||
+        result.Error.Contains(&quot;network&quot;))
+    {
+        return true;
+    }
+
+    // Some HTTP status codes are retryable
+    var retryableStatuses = new[]
+    {
+        HttpStatusCode.RequestTimeout,
+        HttpStatusCode.TooManyRequests,
+        HttpStatusCode.InternalServerError,
+        HttpStatusCode.BadGateway,
+        HttpStatusCode.ServiceUnavailable,
+        HttpStatusCode.GatewayTimeout
+    };
+
+    return retryableStatuses.Contains(result.StatusCode);
+}
+</code></pre>
+<h2>Circuit Breaker Pattern</h2>
+<p>Prevent overwhelming a failing service:</p>
+<pre><code class="language-csharp">public class CircuitBreaker
+{
+    private int _failureCount = 0;
+    private DateTime _lastFailureTime;
+    private readonly int _threshold = 5;
+    private readonly TimeSpan _timeout = TimeSpan.FromMinutes(1);
+
+    public async Task&lt;CurlResult&gt; ExecuteAsync(Func&lt;Task&lt;CurlResult&gt;&gt; action)
+    {
+        // Check if circuit is open
+        if (_failureCount &gt;= _threshold)
+        {
+            if (DateTime.UtcNow - _lastFailureTime &lt; _timeout)
+            {
+                return new CurlResult
+                {
+                    IsSuccess = false,
+                    Error = &quot;Circuit breaker is open - service is down&quot;
+                };
+            }
+
+            // Reset after timeout
+            _failureCount = 0;
+        }
+
+        // Try the action
+        var result = await action();
+
+        if (result.IsSuccess)
+        {
+            _failureCount = 0;  // Reset on success
+        }
+        else
+        {
+            _failureCount++;
+            _lastFailureTime = DateTime.UtcNow;
+        }
+
+        return result;
+    }
+}
+
+// Usage
+var breaker = new CircuitBreaker();
+var result = await breaker.ExecuteAsync(async () =&gt;
+{
+    var curl = new Curl();
+    return await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+});
+</code></pre>
+<h2>Fallback Strategies</h2>
+<h3>Fallback to Cache</h3>
+<pre><code class="language-csharp">public async Task&lt;string&gt; GetDataWithFallback(string url)
+{
+    var curl = new Curl();
+    var result = await curl.GetAsync(url);
+
+    if (result.IsSuccess)
+    {
+        // Update cache with fresh data
+        _cache[url] = result.Data;
+        return result.Data;
+    }
+    else
+    {
+        // Try to return cached data
+        if (_cache.TryGetValue(url, out string cachedData))
+        {
+            _logger.LogWarning($&quot;Using cached data due to error: {result.Error}&quot;);
+            return cachedData;
+        }
+
+        // No cache available
+        throw new ApplicationException($&quot;Request failed and no cache available: {result.Error}&quot;);
+    }
+}
+</code></pre>
+<h3>Fallback to Alternative Service</h3>
+<pre><code class="language-csharp">public async Task&lt;WeatherData&gt; GetWeatherWithFallback(string city)
+{
+    var curl = new Curl();
+
+    // Try primary service
+    var primaryResult = await curl.GetAsync($&quot;https://primary-weather-api.com/{city}&quot;);
+    if (primaryResult.IsSuccess)
+    {
+        return ParseWeatherData(primaryResult.Data);
+    }
+
+    _logger.LogWarning(&quot;Primary weather service failed, trying backup&quot;);
+
+    // Try backup service
+    var backupResult = await curl.GetAsync($&quot;https://backup-weather-api.com/{city}&quot;);
+    if (backupResult.IsSuccess)
+    {
+        return ParseWeatherData(backupResult.Data);
+    }
+
+    // Both failed
+    throw new ApplicationException(&quot;All weather services are unavailable&quot;);
+}
+</code></pre>
+<h2>Logging and Monitoring</h2>
+<h3>Structured Logging</h3>
+<pre><code class="language-csharp">public async Task&lt;T&gt; ExecuteWithLogging&lt;T&gt;(string url, Func&lt;string, T&gt; parser)
+{
+    var curl = new Curl();
+    var stopwatch = Stopwatch.StartNew();
+
+    try
+    {
+        var result = await curl.GetAsync(url);
+        stopwatch.Stop();
+
+        if (result.IsSuccess)
+        {
+            _logger.LogInformation(&quot;Request succeeded&quot;,
+                new
+                {
+                    Url = url,
+                    StatusCode = result.StatusCode,
+                    Duration = stopwatch.ElapsedMilliseconds,
+                    ResponseSize = result.Data?.Length ?? 0
+                });
+
+            return parser(result.Data);
+        }
+        else
+        {
+            _logger.LogError(&quot;Request failed&quot;,
+                new
+                {
+                    Url = url,
+                    StatusCode = result.StatusCode,
+                    Error = result.Error,
+                    Duration = stopwatch.ElapsedMilliseconds
+                });
+
+            throw new ApplicationException(result.Error);
+        }
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, &quot;Unexpected error during request&quot;,
+            new { Url = url, Duration = stopwatch.ElapsedMilliseconds });
+        throw;
+    }
+}
+</code></pre>
+<h2>Custom Exception Types</h2>
+<p>Create specific exceptions for better error handling:</p>
+<pre><code class="language-csharp">public class ApiException : Exception
+{
+    public HttpStatusCode StatusCode { get; }
+    public string ResponseBody { get; }
+
+    public ApiException(HttpStatusCode statusCode, string message, string responseBody = null)
+        : base(message)
+    {
+        StatusCode = statusCode;
+        ResponseBody = responseBody;
+    }
+}
+
+public class NetworkException : Exception
+{
+    public NetworkException(string message) : base(message) { }
+}
+
+public class TimeoutException : Exception
+{
+    public TimeSpan Timeout { get; }
+
+    public TimeoutException(TimeSpan timeout)
+        : base($&quot;Request timed out after {timeout.TotalSeconds} seconds&quot;)
+    {
+        Timeout = timeout;
+    }
+}
+
+// Usage
+public async Task&lt;T&gt; ExecuteRequest&lt;T&gt;(string url, Func&lt;string, T&gt; parser)
+{
+    var curl = new Curl { Timeout = TimeSpan.FromSeconds(30) };
+    var result = await curl.GetAsync(url);
+
+    if (result.IsSuccess)
+    {
+        return parser(result.Data);
+    }
+
+    // Throw specific exceptions
+    if (result.Error.Contains(&quot;timeout&quot;))
+    {
+        throw new TimeoutException(curl.Timeout);
+    }
+    else if (result.Error.Contains(&quot;network&quot;) || result.Error.Contains(&quot;connection&quot;))
+    {
+        throw new NetworkException(result.Error);
+    }
+    else if (result.StatusCode != 0)
+    {
+        throw new ApiException(result.StatusCode, result.Error, result.Data);
+    }
+    else
+    {
+        throw new ApplicationException(result.Error);
+    }
+}
+</code></pre>
+<h2>Best Practices</h2>
+<ol>
+<li><strong>Always handle errors explicitly</strong> - Don&#39;t ignore failed requests</li>
+<li><strong>Log errors with context</strong> - Include URL, status code, and timing</li>
+<li><strong>Use appropriate retry strategies</strong> - Not all errors should be retried</li>
+<li><strong>Implement timeouts</strong> - Prevent requests from hanging indefinitely</li>
+<li><strong>Provide fallbacks</strong> - Cache, default values, or alternative services</li>
+<li><strong>Monitor failure patterns</strong> - Track error rates and response times</li>
+<li><strong>Fail fast for unrecoverable errors</strong> - Don&#39;t retry authentication failures</li>
+<li><strong>Use circuit breakers</strong> - Protect failing services from overload</li>
+</ol>
+<h2>Summary</h2>
+<p>Proper error handling is essential for building reliable applications. CurlDotNet makes it easy with:</p>
+<ul>
+<li>Clear error messages in <code>result.Error</code></li>
+<li>Status codes for specific handling</li>
+<li>No exceptions to catch for normal failures</li>
+<li>Easy integration with retry and fallback patterns</li>
+</ul>
+<h2>What&#39;s Next?</h2>
+<p>In the next tutorial, we&#39;ll learn about <a href="07-json-for-beginners.html">working with JSON data</a>, the most common format for modern APIs.</p>
+<hr>
+<p><a href="05-understanding-results.html">← Previous: Understanding Results</a> | <a href="07-json-for-beginners.html">Next: JSON for Beginners →</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

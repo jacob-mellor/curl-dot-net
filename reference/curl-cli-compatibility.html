@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>curl CLI Compatibility (Windows, macOS, Linux) | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>curl CLI Compatibility (Windows, macOS, Linux)</h1>
+<p>CurlDotNet’s parser accepts raw <code>curl …</code> strings copied from documentation, terminals, or browsers. This reference explains how options differ across operating systems and clarifies why <strong>Ubuntu-style syntax is our canonical source of truth</strong>.</p>
+<h2>Canonical Behavior: Ubuntu/Linux</h2>
+<p>The upstream curl project ships from Debian/Ubuntu, so its manual and examples assume:</p>
+<ul>
+<li><strong>Bash-style quoting</strong> – single quotes prevent interpolation, double quotes expand variables.</li>
+<li><strong>Line continuations</strong> – a trailing <code>\</code> escapes the newline.</li>
+<li><strong>Environment variables</strong> – <code>$TOKEN</code> or <code>${TOKEN}</code> syntax.</li>
+<li><strong>Paths</strong> – forward slashes, no drive letters.</li>
+</ul>
+<p>CurlDotNet mirrors these rules internally. When we parse a command, we first normalize it as if it were typed on Ubuntu, then apply OS-specific conveniences.</p>
+<h3>Example</h3>
+<pre><code class="language-bash">curl -X POST https://api.example.com/users \
+  -H &#39;Authorization: Bearer &#39;&quot;$API_TOKEN&quot; \
+  -d &#39;{&quot;name&quot;:&quot;Ada&quot;,&quot;role&quot;:&quot;admin&quot;}&#39;
+</code></pre>
+<p>Guidance:</p>
+<ul>
+<li>Prefer single quotes for JSON bodies.</li>
+<li>Use <code>$VAR</code> interpolation only when a CI runner or shell supplies the variable.</li>
+<li>Keep paths relative or use forward slashes; Windows paths are also supported but converted.</li>
+</ul>
+<h2>Windows (CMD &amp; PowerShell) Differences</h2>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>CMD</th>
+<th>PowerShell</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Quotes</td>
+<td><code>&quot;</code> only</td>
+<td><code>&#39;</code> and <code>&quot;</code></td>
+<td>Wrap JSON in double quotes; CurlDotNet automatically unescapes.</td>
+</tr>
+<tr>
+<td>Escape newline</td>
+<td><code>^</code></td>
+<td><code>`</code></td>
+<td>Parser replaces these with line breaks before processing.</td>
+</tr>
+<tr>
+<td>Env vars</td>
+<td><code>%TOKEN%</code></td>
+<td><code>$env:TOKEN</code></td>
+<td>We detect and expand both syntaxes.</td>
+</tr>
+<tr>
+<td>Paths</td>
+<td><code>C:\path\file.txt</code></td>
+<td>same</td>
+<td>Normalized to forward slashes internally.</td>
+</tr>
+</tbody></table>
+<p>Handling tips:</p>
+<pre><code class="language-powershell">curl -H &quot;Accept: application/json&quot; `
+     -d &quot;{&quot;&quot;foo&quot;&quot;:&quot;&quot;bar&quot;&quot;}&quot; `
+     https://api.example.com
+</code></pre>
+<pre><code class="language-cmd">curl -X POST ^
+     -H &quot;Content-Type: application/json&quot; ^
+     -d &quot;{\&quot;foo\&quot;:\&quot;bar\&quot;}&quot; ^
+     https://api.example.com
+</code></pre>
+<p>CurlDotNet strips <code>^</code>/<code>`</code> continuations, unescapes nested quotes, and treats <code>%VAR%</code> exactly like <code>$VAR</code> from Ubuntu.</p>
+<h2>macOS (zsh/bash)</h2>
+<p>Modern macOS defaults to <code>zsh</code>. Behavior matches Ubuntu except for:</p>
+<ul>
+<li><strong>Glob qualifiers</strong> – <code>~</code> expands to the home directory just like Linux; CurlDotNet preserves the literal value, so expand paths before copying.</li>
+<li><strong>Unicode smart quotes</strong> – avoid copying from rich-text editors because “smart quotes” will fail. Replace with <code>&#39;</code> or <code>&quot;</code>.</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-zsh">curl --data-urlencode &#39;query=type:pull-request user:octocat&#39; \
+     https://api.github.com/search/issues
+</code></pre>
+<h2>Option Compatibility Checklist</h2>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Ubuntu/Linux</th>
+<th>macOS</th>
+<th>Windows</th>
+<th>CurlDotNet Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>-H</code> headers</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>Preserve quoting exactly as Ubuntu.</td>
+</tr>
+<tr>
+<td><code>--data</code>, <code>-d</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>Windows needs escaped quotes; we normalize.</td>
+</tr>
+<tr>
+<td><code>--data-binary @file</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>Provide absolute paths on Windows; parser converts.</td>
+</tr>
+<tr>
+<td><code>--config file</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>⚠️ (paths)</td>
+<td>Config files parsed using Ubuntu rules; prefer forward slashes.</td>
+</tr>
+<tr>
+<td><code>--user user:pass</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>Backslashes in passwords double-escape on Windows; use single quotes when possible.</td>
+</tr>
+<tr>
+<td><code>--form &#39;file=@path&#39;</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>Use double quotes on Windows if single quotes unavailable.</td>
+</tr>
+</tbody></table>
+<h2>Best Practices</h2>
+<ol>
+<li><strong>Author commands on Ubuntu (or WSL)</strong>. This guarantees syntax that matches curl’s documentation and our parser’s baseline.</li>
+<li><strong>Convert platform specifics only when necessary</strong>. For example, if a CI script needs PowerShell, wrap the Ubuntu command in <code>@&quot;</code> HERE-STRING <code>@&quot;</code> to preserve JSON quoting.</li>
+<li><strong>Avoid shell features that CurlDotNet cannot reproduce</strong>:<ul>
+<li>Process substitution (<code>&lt;(...)</code>)</li>
+<li>Command substitution inside single quotes</li>
+<li>Shell functions or aliases defined inline</li>
+</ul>
+</li>
+<li><strong>Test once per platform</strong>. When supporting both Windows and Linux build agents, run a short smoke test to confirm quoting works as expected.</li>
+</ol>
+<h2>Debugging Tips</h2>
+<ul>
+<li><strong>Log the command</strong> before execution to ensure the correct quoting survived templating.</li>
+<li>Use the <code>curl --trace-ascii -</code> option during development; CurlDotNet understands it and surfaces the trace in <code>result.Body</code>.</li>
+<li>If a command works on Ubuntu but fails after copy/paste, run it through our parser diagnostic method:<pre><code class="language-csharp">var validation = Curl.Validate(command);
+if (!validation.IsValid)
+    Console.WriteLine(validation.Error);
+</code></pre>
+</li>
+</ul>
+<p>Ubuntu remains the “source of truth,” but with these rules, you can safely translate to Windows or macOS while preserving compatibility.</p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

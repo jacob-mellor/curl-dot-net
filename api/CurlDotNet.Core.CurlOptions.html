@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Core.CurlOptions | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Core.md" title="CurlDotNet.Core">CurlDotNet.Core</a></h3>
+<h2>CurlOptions Class</h2>
+<p>Represents parsed curl command options.</p>
+<pre><code class="language-csharp">public class CurlOptions
+</code></pre>
+<p>Inheritance <a href="https://learn.microsoft.com/en-us/dotnet/api/system.object" title="System.Object">System.Object</a> &#129106; CurlOptions</p>
+<h3>Remarks</h3>
+<p>This class contains all options extracted from a curl command string.</p>
+<p>AI-Usage: This is the intermediate representation between curl syntax and HTTP operations.</p>
+<table>
+<thead>
+<tr>
+<th align="left">Properties</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.BinaryData.md" title="CurlDotNet.Core.CurlOptions.BinaryData">BinaryData</a></td>
+<td align="left">Binary data for upload.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.CaCert.md" title="CurlDotNet.Core.CurlOptions.CaCert">CaCert</a></td>
+<td align="left">Alias for CaCertFile for test compatibility.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.CaCertFile.md" title="CurlDotNet.Core.CurlOptions.CaCertFile">CaCertFile</a></td>
+<td align="left">CA certificate file (--cacert).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.CertFile.md" title="CurlDotNet.Core.CurlOptions.CertFile">CertFile</a></td>
+<td align="left">Certificate file for client authentication (--cert).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Compressed.md" title="CurlDotNet.Core.CurlOptions.Compressed">Compressed</a></td>
+<td align="left">Whether to use compressed encoding (--compressed).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.ConnectTimeout.md" title="CurlDotNet.Core.CurlOptions.ConnectTimeout">ConnectTimeout</a></td>
+<td align="left">Connection timeout in seconds (--connect-timeout).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Cookie.md" title="CurlDotNet.Core.CurlOptions.Cookie">Cookie</a></td>
+<td align="left">Cookie string (-b or --cookie).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.CookieJar.md" title="CurlDotNet.Core.CurlOptions.CookieJar">CookieJar</a></td>
+<td align="left">Cookie jar file path (-c or --cookie-jar).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.CreateDirs.md" title="CurlDotNet.Core.CurlOptions.CreateDirs">CreateDirs</a></td>
+<td align="left">Whether to create missing directories for output (--create-dirs).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Credentials.md" title="CurlDotNet.Core.CurlOptions.Credentials">Credentials</a></td>
+<td align="left">Basic authentication (-u or --user).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.CustomMethod.md" title="CurlDotNet.Core.CurlOptions.CustomMethod">CustomMethod</a></td>
+<td align="left">Request method override (-X flag value).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Data.md" title="CurlDotNet.Core.CurlOptions.Data">Data</a></td>
+<td align="left">Request body data.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.DataUrlEncode.md" title="CurlDotNet.Core.CurlOptions.DataUrlEncode">DataUrlEncode</a></td>
+<td align="left">Whether to URL encode the data (--data-urlencode flag).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.DisableEprt.md" title="CurlDotNet.Core.CurlOptions.DisableEprt">DisableEprt</a></td>
+<td align="left">Whether to disable EPRT for FTP (--disable-eprt).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.DisableEpsv.md" title="CurlDotNet.Core.CurlOptions.DisableEpsv">DisableEpsv</a></td>
+<td align="left">Whether to disable EPSV for FTP (--disable-epsv).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.DnsServers.md" title="CurlDotNet.Core.CurlOptions.DnsServers">DnsServers</a></td>
+<td align="left">DNS servers to use (--dns-servers).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.FailOnError.md" title="CurlDotNet.Core.CurlOptions.FailOnError">FailOnError</a></td>
+<td align="left">Fail silently on HTTP errors (-f flag).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Files.md" title="CurlDotNet.Core.CurlOptions.Files">Files</a></td>
+<td align="left">Files to upload (for -F flag with @file).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.FollowLocation.md" title="CurlDotNet.Core.CurlOptions.FollowLocation">FollowLocation</a></td>
+<td align="left">Whether to follow redirects (-L flag).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.FollowRedirects.md" title="CurlDotNet.Core.CurlOptions.FollowRedirects">FollowRedirects</a></td>
+<td align="left">Alias for FollowLocation for test compatibility.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.FormData.md" title="CurlDotNet.Core.CurlOptions.FormData">FormData</a></td>
+<td align="left">Form data for multipart/form-data.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.FtpPassive.md" title="CurlDotNet.Core.CurlOptions.FtpPassive">FtpPassive</a></td>
+<td align="left">Whether to use passive mode for FTP (--ftp-pasv).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.FtpSsl.md" title="CurlDotNet.Core.CurlOptions.FtpSsl">FtpSsl</a></td>
+<td align="left">Whether to use SSL/TLS for FTP (--ftp-ssl).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Headers.md" title="CurlDotNet.Core.CurlOptions.Headers">Headers</a></td>
+<td align="left">Request headers.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.HeadOnly.md" title="CurlDotNet.Core.CurlOptions.HeadOnly">HeadOnly</a></td>
+<td align="left">Whether to show only headers (-I or --head flag).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.HttpVersion.md" title="CurlDotNet.Core.CurlOptions.HttpVersion">HttpVersion</a></td>
+<td align="left">HTTP version to use (--http1.0, --http1.1, --http2).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.IncludeHeaders.md" title="CurlDotNet.Core.CurlOptions.IncludeHeaders">IncludeHeaders</a></td>
+<td align="left">Whether to include headers in output (-i flag).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Insecure.md" title="CurlDotNet.Core.CurlOptions.Insecure">Insecure</a></td>
+<td align="left">Whether to ignore SSL errors (-k flag).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Interface.md" title="CurlDotNet.Core.CurlOptions.Interface">Interface</a></td>
+<td align="left">Interface to use for outgoing connections (--interface).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.KeepAliveTime.md" title="CurlDotNet.Core.CurlOptions.KeepAliveTime">KeepAliveTime</a></td>
+<td align="left">Whether to use TCP keepalive (--keepalive-time).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.KeyFile.md" title="CurlDotNet.Core.CurlOptions.KeyFile">KeyFile</a></td>
+<td align="left">Certificate key file (--key).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.LocationTrusted.md" title="CurlDotNet.Core.CurlOptions.LocationTrusted">LocationTrusted</a></td>
+<td align="left">Location trusted for automatic authentication (--location-trusted).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.MaxRedirects.md" title="CurlDotNet.Core.CurlOptions.MaxRedirects">MaxRedirects</a></td>
+<td align="left">Maximum number of redirects to follow (--max-redirs).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.MaxTime.md" title="CurlDotNet.Core.CurlOptions.MaxTime">MaxTime</a></td>
+<td align="left">Maximum time in seconds (--max-time).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Method.md" title="CurlDotNet.Core.CurlOptions.Method">Method</a></td>
+<td align="left">HTTP method (GET, POST, PUT, DELETE, etc.).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.OriginalCommand.md" title="CurlDotNet.Core.CurlOptions.OriginalCommand">OriginalCommand</a></td>
+<td align="left">The original command string.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.OutputFile.md" title="CurlDotNet.Core.CurlOptions.OutputFile">OutputFile</a></td>
+<td align="left">Output file path (-o flag).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.ProgressBar.md" title="CurlDotNet.Core.CurlOptions.ProgressBar">ProgressBar</a></td>
+<td align="left">Whether to show progress bar (--progress-bar).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.ProgressHandler.md" title="CurlDotNet.Core.CurlOptions.ProgressHandler">ProgressHandler</a></td>
+<td align="left">Progress callback handler.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Proxy.md" title="CurlDotNet.Core.CurlOptions.Proxy">Proxy</a></td>
+<td align="left">Proxy URL (-x or --proxy).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.ProxyCredentials.md" title="CurlDotNet.Core.CurlOptions.ProxyCredentials">ProxyCredentials</a></td>
+<td align="left">Proxy authentication (--proxy-user).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Quote.md" title="CurlDotNet.Core.CurlOptions.Quote">Quote</a></td>
+<td align="left">FTP/SFTP commands to execute after transfer (--quote).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Range.md" title="CurlDotNet.Core.CurlOptions.Range">Range</a></td>
+<td align="left">Range of bytes to request (-r or --range).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Referer.md" title="CurlDotNet.Core.CurlOptions.Referer">Referer</a></td>
+<td align="left">Referer header (-e or --referer).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Resolve.md" title="CurlDotNet.Core.CurlOptions.Resolve">Resolve</a></td>
+<td align="left">Resolve host to IP (--resolve).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.ResumeFrom.md" title="CurlDotNet.Core.CurlOptions.ResumeFrom">ResumeFrom</a></td>
+<td align="left">Resume from byte offset (-C or --continue-at).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Retry.md" title="CurlDotNet.Core.CurlOptions.Retry">Retry</a></td>
+<td align="left">Retry count (--retry).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.RetryDelay.md" title="CurlDotNet.Core.CurlOptions.RetryDelay">RetryDelay</a></td>
+<td align="left">Retry delay in seconds (--retry-delay).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.RetryMaxTime.md" title="CurlDotNet.Core.CurlOptions.RetryMaxTime">RetryMaxTime</a></td>
+<td align="left">Maximum retry time (--retry-max-time).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.ShowError.md" title="CurlDotNet.Core.CurlOptions.ShowError">ShowError</a></td>
+<td align="left">Show error even in silent mode (-S flag).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Silent.md" title="CurlDotNet.Core.CurlOptions.Silent">Silent</a></td>
+<td align="left">Silent mode (-s flag).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Socks5Proxy.md" title="CurlDotNet.Core.CurlOptions.Socks5Proxy">Socks5Proxy</a></td>
+<td align="left">SOCKS proxy (--socks5).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.SpeedLimit.md" title="CurlDotNet.Core.CurlOptions.SpeedLimit">SpeedLimit</a></td>
+<td align="left">Speed limit in bytes per second (--limit-rate).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.SpeedTime.md" title="CurlDotNet.Core.CurlOptions.SpeedTime">SpeedTime</a></td>
+<td align="left">Speed time period for limit (--speed-time).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Url.md" title="CurlDotNet.Core.CurlOptions.Url">Url</a></td>
+<td align="left">The target URL.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.UserAgent.md" title="CurlDotNet.Core.CurlOptions.UserAgent">UserAgent</a></td>
+<td align="left">User agent string (-A or --user-agent).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.UserAuth.md" title="CurlDotNet.Core.CurlOptions.UserAuth">UserAuth</a></td>
+<td align="left">Alias for Credentials for test compatibility.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.UseRemoteFileName.md" title="CurlDotNet.Core.CurlOptions.UseRemoteFileName">UseRemoteFileName</a></td>
+<td align="left">Whether to use remote filename for output (-O flag).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Verbose.md" title="CurlDotNet.Core.CurlOptions.Verbose">Verbose</a></td>
+<td align="left">Verbose output (-v flag).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.WriteOut.md" title="CurlDotNet.Core.CurlOptions.WriteOut">WriteOut</a></td>
+<td align="left">Write-out format string (-w or --write-out).</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th align="left">Methods</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Core.CurlOptions.Clone().md" title="CurlDotNet.Core.CurlOptions.Clone()">Clone()</a></td>
+<td align="left">Clone this options object.</td>
+</tr>
+</tbody></table>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

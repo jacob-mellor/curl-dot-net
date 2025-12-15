@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSL/TLS Certificate Errors | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>SSL/TLS Certificate Errors</h1>
+<h2>Overview</h2>
+<p>SSL/TLS errors occur when there are issues with secure connections, including certificate validation, cipher negotiation, and protocol mismatches.</p>
+<h2>Common SSL Error Scenarios</h2>
+<h3>1. Invalid Certificate</h3>
+<pre><code class="language-csharp">try
+{
+    var result = await curl.ExecuteAsync(&quot;curl https://self-signed.example.com&quot;);
+}
+catch (CurlSslException ex)
+{
+    // For development/testing only - skip certificate verification
+    var result = await curl.ExecuteAsync(&quot;curl -k https://self-signed.example.com&quot;);
+}
+</code></pre>
+<h3>2. Certificate Chain Issues</h3>
+<pre><code class="language-csharp">// Provide CA bundle for verification
+var result = await curl.ExecuteAsync(
+    &quot;curl --cacert /path/to/ca-bundle.crt https://example.com&quot;
+);
+</code></pre>
+<h3>3. Expired Certificates</h3>
+<pre><code class="language-csharp">public async Task&lt;bool&gt; CheckCertificateExpiry(string url)
+{
+    var result = await curl.ExecuteAsync($&quot;curl -v {url}&quot;);
+    // Parse certificate info from verbose output
+    return !result.StdErr.Contains(&quot;certificate has expired&quot;);
+}
+</code></pre>
+<h2>Solutions</h2>
+<h3>Development Environment</h3>
+<pre><code class="language-csharp">// WARNING: Only for development/testing
+public class DevCurlClient
+{
+    public async Task&lt;CurlResult&gt; ExecuteInsecure(string url)
+    {
+        return await curl.ExecuteAsync($&quot;curl --insecure {url}&quot;);
+    }
+}
+</code></pre>
+<h3>Production Environment</h3>
+<pre><code class="language-csharp">public class SecureCurlClient
+{
+    private readonly string _caBundlePath;
+
+    public SecureCurlClient(string caBundlePath)
+    {
+        _caBundlePath = caBundlePath;
+    }
+
+    public async Task&lt;CurlResult&gt; Execute(string url)
+    {
+        return await curl.ExecuteAsync($&quot;curl --cacert {_caBundlePath} {url}&quot;);
+    }
+}
+</code></pre>
+<h2>Certificate Pinning</h2>
+<pre><code class="language-csharp">// Pin specific certificate
+var pinnedCert = &quot;sha256//AbC123...&quot;;
+var result = await curl.ExecuteAsync(
+    $&quot;curl --pinnedpubkey {pinnedCert} https://example.com&quot;
+);
+</code></pre>
+<h2>Related Documentation</h2>
+<ul>
+<li><a href="auth-errors.html">Authentication Errors</a></li>
+<li><a href="/guides/security.html">Security Best Practices</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

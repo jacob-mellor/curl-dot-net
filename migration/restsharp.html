@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migrating from RestSharp to CurlDotNet | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Migrating from RestSharp to CurlDotNet</h1>
+<p>RestSharp has been a popular REST client for .NET, but CurlDotNet offers a simpler API, better performance, and no native dependencies. This guide helps you migrate your RestSharp code to CurlDotNet.</p>
+<h2>Key Differences</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>RestSharp</th>
+<th>CurlDotNet</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Dependencies</td>
+<td>Multiple packages</td>
+<td>Single, lightweight package</td>
+</tr>
+<tr>
+<td>Native Code</td>
+<td>Platform-specific</td>
+<td>Pure C#, no P/Invoke</td>
+</tr>
+<tr>
+<td>API Style</td>
+<td>Builder pattern</td>
+<td>Direct method calls</td>
+</tr>
+<tr>
+<td>Serialization</td>
+<td>Built-in or custom</td>
+<td>Flexible, bring your own</td>
+</tr>
+<tr>
+<td>curl Compatibility</td>
+<td>None</td>
+<td>100% compatible</td>
+</tr>
+</tbody></table>
+<h2>Basic Migration Examples</h2>
+<h3>Simple GET Request</h3>
+<p><strong>RestSharp:</strong></p>
+<pre><code class="language-csharp">var client = new RestClient(&quot;https://api.example.com&quot;);
+var request = new RestRequest(&quot;users&quot;, Method.GET);
+var response = await client.ExecuteAsync(request);
+
+if (response.IsSuccessful)
+{
+    Console.WriteLine(response.Content);
+}
+else
+{
+    Console.WriteLine($&quot;Error: {response.ErrorMessage}&quot;);
+}
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl();
+var result = await curl.GetAsync(&quot;https://api.example.com/users&quot;);
+
+if (result.IsSuccess)
+{
+    Console.WriteLine(result.Data);
+}
+else
+{
+    Console.WriteLine($&quot;Error: {result.Error}&quot;);
+}
+</code></pre>
+<h3>POST with JSON</h3>
+<p><strong>RestSharp:</strong></p>
+<pre><code class="language-csharp">var client = new RestClient(&quot;https://api.example.com&quot;);
+var request = new RestRequest(&quot;users&quot;, Method.POST);
+request.AddJsonBody(new { name = &quot;John&quot;, age = 30 });
+
+var response = await client.ExecuteAsync(request);
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl();
+var result = await curl.PostJsonAsync(
+    &quot;https://api.example.com/users&quot;,
+    new { name = &quot;John&quot;, age = 30 }
+);
+</code></pre>
+<h3>Request with Headers</h3>
+<p><strong>RestSharp:</strong></p>
+<pre><code class="language-csharp">var client = new RestClient(&quot;https://api.example.com&quot;);
+var request = new RestRequest(&quot;protected&quot;, Method.GET);
+request.AddHeader(&quot;Authorization&quot;, &quot;Bearer token123&quot;);
+request.AddHeader(&quot;X-Custom-Header&quot;, &quot;value&quot;);
+
+var response = await client.ExecuteAsync(request);
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl();
+curl.Headers.Add(&quot;Authorization&quot;, &quot;Bearer token123&quot;);
+curl.Headers.Add(&quot;X-Custom-Header&quot;, &quot;value&quot;);
+
+var result = await curl.GetAsync(&quot;https://api.example.com/protected&quot;);
+</code></pre>
+<h3>Query Parameters</h3>
+<p><strong>RestSharp:</strong></p>
+<pre><code class="language-csharp">var client = new RestClient(&quot;https://api.example.com&quot;);
+var request = new RestRequest(&quot;search&quot;, Method.GET);
+request.AddQueryParameter(&quot;q&quot;, &quot;search term&quot;);
+request.AddQueryParameter(&quot;page&quot;, &quot;1&quot;);
+request.AddQueryParameter(&quot;limit&quot;, &quot;10&quot;);
+
+var response = await client.ExecuteAsync(request);
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl();
+var result = await curl.GetAsync(
+    &quot;https://api.example.com/search?q=search+term&amp;page=1&amp;limit=10&quot;
+);
+
+// Or using a helper method
+var url = curl.BuildUrl(&quot;https://api.example.com/search&quot;, new Dictionary&lt;string, string&gt;
+{
+    [&quot;q&quot;] = &quot;search term&quot;,
+    [&quot;page&quot;] = &quot;1&quot;,
+    [&quot;limit&quot;] = &quot;10&quot;
+});
+var result = await curl.GetAsync(url);
+</code></pre>
+<h2>Advanced Scenarios</h2>
+<h3>Typed Responses</h3>
+<p><strong>RestSharp:</strong></p>
+<pre><code class="language-csharp">public class User
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+}
+
+var client = new RestClient(&quot;https://api.example.com&quot;);
+var request = new RestRequest(&quot;users/123&quot;, Method.GET);
+var response = await client.ExecuteAsync&lt;User&gt;(request);
+
+if (response.IsSuccessful)
+{
+    User user = response.Data;
+    Console.WriteLine($&quot;Name: {user.Name}&quot;);
+}
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">public class User
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+}
+
+var curl = new Curl();
+var result = await curl.GetAsync(&quot;https://api.example.com/users/123&quot;);
+
+if (result.IsSuccess)
+{
+    var user = JsonSerializer.Deserialize&lt;User&gt;(result.Data);
+    Console.WriteLine($&quot;Name: {user.Name}&quot;);
+}
+
+// Or with extension method
+var user = await curl.GetJsonAsync&lt;User&gt;(&quot;https://api.example.com/users/123&quot;);
+</code></pre>
+<h3>File Upload</h3>
+<p><strong>RestSharp:</strong></p>
+<pre><code class="language-csharp">var client = new RestClient(&quot;https://api.example.com&quot;);
+var request = new RestRequest(&quot;upload&quot;, Method.POST);
+request.AddFile(&quot;file&quot;, &quot;/path/to/file.pdf&quot;);
+request.AddParameter(&quot;description&quot;, &quot;Important document&quot;);
+
+var response = await client.ExecuteAsync(request);
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl();
+var result = await curl.UploadFileAsync(
+    &quot;https://api.example.com/upload&quot;,
+    &quot;/path/to/file.pdf&quot;,
+    &quot;file&quot;,
+    new Dictionary&lt;string, string&gt;
+    {
+        [&quot;description&quot;] = &quot;Important document&quot;
+    }
+);
+</code></pre>
+<h3>Authentication</h3>
+<p><strong>RestSharp Basic Auth:</strong></p>
+<pre><code class="language-csharp">var client = new RestClient(&quot;https://api.example.com&quot;);
+client.Authenticator = new HttpBasicAuthenticator(&quot;username&quot;, &quot;password&quot;);
+var request = new RestRequest(&quot;secure&quot;, Method.GET);
+var response = await client.ExecuteAsync(request);
+</code></pre>
+<p><strong>CurlDotNet Basic Auth:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl();
+curl.SetBasicAuth(&quot;username&quot;, &quot;password&quot;);
+var result = await curl.GetAsync(&quot;https://api.example.com/secure&quot;);
+</code></pre>
+<p><strong>RestSharp OAuth:</strong></p>
+<pre><code class="language-csharp">var client = new RestClient(&quot;https://api.example.com&quot;);
+client.Authenticator = new OAuth2AuthorizationRequestHeaderAuthenticator(
+    accessToken, &quot;Bearer&quot;
+);
+</code></pre>
+<p><strong>CurlDotNet OAuth:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl();
+curl.Headers.Add(&quot;Authorization&quot;, $&quot;Bearer {accessToken}&quot;);
+</code></pre>
+<h3>Request Interceptors</h3>
+<p><strong>RestSharp:</strong></p>
+<pre><code class="language-csharp">var client = new RestClient(&quot;https://api.example.com&quot;);
+client.AddDefaultHeader(&quot;X-App-Version&quot;, &quot;1.0.0&quot;);
+
+// Interceptor pattern
+client.ConfigureWebRequest(request =&gt;
+{
+    request.UserAgent = &quot;MyApp/1.0&quot;;
+    request.KeepAlive = true;
+});
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl
+{
+    Headers =
+    {
+        [&quot;X-App-Version&quot;] = &quot;1.0.0&quot;,
+        [&quot;User-Agent&quot;] = &quot;MyApp/1.0&quot;
+    }
+};
+
+// Or use middleware pattern
+curl.BeforeRequest = request =&gt;
+{
+    request.Headers[&quot;X-Request-ID&quot;] = Guid.NewGuid().ToString();
+    return request;
+};
+</code></pre>
+<h3>Timeout and Retry</h3>
+<p><strong>RestSharp:</strong></p>
+<pre><code class="language-csharp">var client = new RestClient(&quot;https://api.example.com&quot;)
+{
+    Timeout = 30000,  // 30 seconds
+    MaxRedirects = 5
+};
+
+// Manual retry logic
+var maxRetries = 3;
+for (int i = 0; i &lt; maxRetries; i++)
+{
+    var response = await client.ExecuteAsync(request);
+    if (response.IsSuccessful) break;
+    await Task.Delay(1000 * (i + 1));  // Exponential backoff
+}
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl
+{
+    Timeout = TimeSpan.FromSeconds(30),
+    MaxRedirects = 5,
+    RetryPolicy = new RetryPolicy
+    {
+        MaxRetries = 3,
+        DelayStrategy = DelayStrategy.ExponentialBackoff
+    }
+};
+
+var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+</code></pre>
+<h2>Serialization</h2>
+<h3>RestSharp Custom Serializers</h3>
+<pre><code class="language-csharp">public class NewtonsoftJsonSerializer : IRestSerializer
+{
+    public string Serialize(object obj) =&gt;
+        JsonConvert.SerializeObject(obj);
+
+    public T Deserialize&lt;T&gt;(RestResponse response) =&gt;
+        JsonConvert.DeserializeObject&lt;T&gt;(response.Content);
+}
+
+var client = new RestClient(&quot;https://api.example.com&quot;);
+client.UseSerializer(() =&gt; new NewtonsoftJsonSerializer());
+</code></pre>
+<h3>CurlDotNet Serialization</h3>
+<pre><code class="language-csharp">// Use any serializer you prefer
+var curl = new Curl();
+
+// With System.Text.Json (default)
+var result = await curl.PostJsonAsync(url, data);
+var obj = JsonSerializer.Deserialize&lt;MyType&gt;(result.Data);
+
+// With Newtonsoft.Json
+var json = JsonConvert.SerializeObject(data);
+var result = await curl.PostAsync(url, json, &quot;application/json&quot;);
+var obj = JsonConvert.DeserializeObject&lt;MyType&gt;(result.Data);
+
+// Custom extension method
+public static class CurlExtensions
+{
+    public static async Task&lt;T&gt; GetJsonAsync&lt;T&gt;(this Curl curl, string url)
+    {
+        var result = await curl.GetAsync(url);
+        return result.IsSuccess
+            ? JsonConvert.DeserializeObject&lt;T&gt;(result.Data)
+            : default;
+    }
+}
+</code></pre>
+<h2>Error Handling</h2>
+<h3>RestSharp Error Handling</h3>
+<pre><code class="language-csharp">var response = await client.ExecuteAsync(request);
+
+if (response.IsSuccessful)
+{
+    // Process response.Content
+}
+else if (response.ErrorException != null)
+{
+    // Network or deserialization error
+    Console.WriteLine($&quot;Error: {response.ErrorMessage}&quot;);
+    Console.WriteLine($&quot;Exception: {response.ErrorException}&quot;);
+}
+else
+{
+    // HTTP error
+    Console.WriteLine($&quot;HTTP {response.StatusCode}: {response.StatusDescription}&quot;);
+}
+</code></pre>
+<h3>CurlDotNet Error Handling</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync(url);
+
+if (result.IsSuccess)
+{
+    // Process result.Data
+}
+else
+{
+    // All error information in one place
+    Console.WriteLine($&quot;Error: {result.Error}&quot;);
+    Console.WriteLine($&quot;HTTP {result.StatusCode}&quot;);
+
+    // Specific handling if needed
+    if (result.StatusCode == HttpStatusCode.TooManyRequests)
+    {
+        // Handle rate limiting
+    }
+}
+</code></pre>
+<h2>Testing</h2>
+<h3>Mocking RestSharp</h3>
+<pre><code class="language-csharp">// Complex mocking with RestSharp
+var mockClient = new Mock&lt;IRestClient&gt;();
+var mockResponse = new RestResponse
+{
+    StatusCode = HttpStatusCode.OK,
+    Content = &quot;test data&quot;,
+    IsSuccessful = true
+};
+
+mockClient
+    .Setup(x =&gt; x.ExecuteAsync(It.IsAny&lt;RestRequest&gt;(), default))
+    .ReturnsAsync(mockResponse);
+</code></pre>
+<h3>Mocking CurlDotNet</h3>
+<pre><code class="language-csharp">// Simple interface mocking
+var mockCurl = new Mock&lt;ICurl&gt;();
+mockCurl.Setup(x =&gt; x.GetAsync(It.IsAny&lt;string&gt;()))
+    .ReturnsAsync(new CurlResult
+    {
+        IsSuccess = true,
+        Data = &quot;test data&quot;,
+        StatusCode = HttpStatusCode.OK
+    });
+</code></pre>
+<h2>Migration Checklist</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Replace <code>RestClient</code> with <code>Curl</code></li>
+<li><input disabled="" type="checkbox"> Convert <code>RestRequest</code> to direct method calls</li>
+<li><input disabled="" type="checkbox"> Update parameter addition to use dictionaries or URL building</li>
+<li><input disabled="" type="checkbox"> Migrate custom serializers to extension methods</li>
+<li><input disabled="" type="checkbox"> Update authentication patterns</li>
+<li><input disabled="" type="checkbox"> Simplify error handling</li>
+<li><input disabled="" type="checkbox"> Update retry logic to use built-in policies</li>
+<li><input disabled="" type="checkbox"> Refactor interceptors to middleware pattern</li>
+<li><input disabled="" type="checkbox"> Update unit tests with simpler mocks</li>
+</ul>
+<h2>Benefits After Migration</h2>
+<ol>
+<li><strong>No Native Dependencies</strong>: Pure C# means no platform-specific issues</li>
+<li><strong>Simpler API</strong>: Less ceremony, more intuitive method calls</li>
+<li><strong>Better Performance</strong>: Optimized for modern .NET</li>
+<li><strong>curl Compatibility</strong>: Leverage curl documentation and knowledge</li>
+<li><strong>Lighter Package</strong>: Smaller footprint, faster CI/CD</li>
+</ol>
+<h2>Common Patterns</h2>
+<h3>RestSharp Fluent API to CurlDotNet</h3>
+<pre><code class="language-csharp">// RestSharp fluent style
+var response = await new RestClient(&quot;https://api.example.com&quot;)
+    .AddDefaultHeader(&quot;X-API-Key&quot;, &quot;key123&quot;)
+    .ExecuteAsync(new RestRequest(&quot;data&quot;)
+        .AddQueryParameter(&quot;filter&quot;, &quot;active&quot;)
+        .AddHeader(&quot;Accept&quot;, &quot;application/json&quot;));
+
+// CurlDotNet direct style
+var curl = new Curl
+{
+    Headers =
+    {
+        [&quot;X-API-Key&quot;] = &quot;key123&quot;,
+        [&quot;Accept&quot;] = &quot;application/json&quot;
+    }
+};
+var result = await curl.GetAsync(&quot;https://api.example.com/data?filter=active&quot;);
+</code></pre>
+<h3>Response Processing</h3>
+<pre><code class="language-csharp">// RestSharp
+var users = response.IsSuccessful
+    ? JsonConvert.DeserializeObject&lt;List&lt;User&gt;&gt;(response.Content)
+    : new List&lt;User&gt;();
+
+// CurlDotNet
+var users = result.IsSuccess
+    ? JsonSerializer.Deserialize&lt;List&lt;User&gt;&gt;(result.Data)
+    : new List&lt;User&gt;();
+</code></pre>
+<h2>Need Help?</h2>
+<ul>
+<li>Review <a href="https://github.com/jacob-mellor/curl-dot-net/tree/master/examples">working examples</a></li>
+<li>Check the <a href="../cookbook/index.html">cookbook</a> for common recipes</li>
+<li>Read the <a href="../api/index.html">API documentation</a> for detailed method information</li>
+<li>Ask questions in <a href="https://github.com/jacob-mellor/curl-dot-net/issues">GitHub Issues</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

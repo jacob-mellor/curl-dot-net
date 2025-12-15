@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Curl.ExecuteManyAsync(string[]) | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.md" title="CurlDotNet">CurlDotNet</a>.<a href="CurlDotNet.Curl.md" title="CurlDotNet.Curl">Curl</a></h3>
+<h2>Curl.ExecuteManyAsync(string[]) Method</h2>
+<p><b>Execute multiple curl commands in parallel - great for performance!</b></p>
+<p>Runs multiple HTTP requests at the same time, which is much faster than running them one by one.
+             Perfect for fetching data from multiple APIs or endpoints simultaneously.</p>
+<p><b>Example - Fetch Multiple APIs:</b></p>
+<pre><code class="language-csharp">// These all run at the same time (parallel), not one after another
+var results = await Curl.ExecuteMany(
+    &quot;curl https://api.github.com/users/microsoft&quot;,
+    &quot;curl https://api.github.com/users/dotnet&quot;,
+    &quot;curl https://api.github.com/users/azure&quot;
+);
+
+// Process results - array order matches command order
+Console.WriteLine($&quot;Microsoft: {results[0].Body}&quot;);
+Console.WriteLine($&quot;DotNet: {results[1].Body}&quot;);
+Console.WriteLine($&quot;Azure: {results[2].Body}&quot;);
+</code></pre>
+<p><b>Example - Aggregate Data:</b></p>
+<pre><code class="language-csharp">// Fetch from multiple services simultaneously
+var results = await Curl.ExecuteMany(
+    &quot;curl https://api.weather.com/temperature&quot;,
+    &quot;curl https://api.weather.com/humidity&quot;,
+    &quot;curl https://api.weather.com/forecast&quot;
+);
+
+// Check if all succeeded
+if (results.All(r =&gt; r.IsSuccess))
+{
+    var temp = results[0].ParseJson&lt;Temperature&gt;();
+    var humidity = results[1].ParseJson&lt;Humidity&gt;();
+    var forecast = results[2].ParseJson&lt;Forecast&gt;();
+
+    DisplayWeatherDashboard(temp, humidity, forecast);
+}
+</code></pre>
+<p><b>Error Handling - Some May Fail:</b></p>
+<pre><code class="language-csharp">var results = await Curl.ExecuteMany(commands);
+
+for (int i = 0; i &lt; results.Length; i++)
+{
+    if (results[i].IsSuccess)
+    {
+        Console.WriteLine($&quot;✅ Command {i} succeeded&quot;);
+    }
+    else
+    {
+        Console.WriteLine($&quot;❌ Command {i} failed: {results[i].StatusCode}&quot;);
+    }
+}
+</code></pre>
+<pre><code class="language-csharp">public static System.Threading.Tasks.Task&lt;CurlDotNet.Core.CurlResult[]&gt; ExecuteManyAsync(params string[] commands);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Curl.ExecuteManyAsync(string[]).commands'></a></p>
+<p><code>commands</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.array" title="System.Array">[]</a></p>
+<p>Array of curl command strings to execute. Can pass as:</p>
+<ul>
+<li>Multiple parameters: <code>ExecuteMany(cmd1, cmd2, cmd3)</code></li>
+<li>Array: <code>ExecuteMany(commandArray)</code></li>
+<li>List: <code>ExecuteMany(commandList.ToArray())</code></li>
+</ul>
+<h4>Returns</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">System.Threading.Tasks.Task&lt;</a><a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.array" title="System.Array">[]</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">&gt;</a><br>Array of <a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a> objects in the same order as the commands.
+Even if some fail, you still get results for all commands.</p>
+<h3>Remarks</h3>
+<p><b>Performance Note:</b> If you have 10 commands that each take 1 second,
+             running them in parallel takes ~1 second total instead of 10 seconds sequentially!</p>
+<p><b>Limit:</b> Be respectful of APIs - don&#39;t send hundreds of parallel requests.</p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Installation Guide | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Installation Guide</h1>
+<h2>🎯 What You&#39;ll Learn</h2>
+<ul>
+<li>How to install .NET SDK</li>
+<li>How to install CurlDotNet</li>
+<li>How to verify your installation</li>
+<li>Platform-specific setup instructions</li>
+</ul>
+<h2>📚 Prerequisites</h2>
+<ul>
+<li>A computer running Windows, macOS, or Linux</li>
+<li>Internet connection</li>
+<li>10-15 minutes</li>
+</ul>
+<h2>🚀 Quick Start</h2>
+<p>If you already have .NET installed, getting CurlDotNet is just one command:</p>
+<pre><code class="language-bash">dotnet add package CurlDotNet
+</code></pre>
+<p>That&#39;s it! Jump to <a href="#verify-installation">Verify Installation</a> to confirm everything works.</p>
+<h2>📦 Step-by-Step Installation</h2>
+<h3>Step 1: Install .NET SDK</h3>
+<p>CurlDotNet requires .NET. Here&#39;s how to install it on your platform:</p>
+<h4>Windows</h4>
+<p><strong>Option 1: Official Installer (Recommended)</strong></p>
+<ol>
+<li>Visit <a href="https://dotnet.microsoft.com/download">dotnet.microsoft.com/download</a></li>
+<li>Download the .NET SDK (not just the runtime)</li>
+<li>Run the installer</li>
+<li>Click through the wizard (defaults are fine)</li>
+<li>Restart your terminal/command prompt</li>
+</ol>
+<p><strong>Option 2: Windows Package Manager (winget)</strong></p>
+<pre><code class="language-powershell">winget install Microsoft.DotNet.SDK.8
+</code></pre>
+<p><strong>Option 3: Chocolatey</strong></p>
+<pre><code class="language-powershell">choco install dotnet-sdk
+</code></pre>
+<h4>macOS</h4>
+<p><strong>Option 1: Official Installer (Recommended)</strong></p>
+<ol>
+<li>Visit <a href="https://dotnet.microsoft.com/download">dotnet.microsoft.com/download</a></li>
+<li>Download the .NET SDK for macOS</li>
+<li>Open the .pkg file</li>
+<li>Follow the installation wizard</li>
+<li>Restart your terminal</li>
+</ol>
+<p><strong>Option 2: Homebrew</strong></p>
+<pre><code class="language-bash">brew install --cask dotnet-sdk
+</code></pre>
+<h4>Linux (Ubuntu/Debian)</h4>
+<pre><code class="language-bash"># Add Microsoft package repository
+wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+sudo dpkg -i packages-microsoft-prod.deb
+rm packages-microsoft-prod.deb
+
+# Install .NET SDK
+sudo apt-get update
+sudo apt-get install -y dotnet-sdk-8.0
+</code></pre>
+<h4>Linux (Fedora/RHEL/CentOS)</h4>
+<pre><code class="language-bash"># Add Microsoft package repository
+sudo dnf install dotnet-sdk-8.0
+</code></pre>
+<h4>Linux (Arch)</h4>
+<pre><code class="language-bash">sudo pacman -S dotnet-sdk
+</code></pre>
+<h4>Linux (Other Distributions)</h4>
+<p>See the <a href="https://docs.microsoft.com/dotnet/core/install/linux">official .NET installation guide</a> for your specific distribution.</p>
+<h3>Step 2: Verify .NET Installation</h3>
+<p>Open a terminal/command prompt and run:</p>
+<pre><code class="language-bash">dotnet --version
+</code></pre>
+<p>You should see a version number like <code>8.0.100</code> or <code>10.0.0</code>. If you get an error, restart your terminal or check the <a href="https://docs.microsoft.com/dotnet/core/install/">.NET installation troubleshooting guide</a>.</p>
+<h3>Step 3: Create a New Project</h3>
+<pre><code class="language-bash"># Create a directory for your project
+mkdir MyCurlApp
+cd MyCurlApp
+
+# Create a new console application
+dotnet new console
+
+# Verify the project was created
+ls
+</code></pre>
+<p>You should see:</p>
+<ul>
+<li><code>MyCurlApp.csproj</code> - Project file</li>
+<li><code>Program.cs</code> - Your code file</li>
+<li><code>obj/</code> directory - Build artifacts</li>
+</ul>
+<h3>Step 4: Install CurlDotNet Package</h3>
+<p>Now install CurlDotNet using one of these methods:</p>
+<h4>Option 1: .NET CLI (Recommended)</h4>
+<pre><code class="language-bash">dotnet add package CurlDotNet
+</code></pre>
+<h4>Option 2: NuGet Package Manager (Visual Studio)</h4>
+<ol>
+<li>Right-click on your project in Solution Explorer</li>
+<li>Select &quot;Manage NuGet Packages&quot;</li>
+<li>Search for &quot;CurlDotNet&quot;</li>
+<li>Click &quot;Install&quot;</li>
+</ol>
+<h4>Option 3: Package Manager Console (Visual Studio)</h4>
+<pre><code class="language-powershell">Install-Package CurlDotNet
+</code></pre>
+<h4>Option 4: Manual PackageReference</h4>
+<p>Edit your <code>.csproj</code> file and add:</p>
+<pre><code class="language-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;
+  &lt;PropertyGroup&gt;
+    &lt;OutputType&gt;Exe&lt;/OutputType&gt;
+    &lt;TargetFramework&gt;net8.0&lt;/TargetFramework&gt;
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;PackageReference Include=&quot;CurlDotNet&quot; Version=&quot;1.0.0&quot; /&gt;
+  &lt;/ItemGroup&gt;
+&lt;/Project&gt;
+</code></pre>
+<p>Then run:</p>
+<pre><code class="language-bash">dotnet restore
+</code></pre>
+<h3>Step 5: Verify CurlDotNet Installation</h3>
+<p>Create a simple test file to verify everything works:</p>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        Console.WriteLine(&quot;Testing CurlDotNet installation...\n&quot;);
+
+        try
+        {
+            var result = await Curl.ExecuteAsync(&quot;curl https://httpbin.org/status/200&quot;);
+
+            if (result.IsSuccess)
+            {
+                Console.WriteLine(&quot;✓ CurlDotNet is working correctly!&quot;);
+                Console.WriteLine($&quot;✓ Status Code: {result.StatusCode}&quot;);
+                Console.WriteLine($&quot;✓ .NET Version: {Environment.Version}&quot;);
+            }
+            else
+            {
+                Console.WriteLine($&quot;✗ Unexpected status: {result.StatusCode}&quot;);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($&quot;✗ Error: {ex.Message}&quot;);
+        }
+    }
+}
+</code></pre>
+<p>Run it:</p>
+<pre><code class="language-bash">dotnet run
+</code></pre>
+<p>You should see:</p>
+<pre><code>Testing CurlDotNet installation...
+
+✓ CurlDotNet is working correctly!
+✓ Status Code: 200
+✓ .NET Version: 8.0.0
+</code></pre>
+<p>If you see this, congratulations! CurlDotNet is installed and working.</p>
+<h2>🔧 IDE and Editor Setup</h2>
+<h3>Visual Studio 2022 (Windows/Mac)</h3>
+<p><strong>Installation:</strong></p>
+<ol>
+<li>Download from <a href="https://visualstudio.microsoft.com/">visualstudio.microsoft.com</a></li>
+<li>During installation, select &quot;.NET desktop development&quot; workload</li>
+<li>Install CurlDotNet via NuGet Package Manager</li>
+</ol>
+<p><strong>Creating a project:</strong></p>
+<ol>
+<li>File → New → Project</li>
+<li>Select &quot;Console App (.NET)&quot;</li>
+<li>Name your project</li>
+<li>Right-click project → Manage NuGet Packages</li>
+<li>Search &quot;CurlDotNet&quot; and install</li>
+</ol>
+<h3>Visual Studio Code (Cross-Platform)</h3>
+<p><strong>Installation:</strong></p>
+<ol>
+<li>Download from <a href="https://code.visualstudio.com/">code.visualstudio.com</a></li>
+<li>Install the C# extension (by Microsoft)</li>
+<li>Install the C# Dev Kit extension (optional but recommended)</li>
+</ol>
+<p><strong>Creating a project:</strong></p>
+<pre><code class="language-bash">dotnet new console -n MyCurlApp
+cd MyCurlApp
+dotnet add package CurlDotNet
+code .
+</code></pre>
+<p><strong>Running in VS Code:</strong></p>
+<ul>
+<li>Press <code>F5</code> to debug</li>
+<li>Or use the terminal: <code>dotnet run</code></li>
+</ul>
+<h3>JetBrains Rider (Cross-Platform)</h3>
+<p><strong>Installation:</strong></p>
+<ol>
+<li>Download from <a href="https://www.jetbrains.com/rider/">jetbrains.com/rider</a></li>
+<li>Install and open Rider</li>
+<li>Create new solution or open existing</li>
+</ol>
+<p><strong>Adding CurlDotNet:</strong></p>
+<ol>
+<li>Right-click project → Manage NuGet Packages</li>
+<li>Search &quot;CurlDotNet&quot;</li>
+<li>Click Install</li>
+</ol>
+<h3>Command Line / Terminal Only</h3>
+<p>You don&#39;t need an IDE! You can use any text editor:</p>
+<pre><code class="language-bash"># Create project
+dotnet new console
+dotnet add package CurlDotNet
+
+# Edit with your favorite editor
+nano Program.cs
+# or
+vim Program.cs
+# or
+code Program.cs
+
+# Build and run
+dotnet run
+</code></pre>
+<h2>🎯 Platform-Specific Notes</h2>
+<h3>Windows</h3>
+<p><strong>Supported Versions:</strong></p>
+<ul>
+<li>Windows 10 (1607+)</li>
+<li>Windows 11</li>
+<li>Windows Server 2012 R2+</li>
+</ul>
+<p><strong>Requirements:</strong></p>
+<ul>
+<li>.NET SDK 8.0 or later (or .NET Standard 2.0 compatible runtime)</li>
+<li>PowerShell 5.1+ or PowerShell Core 7+</li>
+<li>Windows Terminal recommended for best experience</li>
+</ul>
+<p><strong>Common Issues:</strong></p>
+<ul>
+<li>If <code>dotnet</code> command not found, restart your terminal</li>
+<li>If SSL errors occur, ensure Windows is updated</li>
+<li>For Windows 7/8, use .NET Framework 4.7.2+</li>
+</ul>
+<h3>macOS</h3>
+<p><strong>Supported Versions:</strong></p>
+<ul>
+<li>macOS 10.15 (Catalina) or later</li>
+<li>macOS 11 (Big Sur)</li>
+<li>macOS 12 (Monterey)</li>
+<li>macOS 13 (Ventura)</li>
+<li>macOS 14 (Sonoma)</li>
+</ul>
+<p><strong>Requirements:</strong></p>
+<ul>
+<li>.NET SDK 8.0 or later</li>
+<li>Xcode Command Line Tools (install with: <code>xcode-select --install</code>)</li>
+</ul>
+<p><strong>Common Issues:</strong></p>
+<ul>
+<li>If you get permission errors, check your Gatekeeper settings</li>
+<li>For M1/M2 Macs, use ARM64 version of .NET</li>
+<li>SSL certificates: use <code>security find-certificate -a</code> to verify system certs</li>
+</ul>
+<h3>Linux</h3>
+<p><strong>Supported Distributions:</strong></p>
+<ul>
+<li>Ubuntu 20.04, 22.04, 24.04</li>
+<li>Debian 10, 11, 12</li>
+<li>Fedora 37+</li>
+<li>RHEL/CentOS 7, 8, 9</li>
+<li>Arch Linux (rolling)</li>
+<li>Alpine Linux 3.16+</li>
+<li>Many others via .NET Standard 2.0</li>
+</ul>
+<p><strong>Requirements:</strong></p>
+<ul>
+<li>.NET SDK 8.0 or later</li>
+<li>OpenSSL 1.1 or 3.0</li>
+<li>ca-certificates package</li>
+</ul>
+<p><strong>Common Issues:</strong></p>
+<ul>
+<li>If SSL errors occur: <code>sudo apt-get install ca-certificates</code> (Ubuntu/Debian)</li>
+<li>For permission issues: ensure user is in required groups</li>
+<li>Some distros need: <code>sudo apt-get install libicu-dev</code></li>
+</ul>
+<h3>Docker / Containers</h3>
+<p><strong>Dockerfile example:</strong></p>
+<pre><code class="language-dockerfile">FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /app
+
+# Copy and restore
+COPY *.csproj ./
+RUN dotnet restore
+
+# Copy everything and build
+COPY . ./
+RUN dotnet publish -c Release -o out
+
+# Build runtime image
+FROM mcr.microsoft.com/dotnet/runtime:8.0
+WORKDIR /app
+COPY --from=build /app/out .
+ENTRYPOINT [&quot;dotnet&quot;, &quot;MyCurlApp.dll&quot;]
+</code></pre>
+<p><strong>Building and running:</strong></p>
+<pre><code class="language-bash">docker build -t mycurlapp .
+docker run mycurlapp
+</code></pre>
+<h3>Azure Functions / App Service</h3>
+<p><strong>Installation via portal:</strong></p>
+<ol>
+<li>Create Azure Function or App Service</li>
+<li>Select .NET 8.0 runtime</li>
+<li>Add CurlDotNet to your project dependencies</li>
+</ol>
+<p><strong>Local development:</strong></p>
+<pre><code class="language-bash"># Install Azure Functions Core Tools
+npm install -g azure-functions-core-tools@4
+
+# Create function app
+func init MyFunctionApp --dotnet
+cd MyFunctionApp
+dotnet add package CurlDotNet
+
+# Create function
+func new --name MyHttpTrigger --template &quot;HTTP trigger&quot;
+
+# Run locally
+func start
+</code></pre>
+<h2>📋 Version Compatibility</h2>
+<h3>.NET Target Frameworks</h3>
+<p>CurlDotNet supports these .NET versions:</p>
+<table>
+<thead>
+<tr>
+<th>Target Framework</th>
+<th>Support Status</th>
+<th>Recommended</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>.NET 10.0</td>
+<td>✅ Fully Supported</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>.NET 8.0 (LTS)</td>
+<td>✅ Fully Supported</td>
+<td><strong>Best Choice</strong></td>
+</tr>
+<tr>
+<td>.NET 6.0 (LTS)</td>
+<td>✅ Fully Supported</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>.NET 5.0</td>
+<td>✅ Supported</td>
+<td>No (EOL)</td>
+</tr>
+<tr>
+<td>.NET Core 3.1</td>
+<td>✅ Supported</td>
+<td>No (EOL)</td>
+</tr>
+<tr>
+<td>.NET Core 2.0+</td>
+<td>✅ Via .NET Standard 2.0</td>
+<td>Legacy only</td>
+</tr>
+<tr>
+<td>.NET Framework 4.7.2+</td>
+<td>✅ Via .NET Standard 2.0</td>
+<td>Windows only</td>
+</tr>
+<tr>
+<td>.NET Standard 2.0</td>
+<td>✅ Fully Supported</td>
+<td>Maximum compatibility</td>
+</tr>
+</tbody></table>
+<p><strong>Recommendation:</strong> Use .NET 8.0 (current LTS) for new projects.</p>
+<h3>CurlDotNet Versions</h3>
+<pre><code class="language-bash"># Install latest version (recommended)
+dotnet add package CurlDotNet
+
+# Install specific version
+dotnet add package CurlDotNet --version 1.0.0
+
+# Update to latest
+dotnet add package CurlDotNet
+</code></pre>
+<p><strong>Version History:</strong></p>
+<ul>
+<li><code>1.0.0</code> - Initial stable release</li>
+<li><code>1.0.1</code> - Bug fixes and improvements (upcoming)</li>
+</ul>
+<h2>🔍 Troubleshooting Installation</h2>
+<h3>Problem: &quot;dotnet: command not found&quot;</h3>
+<p><strong>On Windows:</strong></p>
+<ol>
+<li>Restart your command prompt/terminal</li>
+<li>Check if .NET is in PATH: <code>echo %PATH%</code></li>
+<li>Manually add to PATH if needed: <code>C:\Program Files\dotnet</code></li>
+</ol>
+<p><strong>On macOS/Linux:</strong></p>
+<ol>
+<li>Restart your terminal</li>
+<li>Check PATH: <code>echo $PATH</code></li>
+<li>Add to PATH: <code>export PATH=$PATH:/usr/local/share/dotnet</code></li>
+<li>Add to shell profile: <code>echo &#39;export PATH=$PATH:/usr/local/share/dotnet&#39; &gt;&gt; ~/.bashrc</code></li>
+</ol>
+<p>For more details, see the <a href="../troubleshooting/">troubleshooting guide</a>.</p>
+<h3>Problem: &quot;Package &#39;CurlDotNet&#39; not found&quot;</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-bash"># Update NuGet sources
+dotnet nuget list source
+
+# Add NuGet.org if missing
+dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org
+
+# Clear cache and retry
+dotnet nuget locals all --clear
+dotnet restore
+dotnet add package CurlDotNet
+</code></pre>
+<p>For more details, see the <a href="../troubleshooting/">troubleshooting guide</a>.</p>
+<h3>Problem: &quot;The target framework &#39;netX.X&#39; is not supported&quot;</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-bash"># Check your .NET version
+dotnet --version
+
+# Update your project&#39;s target framework in .csproj
+# Change from:
+&lt;TargetFramework&gt;net5.0&lt;/TargetFramework&gt;
+# To:
+&lt;TargetFramework&gt;net8.0&lt;/TargetFramework&gt;
+
+# Or for maximum compatibility:
+&lt;TargetFramework&gt;netstandard2.0&lt;/TargetFramework&gt;
+</code></pre>
+<h3>Problem: &quot;SDK not found&quot; or &quot;A compatible SDK version was not found&quot;</h3>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Install .NET SDK (not just runtime)</li>
+<li>Check installed SDKs: <code>dotnet --list-sdks</code></li>
+<li>If empty, reinstall .NET SDK from <a href="https://dotnet.microsoft.com/">dotnet.microsoft.com</a></li>
+</ol>
+<p>For more details, see the <a href="../troubleshooting/">troubleshooting guide</a>.</p>
+<h3>Problem: SSL/TLS Errors on First Run</h3>
+<p><strong>On Windows:</strong></p>
+<pre><code class="language-bash"># Update certificates
+certutil -generateSSTFromWU roots.sst
+</code></pre>
+<p><strong>On macOS:</strong></p>
+<pre><code class="language-bash"># Update certificates
+security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain &gt; /dev/null
+</code></pre>
+<p><strong>On Linux:</strong></p>
+<pre><code class="language-bash"># Update CA certificates
+sudo apt-get update
+sudo apt-get install --reinstall ca-certificates
+</code></pre>
+<p>For more details, see the <a href="../troubleshooting/">troubleshooting guide</a>.</p>
+<h3>Problem: Permission Errors</h3>
+<p><strong>On Windows:</strong>
+Run terminal as Administrator</p>
+<p><strong>On macOS/Linux:</strong></p>
+<pre><code class="language-bash"># Don&#39;t use sudo for dotnet commands
+# Instead, fix permissions:
+sudo chown -R $USER ~/.dotnet
+sudo chown -R $USER ~/.nuget
+</code></pre>
+<h2>🎓 Next Steps</h2>
+<p>Now that CurlDotNet is installed:</p>
+<ol>
+<li><strong>Try it out</strong> → <a href="../tutorials/04-your-first-request.html">Your First Request</a></li>
+<li><strong>Learn the basics</strong> → <a href="../tutorials/">Tutorials</a></li>
+<li><strong>Explore recipes</strong> → <a href="../cookbook/">Cookbook</a></li>
+<li><strong>Read API docs</strong> → <a href="../api-guide/">API Guide</a></li>
+</ol>
+<h2>📚 Additional Resources</h2>
+<h3>Official Documentation</h3>
+<ul>
+<li><a href="https://jacob-mellor.github.io/curl-dot-net/">CurlDotNet Documentation</a></li>
+<li><a href="https://docs.microsoft.com/dotnet/">.NET Documentation</a></li>
+<li><a href="https://www.nuget.org/packages/CurlDotNet/">NuGet Package Page</a></li>
+</ul>
+<h3>Getting Help</h3>
+<ul>
+<li><a href="https://github.com/jacob-mellor/curl-dot-net/issues">GitHub Issues</a> - Bug reports</li>
+<li><a href="https://github.com/jacob-mellor/curl-dot-net/discussions">GitHub Discussions</a> - Questions</li>
+<li><a href="https://stackoverflow.com/questions/tagged/curldotnet">Stack Overflow</a> - Community help</li>
+</ul>
+<h3>Learning Resources</h3>
+<ul>
+<li><a href="../tutorials/">Tutorial Series</a> - Step-by-step learning</li>
+<li><a href="../cookbook/">Cookbook Recipes</a> - Ready-to-use samples</li>
+<li><a href="../api-guide/">API Reference</a> - Complete API reference</li>
+</ul>
+<h2>🎯 Quick Reference</h2>
+<pre><code class="language-bash"># Install .NET SDK
+# Visit: https://dotnet.microsoft.com/download
+
+# Verify installation
+dotnet --version
+
+# Create new project
+dotnet new console -n MyCurlApp
+cd MyCurlApp
+
+# Add CurlDotNet
+dotnet add package CurlDotNet
+
+# Run your app
+dotnet run
+
+# Build for production
+dotnet publish -c Release
+</code></pre>
+<h2>✅ Installation Checklist</h2>
+<p>Before continuing, make sure:</p>
+<ul>
+<li><input disabled="" type="checkbox"> .NET SDK is installed (<code>dotnet --version</code> works)</li>
+<li><input disabled="" type="checkbox"> CurlDotNet package is added to your project</li>
+<li><input disabled="" type="checkbox"> Test program runs successfully</li>
+<li><input disabled="" type="checkbox"> Your IDE/editor is set up (optional)</li>
+<li><input disabled="" type="checkbox"> You can make a simple HTTP request</li>
+</ul>
+<p>If all boxes are checked, you&#39;re ready to start building with CurlDotNet!</p>
+<hr>
+<p><strong>Ready to make your first request?</strong> → <a href="../tutorials/04-your-first-request.html">Your First Request</a></p>
+<p><strong>Need help?</strong> Check the <a href="../troubleshooting/common-issues.html">Troubleshooting Guide</a> or ask in <a href="https://github.com/jacob-mellor/curl-dot-net/discussions">Discussions</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

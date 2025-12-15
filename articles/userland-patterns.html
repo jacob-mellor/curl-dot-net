@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet Implementation Patterns (With C Code) | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>CurlDotNet Implementation Patterns (With C# Code)</h1>
+<blockquote>
+<p>Install CurlDotNet from NuGet before running these snippets:</p>
+<pre><code class="language-bash">dotnet add package CurlDotNet
+</code></pre>
+<p>All samples target .NET 8/10 and assume <code>using CurlDotNet;</code> plus any namespaces mentioned inline.</p>
+</blockquote>
+<h2>Pattern 1: Observability Bootstrap</h2>
+<p><strong>Why it’s useful:</strong> This C#/.NET helper wraps a CurlDotNet request with <code>ILogger</code> and <code>ActivitySource</code> instrumentation so every curl-style call emits reliable telemetry for tracing and diagnostics.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
+using CurlDotNet;
+
+public static class ObservabilityBootstrap
+{
+    public static async Task ExecuteAsync(ActivitySource activitySource, ILogger logger)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var result = await Curl.ExecuteAsync(&quot;curl https://status.example.com/health -H &#39;Accept: application/json&#39;&quot;);
+        stopwatch.Stop();
+
+        logger.LogInformation(&quot;curl.request {@Envelope}&quot;, new
+        {
+            Url = &quot;https://status.example.com/health&quot;,
+            result.StatusCode,
+            DurationMs = stopwatch.ElapsedMilliseconds,
+            result.IsSuccess
+        });
+
+        activitySource.StartActivity(&quot;curl.request&quot;)?
+            .SetTag(&quot;http.url&quot;, &quot;https://status.example.com/health&quot;)
+            .SetTag(&quot;http.status_code&quot;, result.StatusCode)
+            .SetTag(&quot;curl.flags&quot;, &quot;-H &#39;Accept: application/json&#39;&quot;);
+    }
+}
+</code></pre>
+<h2>Pattern 2: Environment Matrix Runner</h2>
+<p><strong>Why it’s useful:</strong> When your .NET services span dev, staging, and production, this C# routine fans out CurlDotNet health checks across each environment to verify curl parity and expose drift immediately.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public record TargetEnvironment(string Name, string Url, string Token);
+
+public static async Task&lt;IDictionary&lt;string, bool&gt;&gt; RunMatrixAsync(IEnumerable&lt;TargetEnvironment&gt; environments)
+{
+    var results = new Dictionary&lt;string, bool&gt;();
+
+    foreach (var env in environments)
+    {
+        var response = await Curl.ExecuteAsync($@&quot;curl {env.Url}/health -H &#39;Authorization: Bearer {env.Token}&#39;&quot;);
+        results[env.Name] = response.IsSuccess;
+    }
+
+    return results;
+}
+</code></pre>
+<h2>Pattern 3: Secrets-as-Code Providers</h2>
+<p><strong>Why it’s useful:</strong> Instead of hardcoding tokens, this .NET interface shows how C# services can fetch secrets from managed sources and feed them directly into CurlDotNet to execute curl-equivalent calls securely.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public interface ITokenProvider
+{
+    ValueTask&lt;string&gt; GetTokenAsync(CancellationToken cancellationToken = default);
+}
+
+public sealed class AzureIdentityTokenProvider : ITokenProvider
+{
+    public async ValueTask&lt;string&gt; GetTokenAsync(CancellationToken cancellationToken = default)
+    {
+        // Example only: plug in real Managed Identity code here
+        await Task.Delay(50, cancellationToken);
+        return Environment.GetEnvironmentVariable(&quot;API_TOKEN&quot;) ?? throw new InvalidOperationException(&quot;Token missing&quot;);
+    }
+}
+
+public static class SecretsAsCodeSample
+{
+    public static async Task ExecuteAsync(ITokenProvider provider)
+    {
+        var token = await provider.GetTokenAsync();
+        var result = await Curl.ExecuteAsync($&quot;curl https://api.example.com -H &#39;Authorization: Bearer {token}&#39;&quot;);
+        Console.WriteLine(result.StatusCode);
+    }
+}
+</code></pre>
+<h2>Pattern 4: Personas and Profiles</h2>
+<p><strong>Why it’s useful:</strong> Apply persona-aware defaults inside your .NET apps so every CurlDotNet call inherits the right curl flags without copy/paste.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+using CurlDotNet.Core;
+
+public sealed record CurlProfile(string Name, Action&lt;CurlRequestBuilder&gt; Apply);
+
+public static class ProfileCatalog
+{
+    public static readonly CurlProfile SupportAgent = new(
+        &quot;SupportAgent&quot;,
+        builder =&gt; builder
+            .WithHeader(&quot;X-Actor&quot;, &quot;support&quot;)
+            .WithRetry(2, TimeSpan.FromSeconds(1))
+            .WithTimeout(TimeSpan.FromSeconds(10))
+    );
+
+    public static readonly CurlProfile BatchImporter = new(
+        &quot;BatchImporter&quot;,
+        builder =&gt; builder
+            .WithHeader(&quot;X-Actor&quot;, &quot;batch-importer&quot;)
+            .WithTimeout(TimeSpan.FromSeconds(60))
+            .WithRetry(5, TimeSpan.FromSeconds(5))
+    );
+}
+
+public static Task&lt;CurlResult&gt; ExecuteWithProfileAsync(CurlProfile profile, string url)
+{
+    var builder = CurlRequestBuilder.Get(url);
+    profile.Apply(builder);
+    return builder.ExecuteAsync();
+}
+</code></pre>
+<h2>Pattern 5: Contract-Locked Builders</h2>
+<p><strong>Why it’s useful:</strong> Wrap CurlDotNet builders in schema validation so your .NET code spots breaking API changes before they impact production.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+using System.Text.Json;
+using CurlDotNet.Core;
+
+public static class ContractLockedBuilder
+{
+    public static async Task&lt;T&gt; ExecuteWithSchemaAsync&lt;T&gt;(CurlRequestBuilder builder, Func&lt;JsonElement, bool&gt; schemaValidator)
+    {
+        var result = await builder.ExecuteAsync();
+        if (!result.IsSuccess)
+        {
+            throw new CurlException($&quot;Unexpected status: {result.StatusCode}&quot;);
+        }
+
+        using var doc = JsonDocument.Parse(result.Body);
+        if (!schemaValidator(doc.RootElement))
+        {
+            throw new InvalidOperationException(&quot;Schema validation failed&quot;);
+        }
+
+        return result.ParseJson&lt;T&gt;();
+    }
+}
+</code></pre>
+<h2>Pattern 6: Sandbox Replay Harness</h2>
+<p><strong>Why it’s useful:</strong> Replay captured curl commands through CurlDotNet to reproduce issues inside C#, giving .NET teams deterministic debugging.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.Text.Json;
+using CurlDotNet;
+
+public record ReplayEnvelope(string Command, string? ExpectedBodySubstring);
+
+public static async Task ReplayAsync(string replayFile)
+{
+    var payload = await File.ReadAllTextAsync(replayFile);
+    var envelopes = JsonSerializer.Deserialize&lt;List&lt;ReplayEnvelope&gt;&gt;(payload)!;
+
+    foreach (var envelope in envelopes)
+    {
+        var response = await Curl.ExecuteAsync(envelope.Command);
+        if (!response.IsSuccess)
+        {
+            Console.WriteLine($&quot;Replay failed: {response.StatusCode}&quot;);
+        }
+        else if (envelope.ExpectedBodySubstring is { Length: &gt;0 } needle &amp;&amp; !response.Body.Contains(needle, StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine($&quot;Replay mismatch for command {envelope.Command}&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>Pattern 7: Feature Flagged Experiments</h2>
+<p><strong>Why it’s useful:</strong> Flip between control and candidate CurlDotNet commands so you can experiment in .NET without rewriting curl-heavy automation.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public static class FeatureFlaggedExperiments
+{
+    public static async Task&lt;CurlResult&gt; ExecuteAsync(bool useCandidate)
+    {
+        var control = &quot;curl https://api.example.com -H &#39;X-Tier: control&#39;&quot;;
+        var candidate = &quot;curl https://api.example.com -H &#39;X-Tier: candidate&#39; --compressed&quot;;
+        var selected = useCandidate ? candidate : control;
+        return await Curl.ExecuteAsync(selected);
+    }
+}
+</code></pre>
+<h2>Pattern 8: Documentation-Driven SDKs</h2>
+<p><strong>Why it’s useful:</strong> Turn Markdown curl snippets into executable C# delegates so your .NET SDKs stay synchronized with documentation.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+using System.Text.RegularExpressions;
+using CurlDotNet.Core;
+
+public static class MarkdownCommandLoader
+{
+    private static readonly Regex CommandRegex = new(@&quot;```curl(?&lt;body&gt;[\s\S]*?)```&quot;, RegexOptions.Compiled);
+
+    public static IEnumerable&lt;Func&lt;Task&lt;CurlResult&gt;&gt;&gt; LoadFromMarkdown(string markdown)
+    {
+        foreach (Match match in CommandRegex.Matches(markdown))
+        {
+            var command = match.Groups[&quot;body&quot;].Value.Trim();
+            yield return () =&gt; Curl.ExecuteAsync(command);
+        }
+    }
+}
+
+// Usage
+foreach (var operation in MarkdownCommandLoader.LoadFromMarkdown(File.ReadAllText(&quot;docs/payments.html&quot;)))
+{
+    var response = await operation();
+    Console.WriteLine(response.StatusCode);
+}
+</code></pre>
+<h2>Pattern 9: Tenant-Aware Routing</h2>
+<p><strong>Why it’s useful:</strong> Route CurlDotNet calls based on tenant metadata so your C# platform honors tenant-specific URLs and tokens just like curl scripts.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+using CurlDotNet.Core;
+
+public sealed record TenantSettings(string TenantId, string BaseUrl, string ApiKey);
+
+public sealed class TenantRouter
+{
+    private readonly IReadOnlyDictionary&lt;string, TenantSettings&gt; _map;
+
+    public TenantRouter(IEnumerable&lt;TenantSettings&gt; settings)
+    {
+        _map = settings.ToDictionary(s =&gt; s.TenantId, s =&gt; s);
+    }
+
+    public Task&lt;CurlResult&gt; ExecuteForTenantAsync(string tenantId, string relativePath)
+    {
+        var tenant = _map[tenantId];
+        return CurlRequestBuilder
+            .Get($&quot;{tenant.BaseUrl}{relativePath}&quot;)
+            .WithHeader(&quot;X-Tenant&quot;, tenant.TenantId)
+            .WithHeader(&quot;Authorization&quot;, $&quot;Bearer {tenant.ApiKey}&quot;)
+            .ExecuteAsync();
+    }
+}
+</code></pre>
+<h2>Pattern 10: Compliance Evidence Bundles</h2>
+<p><strong>Why it’s useful:</strong> Serialize CurlDotNet responses so compliance auditors can see exactly which curl-style workflows ran inside your .NET systems.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.Text.Json;
+using CurlDotNet;
+
+public sealed record EvidenceBundle(string Workflow, DateTimeOffset Timestamp, CurlResult Result, string OperatorId);
+
+public static class EvidenceWriter
+{
+    public static async Task CaptureAsync(string workflowName, string operatorId, string command, string outputPath)
+    {
+        var result = await Curl.ExecuteAsync(command);
+        var bundle = new EvidenceBundle(workflowName, DateTimeOffset.UtcNow, result, operatorId);
+        var json = JsonSerializer.Serialize(bundle, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(outputPath, json);
+    }
+}
+</code></pre>
+<h2>Pattern 11: Progressive Rollout Gates</h2>
+<p><strong>Why it’s useful:</strong> Gradually rollout new curl behavior by hashing identifiers in C# and deciding which CurlDotNet command to run per request.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.Security.Cryptography;
+using System.Text;
+using CurlDotNet;
+
+public static class RolloutGate
+{
+    public static async Task&lt;CurlResult&gt; ExecuteAsync(string rolloutKey, int enabledPercentage)
+    {
+        var hash = MD5.HashData(Encoding.UTF8.GetBytes(rolloutKey));
+        var value = hash[0];
+        var threshold = (byte)(255 * (enabledPercentage / 100.0));
+        var command = value &lt;= threshold
+            ? &quot;curl https://api.example.com/new-feature&quot;
+            : &quot;curl https://api.example.com/current&quot;;
+        return await Curl.ExecuteAsync(command);
+    }
+}
+</code></pre>
+<h2>Pattern 12: Incident Reconstruction Timelines</h2>
+<p><strong>Why it’s useful:</strong> Record each CurlDotNet action into a C# timeline so incidents can be reconstructed step-by-step without guessing which curl command ran.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.Text.Json;
+using CurlDotNet;
+
+public sealed record TimelineEvent(DateTimeOffset Timestamp, string Activity, CurlResult Result, string Commit);
+
+public static class TimelineRecorder
+{
+    private static readonly List&lt;TimelineEvent&gt; _events = new();
+
+    public static async Task&lt;CurlResult&gt; RecordAsync(string activity, string command, string commit)
+    {
+        var result = await Curl.ExecuteAsync(command);
+        _events.Add(new TimelineEvent(DateTimeOffset.UtcNow, activity, result, commit));
+        return result;
+    }
+
+    public static Task ExportAsync(string path)
+    {
+        var json = JsonSerializer.Serialize(_events, new JsonSerializerOptions { WriteIndented = true });
+        return File.WriteAllTextAsync(path, json);
+    }
+}
+</code></pre>
+<h2>Pattern 13: Rate-Limit Diplomacy Layer</h2>
+<p><strong>Why it’s useful:</strong> Share rate-limit budgets across microservices by parsing response headers in CurlDotNet and caching them inside .NET state.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.Collections.Concurrent;
+using CurlDotNet;
+
+public sealed class SharedRateBudget
+{
+    private readonly ConcurrentDictionary&lt;string, int&gt; _remaining = new();
+
+    public void Update(string tenant, int remaining) =&gt; _remaining[tenant] = remaining;
+
+    public bool CanExecute(string tenant) =&gt; _remaining.GetOrAdd(tenant, _ =&gt; 0) &gt; 0;
+}
+
+public sealed class DiplomaticCurlClient
+{
+    private readonly SharedRateBudget _budget;
+
+    public DiplomaticCurlClient(SharedRateBudget budget) =&gt; _budget = budget;
+
+    public async Task&lt;CurlResult&gt; ExecuteAsync(string tenant, string command)
+    {
+        if (!_budget.CanExecute(tenant))
+        {
+            throw new InvalidOperationException($&quot;Rate limit exhausted for {tenant}&quot;);
+        }
+
+        var result = await Curl.ExecuteAsync(command);
+        if (result.Headers.TryGetValue(&quot;X-RateLimit-Remaining&quot;, out var remainingHeader))
+        {
+            _budget.Update(tenant, int.Parse(remainingHeader));
+        }
+
+        return result;
+    }
+}
+</code></pre>
+<h2>Pattern 14: Schema Evolution Alerts</h2>
+<p><strong>Why it’s useful:</strong> Hash response shapes in C# after each CurlDotNet call so schema changes trigger alerts before they break downstream code.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using CurlDotNet;
+
+public static class SchemaMonitor
+{
+    public static async Task MonitorAsync(string command, string schemaHashPath)
+    {
+        var result = await Curl.ExecuteAsync(command);
+        using var json = JsonDocument.Parse(result.Body);
+        var shape = string.Join(&#39;\n&#39;, json.RootElement.EnumerateObject().Select(p =&gt; $&quot;{p.Name}:{p.Value.ValueKind}&quot;));
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(shape)));
+
+        var previous = File.Exists(schemaHashPath) ? await File.ReadAllTextAsync(schemaHashPath) : string.Empty;
+        if (!string.Equals(previous, hash, StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine($&quot;Schema changed from {previous} to {hash}&quot;);
+            await File.WriteAllTextAsync(schemaHashPath, hash);
+        }
+    }
+}
+</code></pre>
+<h2>Pattern 15: Temporal Workflow Bridges</h2>
+<p><strong>Why it’s useful:</strong> Wrap CurlDotNet commands as workflow activities so deterministic .NET orchestrators (Durable Functions, Temporal) can replay curl work safely.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public interface IWorkflowActivity
+{
+    Task ExecuteAsync(CancellationToken cancellationToken);
+}
+
+public sealed class CurlWorkflowActivity : IWorkflowActivity
+{
+    private readonly string _command;
+
+    public CurlWorkflowActivity(string command) =&gt; _command = command;
+
+    public Task ExecuteAsync(CancellationToken cancellationToken)
+    {
+        return Curl.ExecuteAsync(_command);
+    }
+}
+</code></pre>
+<h2>Pattern 16: Data Provenance Tags</h2>
+<p><strong>Why it’s useful:</strong> Attach provenance metadata to CurlDotNet responses so your .NET applications always know where curl-fetched data originated.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public sealed record ProvenanceEnvelope&lt;T&gt;(string Source, DateTimeOffset RetrievedAt, T Data);
+
+public static async Task&lt;ProvenanceEnvelope&lt;T&gt;&gt; FetchWithProvenanceAsync&lt;T&gt;(string source, string command)
+{
+    var result = await Curl.ExecuteAsync(command);
+    var payload = result.ParseJson&lt;T&gt;();
+    return new ProvenanceEnvelope&lt;T&gt;(Source: source, RetrievedAt: DateTimeOffset.UtcNow, Data: payload);
+}
+</code></pre>
+<h2>Pattern 17: Developer Onboarding Katas</h2>
+<p><strong>Why it’s useful:</strong> Use xUnit katas that run CurlDotNet commands, giving new .NET engineers practical curl experience with self-verifying C# tests.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+using Xunit;
+
+public class Kata01_GetRequest
+{
+    [Fact]
+    public async Task Should_Fetch_Public_Data()
+    {
+        var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+        Assert.True(result.IsSuccess);
+        Assert.Contains(&quot;current_user_url&quot;, result.Body);
+    }
+}
+</code></pre>
+<h2>Pattern 18: Immutable Run Logs</h2>
+<p><strong>Why it’s useful:</strong> Append CurlDotNet command hashes to an immutable log so regulated .NET environments can prove every curl-style action taken.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.Security.Cryptography;
+using System.Text;
+using CurlDotNet;
+
+public static class ImmutableLogger
+{
+    private const string LogPath = &quot;runlog.txt&quot;;
+
+    public static async Task&lt;CurlResult&gt; ExecuteLoggedAsync(string command)
+    {
+        var result = await Curl.ExecuteAsync(command);
+        var line = $&quot;{DateTimeOffset.UtcNow:o}|{command}|{result.StatusCode}|{Hash(result.Body)}&quot;;
+        await File.AppendAllLinesAsync(LogPath, new[] { line });
+        return result;
+    }
+
+    private static string Hash(string body) =&gt; Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(body)));
+}
+</code></pre>
+<h2>Pattern 19: Synthetic Partner Simulation</h2>
+<p><strong>Why it’s useful:</strong> Spin up ASP.NET Core mocks and hit them with CurlDotNet so .NET teams can simulate partner APIs without real dependencies.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Hosting;
+
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.MapPost(&quot;/partner/ping&quot;, () =&gt; Results.Json(new { status = &quot;ok&quot;, latencyMs = 123 }));
+app.MapGet(&quot;/partner/feature&quot;, () =&gt; Results.Json(new { enabled = true }));
+
+await app.StartAsync();
+var result = await Curl.ExecuteAsync(&quot;curl http://localhost:5000/partner/ping&quot;);
+Console.WriteLine(result.Body);
+await app.StopAsync();
+</code></pre>
+<h2>Pattern 20: Documentation Screenshots as Code</h2>
+<p><strong>Why it’s useful:</strong> Capture terminal sessions that execute CurlDotNet commands so your documentation shows real curl-on-.NET output.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+using System.Diagnostics;
+
+public static class TerminalCapture
+{
+    public static void Capture(string scriptPath, string outputPath)
+    {
+        var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = &quot;asciinema&quot;,
+            ArgumentList = { &quot;rec&quot;, &quot;--command&quot;, scriptPath, outputPath },
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        });
+        process?.WaitForExit();
+    }
+}
+</code></pre>
+<h2>Pattern 21: Multi-Hop Proxy Playbooks</h2>
+<p><strong>Why it’s useful:</strong> Encapsulate multiple proxies inside a CurlRequestBuilder extension so .NET services can express complex curl proxy chains in C#.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+using CurlDotNet.Core;
+
+public static class ProxyChainExtensions
+{
+    public static CurlRequestBuilder WithProxyChain(this CurlRequestBuilder builder, params string[] proxies)
+    {
+        foreach (var proxy in proxies)
+        {
+            builder = builder.WithProxy(proxy);
+        }
+        return builder;
+    }
+}
+</code></pre>
+<h2>Pattern 22: Content Negotiation Laboratories</h2>
+<p><strong>Why it’s useful:</strong> Request different content-types via CurlDotNet and compare payloads in C#, making content negotiation experiments reproducible.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+string[] accepts = [
+    &quot;application/json&quot;,
+    &quot;application/xml&quot;,
+    &quot;text/csv&quot;
+];
+
+foreach (var accept in accepts)
+{
+    var response = await Curl.ExecuteAsync($&quot;curl https://api.example.com/items -H &#39;Accept: {accept}&#39;&quot;);
+    Console.WriteLine($&quot;{accept}: {response.Body.Length} bytes&quot;);
+}
+</code></pre>
+<h2>Pattern 23: Dark Launch Shadow Clients</h2>
+<p><strong>Why it’s useful:</strong> Run production and candidate CurlDotNet calls side-by-side so .NET teams can dark launch new API versions without risk.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public static async Task ExecuteShadowAsync()
+{
+    var production = Curl.ExecuteAsync(&quot;curl https://api.example.com/v1/orders&quot;);
+    var candidate = Curl.ExecuteAsync(&quot;curl https://api.example.com/v2/orders&quot;);
+
+    await Task.WhenAll(production, candidate);
+    Console.WriteLine($&quot;v1:{production.Result.StatusCode} v2:{candidate.Result.StatusCode}&quot;);
+}
+</code></pre>
+<h2>Pattern 24: Edge Cache Warmers</h2>
+<p><strong>Why it’s useful:</strong> Use CurlDotNet to prefetch assets on a schedule from C#, keeping CDN caches warm without scripting bash curl loops.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public static async Task WarmAsync(IEnumerable&lt;string&gt; urls, CancellationToken token)
+{
+    using var timer = new PeriodicTimer(TimeSpan.FromMinutes(5));
+    do
+    {
+        foreach (var url in urls)
+        {
+            var response = await Curl.ExecuteAsync($&quot;curl -s -o /dev/null -w &#39;%{% raw %}{{http_code}}{% endraw %}&#39; {url}&quot;);
+            Console.WriteLine($&quot;Warmed {url}: {response.StatusCode}&quot;);
+        }
+    } while (await timer.WaitForNextTickAsync(token));
+}
+</code></pre>
+<h2>Pattern 25: Event-Sourced API History</h2>
+<p><strong>Why it’s useful:</strong> Write every CurlDotNet result into a channel so .NET analytics pipelines can rebuild API history just like event sourcing.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.Threading.Channels;
+using CurlDotNet;
+
+public static class ApiEventStream
+{
+    private static readonly Channel&lt;CurlResult&gt; _channel = Channel.CreateUnbounded&lt;CurlResult&gt;();
+
+    public static async Task&lt;CurlResult&gt; ExecuteTrackedAsync(string command)
+    {
+        var result = await Curl.ExecuteAsync(command);
+        await _channel.Writer.WriteAsync(result);
+        return result;
+    }
+
+    public static IAsyncEnumerable&lt;CurlResult&gt; ReadAllAsync() =&gt; _channel.Reader.ReadAllAsync();
+}
+</code></pre>
+<h2>Pattern 26: Collaborative Postman Replacement</h2>
+<p><strong>Why it’s useful:</strong> Store curated curl recipes as C# records so teams can collaborate on CurlDotNet-powered replacements for Postman collections.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public sealed record CurlRecipe(string Name, string Command, string Description);
+
+public sealed class RecipeStore
+{
+    private readonly List&lt;CurlRecipe&gt; _recipes = new();
+
+    public void Add(CurlRecipe recipe) =&gt; _recipes.Add(recipe);
+    public IEnumerable&lt;CurlRecipe&gt; All =&gt; _recipes;
+}
+</code></pre>
+<h2>Pattern 27: Infrastructure Drift Scanners</h2>
+<p><strong>Why it’s useful:</strong> Validate TLS certificates and other infra signals in C# before executing CurlDotNet commands to catch drift early.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+using CurlDotNet;
+
+public static async Task ScanAsync(string url, string expectedThumbprint)
+{
+    using var client = new HttpClient(new HttpClientHandler
+    {
+        ServerCertificateCustomValidationCallback = (_, cert, _, _) =&gt;
+        {
+            if (cert is null)
+            {
+                return false;
+            }
+
+            var thumbprint = cert.GetCertHashString();
+            if (!string.Equals(thumbprint, expectedThumbprint, StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine($&quot;Drift detected for {url}: {thumbprint}&quot;);
+            }
+            return true;
+        }
+    });
+
+    var response = await client.GetAsync(url);
+    Console.WriteLine(response.StatusCode);
+}
+</code></pre>
+<h2>Pattern 28: Domain-Specific Languages</h2>
+<p><strong>Why it’s useful:</strong> Parse a lightweight DSL in C# and translate it to CurlDotNet invocations, letting domain experts describe curl flows without coding.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public static class DslRunner
+{
+    public static Task&lt;CurlResult&gt; ExecuteAsync(string dsl)
+    {
+        // Example DSL: &quot;GET https://api.example.com/items?limit=10&quot;
+        var (method, url) = ParseDsl(dsl);
+        return Curl.ExecuteAsync($&quot;curl -X {method} {url}&quot;);
+    }
+
+    private static (string Method, string Url) ParseDsl(string dsl)
+    {
+        var parts = dsl.Split(&#39; &#39;, 2, StringSplitOptions.RemoveEmptyEntries);
+        return (parts[0], parts[1]);
+    }
+}
+</code></pre>
+<h2>Pattern 29: Knowledge Graph Integrations</h2>
+<p><strong>Why it’s useful:</strong> Emit knowledge-graph events for each CurlDotNet call so architects can see how .NET services depend on external APIs.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.Text.Json;
+using CurlDotNet;
+
+public static class KnowledgeGraphEmitter
+{
+    public static async Task EmitAsync(string service, string endpoint, string command, string outputPath)
+    {
+        var result = await Curl.ExecuteAsync(command);
+        var graphEvent = new
+        {
+            Service = service,
+            Endpoint = endpoint,
+            result.StatusCode,
+            Timestamp = DateTimeOffset.UtcNow
+        };
+        await File.AppendAllTextAsync(outputPath, JsonSerializer.Serialize(graphEvent) + &quot;\n&quot;);
+    }
+}
+</code></pre>
+<h2>Pattern 30: Security Chaos Drills</h2>
+<p><strong>Why it’s useful:</strong> Execute predefined CurlDotNet chaos scenarios so security teams can prove how .NET code handles hostile curl situations.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public sealed record ChaosScenario(string Name, string Command, Func&lt;CurlResult, bool&gt; Expectation);
+
+public static async Task RunChaosAsync(IEnumerable&lt;ChaosScenario&gt; scenarios)
+{
+    foreach (var scenario in scenarios)
+    {
+        var result = await Curl.ExecuteAsync(scenario.Command);
+        if (!scenario.Expectation(result))
+        {
+            Console.WriteLine($&quot;Scenario {scenario.Name} failed&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>Pattern 31: Accessibility-Focused Tooling</h2>
+<p><strong>Why it’s useful:</strong> Build accessible CLIs in C# that wrap CurlDotNet, ensuring screen-reader-friendly tooling for curl workflows on .NET.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using Spectre.Console;
+using CurlDotNet;
+
+public static async Task RunAccessibleCliAsync()
+{
+    var url = AnsiConsole.Ask&lt;string&gt;(&quot;Enter URL:&quot;);
+    var result = await Curl.ExecuteAsync($&quot;curl {url}&quot;);
+    AnsiConsole.MarkupLine($&quot;[bold]Status:[/] {result.StatusCode}&quot;);
+    AnsiConsole.WriteLine(result.Body);
+}
+</code></pre>
+<h2>Pattern 32: Offline-First Mocking Kits</h2>
+<p><strong>Why it’s useful:</strong> Package mock data and CurlDotNet responses into offline kits so field engineers can run curl-style diagnostics without internet access.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.IO.Compression;
+using CurlDotNet;
+
+public static class OfflineKitBuilder
+{
+    public static async Task BuildAsync(string kitPath, params string[] commands)
+    {
+        using var archive = ZipFile.Open(kitPath, ZipArchiveMode.Create);
+        foreach (var command in commands)
+        {
+            var result = await Curl.ExecuteAsync(command);
+            var entry = archive.CreateEntry(Guid.NewGuid() + &quot;.json&quot;);
+            await using var stream = entry.Open();
+            await using var writer = new StreamWriter(stream);
+            await writer.WriteAsync(result.Body);
+        }
+    }
+}
+</code></pre>
+<h2>Pattern 33: Governance Scorecards</h2>
+<p><strong>Why it’s useful:</strong> Score each CurlDotNet integration in C# so platform teams know whether logging, tests, and docs meet .NET governance standards.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public sealed record IntegrationScore(string Name, int Logging, int Tests, int Docs)
+{
+    public int Total =&gt; Logging + Tests + Docs;
+}
+
+public static IntegrationScore Score(string name, bool hasLogging, bool hasTests, bool hasDocs)
+    =&gt; new(name, hasLogging ? 3 : 0, hasTests ? 3 : 0, hasDocs ? 4 : 0);
+</code></pre>
+<h2>Pattern 34: Auto-Generated Runbooks</h2>
+<p><strong>Why it’s useful:</strong> Reflect over C# runbook steps and emit Markdown so every CurlDotNet-powered operational flow ships with living documentation.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.Reflection;
+using CurlDotNet;
+
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class RunbookStepAttribute(string Description) : Attribute
+{
+    public string Description { get; } = Description;
+}
+
+public static class RunbookGenerator
+{
+    public static IEnumerable&lt;string&gt; Generate(Type type)
+        =&gt; type.GetMethods()
+            .Select(m =&gt; m.GetCustomAttribute&lt;RunbookStepAttribute&gt;())
+            .Where(attr =&gt; attr is not null)
+            .Select(attr =&gt; $&quot;- {attr!.Description}&quot;);
+}
+</code></pre>
+<h2>Pattern 35: Threat Modeling Workshops</h2>
+<p><strong>Why it’s useful:</strong> Capture threat scenarios by executing CurlDotNet scripts in C#, feeding security reviews with concrete curl abuse cases.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public sealed record ThreatScenario(string Name, string Command, string AbuseCase);
+
+public static async Task DocumentThreatsAsync(IEnumerable&lt;ThreatScenario&gt; scenarios, string outputPath)
+{
+    var lines = new List&lt;string&gt;();
+    foreach (var scenario in scenarios)
+    {
+        await Curl.ExecuteAsync(scenario.Command);
+        lines.Add($&quot;{scenario.Name}: {scenario.AbuseCase}&quot;);
+    }
+    await File.WriteAllLinesAsync(outputPath, lines);
+}
+</code></pre>
+<h2>Pattern 36: High-Fidelity Mock Clients for QA</h2>
+<p><strong>Why it’s useful:</strong> Model high-fidelity QA journeys as CurlDotNet sequences so testers can mimic user flows without brittle UI scripts.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public sealed class CheckoutScenario
+{
+    public async Task RunAsync()
+    {
+        await Curl.ExecuteAsync(&quot;curl https://shop.example.com/api/cart -H &#39;Authorization: Bearer token&#39;&quot;);
+        await Curl.ExecuteAsync(&quot;curl https://shop.example.com/api/checkout -X POST -d &#39;{\&quot;total\&quot;:1200}&#39;&quot;);
+    }
+}
+</code></pre>
+<h2>Pattern 37: Intelligent Retries with Telemetry Feedback</h2>
+<p><strong>Why it’s useful:</strong> Adapt retry counts dynamically in C# based on CurlDotNet responses so .NET services respect curl-style backoff semantics.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public sealed class AdaptiveRetryClient
+{
+    private int _maxRetries = 3;
+
+    public async Task&lt;CurlResult&gt; ExecuteAsync(string command)
+    {
+        for (var attempt = 1; attempt &lt;= _maxRetries; attempt++)
+        {
+            var result = await Curl.ExecuteAsync(command);
+            if (result.IsSuccess)
+            {
+                return result;
+            }
+
+            if (result.StatusCode is 429)
+            {
+                _maxRetries = Math.Min(5, _maxRetries + 1);
+                await Task.Delay(TimeSpan.FromSeconds(attempt));
+            }
+        }
+
+        throw new TimeoutException(&quot;Retries exhausted&quot;);
+    }
+}
+</code></pre>
+<h2>Pattern 38: Service Mesh Alignment</h2>
+<p><strong>Why it’s useful:</strong> Align mesh policies with CurlDotNet commands so .NET developers honor mTLS and retry rules while still composing curl options.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public sealed record MeshPolicy(bool EnforceMtls, bool AllowRetries);
+
+public static class MeshAlignment
+{
+    public static async Task&lt;CurlResult&gt; ExecuteAsync(MeshPolicy policy, string command)
+    {
+        if (!policy.EnforceMtls)
+        {
+            throw new InvalidOperationException(&quot;Mesh requires mTLS&quot;);
+        }
+
+        return await Curl.ExecuteAsync(command + (policy.AllowRetries ? &quot; --retry 3&quot; : string.Empty));
+    }
+}
+</code></pre>
+<h2>Pattern 39: Business KPI Hooks</h2>
+<p><strong>Why it’s useful:</strong> Tag CurlDotNet requests with business metadata in C# so product teams see which curl flows drive key KPIs.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public sealed record BusinessRequest(string Feature, string Segment, string Command);
+
+public static async Task&lt;CurlResult&gt; ExecuteWithKpisAsync(BusinessRequest request)
+{
+    var enrichedCommand = $&quot;curl {request.Command} -H &#39;X-Feature: {request.Feature}&#39; -H &#39;X-Segment: {request.Segment}&#39;&quot;;
+    return await Curl.ExecuteAsync(enrichedCommand);
+}
+</code></pre>
+<h2>Pattern 40: Blue-Green CLI Deployments</h2>
+<p><strong>Why it’s useful:</strong> Route CLI traffic between blue/green environments by choosing which CurlDotNet endpoint to ping, giving .NET tools safe rollouts.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public static async Task&lt;CurlResult&gt; ExecuteCliAsync(string version)
+{
+    var command = version switch
+    {
+        &quot;blue&quot; =&gt; &quot;curl https://cli.example.com/v1/ping&quot;,
+        &quot;green&quot; =&gt; &quot;curl https://cli.example.com/v2/ping&quot;,
+        _ =&gt; throw new ArgumentOutOfRangeException(nameof(version))
+    };
+
+    return await Curl.ExecuteAsync(command);
+}
+</code></pre>
+<h2>Pattern 41: Developer Persona Dashboards</h2>
+<p><strong>Why it’s useful:</strong> Fetch persona-specific dashboards via CurlDotNet and render summaries in C#, bringing curl-sourced telemetry to each team role.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using System.Text.Json;
+using CurlDotNet;
+
+public static async Task RenderDashboardAsync(string persona)
+{
+    var response = await Curl.ExecuteAsync($&quot;curl https://metrics.example.com/{persona}&quot;);
+    var json = JsonDocument.Parse(response.Body);
+    Console.WriteLine($&quot;{persona} dashboard -&gt; {json.RootElement.GetProperty(&quot;summary&quot;)}&quot;);
+}
+</code></pre>
+<h2>Pattern 42: Chaos-Friendly Feature Flags</h2>
+<p><strong>Why it’s useful:</strong> Provide safe fallbacks when feature flags fail by retrying CurlDotNet commands in C#, keeping curl-based experiments resilient.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public static async Task&lt;CurlResult&gt; ExecuteWithFallbackAsync(Func&lt;bool&gt; flagProvider, string controlCommand, string experimentCommand)
+{
+    try
+    {
+        var command = flagProvider() ? experimentCommand : controlCommand;
+        return await Curl.ExecuteAsync(command);
+    }
+    catch
+    {
+        return await Curl.ExecuteAsync(controlCommand);
+    }
+}
+</code></pre>
+<h2>Pattern 43: Threat Detection Hooks</h2>
+<p><strong>Why it’s useful:</strong> Hook security policies into CurlDotNet execution so suspicious curl commands are blocked before they leave your .NET app.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public static class DetectionHooks
+{
+    public static Func&lt;string, bool&gt;? CommandValidator { get; set; }
+        = command =&gt; !command.Contains(&quot;--insecure&quot;, StringComparison.OrdinalIgnoreCase);
+
+    public static Task&lt;CurlResult&gt; ExecuteAsync(string command)
+    {
+        if (CommandValidator is not null &amp;&amp; !CommandValidator(command))
+        {
+            throw new InvalidOperationException(&quot;Command violates policy&quot;);
+        }
+
+        return Curl.ExecuteAsync(command);
+    }
+}
+</code></pre>
+<h2>Pattern 44: Education Through Storytelling</h2>
+<p><strong>Why it’s useful:</strong> Turn CurlDotNet executions into teachable stories so C# teams can share real-world curl learnings during onboarding.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public sealed record Story(string Title, string Command, string Lesson);
+
+public sealed class StoryVault
+{
+    private readonly List&lt;Story&gt; _stories = new();
+
+    public void Add(Story story) =&gt; _stories.Add(story);
+
+    public async Task PlayAsync()
+    {
+        foreach (var story in _stories)
+        {
+            Console.WriteLine($&quot;Story: {story.Title} - {story.Lesson}&quot;);
+            await Curl.ExecuteAsync(story.Command);
+        }
+    }
+}
+</code></pre>
+<h2>Pattern 45: Policy-as-Code Enforcement</h2>
+<p><strong>Why it’s useful:</strong> Validate curl command strings in C# before passing them to CurlDotNet, enforcing policy-as-code across your .NET repos.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public static class CommandPolicy
+{
+    public static void Validate(string command)
+    {
+        if (command.Contains(&quot;--insecure&quot;, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(&quot;Insecure TLS not allowed&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>Pattern 46: Knowledge Handoffs via Pull Requests</h2>
+<p><strong>Why it’s useful:</strong> Generate pull-request templates that include curl commands so knowledge handoffs stay tied to executable CurlDotNet samples.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+public static class PullRequestTemplate
+{
+    public static string Create(string feature, string dataset, string curlCommand)
+        =&gt; $&quot;&quot;&quot;
+### Context
+- Feature: {feature}
+- Dataset: {dataset}
+
+### Verification
+```bash
+{curlCommand}
+</code></pre>
+<p>&quot;&quot;&quot;;
+}</p>
+<pre><code>
+## Pattern 47: Domain-Specific Telemetry Taxonomy
+
+**Why it’s useful:** Capture domain/feature metadata with each CurlDotNet result so telemetry across your .NET estate stays consistent.
+
+
+```csharp
+// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public sealed record TelemetryEnvelope(string Domain, string Feature, CurlResult Result);
+
+public static TelemetryEnvelope Capture(string domain, string feature, CurlResult result)
+    =&gt; new(domain, feature, result);
+</code></pre>
+<h2>Pattern 48: Playwright/Browser Harness Bridges</h2>
+<p><strong>Why it’s useful:</strong> Combine Playwright and CurlDotNet so UI tests and backend curl checks run in the same C# harness.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+using Microsoft.Playwright;
+
+public static async Task ValidateUiAndApiAsync()
+{
+    using var playwright = await Playwright.CreateAsync();
+    await using var browser = await playwright.Chromium.LaunchAsync();
+    var page = await browser.NewPageAsync();
+    await page.GotoAsync(&quot;https://shop.example.com&quot;);
+
+    var apiResponse = await Curl.ExecuteAsync(&quot;curl https://shop.example.com/api/products&quot;);
+    Console.WriteLine(apiResponse.Body.Length);
+}
+</code></pre>
+<h2>Pattern 49: Observability-Driven Alert Suppression</h2>
+<p><strong>Why it’s useful:</strong> Check suppression conditions via CurlDotNet before paging humans so .NET alerting pipelines stay sane.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public static async Task&lt;bool&gt; ShouldAlertAsync(string suppressionCommand)
+{
+    var response = await Curl.ExecuteAsync(suppressionCommand);
+    return !response.IsSuccess;
+}
+</code></pre>
+<h2>Pattern 50: Retirement and Archiving Rituals</h2>
+<p><strong>Why it’s useful:</strong> Log every retirement curl command from C# so service owners can prove when old workflows were archived.</p>
+<pre><code class="language-csharp">// NuGet: https://www.nuget.org/packages/CurlDotNet/
+using CurlDotNet;
+
+public static async Task RetireWorkflowAsync(string disableCommand, string archivePath)
+{
+    var response = await Curl.ExecuteAsync(disableCommand);
+    await File.AppendAllTextAsync(archivePath, $&quot;{DateTimeOffset.UtcNow:o}: {disableCommand} =&gt; {response.StatusCode}\n&quot;);
+}
+</code></pre>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

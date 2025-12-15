@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet Cookbook | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>CurlDotNet Cookbook</h1>
+<p>Welcome to the CurlDotNet Cookbook! This collection of practical recipes shows you how to accomplish common tasks using CurlDotNet.</p>
+<h2>What is CurlDotNet?</h2>
+<p><strong>CurlDotNet</strong> is the pure .NET implementation of curl that allows you to execute curl commands directly in C# applications. Simply paste any curl command from documentation, Stack Overflow, or bash scripts, and it works immediately!</p>
+<h2>Installation</h2>
+<p>Install CurlDotNet from NuGet: <strong><a href="https://www.nuget.org/packages/CurlDotNet/">CurlDotNet on NuGet</a></strong></p>
+<pre><code class="language-bash">dotnet add package CurlDotNet
+</code></pre>
+<p>Or via Package Manager:</p>
+<pre><code class="language-powershell">Install-Package CurlDotNet
+</code></pre>
+<h2>Recipe Categories</h2>
+<h3>🍳 <a href="beginner/">Beginner Recipes</a></h3>
+<p>Perfect for getting started with CurlDotNet:</p>
+<ul>
+<li><strong><a href="beginner/simple-get.html">Simple GET Request</a></strong> - Fetch data from an API</li>
+<li><strong><a href="beginner/send-json.html">Send JSON Data</a></strong> - POST JSON to an endpoint</li>
+<li><strong><a href="beginner/handle-errors.html">Handle Errors</a></strong> - Robust error handling</li>
+<li><strong><a href="beginner/upload-file.html">Upload Files</a></strong> - Upload files to servers</li>
+<li><strong><a href="beginner/download-file.html">Download Files</a></strong> - Download and save files</li>
+<li><strong><a href="beginner/post-form.html">POST Forms</a></strong> - Submit form data</li>
+<li><strong><a href="beginner/call-api.html">Call APIs</a></strong> - Build API client applications</li>
+</ul>
+<h3>🥘 Intermediate Recipes (Coming Soon)</h3>
+<p>Take your skills to the next level:</p>
+<ul>
+<li>API Client Class - Build reusable API clients</li>
+<li>Retry Logic - Handle transient failures</li>
+<li>Progress Tracking - Monitor upload/download progress</li>
+<li>Session Cookies - Maintain session state</li>
+<li>Rate Limiting - Respect API limits</li>
+<li>File Management - Advanced file operations</li>
+</ul>
+<h3>🍱 Advanced Patterns (Coming Soon)</h3>
+<p>Master complex scenarios:</p>
+<ul>
+<li>Pagination - Handle paginated API responses</li>
+<li>Polling - Implement efficient polling</li>
+<li>Webhooks - Build webhook handlers</li>
+<li>Batch Processing - Process multiple requests efficiently</li>
+</ul>
+<h3>🌍 Real World Examples (Coming Soon)</h3>
+<p>Complete implementations for popular services:</p>
+<ul>
+<li>GitHub Integration</li>
+<li>Slack Notifications</li>
+<li>Weather API Client</li>
+<li>OAuth Flow Implementation</li>
+<li>Stripe Payments Integration</li>
+</ul>
+<h2>Quick Examples</h2>
+<h3>Simple GET Request</h3>
+<pre><code class="language-csharp">using CurlDotNet;
+
+var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+Console.WriteLine(result.Body);
+</code></pre>
+<h3>POST with JSON</h3>
+<pre><code class="language-csharp">using CurlDotNet;
+
+var json = &quot;{\&quot;name\&quot;:\&quot;John\&quot;,\&quot;email\&quot;:\&quot;john@example.com\&quot;}&quot;;
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/users \
+      -H &#39;Content-Type: application/json&#39; \
+      -d &#39;{json}&#39;
+&quot;);
+
+if (result.IsSuccess)
+{
+    Console.WriteLine(&quot;User created successfully!&quot;);
+}
+</code></pre>
+<h3>Download a File</h3>
+<pre><code class="language-csharp">using CurlDotNet;
+
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -o downloaded.pdf https://example.com/file.pdf
+&quot;);
+
+if (result.IsSuccess)
+{
+    Console.WriteLine(&quot;File downloaded successfully!&quot;);
+}
+</code></pre>
+<h2>How to Use These Recipes</h2>
+<p>Each recipe in this cookbook:</p>
+<ol>
+<li><strong>Explains the problem</strong> it solves</li>
+<li><strong>Shows complete, working code</strong> you can copy and paste</li>
+<li><strong>Includes error handling</strong> and best practices</li>
+<li><strong>Provides variations</strong> for different scenarios</li>
+<li><strong>Links to related recipes</strong> for deeper learning</li>
+</ol>
+<h2>Recipe Structure</h2>
+<p>Every recipe follows this format:</p>
+<ul>
+<li><strong>🎯 What You&#39;ll Build</strong> - Clear goal description</li>
+<li><strong>🥘 Ingredients</strong> - What you need (packages, time, prerequisites)</li>
+<li><strong>📖 Explanation</strong> - Understanding the concepts</li>
+<li><strong>🍳 The Recipe</strong> - Step-by-step implementation</li>
+<li><strong>🎨 Complete Examples</strong> - Full working programs</li>
+<li><strong>🐛 Troubleshooting</strong> - Common issues and solutions</li>
+<li><strong>🎓 Best Practices</strong> - Professional tips</li>
+<li><strong>🚀 Next Steps</strong> - Where to go from here</li>
+</ul>
+<h2>Finding the Right Recipe</h2>
+<h3>By Task</h3>
+<ul>
+<li><strong>Fetching data?</strong> → <a href="beginner/simple-get.html">Simple GET Request</a></li>
+<li><strong>Sending data?</strong> → <a href="beginner/send-json.html">Send JSON Data</a></li>
+<li><strong>Uploading files?</strong> → <a href="beginner/upload-file.html">Upload Files</a></li>
+<li><strong>Downloading files?</strong> → <a href="beginner/download-file.html">Download Files</a></li>
+<li><strong>Submitting forms?</strong> → <a href="beginner/post-form.html">POST Forms</a></li>
+<li><strong>Building an API client?</strong> → <a href="beginner/call-api.html">Call APIs</a></li>
+<li><strong>Handling errors?</strong> → <a href="beginner/handle-errors.html">Handle Errors</a></li>
+</ul>
+<h3>By HTTP Method</h3>
+<ul>
+<li><strong>GET</strong> → <a href="beginner/simple-get.html">Simple GET Request</a></li>
+<li><strong>POST</strong> → <a href="beginner/send-json.html">Send JSON Data</a>, <a href="beginner/post-form.html">POST Forms</a></li>
+<li><strong>PUT/PATCH</strong> → <a href="beginner/send-json.html">Send JSON Data</a> (includes PUT examples)</li>
+<li><strong>DELETE</strong> → <a href="beginner/call-api.html">Call APIs</a> (includes DELETE examples)</li>
+</ul>
+<h3>By Feature</h3>
+<ul>
+<li><strong>Authentication</strong> → <a href="beginner/call-api.html">Call APIs</a></li>
+<li><strong>Headers</strong> → Most recipes include header examples</li>
+<li><strong>Error Handling</strong> → <a href="beginner/handle-errors.html">Handle Errors</a></li>
+<li><strong>File Operations</strong> → <a href="beginner/upload-file.html">Upload Files</a>, <a href="beginner/download-file.html">Download Files</a></li>
+</ul>
+<h2>Contributing Recipes</h2>
+<p>We welcome recipe contributions! If you have a useful pattern or example:</p>
+<ol>
+<li>Fork the repository</li>
+<li>Add your recipe following our format</li>
+<li>Submit a pull request</li>
+</ol>
+<h2>Additional Resources</h2>
+<ul>
+<li><strong><a href="../tutorials/">Tutorials</a></strong> - Step-by-step learning path</li>
+<li><strong><a href="../api/">API Reference</a></strong> - Complete API documentation</li>
+<li><strong><a href="../getting-started/">Getting Started Guide</a></strong> - Installation and setup</li>
+<li><strong><a href="../troubleshooting/">Troubleshooting</a></strong> - Common issues and solutions</li>
+</ul>
+<h2>Support</h2>
+<ul>
+<li><strong>Questions?</strong> Ask in <a href="https://github.com/jacob-mellor/curl-dot-net/discussions">GitHub Discussions</a></li>
+<li><strong>Found a bug?</strong> Report it on <a href="https://github.com/jacob-mellor/curl-dot-net/issues">GitHub Issues</a></li>
+<li><strong>Need help?</strong> Check our <a href="../troubleshooting/">Troubleshooting Guide</a></li>
+</ul>
+<hr>
+<p>Ready to cook? Start with a <strong><a href="beginner/simple-get.html">Simple GET Request</a></strong> →</p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

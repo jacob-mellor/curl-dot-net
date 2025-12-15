@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial 5: Understanding Results | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Tutorial 5: Understanding Results</h1>
+<p>Every CurlDotNet operation returns a <code>CurlResult</code> object. Understanding this result structure is crucial for building robust applications.</p>
+<h2>The CurlResult Object</h2>
+<p>When you make any request with CurlDotNet, you get back a <code>CurlResult</code>:</p>
+<pre><code class="language-csharp">var curl = new Curl();
+CurlResult result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+</code></pre>
+<h2>Key Properties</h2>
+<h3>IsSuccess</h3>
+<p>The most important property - tells you if the request completed successfully:</p>
+<pre><code class="language-csharp">if (result.IsSuccess)
+{
+    // Request succeeded - safe to use result.Data
+    Console.WriteLine(&quot;Success! Data received:&quot;);
+    Console.WriteLine(result.Data);
+}
+else
+{
+    // Request failed - check result.Error
+    Console.WriteLine($&quot;Request failed: {result.Error}&quot;);
+}
+</code></pre>
+<h3>Data</h3>
+<p>Contains the response body as a string when the request succeeds:</p>
+<pre><code class="language-csharp">if (result.IsSuccess)
+{
+    string responseBody = result.Data;
+
+    // Parse JSON if that&#39;s what you&#39;re expecting
+    var jsonData = JsonSerializer.Deserialize&lt;MyModel&gt;(result.Data);
+}
+</code></pre>
+<h3>StatusCode</h3>
+<p>The HTTP status code returned by the server:</p>
+<pre><code class="language-csharp">Console.WriteLine($&quot;Server returned: {result.StatusCode}&quot;);
+
+// Check specific status codes
+if (result.StatusCode == HttpStatusCode.NotFound)
+{
+    Console.WriteLine(&quot;The requested resource was not found.&quot;);
+}
+else if (result.StatusCode == HttpStatusCode.Unauthorized)
+{
+    Console.WriteLine(&quot;Authentication required.&quot;);
+}
+</code></pre>
+<h3>Headers</h3>
+<p>A dictionary containing all response headers:</p>
+<pre><code class="language-csharp">if (result.Headers.ContainsKey(&quot;Content-Type&quot;))
+{
+    string contentType = result.Headers[&quot;Content-Type&quot;];
+    Console.WriteLine($&quot;Response type: {contentType}&quot;);
+}
+
+// Iterate through all headers
+foreach (var header in result.Headers)
+{
+    Console.WriteLine($&quot;{header.Key}: {header.Value}&quot;);
+}
+</code></pre>
+<h3>Error</h3>
+<p>Contains error information when the request fails:</p>
+<pre><code class="language-csharp">if (!result.IsSuccess)
+{
+    Console.WriteLine($&quot;Error details: {result.Error}&quot;);
+
+    // The error message is descriptive and helpful
+    // Examples:
+    // - &quot;Connection timeout after 30 seconds&quot;
+    // - &quot;DNS resolution failed for hostname&quot;
+    // - &quot;SSL certificate verification failed&quot;
+}
+</code></pre>
+<h2>Common Patterns</h2>
+<h3>Pattern 1: Simple Success Check</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync(url);
+
+if (result.IsSuccess)
+{
+    ProcessData(result.Data);
+}
+else
+{
+    LogError(result.Error);
+}
+</code></pre>
+<h3>Pattern 2: Detailed Status Handling</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync(url);
+
+switch (result.StatusCode)
+{
+    case HttpStatusCode.OK:
+        ProcessData(result.Data);
+        break;
+
+    case HttpStatusCode.NotModified:
+        Console.WriteLine(&quot;Content hasn&#39;t changed&quot;);
+        break;
+
+    case HttpStatusCode.NotFound:
+        Console.WriteLine(&quot;Resource not found&quot;);
+        break;
+
+    case HttpStatusCode.Unauthorized:
+        Console.WriteLine(&quot;Please authenticate&quot;);
+        break;
+
+    default:
+        Console.WriteLine($&quot;Unexpected status: {result.StatusCode}&quot;);
+        break;
+}
+</code></pre>
+<h3>Pattern 3: Working with Headers</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync(url);
+
+if (result.IsSuccess)
+{
+    // Check content type before parsing
+    if (result.Headers.TryGetValue(&quot;Content-Type&quot;, out string contentType))
+    {
+        if (contentType.Contains(&quot;application/json&quot;))
+        {
+            var jsonData = JsonSerializer.Deserialize&lt;MyModel&gt;(result.Data);
+        }
+        else if (contentType.Contains(&quot;text/html&quot;))
+        {
+            ProcessHtml(result.Data);
+        }
+    }
+
+    // Check for rate limiting headers
+    if (result.Headers.TryGetValue(&quot;X-RateLimit-Remaining&quot;, out string remaining))
+    {
+        Console.WriteLine($&quot;API calls remaining: {remaining}&quot;);
+    }
+}
+</code></pre>
+<h3>Pattern 4: Response Time Tracking</h3>
+<pre><code class="language-csharp">var stopwatch = Stopwatch.StartNew();
+var result = await curl.GetAsync(url);
+stopwatch.Stop();
+
+Console.WriteLine($&quot;Request took: {stopwatch.ElapsedMilliseconds}ms&quot;);
+Console.WriteLine($&quot;Status: {result.StatusCode}&quot;);
+Console.WriteLine($&quot;Success: {result.IsSuccess}&quot;);
+</code></pre>
+<h2>Working with Different Content Types</h2>
+<h3>JSON Responses</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync(&quot;https://api.example.com/user/123&quot;);
+
+if (result.IsSuccess)
+{
+    try
+    {
+        var user = JsonSerializer.Deserialize&lt;User&gt;(result.Data);
+        Console.WriteLine($&quot;User: {user.Name}&quot;);
+    }
+    catch (JsonException ex)
+    {
+        Console.WriteLine($&quot;Failed to parse JSON: {ex.Message}&quot;);
+    }
+}
+</code></pre>
+<h3>XML Responses</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync(&quot;https://api.example.com/data.xml&quot;);
+
+if (result.IsSuccess)
+{
+    var doc = XDocument.Parse(result.Data);
+    var rootElement = doc.Root;
+    // Process XML...
+}
+</code></pre>
+<h3>Binary Data</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync(&quot;https://example.com/image.jpg&quot;);
+
+if (result.IsSuccess)
+{
+    // For binary data, use GetBytesAsync instead
+    var bytes = await curl.GetBytesAsync(&quot;https://example.com/image.jpg&quot;);
+    File.WriteAllBytes(&quot;image.jpg&quot;, bytes);
+}
+</code></pre>
+<h2>Best Practices</h2>
+<h3>1. Always Check IsSuccess First</h3>
+<pre><code class="language-csharp">// Good
+if (result.IsSuccess)
+{
+    UseData(result.Data);
+}
+
+// Bad - Data might be null if request failed
+UseData(result.Data);  // Potential null reference
+</code></pre>
+<h3>2. Log Both Success and Failure</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync(url);
+
+if (result.IsSuccess)
+{
+    _logger.LogInformation($&quot;Request succeeded: {url}&quot;);
+    ProcessData(result.Data);
+}
+else
+{
+    _logger.LogError($&quot;Request failed: {url} - {result.Error}&quot;);
+}
+</code></pre>
+<h3>3. Use Status Codes for Business Logic</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync($&quot;/api/users/{userId}&quot;);
+
+if (result.StatusCode == HttpStatusCode.NotFound)
+{
+    // User doesn&#39;t exist - this might be expected
+    return null;
+}
+else if (!result.IsSuccess)
+{
+    // Other errors are unexpected
+    throw new ApplicationException($&quot;Failed to get user: {result.Error}&quot;);
+}
+
+return JsonSerializer.Deserialize&lt;User&gt;(result.Data);
+</code></pre>
+<h3>4. Extract Common Patterns</h3>
+<pre><code class="language-csharp">public static class CurlResultExtensions
+{
+    public static T DeserializeJson&lt;T&gt;(this CurlResult result)
+    {
+        if (!result.IsSuccess)
+            throw new InvalidOperationException($&quot;Cannot deserialize failed request: {result.Error}&quot;);
+
+        return JsonSerializer.Deserialize&lt;T&gt;(result.Data);
+    }
+
+    public static bool IsJson(this CurlResult result)
+    {
+        return result.Headers.TryGetValue(&quot;Content-Type&quot;, out var ct)
+               &amp;&amp; ct.Contains(&quot;application/json&quot;);
+    }
+}
+
+// Usage
+var user = result.DeserializeJson&lt;User&gt;();
+</code></pre>
+<h2>Common Mistakes to Avoid</h2>
+<h3>Mistake 1: Not Checking IsSuccess</h3>
+<pre><code class="language-csharp">// Wrong - might crash if request failed
+var data = JsonSerializer.Deserialize&lt;MyData&gt;(result.Data);
+
+// Right
+if (result.IsSuccess)
+{
+    var data = JsonSerializer.Deserialize&lt;MyData&gt;(result.Data);
+}
+</code></pre>
+<h3>Mistake 2: Ignoring Status Codes</h3>
+<pre><code class="language-csharp">// Wrong - treats all failures the same
+if (!result.IsSuccess)
+{
+    throw new Exception(&quot;Request failed&quot;);
+}
+
+// Right - handle different failures differently
+if (result.StatusCode == HttpStatusCode.TooManyRequests)
+{
+    // Wait and retry
+}
+else if (result.StatusCode == HttpStatusCode.Unauthorized)
+{
+    // Refresh authentication
+}
+</code></pre>
+<h3>Mistake 3: Not Logging Errors</h3>
+<pre><code class="language-csharp">// Wrong - silent failure
+if (result.IsSuccess)
+{
+    ProcessData(result.Data);
+}
+
+// Right - log the error
+if (result.IsSuccess)
+{
+    ProcessData(result.Data);
+}
+else
+{
+    _logger.LogError($&quot;Request failed: {result.Error}&quot;);
+}
+</code></pre>
+<h2>Summary</h2>
+<p>The <code>CurlResult</code> object provides everything you need to handle HTTP responses:</p>
+<ul>
+<li>Check <code>IsSuccess</code> to determine if the request succeeded</li>
+<li>Access response data through the <code>Data</code> property</li>
+<li>Use <code>StatusCode</code> for specific HTTP status handling</li>
+<li>Read response headers from the <code>Headers</code> dictionary</li>
+<li>Get detailed error information from the <code>Error</code> property</li>
+</ul>
+<p>Understanding these properties and using them correctly is the foundation for building reliable HTTP clients with CurlDotNet.</p>
+<h2>What&#39;s Next?</h2>
+<p>In the next tutorial, we&#39;ll dive deeper into <a href="06-handling-errors.html">error handling</a> and learn how to build resilient applications that gracefully handle network failures.</p>
+<hr>
+<p><a href="04-your-first-request.html">← Previous: Your First Request</a> | <a href="06-handling-errors.html">Next: Handling Errors →</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

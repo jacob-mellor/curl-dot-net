@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Curl.ToFetch(string) | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.md" title="CurlDotNet">CurlDotNet</a>.<a href="CurlDotNet.Curl.md" title="CurlDotNet.Curl">Curl</a></h3>
+<h2>Curl.ToFetch(string) Method</h2>
+<p><b>Convert curl command to JavaScript fetch() code.</b></p>
+<p>Generates JavaScript code that does the same thing as your curl command.
+             Useful for web developers who need the same request in JavaScript.</p>
+<p><b>Example:</b></p>
+<pre><code class="language-javascript">var curlCommand = &quot;curl -X GET https://api.example.com/data -H &#39;Authorization: Bearer token&#39;&quot;;
+
+string jsCode = Curl.ToFetch(curlCommand);
+Console.WriteLine(jsCode);
+
+// Output:
+// fetch(&#39;https://api.example.com/data&#39;, {
+//     method: &#39;GET&#39;,
+//     headers: {
+//         &#39;Authorization&#39;: &#39;Bearer token&#39;
+//     }
+// })
+// .then(response =&gt; response.json())
+// .then(data =&gt; console.log(data));
+</code></pre>
+<pre><code class="language-csharp">public static string ToFetch(string command);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Curl.ToFetch(string).command'></a></p>
+<p><code>command</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>The curl command to convert.</p>
+<h4>Returns</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a><br>JavaScript fetch() code that does the same thing.</p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

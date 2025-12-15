@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial 4: Your First Request | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Tutorial 4: Your First Request</h1>
+<h2>🎯 What You&#39;ll Learn</h2>
+<ul>
+<li>How to make your first HTTP request with CurlDotNet</li>
+<li>How to examine the response</li>
+<li>How to check if the request succeeded</li>
+<li>How to troubleshoot basic issues</li>
+</ul>
+<h2>📚 Prerequisites</h2>
+<ul>
+<li><a href="01-what-is-dotnet.html">Tutorial 1: What is .NET and C#?</a></li>
+<li><a href="02-what-is-curl.html">Tutorial 2: What is curl?</a></li>
+<li><a href="03-what-is-async.html">Tutorial 3: Understanding Async/Await</a></li>
+<li>.NET SDK installed</li>
+<li>CurlDotNet package added to your project</li>
+</ul>
+<h2>🚀 Setting Up Your Project</h2>
+<p>If you haven&#39;t created a project yet, let&#39;s do that now:</p>
+<pre><code class="language-bash"># Create a new directory
+mkdir MyFirstCurlRequest
+cd MyFirstCurlRequest
+
+# Create a new console application
+dotnet new console
+
+# Add CurlDotNet package
+dotnet add package CurlDotNet
+
+# Open in your editor
+code .
+</code></pre>
+<h2>💻 Your First Request</h2>
+<p>Let&#39;s start with the simplest possible request - fetching a webpage:</p>
+<h3>Step 1: The Simplest Request</h3>
+<p>Replace the contents of <code>Program.cs</code> with this code:</p>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        Console.WriteLine(&quot;Making my first request...&quot;);
+
+        // Make the request
+        var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+
+        // Show what we got back
+        Console.WriteLine($&quot;Status Code: {result.StatusCode}&quot;);
+        Console.WriteLine($&quot;Success: {result.IsSuccess}&quot;);
+        Console.WriteLine($&quot;Response Length: {result.Body.Length} characters&quot;);
+
+        Console.WriteLine(&quot;\nPress any key to exit...&quot;);
+        Console.ReadKey();
+    }
+}
+</code></pre>
+<h3>Step 2: Run It</h3>
+<pre><code class="language-bash">dotnet run
+</code></pre>
+<p>You should see output like:</p>
+<pre><code>Making my first request...
+Status Code: 200
+Success: True
+Response Length: 1547 characters
+
+Press any key to exit...
+</code></pre>
+<p><strong>Congratulations!</strong> You just made your first HTTP request with CurlDotNet!</p>
+<h2>🔍 Understanding What Happened</h2>
+<p>Let&#39;s break down what the code does:</p>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+</code></pre>
+<ol>
+<li><strong><code>Curl.ExecuteAsync</code></strong> - The main method for making requests</li>
+<li><strong><code>&quot;curl https://api.github.com&quot;</code></strong> - The curl command (you can also omit &quot;curl&quot; and just use the URL)</li>
+<li><strong><code>await</code></strong> - Waits for the request to complete</li>
+<li><strong><code>result</code></strong> - Contains the response</li>
+</ol>
+<h3>The Result Object</h3>
+<p>The <code>result</code> variable contains everything about the response:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>What It Contains</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>StatusCode</code></td>
+<td>HTTP status code</td>
+<td><code>200</code> (success)</td>
+</tr>
+<tr>
+<td><code>IsSuccess</code></td>
+<td>Was it successful?</td>
+<td><code>true</code> or <code>false</code></td>
+</tr>
+<tr>
+<td><code>Body</code></td>
+<td>Response content</td>
+<td><code>&quot;{&quot;message&quot;:&quot;Hello&quot;}&quot;</code></td>
+</tr>
+<tr>
+<td><code>Headers</code></td>
+<td>Response headers</td>
+<td><code>Content-Type</code>, <code>Date</code>, etc.</td>
+</tr>
+<tr>
+<td><code>ContentType</code></td>
+<td>Type of content</td>
+<td><code>&quot;application/json&quot;</code></td>
+</tr>
+</tbody></table>
+<h2>📖 More Detailed Example</h2>
+<p>Let&#39;s look at the response more carefully:</p>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        Console.WriteLine(&quot;Fetching GitHub API root endpoint...\n&quot;);
+
+        var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+
+        // Check if successful
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ Request succeeded!&quot;);
+            Console.WriteLine($&quot;✓ Status Code: {result.StatusCode}&quot;);
+            Console.WriteLine($&quot;✓ Content Type: {result.ContentType}&quot;);
+            Console.WriteLine();
+
+            // Show some headers
+            Console.WriteLine(&quot;Response Headers:&quot;);
+            foreach (var header in result.Headers)
+            {
+                Console.WriteLine($&quot;  {header.Key}: {header.Value}&quot;);
+            }
+            Console.WriteLine();
+
+            // Show the response body
+            Console.WriteLine(&quot;Response Body:&quot;);
+            Console.WriteLine(result.Body);
+        }
+        else
+        {
+            Console.WriteLine(&quot;✗ Request failed!&quot;);
+            Console.WriteLine($&quot;✗ Status Code: {result.StatusCode}&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>🎨 Different Ways to Make Requests</h2>
+<p>CurlDotNet gives you three ways to make the same request:</p>
+<h3>Method 1: Full curl Command</h3>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+</code></pre>
+<p><strong>Use when:</strong> You have a curl command from API documentation.</p>
+<h3>Method 2: Just the URL</h3>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;https://api.github.com&quot;);
+</code></pre>
+<p><strong>Use when:</strong> You just need a simple GET request.</p>
+<h3>Method 3: Fluent Builder API</h3>
+<pre><code class="language-csharp">using CurlDotNet.Core;
+
+var result = await CurlRequestBuilder
+    .Get(&quot;https://api.github.com&quot;)
+    .ExecuteAsync();
+</code></pre>
+<p><strong>Use when:</strong> You want IntelliSense and type safety.</p>
+<p>All three do exactly the same thing!</p>
+<h2>🧪 Practical Examples</h2>
+<h3>Example 1: Get Weather Data</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class WeatherApp
+{
+    static async Task Main()
+    {
+        Console.WriteLine(&quot;Fetching weather data...\n&quot;);
+
+        // Public weather API (no key needed)
+        var result = await Curl.ExecuteAsync(
+            &quot;curl https://wttr.in/London?format=j1&quot;
+        );
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;Weather data received!&quot;);
+            // The response is JSON with weather information
+            var weather = result.ParseJson&lt;dynamic&gt;();
+            Console.WriteLine($&quot;Temperature: {weather.current_condition[0].temp_C}°C&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 2: Check Website Status</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class StatusChecker
+{
+    static async Task Main()
+    {
+        string[] websites = {
+            &quot;https://github.com&quot;,
+            &quot;https://google.com&quot;,
+            &quot;https://stackoverflow.com&quot;
+        };
+
+        Console.WriteLine(&quot;Checking website status...\n&quot;);
+
+        foreach (var website in websites)
+        {
+            var result = await Curl.ExecuteAsync($&quot;curl {website}&quot;);
+
+            var status = result.IsSuccess ? &quot;✓ UP&quot; : &quot;✗ DOWN&quot;;
+            Console.WriteLine($&quot;{status} - {website} ({result.StatusCode})&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 3: API with Custom Headers</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class ApiClient
+{
+    static async Task Main()
+    {
+        Console.WriteLine(&quot;Calling API with custom headers...\n&quot;);
+
+        var result = await Curl.ExecuteAsync(@&quot;
+            curl https://api.github.com/users/octocat \
+              -H &#39;Accept: application/vnd.github.v3+json&#39; \
+              -H &#39;User-Agent: MyApp/1.0&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            dynamic user = result.AsJsonDynamic();
+            Console.WriteLine($&quot;User: {user.login}&quot;);
+            Console.WriteLine($&quot;Name: {user.name}&quot;);
+            Console.WriteLine($&quot;Public Repos: {user.public_repos}&quot;);
+            Console.WriteLine($&quot;Followers: {user.followers}&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>🔧 Understanding Status Codes</h2>
+<p>HTTP status codes tell you what happened with your request:</p>
+<h3>Success Codes (2xx)</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+<th>What It Means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>200</td>
+<td>OK</td>
+<td>Success! You got what you asked for</td>
+</tr>
+<tr>
+<td>201</td>
+<td>Created</td>
+<td>Success! Something new was created</td>
+</tr>
+<tr>
+<td>204</td>
+<td>No Content</td>
+<td>Success! But no data to return</td>
+</tr>
+</tbody></table>
+<h3>Redirect Codes (3xx)</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+<th>What It Means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>301</td>
+<td>Moved Permanently</td>
+<td>The resource moved to a new URL</td>
+</tr>
+<tr>
+<td>302</td>
+<td>Found</td>
+<td>Temporary redirect to another URL</td>
+</tr>
+<tr>
+<td>304</td>
+<td>Not Modified</td>
+<td>You already have the latest version</td>
+</tr>
+</tbody></table>
+<h3>Client Error Codes (4xx)</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+<th>What It Means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>400</td>
+<td>Bad Request</td>
+<td>Your request has invalid syntax</td>
+</tr>
+<tr>
+<td>401</td>
+<td>Unauthorized</td>
+<td>You need to log in first</td>
+</tr>
+<tr>
+<td>403</td>
+<td>Forbidden</td>
+<td>You don&#39;t have permission</td>
+</tr>
+<tr>
+<td>404</td>
+<td>Not Found</td>
+<td>The resource doesn&#39;t exist</td>
+</tr>
+<tr>
+<td>429</td>
+<td>Too Many Requests</td>
+<td>You&#39;re making requests too quickly</td>
+</tr>
+</tbody></table>
+<h3>Server Error Codes (5xx)</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+<th>What It Means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>500</td>
+<td>Internal Server Error</td>
+<td>The server crashed</td>
+</tr>
+<tr>
+<td>502</td>
+<td>Bad Gateway</td>
+<td>The server couldn&#39;t reach another server</td>
+</tr>
+<tr>
+<td>503</td>
+<td>Service Unavailable</td>
+<td>The server is overloaded or down</td>
+</tr>
+</tbody></table>
+<h3>Checking Status in Code</h3>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com&quot;);
+
+if (result.StatusCode == 200)
+{
+    Console.WriteLine(&quot;Perfect! Everything worked.&quot;);
+}
+else if (result.StatusCode == 404)
+{
+    Console.WriteLine(&quot;Not found - check your URL.&quot;);
+}
+else if (result.StatusCode &gt;= 500)
+{
+    Console.WriteLine(&quot;Server error - try again later.&quot;);
+}
+else
+{
+    Console.WriteLine($&quot;Something went wrong: {result.StatusCode}&quot;);
+}
+</code></pre>
+<h2>🎯 Try It Yourself</h2>
+<h3>Exercise 1: Your First Successful Request</h3>
+<p>Modify the code to fetch your own GitHub profile (replace &quot;octocat&quot; with your username):</p>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com/users/YOUR_USERNAME&quot;);
+</code></pre>
+<h3>Exercise 2: Check Multiple APIs</h3>
+<p>Create a program that checks if these APIs are responding:</p>
+<ul>
+<li><code>https://api.github.com</code></li>
+<li><code>https://httpbin.org/status/200</code></li>
+<li><code>https://jsonplaceholder.typicode.com/posts/1</code></li>
+</ul>
+<h3>Exercise 3: Display Response Details</h3>
+<p>Modify the basic example to show:</p>
+<ul>
+<li>How long the response body is</li>
+<li>What Content-Type the server sent back</li>
+<li>Whether the response contains the word &quot;API&quot;</li>
+</ul>
+<details>
+<summary>Click for Solution to Exercise 3</summary>
+
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+
+Console.WriteLine($&quot;Response Length: {result.Body.Length} characters&quot;);
+Console.WriteLine($&quot;Content-Type: {result.ContentType}&quot;);
+Console.WriteLine($&quot;Contains &#39;API&#39;: {result.Body.Contains(&quot;API&quot;)}&quot;);
+</code></pre>
+</details>
+
+<h2>❌ Common Problems and Solutions</h2>
+<h3>Problem 1: &quot;Could not resolve host&quot;</h3>
+<p><strong>Error message:</strong></p>
+<pre><code>CurlDnsException: Could not resolve host: api.examplee.com
+</code></pre>
+<p><strong>Cause:</strong> Typo in the URL or no internet connection.</p>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Check the URL for typos</li>
+<li>Make sure you have internet connection</li>
+<li>Try the URL in your web browser first</li>
+</ol>
+<p>For more details, see our <a href="../troubleshooting/common-issues.md#dns-errors">DNS troubleshooting guide</a>.</p>
+<h3>Problem 2: &quot;Timeout&quot;</h3>
+<p><strong>Error message:</strong></p>
+<pre><code>CurlTimeoutException: Operation timeout
+</code></pre>
+<p><strong>Cause:</strong> The server is too slow or not responding.</p>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Try again - might be temporary</li>
+<li>Increase the timeout:</li>
+</ol>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(
+    &quot;curl --connect-timeout 30 https://api.example.com&quot;
+);
+</code></pre>
+<p>For more details, see our <a href="../troubleshooting/common-issues.md#timeout-errors">timeout troubleshooting guide</a>.</p>
+<h3>Problem 3: &quot;404 Not Found&quot;</h3>
+<p><strong>Error message:</strong></p>
+<pre><code>Status Code: 404
+</code></pre>
+<p><strong>Cause:</strong> The URL doesn&#39;t exist or is wrong.</p>
+<p><strong>Solution:</strong></p>
+<ol>
+<li>Double-check the URL</li>
+<li>Check the API documentation</li>
+<li>Try the URL in your browser</li>
+</ol>
+<p>For more details, see our <a href="../troubleshooting/common-issues.md#http-errors">HTTP error guide</a>.</p>
+<h3>Problem 4: SSL Certificate Error</h3>
+<p><strong>Error message:</strong></p>
+<pre><code>CurlSslException: SSL certificate problem
+</code></pre>
+<p><strong>Cause:</strong> The server&#39;s SSL certificate can&#39;t be verified.</p>
+<p><strong>Solution for development only:</strong></p>
+<pre><code class="language-csharp">// WARNING: Only use in development!
+var result = await Curl.ExecuteAsync(&quot;curl -k https://api.example.com&quot;);
+</code></pre>
+<p><strong>Solution for production:</strong>
+Update your system&#39;s certificate store or use proper certificates.</p>
+<p>For more details, see our <a href="../troubleshooting/common-issues.md#ssl-errors">SSL troubleshooting guide</a>.</p>
+<h3>Problem 5: Forgot &#39;await&#39;</h3>
+<p><strong>Error message:</strong></p>
+<pre><code>Cannot implicitly convert type &#39;Task&lt;CurlResult&gt;&#39; to &#39;CurlResult&#39;
+</code></pre>
+<p><strong>Cause:</strong> You forgot the <code>await</code> keyword.</p>
+<p><strong>Wrong:</strong></p>
+<pre><code class="language-csharp">var result = Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+</code></pre>
+<p><strong>Right:</strong></p>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+</code></pre>
+<h2>🔍 Debugging Your Request</h2>
+<h3>Using Verbose Mode</h3>
+<p>See exactly what&#39;s happening:</p>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl -v https://api.github.com&quot;);
+</code></pre>
+<p>This shows:</p>
+<ul>
+<li>Connection details</li>
+<li>Headers sent</li>
+<li>Headers received</li>
+<li>Timing information</li>
+</ul>
+<h3>Saving the Response</h3>
+<p>Save the response to a file for inspection:</p>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+result.SaveToFile(&quot;response.json&quot;);
+Console.WriteLine(&quot;Response saved to response.json&quot;);
+</code></pre>
+<h3>Checking Headers</h3>
+<p>See what headers the server sent:</p>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+
+Console.WriteLine(&quot;Response Headers:&quot;);
+foreach (var header in result.Headers)
+{
+    Console.WriteLine($&quot;{header.Key}: {header.Value}&quot;);
+}
+</code></pre>
+<h2>📊 Quick Reference</h2>
+<h3>Basic Request Pattern</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        // 1. Make the request
+        var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com&quot;);
+
+        // 2. Check if successful
+        if (result.IsSuccess)
+        {
+            // 3. Use the response
+            Console.WriteLine(result.Body);
+        }
+        else
+        {
+            // 4. Handle errors
+            Console.WriteLine($&quot;Error: {result.StatusCode}&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Common Properties</h3>
+<pre><code class="language-csharp">// Status information
+result.StatusCode         // e.g., 200
+result.IsSuccess          // true if 200-299
+result.IsSuccessStatusCode // same as IsSuccess
+
+// Content
+result.Body               // Response as string
+result.ContentType        // e.g., &quot;application/json&quot;
+
+// Headers
+result.Headers            // Dictionary of all headers
+result.GetHeader(&quot;X-Custom-Header&quot;)  // Get specific header
+
+// Timing
+result.TotalTime          // How long the request took
+</code></pre>
+<h2>🚀 Next Steps</h2>
+<p>Now that you can make requests:</p>
+<ol>
+<li><strong>Next Tutorial</strong> → <a href="05-understanding-results.html">Understanding Results</a></li>
+<li><strong>Try different APIs</strong> - <a href="https://github.com/public-apis/public-apis">Public APIs List</a></li>
+<li><strong>Practice</strong> - Make 10 different requests to different endpoints</li>
+<li><strong>Experiment</strong> - What happens if you change the URL? Add headers?</li>
+</ol>
+<h2>🎓 Key Takeaways</h2>
+<ul>
+<li>Making a request is simple: <code>Curl.ExecuteAsync(url)</code></li>
+<li>Always use <code>await</code> when calling async methods</li>
+<li>Check <code>result.IsSuccess</code> before using the response</li>
+<li>Status codes tell you what happened</li>
+<li>The response body is in <code>result.Body</code></li>
+<li>Use verbose mode (<code>-v</code>) to debug issues</li>
+</ul>
+<h2>🤔 Questions You Might Have</h2>
+<p><strong>Q: Why do I need <code>await</code>?</strong>
+A: HTTP requests take time. <code>await</code> tells C# to wait for the request to complete without freezing your program. See <a href="03-what-is-async.html">Tutorial 3</a> for details.</p>
+<p><strong>Q: What if the request fails?</strong>
+A: Check <code>result.IsSuccess</code>. If it&#39;s <code>false</code>, look at <code>result.StatusCode</code> to see what went wrong.</p>
+<p><strong>Q: Can I make multiple requests at once?</strong>
+A: Yes! You can use <code>Curl.ExecuteMany()</code> to run multiple requests in parallel. Check the <a href="../api-guide/">API Guide</a> for details.</p>
+<p><strong>Q: How do I send data with my request?</strong>
+A: We&#39;ll cover POST requests in detail in later tutorials. For now, you can use:</p>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(
+    &quot;curl -X POST -d &#39;key=value&#39; https://api.example.com&quot;
+);
+</code></pre>
+<p><strong>Q: Is this free to use?</strong>
+A: Yes! CurlDotNet is open source and completely free.</p>
+<h2>📚 Summary</h2>
+<p>You&#39;ve learned how to make your first HTTP request with CurlDotNet! You can:</p>
+<ul>
+<li>Execute simple GET requests</li>
+<li>Examine the response</li>
+<li>Check status codes</li>
+<li>Handle success and errors</li>
+<li>Debug issues</li>
+</ul>
+<p>This is the foundation for everything else you&#39;ll do with CurlDotNet.</p>
+<hr>
+<p><strong>Ready for more?</strong> → <a href="README.html">Check the Tutorials</a></p>
+<p><strong>Need help?</strong> Check the <a href="../troubleshooting/">Troubleshooting Guide</a> or ask in <a href="https://github.com/jacob-mellor/curl-dot-net/discussions">Discussions</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

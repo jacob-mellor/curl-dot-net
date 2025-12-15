@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Exceptions.CurlConnectionException.#ctor | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Exceptions.md" title="CurlDotNet.Exceptions">CurlDotNet.Exceptions</a>.<a href="CurlDotNet.Exceptions.CurlConnectionException.md" title="CurlDotNet.Exceptions.CurlConnectionException">CurlConnectionException</a></h3>
+<h2>CurlConnectionException Constructors</h2>
+<table>
+<thead>
+<tr>
+<th align="left">Overloads</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Exceptions.CurlConnectionException.#ctor.md#CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string,int,string,System.Nullable_int_,string)" title="CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string, int, string, System.Nullable&lt;int&gt;, string)">CurlConnectionException(string, int, string, Nullable&lt;int&gt;, string)</a></td>
+<td align="left">Initializes a new instance of the <a href="CurlDotNet.Exceptions.CurlConnectionException.md" title="CurlDotNet.Exceptions.CurlConnectionException">CurlConnectionException</a> class with an error code.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Exceptions.CurlConnectionException.#ctor.md#CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string,string,System.Nullable_int_,string)" title="CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string, string, System.Nullable&lt;int&gt;, string)">CurlConnectionException(string, string, Nullable&lt;int&gt;, string)</a></td>
+<td align="left">Initializes a new instance of the <a href="CurlDotNet.Exceptions.CurlConnectionException.md" title="CurlDotNet.Exceptions.CurlConnectionException">CurlConnectionException</a> class.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Exceptions.CurlConnectionException.#ctor.md#CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)" title="CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(System.Runtime.Serialization.SerializationInfo, System.Runtime.Serialization.StreamingContext)">CurlConnectionException(SerializationInfo, StreamingContext)</a></td>
+<td align="left">Initializes a new instance with serialized data.</td>
+</tr>
+</tbody></table>
+<p><a name='ctor.md#CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string,int,string,System.Nullable_int_,string)'></a></p>
+<h2>CurlConnectionException(string, int, string, Nullable&lt;int&gt;, string) Constructor</h2>
+<p>Initializes a new instance of the <a href="CurlDotNet.Exceptions.CurlConnectionException.md" title="CurlDotNet.Exceptions.CurlConnectionException">CurlConnectionException</a> class with an error code.</p>
+<pre><code class="language-csharp">protected CurlConnectionException(string message, int curlErrorCode, string host, System.Nullable&lt;int&gt; port=null, string command=null);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string,int,string,System.Nullable_int_,string).message'></a></p>
+<p><code>message</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>The error message describing the connection failure.</p>
+<p><a name='CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string,int,string,System.Nullable_int_,string).curlErrorCode'></a></p>
+<p><code>curlErrorCode</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.int32" title="System.Int32">System.Int32</a></p>
+<p>The curl error code.</p>
+<p><a name='CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string,int,string,System.Nullable_int_,string).host'></a></p>
+<p><code>host</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>The host that could not be connected to.</p>
+<p><a name='CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string,int,string,System.Nullable_int_,string).port'></a></p>
+<p><code>port</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.nullable-1" title="System.Nullable`1">System.Nullable&lt;</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.int32" title="System.Int32">System.Int32</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.nullable-1" title="System.Nullable`1">&gt;</a></p>
+<p>The port number that was attempted.</p>
+<p><a name='CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string,int,string,System.Nullable_int_,string).command'></a></p>
+<p><code>command</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>The curl command that was executing.</p>
+<p><a name='ctor.md#CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string,string,System.Nullable_int_,string)'></a></p>
+<h2>CurlConnectionException(string, string, Nullable&lt;int&gt;, string) Constructor</h2>
+<p>Initializes a new instance of the <a href="CurlDotNet.Exceptions.CurlConnectionException.md" title="CurlDotNet.Exceptions.CurlConnectionException">CurlConnectionException</a> class.</p>
+<pre><code class="language-csharp">public CurlConnectionException(string message, string host, System.Nullable&lt;int&gt; port=null, string command=null);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string,string,System.Nullable_int_,string).message'></a></p>
+<p><code>message</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>The error message describing the connection failure.</p>
+<p><a name='CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string,string,System.Nullable_int_,string).host'></a></p>
+<p><code>host</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>The host that could not be connected to.</p>
+<p><a name='CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string,string,System.Nullable_int_,string).port'></a></p>
+<p><code>port</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.nullable-1" title="System.Nullable`1">System.Nullable&lt;</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.int32" title="System.Int32">System.Int32</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.nullable-1" title="System.Nullable`1">&gt;</a></p>
+<p>The port number that was attempted.</p>
+<p><a name='CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(string,string,System.Nullable_int_,string).command'></a></p>
+<p><code>command</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>The curl command that was executing.</p>
+<p><a name='ctor.md#CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)'></a></p>
+<h2>CurlConnectionException(SerializationInfo, StreamingContext) Constructor</h2>
+<p>Initializes a new instance with serialized data.</p>
+<pre><code class="language-csharp">protected CurlConnectionException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext).info'></a></p>
+<p><code>info</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.runtime.serialization.serializationinfo" title="System.Runtime.Serialization.SerializationInfo">System.Runtime.Serialization.SerializationInfo</a></p>
+<p><a name='CurlDotNet.Exceptions.CurlConnectionException.CurlConnectionException(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext).context'></a></p>
+<p><code>context</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.runtime.serialization.streamingcontext" title="System.Runtime.Serialization.StreamingContext">System.Runtime.Serialization.StreamingContext</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

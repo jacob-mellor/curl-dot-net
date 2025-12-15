@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Syntax Errors | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>URL Syntax Errors</h1>
+<h2>Overview</h2>
+<p>URL errors occur when the provided URL is malformed or contains invalid characters.</p>
+<h2>Common URL Issues</h2>
+<h3>1. Missing Protocol</h3>
+<pre><code class="language-csharp">// Wrong
+&quot;example.com&quot;
+
+// Correct
+&quot;https://example.com&quot;
+</code></pre>
+<h3>2. Invalid Characters</h3>
+<pre><code class="language-csharp">// Spaces need encoding
+var url = &quot;https://example.com/my file.pdf&quot;;
+var encoded = Uri.EscapeUriString(url);
+// Results in: https://example.com/my%20file.pdf
+</code></pre>
+<h3>3. Invalid Port</h3>
+<pre><code class="language-csharp">// Port must be numeric
+&quot;https://example.com:abc&quot; // Wrong
+&quot;https://example.com:8080&quot; // Correct
+</code></pre>
+<h2>URL Validation</h2>
+<pre><code class="language-csharp">public bool IsValidUrl(string url)
+{
+    if (string.IsNullOrWhiteSpace(url))
+        return false;
+
+    if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        return false;
+
+    return uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps;
+}
+</code></pre>
+<h2>URL Building</h2>
+<pre><code class="language-csharp">public string BuildUrl(string host, string path, Dictionary&lt;string, string&gt; queryParams)
+{
+    var uriBuilder = new UriBuilder
+    {
+        Scheme = &quot;https&quot;,
+        Host = host,
+        Path = path
+    };
+
+    if (queryParams?.Any() == true)
+    {
+        var query = string.Join(&quot;&amp;&quot;,
+            queryParams.Select(kvp =&gt;
+                $&quot;{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}&quot;
+            )
+        );
+        uriBuilder.Query = query;
+    }
+
+    return uriBuilder.ToString();
+}
+</code></pre>
+<h2>Related Documentation</h2>
+<ul>
+<li><a href="/guides/url-encoding.html">URL Encoding Guide</a></li>
+<li><a href="https://tools.ietf.org/html/rfc3986">HTTP Protocol Reference</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Initialization Errors | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Initialization Errors</h1>
+<h2>Overview</h2>
+<p>Initialization errors occur when CurlDotNet fails to start up properly. These are typically environmental or configuration issues.</p>
+<h2>Common Causes</h2>
+<h3>1. Missing Dependencies</h3>
+<ul>
+<li>Required libraries not installed</li>
+<li>Wrong library versions</li>
+<li>Platform incompatibility</li>
+</ul>
+<h3>2. Resource Limitations</h3>
+<ul>
+<li>Out of memory</li>
+<li>Too many open handles</li>
+<li>System resource exhaustion</li>
+</ul>
+<h2>Solutions</h2>
+<pre><code class="language-csharp">try
+{
+    var curl = new Curl();
+}
+catch (CurlFailedInitException ex)
+{
+    // Check system resources
+    GC.Collect();
+    GC.WaitForPendingFinalizers();
+
+    // Retry initialization
+    var curl = new Curl();
+}
+</code></pre>
+<h2>Diagnostics</h2>
+<pre><code class="language-csharp">public void DiagnoseInitFailure()
+{
+    Console.WriteLine($&quot;Platform: {RuntimeInformation.OSDescription}&quot;);
+    Console.WriteLine($&quot;Framework: {RuntimeInformation.FrameworkDescription}&quot;);
+    Console.WriteLine($&quot;Process Architecture: {RuntimeInformation.ProcessArchitecture}&quot;);
+    Console.WriteLine($&quot;Memory: {GC.GetTotalMemory(false) / 1024 / 1024} MB&quot;);
+}
+</code></pre>
+<h2>Related Documentation</h2>
+<ul>
+<li><a href="/getting-started/installation.html">Installation Guide</a></li>
+<li><a href="/getting-started/requirements.html">System Requirements</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

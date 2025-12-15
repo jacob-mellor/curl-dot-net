@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Core.CurlSettings | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Core.md" title="CurlDotNet.Core">CurlDotNet.Core</a></h3>
+<h2>CurlSettings Class</h2>
+<p>Fluent builder for .NET-specific curl settings.</p>
+<pre><code class="language-csharp">public class CurlSettings
+</code></pre>
+<p>Inheritance <a href="https://learn.microsoft.com/en-us/dotnet/api/system.object" title="System.Object">System.Object</a> &#129106; CurlSettings</p>
+<h3>Example</h3>
+<pre><code class="language-csharp">var settings = new CurlSettings()
+    .WithTimeout(30)
+    .WithRetries(3)
+    .WithProgress((percent, total, current) =&gt; Console.WriteLine($&quot;{percent}%&quot;))
+    .WithCancellation(cancellationToken);
+
+var result = await Curl.Execute(&quot;curl https://example.com&quot;, settings);
+</code></pre>
+<h3>Remarks</h3>
+<p>These settings complement curl commands with .NET-specific features.</p>
+<p>AI-Usage: Use this for cancellation, progress, retries, and other .NET features.</p>
+<table>
+<thead>
+<tr>
+<th align="left">Properties</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.AutomaticDecompression.md" title="CurlDotNet.Core.CurlSettings.AutomaticDecompression">AutomaticDecompression</a></td>
+<td align="left">Whether to automatically decompress response.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.BufferSize.md" title="CurlDotNet.Core.CurlSettings.BufferSize">BufferSize</a></td>
+<td align="left">Buffer size for download operations.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.CancellationToken.md" title="CurlDotNet.Core.CurlSettings.CancellationToken">CancellationToken</a></td>
+<td align="left">Cancellation token for the operation.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.ConnectTimeoutSeconds.md" title="CurlDotNet.Core.CurlSettings.ConnectTimeoutSeconds">ConnectTimeoutSeconds</a></td>
+<td align="left">Connection timeout in seconds.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.Cookies.md" title="CurlDotNet.Core.CurlSettings.Cookies">Cookies</a></td>
+<td align="left">Cookie container for maintaining session.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.FollowRedirects.md" title="CurlDotNet.Core.CurlSettings.FollowRedirects">FollowRedirects</a></td>
+<td align="left">Whether to follow redirects.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.Headers.md" title="CurlDotNet.Core.CurlSettings.Headers">Headers</a></td>
+<td align="left">Additional headers to add to the request.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.Insecure.md" title="CurlDotNet.Core.CurlSettings.Insecure">Insecure</a></td>
+<td align="left">Whether to ignore SSL certificate errors.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.MaxTimeSeconds.md" title="CurlDotNet.Core.CurlSettings.MaxTimeSeconds">MaxTimeSeconds</a></td>
+<td align="left">Maximum time in seconds for the entire operation.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.OnProgress.md" title="CurlDotNet.Core.CurlSettings.OnProgress">OnProgress</a></td>
+<td align="left">Progress callback (percent, totalBytes, currentBytes).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.OnRedirect.md" title="CurlDotNet.Core.CurlSettings.OnRedirect">OnRedirect</a></td>
+<td align="left">Callback for each redirect.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.Proxy.md" title="CurlDotNet.Core.CurlSettings.Proxy">Proxy</a></td>
+<td align="left">Proxy settings.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.RetryCount.md" title="CurlDotNet.Core.CurlSettings.RetryCount">RetryCount</a></td>
+<td align="left">Number of retry attempts on failure.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.RetryDelayMs.md" title="CurlDotNet.Core.CurlSettings.RetryDelayMs">RetryDelayMs</a></td>
+<td align="left">Delay between retries in milliseconds.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.UserAgent.md" title="CurlDotNet.Core.CurlSettings.UserAgent">UserAgent</a></td>
+<td align="left">Custom user agent string.</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th align="left">Methods</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.FromDefaults().md" title="CurlDotNet.Core.CurlSettings.FromDefaults()">FromDefaults()</a></td>
+<td align="left">Create default settings from global Curl settings.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithAutoDecompression(bool).md" title="CurlDotNet.Core.CurlSettings.WithAutoDecompression(bool)">WithAutoDecompression(bool)</a></td>
+<td align="left">Set automatic decompression.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithBufferSize(int).md" title="CurlDotNet.Core.CurlSettings.WithBufferSize(int)">WithBufferSize(int)</a></td>
+<td align="left">Set buffer size for downloads.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithCancellation(System.Threading.CancellationToken).md" title="CurlDotNet.Core.CurlSettings.WithCancellation(System.Threading.CancellationToken)">WithCancellation(CancellationToken)</a></td>
+<td align="left">Set cancellation token.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithConnectTimeout(int).md" title="CurlDotNet.Core.CurlSettings.WithConnectTimeout(int)">WithConnectTimeout(int)</a></td>
+<td align="left">Set connection timeout.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithCookies(System.Net.CookieContainer).md" title="CurlDotNet.Core.CurlSettings.WithCookies(System.Net.CookieContainer)">WithCookies(CookieContainer)</a></td>
+<td align="left">Use cookie container for session management.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithFollowRedirects(bool).md" title="CurlDotNet.Core.CurlSettings.WithFollowRedirects(bool)">WithFollowRedirects(bool)</a></td>
+<td align="left">Enable or disable following redirects.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithHeader(string,string).md" title="CurlDotNet.Core.CurlSettings.WithHeader(string, string)">WithHeader(string, string)</a></td>
+<td align="left">Add a header.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithHeaders(System.Collections.Generic.Dictionary_string,string_).md" title="CurlDotNet.Core.CurlSettings.WithHeaders(System.Collections.Generic.Dictionary&lt;string,string&gt;)">WithHeaders(Dictionary&lt;string,string&gt;)</a></td>
+<td align="left">Add multiple headers.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithInsecure(bool).md" title="CurlDotNet.Core.CurlSettings.WithInsecure(bool)">WithInsecure(bool)</a></td>
+<td align="left">Enable or disable SSL certificate validation.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithProgress(System.Action_double,long,long_).md" title="CurlDotNet.Core.CurlSettings.WithProgress(System.Action&lt;double,long,long&gt;)">WithProgress(Action&lt;double,long,long&gt;)</a></td>
+<td align="left">Set progress callback.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithProxy.md#CurlDotNet.Core.CurlSettings.WithProxy(string)" title="CurlDotNet.Core.CurlSettings.WithProxy(string)">WithProxy(string)</a></td>
+<td align="left">Set proxy.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithProxy.md#CurlDotNet.Core.CurlSettings.WithProxy(string,string,string)" title="CurlDotNet.Core.CurlSettings.WithProxy(string, string, string)">WithProxy(string, string, string)</a></td>
+<td align="left">Set proxy with credentials.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithRedirectHandler(System.Action_string_).md" title="CurlDotNet.Core.CurlSettings.WithRedirectHandler(System.Action&lt;string&gt;)">WithRedirectHandler(Action&lt;string&gt;)</a></td>
+<td align="left">Set redirect callback.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithRetries(int,int).md" title="CurlDotNet.Core.CurlSettings.WithRetries(int, int)">WithRetries(int, int)</a></td>
+<td align="left">Set retry behavior.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithTimeout(int).md" title="CurlDotNet.Core.CurlSettings.WithTimeout(int)">WithTimeout(int)</a></td>
+<td align="left">Set maximum time for operation.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlSettings.WithUserAgent(string).md" title="CurlDotNet.Core.CurlSettings.WithUserAgent(string)">WithUserAgent(string)</a></td>
+<td align="left">Set custom user agent.</td>
+</tr>
+</tbody></table>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

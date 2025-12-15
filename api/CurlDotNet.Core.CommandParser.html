@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Core.CommandParser | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Core.md" title="CurlDotNet.Core">CurlDotNet.Core</a></h3>
+<h2>CommandParser Class</h2>
+<p>Parses curl command strings into CurlOptions, following curl&#39;s command-line syntax exactly.
+This parser is inspired by curl&#39;s tool_getparam.c which handles all parameter parsing.</p>
+<p>Supports all curl options including short forms (-X POST), long forms (--request POST),
+combined short options (-sS), option arguments, quote handling, and line continuations.
+The parser normalizes different shell syntaxes (bash, PowerShell, cmd, zsh) into a consistent format.</p>
+<p><b>Cross-Shell Compatibility:</b> Paste curl commands from any shell and they work:</p>
+<ul>
+<li><b>Windows CMD:</b><code>curl -H &quot;Content-Type: application/json&quot; -d &quot;{\&quot;key\&quot;:\&quot;value\&quot;}&quot;</code></li>
+<li><b>PowerShell:</b><code>curl -H &#39;Content-Type: application/json&#39; -d &#39;{\&quot;key\&quot;:\&quot;value\&quot;}&#39;</code></li>
+<li><b>Bash/ZSH:</b><code>curl -H &#39;Content-Type: application/json&#39; -d &#39;{&quot;key&quot;:&quot;value&quot;}&#39;</code></li>
+</ul>
+<p>For curl option reference: <a href="https://curl.se/docs/manpage.html#OPTIONS">https://curl.se/docs/manpage.html#OPTIONS</a></p>
+<pre><code class="language-csharp">internal class CommandParser
+</code></pre>
+<p>Inheritance <a href="https://learn.microsoft.com/en-us/dotnet/api/system.object" title="System.Object">System.Object</a> &#129106; CommandParser</p>
+<h3>Remarks</h3>
+<p>This parser handles all curl command-line syntax including short and long options.</p>
+<p>Processes commands in the same order as curl for compatibility.</p>
+<p>Thread-safe and can be reused for multiple parse operations.&lt;ai-semantic-usage&gt;
+             Core parser that translates curl command strings to structured options.
+             Handles shell quoting, escaping, line continuations, and all curl option formats.
+             Use this when you need to parse curl commands programmatically.
+             &lt;/ai-semantic-usage&gt;&lt;ai-patterns&gt;
+             - Always preserves curl&#39;s option precedence rules
+             - Later options override earlier ones (like curl)
+             - Multiple -d options are concatenated
+             - File references (@file) are expanded
+             - Handles Windows, PowerShell, Bash, ZSH syntax differences
+             &lt;/ai-patterns&gt;</p>
+<table>
+<thead>
+<tr>
+<th align="left">Methods</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Core.CommandParser.IsValid(string).md" title="CurlDotNet.Core.CommandParser.IsValid(string)">IsValid(string)</a></td>
+<td align="left"></td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CommandParser.Parse(string).md" title="CurlDotNet.Core.CommandParser.Parse(string)">Parse(string)</a></td>
+<td align="left"></td>
+</tr>
+</tbody></table>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

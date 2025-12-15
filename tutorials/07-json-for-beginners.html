@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial 7: JSON for Beginners | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Tutorial 7: JSON for Beginners</h1>
+<p>JSON (JavaScript Object Notation) is the most common data format for modern APIs. This tutorial shows you how to work with JSON data using CurlDotNet.</p>
+<h2>What is JSON?</h2>
+<p>JSON is a human-readable format for structuring data:</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;John Doe&quot;,
+  &quot;age&quot;: 30,
+  &quot;email&quot;: &quot;john@example.com&quot;,
+  &quot;isActive&quot;: true,
+  &quot;scores&quot;: [95, 87, 92],
+  &quot;address&quot;: {
+    &quot;street&quot;: &quot;123 Main St&quot;,
+    &quot;city&quot;: &quot;Springfield&quot;
+  }
+}
+</code></pre>
+<h2>Receiving JSON Data</h2>
+<h3>Basic JSON GET Request</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+var result = await curl.GetAsync(&quot;https://api.example.com/user/123&quot;);
+
+if (result.IsSuccess)
+{
+    // The JSON is in result.Data as a string
+    Console.WriteLine(result.Data);
+    // Output: {&quot;name&quot;:&quot;John Doe&quot;,&quot;age&quot;:30,...}
+}
+</code></pre>
+<h3>Parsing JSON to Objects</h3>
+<pre><code class="language-csharp">// Define a class matching the JSON structure
+public class User
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+    public string Email { get; set; }
+    public bool IsActive { get; set; }
+}
+
+// Parse the JSON
+var result = await curl.GetAsync(&quot;https://api.example.com/user/123&quot;);
+if (result.IsSuccess)
+{
+    var user = JsonSerializer.Deserialize&lt;User&gt;(result.Data);
+    Console.WriteLine($&quot;Name: {user.Name}, Age: {user.Age}&quot;);
+}
+</code></pre>
+<h2>Sending JSON Data</h2>
+<h3>POST with JSON</h3>
+<pre><code class="language-csharp">// Method 1: Using anonymous objects
+var data = new
+{
+    name = &quot;Jane Smith&quot;,
+    age = 25,
+    email = &quot;jane@example.com&quot;
+};
+
+var result = await curl.PostJsonAsync(&quot;https://api.example.com/users&quot;, data);
+
+// Method 2: Using typed objects
+var newUser = new User
+{
+    Name = &quot;Jane Smith&quot;,
+    Age = 25,
+    Email = &quot;jane@example.com&quot;
+};
+
+var result = await curl.PostJsonAsync(&quot;https://api.example.com/users&quot;, newUser);
+</code></pre>
+<h3>PUT/PATCH with JSON</h3>
+<pre><code class="language-csharp">// Update user data
+var updates = new
+{
+    age = 26,
+    email = &quot;newemail@example.com&quot;
+};
+
+// PUT replaces entire resource
+var putResult = await curl.PutJsonAsync(&quot;https://api.example.com/users/123&quot;, updates);
+
+// PATCH updates specific fields
+var patchResult = await curl.PatchJsonAsync(&quot;https://api.example.com/users/123&quot;, updates);
+</code></pre>
+<h2>Working with Complex JSON</h2>
+<h3>Nested Objects</h3>
+<pre><code class="language-csharp">public class Address
+{
+    public string Street { get; set; }
+    public string City { get; set; }
+    public string ZipCode { get; set; }
+}
+
+public class Person
+{
+    public string Name { get; set; }
+    public Address HomeAddress { get; set; }
+    public Address WorkAddress { get; set; }
+}
+
+// Sending nested data
+var person = new Person
+{
+    Name = &quot;John Doe&quot;,
+    HomeAddress = new Address
+    {
+        Street = &quot;123 Main St&quot;,
+        City = &quot;Springfield&quot;,
+        ZipCode = &quot;12345&quot;
+    },
+    WorkAddress = new Address
+    {
+        Street = &quot;456 Office Blvd&quot;,
+        City = &quot;Business City&quot;,
+        ZipCode = &quot;67890&quot;
+    }
+};
+
+var result = await curl.PostJsonAsync(&quot;https://api.example.com/people&quot;, person);
+</code></pre>
+<h3>Arrays and Lists</h3>
+<pre><code class="language-csharp">public class Order
+{
+    public int OrderId { get; set; }
+    public List&lt;OrderItem&gt; Items { get; set; }
+    public decimal TotalAmount { get; set; }
+}
+
+public class OrderItem
+{
+    public string ProductName { get; set; }
+    public int Quantity { get; set; }
+    public decimal Price { get; set; }
+}
+
+// Working with arrays
+var order = new Order
+{
+    OrderId = 12345,
+    Items = new List&lt;OrderItem&gt;
+    {
+        new OrderItem { ProductName = &quot;Widget&quot;, Quantity = 2, Price = 9.99m },
+        new OrderItem { ProductName = &quot;Gadget&quot;, Quantity = 1, Price = 19.99m }
+    },
+    TotalAmount = 39.97m
+};
+
+var result = await curl.PostJsonAsync(&quot;https://api.example.com/orders&quot;, order);
+</code></pre>
+<h2>JSON Serialization Options</h2>
+<h3>Case Sensitivity</h3>
+<pre><code class="language-csharp">// JSON often uses camelCase, C# uses PascalCase
+var options = new JsonSerializerOptions
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+};
+
+// Deserialize with camelCase mapping
+var json = @&quot;{&quot;firstName&quot;:&quot;John&quot;,&quot;lastName&quot;:&quot;Doe&quot;}&quot;;
+var user = JsonSerializer.Deserialize&lt;User&gt;(json, options);
+
+// Serialize to camelCase
+var userData = new User { FirstName = &quot;John&quot;, LastName = &quot;Doe&quot; };
+var jsonString = JsonSerializer.Serialize(userData, options);
+// Output: {&quot;firstName&quot;:&quot;John&quot;,&quot;lastName&quot;:&quot;Doe&quot;}
+</code></pre>
+<h3>Handling Null Values</h3>
+<pre><code class="language-csharp">var options = new JsonSerializerOptions
+{
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+};
+
+var data = new
+{
+    name = &quot;John&quot;,
+    age = (int?)null,  // This will be omitted
+    email = &quot;john@example.com&quot;
+};
+
+var json = JsonSerializer.Serialize(data, options);
+// Output: {&quot;name&quot;:&quot;John&quot;,&quot;email&quot;:&quot;john@example.com&quot;}
+</code></pre>
+<h3>Pretty Printing</h3>
+<pre><code class="language-csharp">var options = new JsonSerializerOptions
+{
+    WriteIndented = true  // Format JSON with indentation
+};
+
+var data = new { name = &quot;John&quot;, age = 30 };
+var json = JsonSerializer.Serialize(data, options);
+Console.WriteLine(json);
+/* Output:
+{
+  &quot;name&quot;: &quot;John&quot;,
+  &quot;age&quot;: 30
+}
+*/
+</code></pre>
+<h2>Error Handling with JSON</h2>
+<h3>Safe Parsing</h3>
+<pre><code class="language-csharp">public async Task&lt;User?&gt; GetUserSafely(int id)
+{
+    var curl = new Curl();
+    var result = await curl.GetAsync($&quot;https://api.example.com/users/{id}&quot;);
+
+    if (!result.IsSuccess)
+    {
+        _logger.LogError($&quot;Failed to fetch user: {result.Error}&quot;);
+        return null;
+    }
+
+    try
+    {
+        return JsonSerializer.Deserialize&lt;User&gt;(result.Data);
+    }
+    catch (JsonException ex)
+    {
+        _logger.LogError($&quot;Invalid JSON response: {ex.Message}&quot;);
+        _logger.LogDebug($&quot;Raw response: {result.Data}&quot;);
+        return null;
+    }
+}
+</code></pre>
+<h3>Validating JSON Structure</h3>
+<pre><code class="language-csharp">public bool IsValidJson(string json)
+{
+    try
+    {
+        using var doc = JsonDocument.Parse(json);
+        return true;
+    }
+    catch (JsonException)
+    {
+        return false;
+    }
+}
+
+// Check before parsing
+var result = await curl.GetAsync(url);
+if (result.IsSuccess &amp;&amp; IsValidJson(result.Data))
+{
+    var data = JsonSerializer.Deserialize&lt;MyType&gt;(result.Data);
+}
+</code></pre>
+<h2>Working with Dynamic JSON</h2>
+<h3>Using JsonDocument</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync(&quot;https://api.example.com/data&quot;);
+
+if (result.IsSuccess)
+{
+    using var doc = JsonDocument.Parse(result.Data);
+    var root = doc.RootElement;
+
+    // Access properties dynamically
+    if (root.TryGetProperty(&quot;name&quot;, out var nameElement))
+    {
+        string name = nameElement.GetString();
+    }
+
+    // Navigate nested structures
+    if (root.TryGetProperty(&quot;address&quot;, out var address))
+    {
+        if (address.TryGetProperty(&quot;city&quot;, out var city))
+        {
+            Console.WriteLine($&quot;City: {city.GetString()}&quot;);
+        }
+    }
+
+    // Work with arrays
+    if (root.TryGetProperty(&quot;items&quot;, out var items) &amp;&amp; items.ValueKind == JsonValueKind.Array)
+    {
+        foreach (var item in items.EnumerateArray())
+        {
+            Console.WriteLine(item.GetProperty(&quot;name&quot;).GetString());
+        }
+    }
+}
+</code></pre>
+<h3>Using Dynamic Objects</h3>
+<pre><code class="language-csharp">// For simple scenarios, use dynamic (requires Newtonsoft.Json)
+dynamic data = JsonConvert.DeserializeObject(result.Data);
+Console.WriteLine(data.name);
+Console.WriteLine(data.address.city);
+</code></pre>
+<h2>Common JSON Patterns</h2>
+<h3>Pagination</h3>
+<pre><code class="language-csharp">public class PagedResponse&lt;T&gt;
+{
+    public List&lt;T&gt; Items { get; set; }
+    public int TotalCount { get; set; }
+    public int PageSize { get; set; }
+    public int CurrentPage { get; set; }
+    public bool HasNextPage { get; set; }
+}
+
+// Fetch paginated data
+var result = await curl.GetAsync(&quot;https://api.example.com/users?page=1&amp;size=10&quot;);
+if (result.IsSuccess)
+{
+    var pagedUsers = JsonSerializer.Deserialize&lt;PagedResponse&lt;User&gt;&gt;(result.Data);
+
+    Console.WriteLine($&quot;Total users: {pagedUsers.TotalCount}&quot;);
+    foreach (var user in pagedUsers.Items)
+    {
+        Console.WriteLine(user.Name);
+    }
+
+    if (pagedUsers.HasNextPage)
+    {
+        // Fetch next page...
+    }
+}
+</code></pre>
+<h3>API Responses with Metadata</h3>
+<pre><code class="language-csharp">public class ApiResponse&lt;T&gt;
+{
+    public bool Success { get; set; }
+    public string Message { get; set; }
+    public T Data { get; set; }
+    public List&lt;string&gt; Errors { get; set; }
+}
+
+// Handle wrapped responses
+var result = await curl.GetAsync(&quot;https://api.example.com/users/123&quot;);
+if (result.IsSuccess)
+{
+    var apiResponse = JsonSerializer.Deserialize&lt;ApiResponse&lt;User&gt;&gt;(result.Data);
+
+    if (apiResponse.Success)
+    {
+        var user = apiResponse.Data;
+        Console.WriteLine($&quot;User: {user.Name}&quot;);
+    }
+    else
+    {
+        Console.WriteLine($&quot;API Error: {apiResponse.Message}&quot;);
+        foreach (var error in apiResponse.Errors ?? new List&lt;string&gt;())
+        {
+            Console.WriteLine($&quot;  - {error}&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>Extension Methods for JSON</h2>
+<p>Create helpers to simplify JSON operations:</p>
+<pre><code class="language-csharp">public static class CurlJsonExtensions
+{
+    public static async Task&lt;T?&gt; GetJsonAsync&lt;T&gt;(this Curl curl, string url)
+    {
+        var result = await curl.GetAsync(url);
+
+        if (!result.IsSuccess)
+            return default;
+
+        try
+        {
+            return JsonSerializer.Deserialize&lt;T&gt;(result.Data);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
+    }
+
+    public static async Task&lt;CurlResult&gt; PostAsJsonAsync&lt;T&gt;(
+        this Curl curl, string url, T data)
+    {
+        var json = JsonSerializer.Serialize(data);
+        return await curl.PostAsync(url, json, &quot;application/json&quot;);
+    }
+}
+
+// Usage
+var user = await curl.GetJsonAsync&lt;User&gt;(&quot;https://api.example.com/users/123&quot;);
+</code></pre>
+<h2>Best Practices</h2>
+<ol>
+<li><strong>Always validate JSON</strong> before parsing</li>
+<li><strong>Use strongly-typed classes</strong> when structure is known</li>
+<li><strong>Handle parsing exceptions</strong> gracefully</li>
+<li><strong>Use appropriate naming policies</strong> (camelCase vs PascalCase)</li>
+<li><strong>Consider memory usage</strong> with large JSON documents</li>
+<li><strong>Log raw JSON</strong> when debugging parsing issues</li>
+<li><strong>Use JsonDocument</strong> for unknown structures</li>
+<li><strong>Dispose JsonDocument</strong> after use</li>
+</ol>
+<h2>Summary</h2>
+<p>Working with JSON in CurlDotNet is straightforward:</p>
+<ul>
+<li>Receive JSON as strings in <code>result.Data</code></li>
+<li>Parse with <code>JsonSerializer.Deserialize&lt;T&gt;()</code></li>
+<li>Send JSON with <code>PostJsonAsync()</code> or serialize manually</li>
+<li>Handle errors and validate structure</li>
+<li>Use appropriate options for your API&#39;s conventions</li>
+</ul>
+<h2>What&#39;s Next?</h2>
+<p>Learn about <a href="08-headers-explained.html">HTTP headers</a> and how they control request and response behavior.</p>
+<hr>
+<p><a href="06-handling-errors.html">← Previous: Handling Errors</a> | <a href="08-headers-explained.html">Next: Headers Explained →</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

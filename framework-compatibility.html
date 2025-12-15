@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>.NET Framework Compatibility Guide | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>.NET Framework Compatibility Guide</h1>
+<p>CurlDotNet fully supports .NET Framework 4.7.2 and later through our .NET Standard 2.0 build.</p>
+<h2>Supported Frameworks</h2>
+<table>
+<thead>
+<tr>
+<th>Framework</th>
+<th>Status</th>
+<th>Build Target</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>.NET Framework 4.7.2</td>
+<td>✅ Supported</td>
+<td>netstandard2.0 / net472</td>
+</tr>
+<tr>
+<td>.NET Framework 4.8</td>
+<td>✅ Supported</td>
+<td>netstandard2.0 / net48</td>
+</tr>
+<tr>
+<td>.NET Standard 2.0</td>
+<td>✅ Supported</td>
+<td>netstandard2.0</td>
+</tr>
+<tr>
+<td>.NET Core 3.1+</td>
+<td>✅ Supported</td>
+<td>netstandard2.0</td>
+</tr>
+<tr>
+<td>.NET 5.0+</td>
+<td>✅ Supported</td>
+<td>net8.0+</td>
+</tr>
+</tbody></table>
+<h2>Installation for Framework Projects</h2>
+<pre><code class="language-xml">&lt;PackageReference Include=&quot;CurlDotNet&quot; Version=&quot;1.2.35&quot; /&gt;
+</code></pre>
+<h2>Usage in .NET Framework</h2>
+<pre><code class="language-csharp">using CurlDotNet;
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Synchronous execution (common in Framework apps)
+        var result = Curl.Execute(&quot;curl https://api.example.com/data&quot;);
+        Console.WriteLine($&quot;Status: {result.StatusCode}&quot;);
+        Console.WriteLine($&quot;Body: {result.Body}&quot;);
+    }
+
+    static async Task AsyncExample()
+    {
+        // Async execution also supported
+        var result = await Curl.ExecuteAsync(&quot;curl -X POST -d &#39;data&#39; https://api.example.com/submit&quot;);
+        Console.WriteLine($&quot;Success: {result.IsSuccess}&quot;);
+    }
+}
+</code></pre>
+<h2>Framework-Specific Considerations</h2>
+<h3>1. TLS/SSL Configuration</h3>
+<p>.NET Framework apps often need explicit TLS configuration:</p>
+<pre><code class="language-csharp">// Add this at application startup
+ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
+</code></pre>
+<h3>2. JSON Serialization</h3>
+<p>System.Text.Json is included via NuGet for Framework projects. No additional packages needed.</p>
+<pre><code class="language-csharp">// This works in Framework 4.7.2+
+var result = await Curl.ExecuteAsync(&quot;curl https://api.example.com/json&quot;);
+var data = result.ParseJson&lt;MyDataClass&gt;();
+</code></pre>
+<h3>3. HttpClient Differences</h3>
+<p>The library handles HttpClient lifecycle management appropriately for Framework:</p>
+<pre><code class="language-csharp">// No need to manage HttpClient instances
+// CurlDotNet handles this internally
+var result = Curl.Execute(&quot;curl https://api.example.com&quot;);
+</code></pre>
+<h3>4. WebRequest Compatibility</h3>
+<p>CurlDotNet works alongside legacy WebRequest code:</p>
+<pre><code class="language-csharp">// Legacy code
+var webRequest = WebRequest.Create(&quot;https://old-api.example.com&quot;);
+
+// Modern CurlDotNet code in the same app
+var result = Curl.Execute(&quot;curl https://new-api.example.com&quot;);
+</code></pre>
+<h2>Testing Framework Compatibility</h2>
+<h3>On Windows</h3>
+<p>Run the Framework-specific tests:</p>
+<pre><code class="language-bash">dotnet test tests/CurlDotNet.FrameworkCompat/CurlDotNet.FrameworkCompat.csproj
+</code></pre>
+<h3>On macOS/Linux</h3>
+<p>Use the compatibility script (tests .NET Standard 2.0 build):</p>
+<pre><code class="language-bash">dotnet script scripts/test-framework-compat.csx
+</code></pre>
+<h3>CI/CD</h3>
+<p>GitHub Actions automatically test Framework compatibility on Windows:</p>
+<pre><code class="language-yaml">- name: Test Framework 4.7.2
+  run: dotnet build -f net472 &amp;&amp; dotnet test
+</code></pre>
+<h2>Known Limitations</h2>
+<ol>
+<li><p><strong>FTP Protocol</strong>: .NET Core/5+ removed FTP support. Use HTTP(S) alternatives where possible.</p>
+</li>
+<li><p><strong>Async Patterns</strong>: Framework uses older async patterns. We provide both sync and async methods.</p>
+</li>
+<li><p><strong>Performance</strong>: Framework&#39;s HttpClient is less optimized than .NET Core&#39;s. Consider upgrading if performance is critical.</p>
+</li>
+</ol>
+<h2>Migration from Framework</h2>
+<p>If migrating from Framework to .NET 6+:</p>
+<ol>
+<li>No code changes needed for basic usage</li>
+<li>Consider switching to async methods for better performance</li>
+<li>Remove ServicePointManager configurations (handled automatically in .NET Core+)</li>
+</ol>
+<h2>Troubleshooting</h2>
+<h3>&quot;Could not load file or assembly&quot;</h3>
+<p>Ensure all dependencies are restored:</p>
+<pre><code class="language-bash">nuget restore
+</code></pre>
+<h3>SSL/TLS Errors</h3>
+<p>Add to application startup:</p>
+<pre><code class="language-csharp">ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+</code></pre>
+<h3>JSON Serialization Issues</h3>
+<p>The package includes System.Text.Json. If conflicts occur, use:</p>
+<pre><code class="language-xml">&lt;PackageReference Include=&quot;System.Text.Json&quot; Version=&quot;8.0.0&quot; /&gt;
+</code></pre>
+<h2>Support</h2>
+<p>Framework support is tested via:</p>
+<ul>
+<li>Windows CI builds with actual Framework runtimes</li>
+<li>.NET Standard 2.0 compatibility tests</li>
+<li>Integration tests with Framework-specific patterns</li>
+</ul>
+<p>Report Framework-specific issues: <a href="https://github.com/jacob-mellor/curl-dot-net/issues">https://github.com/jacob-mellor/curl-dot-net/issues</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

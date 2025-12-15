@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial 10: Files and Downloads | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Tutorial 10: Files and Downloads</h1>
+<p>Learn how to download files, upload documents, and handle binary data with CurlDotNet.</p>
+<h2>Downloading Files</h2>
+<h3>Simple File Download</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+
+// Download to file
+await curl.DownloadFileAsync(
+    &quot;https://example.com/document.pdf&quot;,
+    &quot;/path/to/save/document.pdf&quot;
+);
+
+Console.WriteLine(&quot;File downloaded successfully!&quot;);
+</code></pre>
+<h3>Download with Progress</h3>
+<pre><code class="language-csharp">public async Task DownloadWithProgress(string url, string filePath)
+{
+    var curl = new Curl();
+
+    // Set up progress tracking
+    curl.OnProgress = (downloaded, total) =&gt;
+    {
+        if (total &gt; 0)
+        {
+            var percentage = (downloaded * 100.0) / total;
+            Console.Write($&quot;\rDownloading: {percentage:F1}% ({downloaded}/{total} bytes)&quot;);
+        }
+    };
+
+    await curl.DownloadFileAsync(url, filePath);
+    Console.WriteLine(&quot;\nDownload complete!&quot;);
+}
+</code></pre>
+<h3>Download to Memory</h3>
+<pre><code class="language-csharp">// For small files - load into memory
+var curl = new Curl();
+var bytes = await curl.GetBytesAsync(&quot;https://example.com/image.jpg&quot;);
+
+// Process in memory
+using var stream = new MemoryStream(bytes);
+using var image = Image.FromStream(stream);
+Console.WriteLine($&quot;Image size: {image.Width}x{image.Height}&quot;);
+
+// Save if needed
+File.WriteAllBytes(&quot;image.jpg&quot;, bytes);
+</code></pre>
+<h2>Uploading Files</h2>
+<h3>Simple File Upload</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+
+// Upload a single file
+var result = await curl.UploadFileAsync(
+    &quot;https://api.example.com/upload&quot;,
+    &quot;/path/to/file.pdf&quot;,
+    &quot;file&quot;  // Form field name
+);
+
+if (result.IsSuccess)
+{
+    Console.WriteLine(&quot;Upload successful!&quot;);
+    var response = JsonSerializer.Deserialize&lt;UploadResponse&gt;(result.Data);
+    Console.WriteLine($&quot;File ID: {response.FileId}&quot;);
+}
+</code></pre>
+<h3>Multi-Part Form Upload</h3>
+<pre><code class="language-csharp">// Upload file with additional form data
+var additionalData = new Dictionary&lt;string, string&gt;
+{
+    [&quot;description&quot;] = &quot;Monthly report&quot;,
+    [&quot;category&quot;] = &quot;reports&quot;,
+    [&quot;tags&quot;] = &quot;finance,2024&quot;
+};
+
+var result = await curl.UploadFileAsync(
+    &quot;https://api.example.com/documents&quot;,
+    &quot;/path/to/report.pdf&quot;,
+    &quot;document&quot;,
+    additionalData
+);
+</code></pre>
+<h3>Multiple File Upload</h3>
+<pre><code class="language-csharp">public async Task UploadMultipleFiles(List&lt;string&gt; filePaths)
+{
+    var curl = new Curl();
+    var formData = new MultipartFormDataContent();
+
+    foreach (var filePath in filePaths)
+    {
+        var fileBytes = File.ReadAllBytes(filePath);
+        var fileName = Path.GetFileName(filePath);
+
+        var byteContent = new ByteArrayContent(fileBytes);
+        byteContent.Headers.ContentType = MediaTypeHeaderValue.Parse(&quot;application/octet-stream&quot;);
+
+        formData.Add(byteContent, &quot;files&quot;, fileName);
+    }
+
+    // Add other form fields
+    formData.Add(new StringContent(&quot;batch-upload&quot;), &quot;upload-type&quot;);
+
+    var result = await curl.PostAsync(&quot;https://api.example.com/batch-upload&quot;, formData);
+}
+</code></pre>
+<h2>Working with Streams</h2>
+<h3>Streaming Download</h3>
+<pre><code class="language-csharp">public async Task StreamDownload(string url, string outputPath)
+{
+    var curl = new Curl();
+
+    using var response = await curl.GetStreamAsync(url);
+    using var fileStream = File.Create(outputPath);
+
+    // Copy in chunks to avoid loading entire file in memory
+    var buffer = new byte[8192];
+    int bytesRead;
+    long totalBytes = 0;
+
+    while ((bytesRead = await response.ReadAsync(buffer, 0, buffer.Length)) &gt; 0)
+    {
+        await fileStream.WriteAsync(buffer, 0, bytesRead);
+        totalBytes += bytesRead;
+
+        Console.Write($&quot;\rDownloaded: {totalBytes:N0} bytes&quot;);
+    }
+
+    Console.WriteLine(&quot;\nDownload complete!&quot;);
+}
+</code></pre>
+<h3>Streaming Upload</h3>
+<pre><code class="language-csharp">public async Task StreamUpload(string filePath, string url)
+{
+    using var fileStream = File.OpenRead(filePath);
+    var fileInfo = new FileInfo(filePath);
+
+    var curl = new Curl();
+    curl.Headers.Add(&quot;Content-Length&quot;, fileInfo.Length.ToString());
+    curl.Headers.Add(&quot;Content-Type&quot;, &quot;application/octet-stream&quot;);
+
+    var streamContent = new StreamContent(fileStream);
+    var result = await curl.PostAsync(url, streamContent);
+
+    if (result.IsSuccess)
+    {
+        Console.WriteLine(&quot;Stream upload successful!&quot;);
+    }
+}
+</code></pre>
+<h2>File Type Detection</h2>
+<h3>Content-Type Detection</h3>
+<pre><code class="language-csharp">public string GetContentType(string fileName)
+{
+    var extension = Path.GetExtension(fileName).ToLowerInvariant();
+
+    return extension switch
+    {
+        &quot;.pdf&quot; =&gt; &quot;application/pdf&quot;,
+        &quot;.jpg&quot; or &quot;.jpeg&quot; =&gt; &quot;image/jpeg&quot;,
+        &quot;.png&quot; =&gt; &quot;image/png&quot;,
+        &quot;.gif&quot; =&gt; &quot;image/gif&quot;,
+        &quot;.txt&quot; =&gt; &quot;text/plain&quot;,
+        &quot;.html&quot; =&gt; &quot;text/html&quot;,
+        &quot;.json&quot; =&gt; &quot;application/json&quot;,
+        &quot;.xml&quot; =&gt; &quot;application/xml&quot;,
+        &quot;.zip&quot; =&gt; &quot;application/zip&quot;,
+        &quot;.doc&quot; =&gt; &quot;application/msword&quot;,
+        &quot;.docx&quot; =&gt; &quot;application/vnd.openxmlformats-officedocument.wordprocessingml.document&quot;,
+        &quot;.xls&quot; =&gt; &quot;application/vnd.ms-excel&quot;,
+        &quot;.xlsx&quot; =&gt; &quot;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet&quot;,
+        _ =&gt; &quot;application/octet-stream&quot;
+    };
+}
+
+// Use in upload
+var contentType = GetContentType(filePath);
+curl.Headers.Add(&quot;Content-Type&quot;, contentType);
+</code></pre>
+<h2>Resume Downloads</h2>
+<h3>Partial Content / Range Requests</h3>
+<pre><code class="language-csharp">public async Task ResumeDownload(string url, string filePath)
+{
+    var curl = new Curl();
+    long existingLength = 0;
+
+    // Check if partial file exists
+    if (File.Exists(filePath))
+    {
+        var fileInfo = new FileInfo(filePath);
+        existingLength = fileInfo.Length;
+
+        // Request remaining bytes
+        curl.Headers.Add(&quot;Range&quot;, $&quot;bytes={existingLength}-&quot;);
+    }
+
+    var result = await curl.GetAsync(url);
+
+    if (result.StatusCode == HttpStatusCode.PartialContent ||
+        result.StatusCode == HttpStatusCode.OK)
+    {
+        // Append to existing file or create new
+        using var fileStream = new FileStream(
+            filePath,
+            existingLength &gt; 0 ? FileMode.Append : FileMode.Create
+        );
+
+        var bytes = Encoding.UTF8.GetBytes(result.Data);
+        await fileStream.WriteAsync(bytes, 0, bytes.Length);
+
+        Console.WriteLine(&quot;Download completed!&quot;);
+    }
+    else if (result.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
+    {
+        Console.WriteLine(&quot;File already complete!&quot;);
+    }
+}
+</code></pre>
+<h2>Binary Data Handling</h2>
+<h3>Working with Images</h3>
+<pre><code class="language-csharp">public async Task&lt;byte[]&gt; ResizeImage(string imageUrl, int maxWidth, int maxHeight)
+{
+    var curl = new Curl();
+    var imageBytes = await curl.GetBytesAsync(imageUrl);
+
+    using var inputStream = new MemoryStream(imageBytes);
+    using var image = Image.FromStream(inputStream);
+
+    // Calculate new dimensions
+    var ratioX = (double)maxWidth / image.Width;
+    var ratioY = (double)maxHeight / image.Height;
+    var ratio = Math.Min(ratioX, ratioY);
+
+    var newWidth = (int)(image.Width * ratio);
+    var newHeight = (int)(image.Height * ratio);
+
+    // Resize image
+    using var resized = new Bitmap(newWidth, newHeight);
+    using var graphics = Graphics.FromImage(resized);
+    graphics.DrawImage(image, 0, 0, newWidth, newHeight);
+
+    // Convert back to bytes
+    using var outputStream = new MemoryStream();
+    resized.Save(outputStream, ImageFormat.Jpeg);
+    return outputStream.ToArray();
+}
+</code></pre>
+<h3>Working with ZIP Files</h3>
+<pre><code class="language-csharp">public async Task DownloadAndExtractZip(string zipUrl, string extractPath)
+{
+    var curl = new Curl();
+
+    // Download ZIP to memory
+    var zipBytes = await curl.GetBytesAsync(zipUrl);
+
+    // Extract from memory stream
+    using var zipStream = new MemoryStream(zipBytes);
+    using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+
+    Directory.CreateDirectory(extractPath);
+
+    foreach (var entry in archive.Entries)
+    {
+        var destinationPath = Path.Combine(extractPath, entry.FullName);
+
+        // Create directory if needed
+        var directory = Path.GetDirectoryName(destinationPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        // Extract file
+        if (!string.IsNullOrEmpty(entry.Name))
+        {
+            entry.ExtractToFile(destinationPath, overwrite: true);
+            Console.WriteLine($&quot;Extracted: {entry.FullName}&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>Large File Handling</h2>
+<h3>Chunked Upload</h3>
+<pre><code class="language-csharp">public async Task UploadLargeFile(string filePath, string uploadUrl)
+{
+    const int chunkSize = 1024 * 1024 * 5; // 5MB chunks
+    var fileInfo = new FileInfo(filePath);
+    var totalChunks = (int)Math.Ceiling((double)fileInfo.Length / chunkSize);
+
+    using var fileStream = File.OpenRead(filePath);
+    var buffer = new byte[chunkSize];
+
+    for (int i = 0; i &lt; totalChunks; i++)
+    {
+        var bytesRead = await fileStream.ReadAsync(buffer, 0, chunkSize);
+        var chunk = new byte[bytesRead];
+        Array.Copy(buffer, chunk, bytesRead);
+
+        var curl = new Curl();
+        curl.Headers.Add(&quot;X-Chunk-Number&quot;, i.ToString());
+        curl.Headers.Add(&quot;X-Total-Chunks&quot;, totalChunks.ToString());
+        curl.Headers.Add(&quot;X-File-Name&quot;, Path.GetFileName(filePath));
+
+        var result = await curl.PostAsync(
+            $&quot;{uploadUrl}/chunk&quot;,
+            chunk,
+            &quot;application/octet-stream&quot;
+        );
+
+        if (!result.IsSuccess)
+        {
+            throw new Exception($&quot;Failed to upload chunk {i}: {result.Error}&quot;);
+        }
+
+        var progress = ((i + 1) * 100.0) / totalChunks;
+        Console.Write($&quot;\rUploading: {progress:F1}%&quot;);
+    }
+
+    Console.WriteLine(&quot;\nUpload complete!&quot;);
+}
+</code></pre>
+<h2>File Validation</h2>
+<h3>Checksum Verification</h3>
+<pre><code class="language-csharp">public async Task&lt;bool&gt; DownloadWithVerification(string url, string filePath, string expectedMd5)
+{
+    var curl = new Curl();
+
+    // Download file
+    var fileBytes = await curl.GetBytesAsync(url);
+
+    // Calculate MD5
+    using var md5 = MD5.Create();
+    var hashBytes = md5.ComputeHash(fileBytes);
+    var actualMd5 = BitConverter.ToString(hashBytes).Replace(&quot;-&quot;, &quot;&quot;).ToLowerInvariant();
+
+    if (actualMd5 == expectedMd5.ToLowerInvariant())
+    {
+        File.WriteAllBytes(filePath, fileBytes);
+        Console.WriteLine(&quot;File verified and saved!&quot;);
+        return true;
+    }
+    else
+    {
+        Console.WriteLine($&quot;Checksum mismatch! Expected: {expectedMd5}, Got: {actualMd5}&quot;);
+        return false;
+    }
+}
+</code></pre>
+<h2>Temporary Files</h2>
+<h3>Safe Temporary File Handling</h3>
+<pre><code class="language-csharp">public async Task ProcessTemporaryDownload(string url)
+{
+    string tempFile = null;
+
+    try
+    {
+        // Create unique temp file
+        tempFile = Path.GetTempFileName();
+
+        var curl = new Curl();
+        await curl.DownloadFileAsync(url, tempFile);
+
+        // Process the file
+        var content = File.ReadAllText(tempFile);
+        Console.WriteLine($&quot;File contains {content.Length} characters&quot;);
+
+        // Do something with the content...
+    }
+    finally
+    {
+        // Always clean up temp file
+        if (tempFile != null &amp;&amp; File.Exists(tempFile))
+        {
+            File.Delete(tempFile);
+        }
+    }
+}
+</code></pre>
+<h2>Error Handling for File Operations</h2>
+<h3>Robust Download with Retry</h3>
+<pre><code class="language-csharp">public async Task&lt;bool&gt; RobustDownload(string url, string filePath, int maxRetries = 3)
+{
+    var curl = new Curl();
+
+    for (int attempt = 0; attempt &lt; maxRetries; attempt++)
+    {
+        try
+        {
+            Console.WriteLine($&quot;Download attempt {attempt + 1}...&quot;);
+
+            var result = await curl.GetBytesAsync(url);
+
+            // Verify download succeeded
+            if (result != null &amp;&amp; result.Length &gt; 0)
+            {
+                File.WriteAllBytes(filePath, result);
+                Console.WriteLine(&quot;Download successful!&quot;);
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($&quot;Attempt {attempt + 1} failed: {ex.Message}&quot;);
+
+            if (attempt &lt; maxRetries - 1)
+            {
+                // Wait before retry with exponential backoff
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+            }
+        }
+    }
+
+    Console.WriteLine(&quot;Download failed after all retries&quot;);
+    return false;
+}
+</code></pre>
+<h2>Best Practices</h2>
+<ol>
+<li><strong>Use streams for large files</strong> - Avoid loading entire file in memory</li>
+<li><strong>Implement progress tracking</strong> - Show download/upload progress</li>
+<li><strong>Verify file integrity</strong> - Use checksums when available</li>
+<li><strong>Handle partial downloads</strong> - Support resume for large files</li>
+<li><strong>Clean up temp files</strong> - Always delete temporary files</li>
+<li><strong>Set appropriate timeouts</strong> - Large files need longer timeouts</li>
+<li><strong>Validate file types</strong> - Check extensions and content types</li>
+<li><strong>Use chunking for huge files</strong> - Split uploads/downloads</li>
+<li><strong>Handle errors gracefully</strong> - Retry on network failures</li>
+<li><strong>Respect rate limits</strong> - Don&#39;t overwhelm servers</li>
+</ol>
+<h2>Summary</h2>
+<p>File operations with CurlDotNet:</p>
+<ul>
+<li>Simple methods for common download/upload scenarios</li>
+<li>Stream support for large files</li>
+<li>Progress tracking capabilities</li>
+<li>Resume support for interrupted transfers</li>
+<li>Binary data handling for various file types</li>
+</ul>
+<h2>What&#39;s Next?</h2>
+<p>Learn about <a href="11-forms-and-data.html">working with forms and data</a> in the next tutorial.</p>
+<hr>
+<p><a href="09-authentication-basics.html">← Previous: Authentication Basics</a> | <a href="11-forms-and-data.html">Next: Forms and Data →</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

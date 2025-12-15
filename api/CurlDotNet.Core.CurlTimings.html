@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Core.CurlTimings | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Core.md" title="CurlDotNet.Core">CurlDotNet.Core</a></h3>
+<h2>CurlTimings Class</h2>
+<p><b>Detailed timing breakdown of the curl operation.</b></p>
+<p>See where time was spent (like curl -w):</p>
+<pre><code class="language-csharp">if (result.Timings.Total &gt; 2000)
+{
+    Console.WriteLine(&quot;Slow request! Let&#39;s see why:&quot;);
+    Console.WriteLine($&quot;DNS: {result.Timings.NameLookup}ms&quot;);
+    Console.WriteLine($&quot;Connect: {result.Timings.Connect}ms&quot;);
+    Console.WriteLine($&quot;SSL: {result.Timings.AppConnect}ms&quot;);
+    Console.WriteLine($&quot;Wait: {result.Timings.StartTransfer}ms&quot;);
+}
+</code></pre>
+<pre><code class="language-csharp">public class CurlTimings
+</code></pre>
+<p>Inheritance <a href="https://learn.microsoft.com/en-us/dotnet/api/system.object" title="System.Object">System.Object</a> &#129106; CurlTimings</p>
+<table>
+<thead>
+<tr>
+<th align="left">Properties</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Core.CurlTimings.AppConnect.md" title="CurlDotNet.Core.CurlTimings.AppConnect">AppConnect</a></td>
+<td align="left">SSL/TLS handshake time in milliseconds</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlTimings.Connect.md" title="CurlDotNet.Core.CurlTimings.Connect">Connect</a></td>
+<td align="left">TCP connection time in milliseconds</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlTimings.NameLookup.md" title="CurlDotNet.Core.CurlTimings.NameLookup">NameLookup</a></td>
+<td align="left">DNS resolution time in milliseconds</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlTimings.PreTransfer.md" title="CurlDotNet.Core.CurlTimings.PreTransfer">PreTransfer</a></td>
+<td align="left">Time until request was sent in milliseconds</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlTimings.Redirect.md" title="CurlDotNet.Core.CurlTimings.Redirect">Redirect</a></td>
+<td align="left">Time spent on redirects in milliseconds</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlTimings.StartTransfer.md" title="CurlDotNet.Core.CurlTimings.StartTransfer">StartTransfer</a></td>
+<td align="left">Time until first byte received in milliseconds</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlTimings.Total.md" title="CurlDotNet.Core.CurlTimings.Total">Total</a></td>
+<td align="left">Total time in milliseconds</td>
+</tr>
+</tbody></table>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

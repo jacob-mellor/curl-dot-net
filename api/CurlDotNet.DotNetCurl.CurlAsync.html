@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.DotNetCurl.CurlAsync | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.md" title="CurlDotNet">CurlDotNet</a>.<a href="CurlDotNet.DotNetCurl.md" title="CurlDotNet.DotNetCurl">DotNetCurl</a></h3>
+<h2>DotNetCurl.CurlAsync Method</h2>
+<table>
+<thead>
+<tr>
+<th align="left">Overloads</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.DotNetCurl.CurlAsync.md#CurlDotNet.DotNetCurl.CurlAsync(string)" title="CurlDotNet.DotNetCurl.CurlAsync(string)">CurlAsync(string)</a></td>
+<td align="left">Execute any curl command asynchronously - the main async API. Just paste your curl command!</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.DotNetCurl.CurlAsync.md#CurlDotNet.DotNetCurl.CurlAsync(string,CurlDotNet.Core.CurlSettings)" title="CurlDotNet.DotNetCurl.CurlAsync(string, CurlDotNet.Core.CurlSettings)">CurlAsync(string, CurlSettings)</a></td>
+<td align="left">Execute curl command asynchronously with settings.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.DotNetCurl.CurlAsync.md#CurlDotNet.DotNetCurl.CurlAsync(string,System.Threading.CancellationToken)" title="CurlDotNet.DotNetCurl.CurlAsync(string, System.Threading.CancellationToken)">CurlAsync(string, CancellationToken)</a></td>
+<td align="left">Execute curl command asynchronously with cancellation support.</td>
+</tr>
+</tbody></table>
+<p><a name='CurlDotNet.DotNetCurl.CurlAsync(string)'></a></p>
+<h2>DotNetCurl.CurlAsync(string) Method</h2>
+<p>Execute any curl command asynchronously - the main async API.
+Just paste your curl command!</p>
+<pre><code class="language-csharp">public static System.Threading.Tasks.Task&lt;CurlDotNet.Core.CurlResult&gt; CurlAsync(string command);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.DotNetCurl.CurlAsync(string).command'></a></p>
+<p><code>command</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>Any curl command - with or without &quot;curl&quot; prefix</p>
+<h4>Returns</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">System.Threading.Tasks.Task&lt;</a><a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">&gt;</a><br>Task with result object containing response data</p>
+<h3>Example</h3>
+<pre><code class="language-csharp">// Simple GET - async
+var response = await DotNetCurl.CurlAsync(&quot;curl https://api.example.com/data&quot;);
+Console.WriteLine(response.Body);
+
+// POST with JSON
+var result = await DotNetCurl.CurlAsync(@&quot;
+    curl -X POST https://api.example.com/users
+    -H &#39;Content-Type: application/json&#39;
+    -d &#39;{&quot;&quot;name&quot;&quot;:&quot;&quot;John&quot;&quot;}&#39;
+&quot;);
+</code></pre>
+<p><a name='CurlDotNet.DotNetCurl.CurlAsync(string,CurlDotNet.Core.CurlSettings)'></a></p>
+<h2>DotNetCurl.CurlAsync(string, CurlSettings) Method</h2>
+<p>Execute curl command asynchronously with settings.</p>
+<pre><code class="language-csharp">public static System.Threading.Tasks.Task&lt;CurlDotNet.Core.CurlResult&gt; CurlAsync(string command, CurlDotNet.Core.CurlSettings settings);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.DotNetCurl.CurlAsync(string,CurlDotNet.Core.CurlSettings).command'></a></p>
+<p><code>command</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>Any curl command string</p>
+<p><a name='CurlDotNet.DotNetCurl.CurlAsync(string,CurlDotNet.Core.CurlSettings).settings'></a></p>
+<p><code>settings</code> <a href="CurlDotNet.Core.CurlSettings.md" title="CurlDotNet.Core.CurlSettings">CurlSettings</a></p>
+<p>Curl settings for the operation</p>
+<h4>Returns</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">System.Threading.Tasks.Task&lt;</a><a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">&gt;</a><br>Task with result object</p>
+<p><a name='CurlDotNet.DotNetCurl.CurlAsync(string,System.Threading.CancellationToken)'></a></p>
+<h2>DotNetCurl.CurlAsync(string, CancellationToken) Method</h2>
+<p>Execute curl command asynchronously with cancellation support.</p>
+<pre><code class="language-csharp">public static System.Threading.Tasks.Task&lt;CurlDotNet.Core.CurlResult&gt; CurlAsync(string command, System.Threading.CancellationToken cancellationToken);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.DotNetCurl.CurlAsync(string,System.Threading.CancellationToken).command'></a></p>
+<p><code>command</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>Any curl command string</p>
+<p><a name='CurlDotNet.DotNetCurl.CurlAsync(string,System.Threading.CancellationToken).cancellationToken'></a></p>
+<p><code>cancellationToken</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.cancellationtoken" title="System.Threading.CancellationToken">System.Threading.CancellationToken</a></p>
+<p>Token to cancel the operation</p>
+<h4>Returns</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">System.Threading.Tasks.Task&lt;</a><a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">&gt;</a><br>Task with result object</p>
+<h3>Example</h3>
+<pre><code class="language-csharp">var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+var response = await DotNetCurl.CurlAsync(&quot;curl https://slow-api.com&quot;, cts.Token);
+</code></pre>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

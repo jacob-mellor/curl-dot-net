@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Exceptions.CurlInvalidCommandException | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Exceptions.md" title="CurlDotNet.Exceptions">CurlDotNet.Exceptions</a></h3>
+<h2>CurlInvalidCommandException Class</h2>
+<p>Thrown when the curl command syntax is invalid or cannot be parsed.</p>
+<pre><code class="language-csharp">public class CurlInvalidCommandException : CurlDotNet.Exceptions.CurlException
+</code></pre>
+<p>Inheritance <a href="https://learn.microsoft.com/en-us/dotnet/api/system.object" title="System.Object">System.Object</a> &#129106; <a href="https://learn.microsoft.com/en-us/dotnet/api/system.exception" title="System.Exception">System.Exception</a> &#129106; <a href="CurlDotNet.Exceptions.CurlException.md" title="CurlDotNet.Exceptions.CurlException">CurlException</a> &#129106; CurlInvalidCommandException</p>
+<p>Derived<br>&#8627; <a href="CurlDotNet.Exceptions.CurlOptionSyntaxException.md" title="CurlDotNet.Exceptions.CurlOptionSyntaxException">CurlOptionSyntaxException</a><br>&#8627; <a href="CurlDotNet.Exceptions.CurlUnknownOptionException.md" title="CurlDotNet.Exceptions.CurlUnknownOptionException">CurlUnknownOptionException</a></p>
+<h3>Example</h3>
+<pre><code class="language-csharp">try
+{
+    // Missing URL will throw CurlInvalidCommandException
+    var result = await curl.ExecuteAsync(&quot;curl -X POST&quot;);
+}
+catch (CurlInvalidCommandException ex)
+{
+    Console.WriteLine($&quot;Invalid command syntax: {ex.Message}&quot;);
+    Console.WriteLine($&quot;Problem with: {ex.InvalidPart}&quot;);
+    // Suggest correction to user
+    Console.WriteLine(&quot;Did you forget to specify a URL?&quot;);
+}
+</code></pre>
+<h3>Remarks</h3>
+<p>This exception indicates a problem with the curl command syntax, not a network or execution error.</p>
+<p>AI-Usage: Catch this to handle command syntax errors separately from execution errors.</p>
+<p>AI-Pattern: Validate commands before execution to avoid this exception.</p>
+<table>
+<thead>
+<tr>
+<th align="left">Constructors</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Exceptions.CurlInvalidCommandException.#ctor.md#CurlDotNet.Exceptions.CurlInvalidCommandException.CurlInvalidCommandException(string,string,string)" title="CurlDotNet.Exceptions.CurlInvalidCommandException.CurlInvalidCommandException(string, string, string)">CurlInvalidCommandException(string, string, string)</a></td>
+<td align="left">Initializes a new instance of the <a href="CurlDotNet.Exceptions.CurlInvalidCommandException.md" title="CurlDotNet.Exceptions.CurlInvalidCommandException">CurlInvalidCommandException</a> class.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Exceptions.CurlInvalidCommandException.#ctor.md#CurlDotNet.Exceptions.CurlInvalidCommandException.CurlInvalidCommandException(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)" title="CurlDotNet.Exceptions.CurlInvalidCommandException.CurlInvalidCommandException(System.Runtime.Serialization.SerializationInfo, System.Runtime.Serialization.StreamingContext)">CurlInvalidCommandException(SerializationInfo, StreamingContext)</a></td>
+<td align="left">Initializes a new instance with serialized data.</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th align="left">Properties</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Exceptions.CurlInvalidCommandException.InvalidPart.md" title="CurlDotNet.Exceptions.CurlInvalidCommandException.InvalidPart">InvalidPart</a></td>
+<td align="left">Gets the part of the command that is invalid.</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th align="left">Methods</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Exceptions.CurlInvalidCommandException.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext).md" title="CurlDotNet.Exceptions.CurlInvalidCommandException.GetObjectData(System.Runtime.Serialization.SerializationInfo, System.Runtime.Serialization.StreamingContext)">GetObjectData(SerializationInfo, StreamingContext)</a></td>
+<td align="left">Sets the <a href="https://learn.microsoft.com/en-us/dotnet/api/system.runtime.serialization.serializationinfo" title="System.Runtime.Serialization.SerializationInfo">System.Runtime.Serialization.SerializationInfo</a> with information about the exception.</td>
+</tr>
+</tbody></table>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

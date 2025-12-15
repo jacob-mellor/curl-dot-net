@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Curl.DefaultFollowRedirects | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.md" title="CurlDotNet">CurlDotNet</a>.<a href="CurlDotNet.Curl.md" title="CurlDotNet.Curl">Curl</a></h3>
+<h2>Curl.DefaultFollowRedirects Property</h2>
+<p><b>Controls whether curl automatically follows HTTP redirects (301, 302, etc).</b></p>
+<p>When true, acts like adding <code>-L</code> or <code>--location</code> to every command.
+             Many APIs use redirects, so you often want this enabled.</p>
+<p><b>Example:</b></p>
+<pre><code class="language-csharp">// Enable redirect following globally
+Curl.DefaultFollowRedirects = true;
+
+// Now shortened URLs work automatically
+var response = await Curl.Execute(&quot;curl https://bit.ly/example&quot;);  // Follows to final destination
+
+// Or use -L flag per command
+var response = await Curl.Execute(&quot;curl -L https://bit.ly/example&quot;);
+</code></pre>
+<p><b>Security note:</b> Be careful following redirects to untrusted sources.</p>
+<p><b>Learn more:</b><a href="https://curl.se/docs/manpage.html#-L" title="https://curl.se/docs/manpage.html#-L">curl -L documentation</a></p>
+<pre><code class="language-csharp">public static bool DefaultFollowRedirects { get; set; }
+</code></pre>
+<h4>Property Value</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.boolean" title="System.Boolean">System.Boolean</a><br>true to follow redirects, false to stop at first response. Default is false.</p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

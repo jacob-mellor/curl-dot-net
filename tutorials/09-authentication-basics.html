@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial 9: Authentication Basics | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Tutorial 9: Authentication Basics</h1>
+<p>Most APIs require authentication to verify who you are and what you&#39;re allowed to access. This tutorial covers common authentication methods with CurlDotNet.</p>
+<h2>Types of Authentication</h2>
+<h3>1. API Key Authentication</h3>
+<p>The simplest form - a unique key identifies your application:</p>
+<pre><code class="language-csharp">var curl = new Curl();
+
+// API key in header
+curl.Headers.Add(&quot;X-API-Key&quot;, &quot;your-api-key-here&quot;);
+
+// Or in query parameter
+var result = await curl.GetAsync(&quot;https://api.example.com/data?api_key=your-api-key&quot;);
+
+// Or custom header name
+curl.Headers.Add(&quot;Api-Token&quot;, &quot;your-token-here&quot;);
+</code></pre>
+<h3>2. Basic Authentication</h3>
+<p>Username and password encoded in base64:</p>
+<pre><code class="language-csharp">// Method 1: Manual encoding
+var credentials = Convert.ToBase64String(
+    Encoding.UTF8.GetBytes($&quot;{username}:{password}&quot;)
+);
+curl.Headers.Add(&quot;Authorization&quot;, $&quot;Basic {credentials}&quot;);
+
+// Method 2: Helper method
+curl.SetBasicAuth(&quot;username&quot;, &quot;password&quot;);
+
+var result = await curl.GetAsync(&quot;https://api.example.com/protected&quot;);
+</code></pre>
+<h3>3. Bearer Token (OAuth 2.0 / JWT)</h3>
+<p>Modern token-based authentication:</p>
+<pre><code class="language-csharp">var curl = new Curl();
+curl.Headers.Add(&quot;Authorization&quot;, $&quot;Bearer {accessToken}&quot;);
+
+var result = await curl.GetAsync(&quot;https://api.example.com/user/profile&quot;);
+</code></pre>
+<h2>OAuth 2.0 Flow</h2>
+<h3>Getting an Access Token</h3>
+<pre><code class="language-csharp">public async Task&lt;string&gt; GetOAuthToken(string clientId, string clientSecret)
+{
+    var curl = new Curl();
+
+    // Request token from OAuth server
+    var tokenRequest = new Dictionary&lt;string, string&gt;
+    {
+        [&quot;grant_type&quot;] = &quot;client_credentials&quot;,
+        [&quot;client_id&quot;] = clientId,
+        [&quot;client_secret&quot;] = clientSecret,
+        [&quot;scope&quot;] = &quot;read:data write:data&quot;
+    };
+
+    var result = await curl.PostFormAsync(
+        &quot;https://auth.example.com/oauth/token&quot;,
+        tokenRequest
+    );
+
+    if (result.IsSuccess)
+    {
+        var tokenResponse = JsonSerializer.Deserialize&lt;TokenResponse&gt;(result.Data);
+        return tokenResponse.AccessToken;
+    }
+
+    throw new AuthenticationException($&quot;Failed to get token: {result.Error}&quot;);
+}
+
+public class TokenResponse
+{
+    [JsonPropertyName(&quot;access_token&quot;)]
+    public string AccessToken { get; set; }
+
+    [JsonPropertyName(&quot;token_type&quot;)]
+    public string TokenType { get; set; }
+
+    [JsonPropertyName(&quot;expires_in&quot;)]
+    public int ExpiresIn { get; set; }
+
+    [JsonPropertyName(&quot;refresh_token&quot;)]
+    public string RefreshToken { get; set; }
+}
+</code></pre>
+<h3>Using and Refreshing Tokens</h3>
+<pre><code class="language-csharp">public class OAuthClient
+{
+    private readonly Curl _curl;
+    private string _accessToken;
+    private string _refreshToken;
+    private DateTime _tokenExpiry;
+
+    public OAuthClient()
+    {
+        _curl = new Curl();
+    }
+
+    public async Task AuthenticateAsync(string clientId, string clientSecret)
+    {
+        var tokenData = await GetTokenAsync(clientId, clientSecret);
+        SetTokenData(tokenData);
+    }
+
+    private void SetTokenData(TokenResponse tokenData)
+    {
+        _accessToken = tokenData.AccessToken;
+        _refreshToken = tokenData.RefreshToken;
+        _tokenExpiry = DateTime.UtcNow.AddSeconds(tokenData.ExpiresIn - 60); // Buffer
+        _curl.Headers[&quot;Authorization&quot;] = $&quot;Bearer {_accessToken}&quot;;
+    }
+
+    public async Task&lt;CurlResult&gt; GetAsync(string url)
+    {
+        // Check if token needs refresh
+        if (DateTime.UtcNow &gt;= _tokenExpiry &amp;&amp; !string.IsNullOrEmpty(_refreshToken))
+        {
+            await RefreshTokenAsync();
+        }
+
+        return await _curl.GetAsync(url);
+    }
+
+    private async Task RefreshTokenAsync()
+    {
+        var refreshRequest = new Dictionary&lt;string, string&gt;
+        {
+            [&quot;grant_type&quot;] = &quot;refresh_token&quot;,
+            [&quot;refresh_token&quot;] = _refreshToken
+        };
+
+        var result = await _curl.PostFormAsync(
+            &quot;https://auth.example.com/oauth/token&quot;,
+            refreshRequest
+        );
+
+        if (result.IsSuccess)
+        {
+            var tokenData = JsonSerializer.Deserialize&lt;TokenResponse&gt;(result.Data);
+            SetTokenData(tokenData);
+        }
+        else
+        {
+            throw new AuthenticationException(&quot;Failed to refresh token&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>JWT (JSON Web Tokens)</h2>
+<h3>Decoding JWT Tokens</h3>
+<pre><code class="language-csharp">public class JwtInfo
+{
+    public static Dictionary&lt;string, object&gt; DecodeJwt(string token)
+    {
+        // JWT has three parts: header.payload.signature
+        var parts = token.Split(&#39;.&#39;);
+        if (parts.Length != 3)
+            throw new ArgumentException(&quot;Invalid JWT format&quot;);
+
+        // Decode the payload (second part)
+        var payload = parts[1];
+
+        // Add padding if needed
+        switch (payload.Length % 4)
+        {
+            case 2: payload += &quot;==&quot;; break;
+            case 3: payload += &quot;=&quot;; break;
+        }
+
+        var bytes = Convert.FromBase64String(payload);
+        var json = Encoding.UTF8.GetString(bytes);
+
+        return JsonSerializer.Deserialize&lt;Dictionary&lt;string, object&gt;&gt;(json);
+    }
+
+    public static bool IsTokenExpired(string token)
+    {
+        var payload = DecodeJwt(token);
+
+        if (payload.TryGetValue(&quot;exp&quot;, out var exp))
+        {
+            var expiry = DateTimeOffset.FromUnixTimeSeconds(
+                Convert.ToInt64(exp.ToString())
+            ).UtcDateTime;
+
+            return DateTime.UtcNow &gt; expiry;
+        }
+
+        return false; // No expiry claim
+    }
+}
+
+// Usage
+var jwt = &quot;eyJhbGciOiJIUzI1NiIs...&quot;;
+if (JwtInfo.IsTokenExpired(jwt))
+{
+    Console.WriteLine(&quot;Token expired, need to refresh&quot;);
+}
+</code></pre>
+<h2>Session-Based Authentication</h2>
+<h3>Login and Cookie Management</h3>
+<pre><code class="language-csharp">public class SessionClient
+{
+    private readonly Curl _curl;
+    private string _sessionCookie;
+
+    public SessionClient()
+    {
+        _curl = new Curl();
+    }
+
+    public async Task&lt;bool&gt; LoginAsync(string username, string password)
+    {
+        var loginData = new Dictionary&lt;string, string&gt;
+        {
+            [&quot;username&quot;] = username,
+            [&quot;password&quot;] = password
+        };
+
+        var result = await _curl.PostFormAsync(
+            &quot;https://example.com/api/login&quot;,
+            loginData
+        );
+
+        if (result.IsSuccess)
+        {
+            // Extract session cookie
+            if (result.Headers.TryGetValue(&quot;Set-Cookie&quot;, out string setCookie))
+            {
+                // Parse cookie (simplified - real parsing is more complex)
+                var cookieParts = setCookie.Split(&#39;;&#39;)[0];
+                _sessionCookie = cookieParts;
+
+                // Add cookie to future requests
+                _curl.Headers[&quot;Cookie&quot;] = _sessionCookie;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public async Task&lt;CurlResult&gt; GetProtectedDataAsync(string url)
+    {
+        if (string.IsNullOrEmpty(_sessionCookie))
+            throw new InvalidOperationException(&quot;Not logged in&quot;);
+
+        return await _curl.GetAsync(url);
+    }
+
+    public async Task LogoutAsync()
+    {
+        await _curl.PostAsync(&quot;https://example.com/api/logout&quot;, &quot;&quot;);
+        _sessionCookie = null;
+        _curl.Headers.Remove(&quot;Cookie&quot;);
+    }
+}
+</code></pre>
+<h2>API Signature Authentication</h2>
+<h3>HMAC Signing</h3>
+<pre><code class="language-csharp">public class HmacAuthClient
+{
+    private readonly string _apiKey;
+    private readonly string _apiSecret;
+    private readonly Curl _curl;
+
+    public HmacAuthClient(string apiKey, string apiSecret)
+    {
+        _apiKey = apiKey;
+        _apiSecret = apiSecret;
+        _curl = new Curl();
+    }
+
+    public async Task&lt;CurlResult&gt; SendSignedRequest(string url, string method, string body = &quot;&quot;)
+    {
+        // Create signature components
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+        var nonce = Guid.NewGuid().ToString();
+
+        // Create string to sign
+        var stringToSign = $&quot;{method}\n{url}\n{timestamp}\n{nonce}\n{body}&quot;;
+
+        // Generate HMAC signature
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_apiSecret));
+        var signatureBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(stringToSign));
+        var signature = Convert.ToBase64String(signatureBytes);
+
+        // Add auth headers
+        _curl.Headers[&quot;X-API-Key&quot;] = _apiKey;
+        _curl.Headers[&quot;X-Timestamp&quot;] = timestamp;
+        _curl.Headers[&quot;X-Nonce&quot;] = nonce;
+        _curl.Headers[&quot;X-Signature&quot;] = signature;
+
+        // Send request
+        if (method == &quot;GET&quot;)
+            return await _curl.GetAsync(url);
+        else if (method == &quot;POST&quot;)
+            return await _curl.PostAsync(url, body);
+
+        throw new NotSupportedException($&quot;Method {method} not supported&quot;);
+    }
+}
+</code></pre>
+<h2>Two-Factor Authentication (2FA)</h2>
+<h3>Handling 2FA Challenges</h3>
+<pre><code class="language-csharp">public class TwoFactorAuthClient
+{
+    private readonly Curl _curl = new Curl();
+
+    public async Task&lt;bool&gt; LoginWith2FA(string username, string password)
+    {
+        // Step 1: Initial login
+        var loginResult = await _curl.PostJsonAsync(
+            &quot;https://api.example.com/login&quot;,
+            new { username, password }
+        );
+
+        if (loginResult.StatusCode == HttpStatusCode.Accepted) // 202 - needs 2FA
+        {
+            // Parse 2FA challenge
+            var challenge = JsonSerializer.Deserialize&lt;TwoFactorChallenge&gt;(loginResult.Data);
+
+            // Get 2FA code from user
+            Console.Write(&quot;Enter 2FA code: &quot;);
+            var code = Console.ReadLine();
+
+            // Step 2: Submit 2FA code
+            var verifyResult = await _curl.PostJsonAsync(
+                &quot;https://api.example.com/verify-2fa&quot;,
+                new
+                {
+                    challengeId = challenge.ChallengeId,
+                    code = code
+                }
+            );
+
+            if (verifyResult.IsSuccess)
+            {
+                var authData = JsonSerializer.Deserialize&lt;AuthResponse&gt;(verifyResult.Data);
+                _curl.Headers[&quot;Authorization&quot;] = $&quot;Bearer {authData.Token}&quot;;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    class TwoFactorChallenge
+    {
+        public string ChallengeId { get; set; }
+        public string Method { get; set; } // &quot;sms&quot;, &quot;totp&quot;, &quot;email&quot;
+    }
+
+    class AuthResponse
+    {
+        public string Token { get; set; }
+        public string RefreshToken { get; set; }
+    }
+}
+</code></pre>
+<h2>Secure Storage of Credentials</h2>
+<h3>Never Hard-Code Credentials</h3>
+<pre><code class="language-csharp">// BAD - Never do this!
+var apiKey = &quot;sk_live_abcd1234efgh5678&quot;;
+
+// GOOD - Use environment variables
+var apiKey = Environment.GetEnvironmentVariable(&quot;API_KEY&quot;);
+
+// GOOD - Use configuration
+var configuration = new ConfigurationBuilder()
+    .AddJsonFile(&quot;appsettings.json&quot;)
+    .AddUserSecrets&lt;Program&gt;()
+    .Build();
+
+var apiKey = configuration[&quot;ApiKey&quot;];
+
+// GOOD - Use secure storage
+var apiKey = await SecureStorage.GetAsync(&quot;api_key&quot;);
+</code></pre>
+<h3>Token Storage</h3>
+<pre><code class="language-csharp">public interface ITokenStorage
+{
+    Task SaveTokenAsync(string token);
+    Task&lt;string&gt; GetTokenAsync();
+    Task DeleteTokenAsync();
+}
+
+public class SecureTokenStorage : ITokenStorage
+{
+    private readonly string _storageKey = &quot;auth_token&quot;;
+
+    public async Task SaveTokenAsync(string token)
+    {
+        // Platform-specific secure storage
+        #if WINDOWS
+        // Use Windows Credential Manager
+        #elif MACOS
+        // Use macOS Keychain
+        #elif LINUX
+        // Use Secret Service API
+        #else
+        // Encrypted file fallback
+        #endif
+    }
+
+    public async Task&lt;string&gt; GetTokenAsync()
+    {
+        // Retrieve from secure storage
+        return await Task.FromResult(&quot;stored_token&quot;);
+    }
+
+    public async Task DeleteTokenAsync()
+    {
+        // Remove from secure storage
+    }
+}
+</code></pre>
+<h2>Authentication Patterns</h2>
+<h3>Automatic Retry with Fresh Token</h3>
+<pre><code class="language-csharp">public class AuthenticatedApiClient
+{
+    private readonly Curl _curl = new Curl();
+    private readonly ITokenProvider _tokenProvider;
+
+    public AuthenticatedApiClient(ITokenProvider tokenProvider)
+    {
+        _tokenProvider = tokenProvider;
+    }
+
+    public async Task&lt;T&gt; ExecuteWithAuth&lt;T&gt;(
+        Func&lt;Curl, Task&lt;CurlResult&gt;&gt; request,
+        Func&lt;string, T&gt; parser)
+    {
+        // Try with current token
+        var token = await _tokenProvider.GetTokenAsync();
+        _curl.Headers[&quot;Authorization&quot;] = $&quot;Bearer {token}&quot;;
+
+        var result = await request(_curl);
+
+        // If unauthorized, refresh and retry
+        if (result.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            token = await _tokenProvider.RefreshTokenAsync();
+            _curl.Headers[&quot;Authorization&quot;] = $&quot;Bearer {token}&quot;;
+
+            result = await request(_curl);
+        }
+
+        if (result.IsSuccess)
+        {
+            return parser(result.Data);
+        }
+
+        throw new ApiException(result.Error);
+    }
+}
+</code></pre>
+<h2>Best Practices</h2>
+<ol>
+<li><strong>Never hard-code credentials</strong> - Use environment variables or secure storage</li>
+<li><strong>Use HTTPS always</strong> - Never send credentials over HTTP</li>
+<li><strong>Implement token refresh</strong> - Handle expiration gracefully</li>
+<li><strong>Store tokens securely</strong> - Use platform-specific secure storage</li>
+<li><strong>Validate tokens</strong> - Check expiration before use</li>
+<li><strong>Use appropriate auth method</strong> - Match the API&#39;s requirements</li>
+<li><strong>Handle 401/403 properly</strong> - Distinguish between auth and permissions</li>
+<li><strong>Log auth events</strong> - Track login attempts and failures</li>
+<li><strong>Implement rate limiting</strong> - Prevent brute force attacks</li>
+<li><strong>Use MFA when available</strong> - Add extra security layer</li>
+</ol>
+<h2>Summary</h2>
+<p>Authentication is crucial for API security:</p>
+<ul>
+<li>Use API keys for simple scenarios</li>
+<li>Implement OAuth 2.0 for modern APIs</li>
+<li>Handle tokens properly with refresh logic</li>
+<li>Store credentials securely</li>
+<li>Build reusable authentication patterns</li>
+</ul>
+<h2>What&#39;s Next?</h2>
+<p>Learn about <a href="10-files-and-downloads.html">working with files and downloads</a> in the next tutorial.</p>
+<hr>
+<p><a href="08-headers-explained.html">← Previous: Headers Explained</a> | <a href="10-files-and-downloads.html">Next: Files and Downloads →</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

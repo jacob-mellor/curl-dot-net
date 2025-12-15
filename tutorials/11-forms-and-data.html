@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial 11: Forms and Data | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Tutorial 11: Forms and Data</h1>
+<p>Learn how to submit HTML forms, work with different content types, and send structured data with CurlDotNet.</p>
+<h2>HTML Form Submission</h2>
+<h3>Simple Form POST</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+
+// Create form data
+var formData = new Dictionary&lt;string, string&gt;
+{
+    [&quot;username&quot;] = &quot;john_doe&quot;,
+    [&quot;email&quot;] = &quot;john@example.com&quot;,
+    [&quot;age&quot;] = &quot;25&quot;,
+    [&quot;subscribe&quot;] = &quot;true&quot;
+};
+
+// Submit form
+var result = await curl.PostFormAsync(&quot;https://example.com/register&quot;, formData);
+
+if (result.IsSuccess)
+{
+    Console.WriteLine(&quot;Form submitted successfully!&quot;);
+}
+</code></pre>
+<h3>URL-Encoded Forms</h3>
+<pre><code class="language-csharp">// Method 1: Using PostFormAsync
+var loginData = new Dictionary&lt;string, string&gt;
+{
+    [&quot;username&quot;] = &quot;user@example.com&quot;,
+    [&quot;password&quot;] = &quot;secure123&quot;,
+    [&quot;remember_me&quot;] = &quot;1&quot;
+};
+
+var result = await curl.PostFormAsync(&quot;https://example.com/login&quot;, loginData);
+
+// Method 2: Manual encoding
+var encodedData = string.Join(&quot;&amp;&quot;,
+    loginData.Select(kvp =&gt; $&quot;{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}&quot;)
+);
+
+curl.Headers.Add(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;);
+var result = await curl.PostAsync(&quot;https://example.com/login&quot;, encodedData);
+</code></pre>
+<h2>Multipart Forms</h2>
+<h3>Text Fields with File Upload</h3>
+<pre><code class="language-csharp">public async Task SubmitApplicationForm(
+    string name,
+    string email,
+    string resumePath,
+    string coverLetterPath)
+{
+    var curl = new Curl();
+    using var form = new MultipartFormDataContent();
+
+    // Add text fields
+    form.Add(new StringContent(name), &quot;name&quot;);
+    form.Add(new StringContent(email), &quot;email&quot;);
+    form.Add(new StringContent(&quot;Software Developer&quot;), &quot;position&quot;);
+
+    // Add files
+    var resumeBytes = File.ReadAllBytes(resumePath);
+    var resumeContent = new ByteArrayContent(resumeBytes);
+    resumeContent.Headers.ContentType = MediaTypeHeaderValue.Parse(&quot;application/pdf&quot;);
+    form.Add(resumeContent, &quot;resume&quot;, Path.GetFileName(resumePath));
+
+    var coverLetterBytes = File.ReadAllBytes(coverLetterPath);
+    var coverContent = new ByteArrayContent(coverLetterBytes);
+    coverContent.Headers.ContentType = MediaTypeHeaderValue.Parse(&quot;application/pdf&quot;);
+    form.Add(coverContent, &quot;cover_letter&quot;, Path.GetFileName(coverLetterPath));
+
+    var result = await curl.PostAsync(&quot;https://careers.example.com/apply&quot;, form);
+}
+</code></pre>
+<h3>Complex Multipart Data</h3>
+<pre><code class="language-csharp">public async Task SubmitComplexForm()
+{
+    var boundary = &quot;----WebKitFormBoundary&quot; + Guid.NewGuid().ToString(&quot;N&quot;);
+    var content = new MultipartFormDataContent(boundary);
+
+    // Text field
+    content.Add(new StringContent(&quot;John Doe&quot;), &quot;name&quot;);
+
+    // JSON field
+    var metadata = new { category = &quot;photos&quot;, tags = new[] { &quot;vacation&quot;, &quot;2024&quot; } };
+    var jsonContent = new StringContent(
+        JsonSerializer.Serialize(metadata),
+        Encoding.UTF8,
+        &quot;application/json&quot;
+    );
+    content.Add(jsonContent, &quot;metadata&quot;);
+
+    // Multiple files
+    var photos = Directory.GetFiles(&quot;/path/to/photos&quot;, &quot;*.jpg&quot;);
+    foreach (var photo in photos.Take(5))
+    {
+        var photoBytes = File.ReadAllBytes(photo);
+        var photoContent = new ByteArrayContent(photoBytes);
+        photoContent.Headers.ContentType = MediaTypeHeaderValue.Parse(&quot;image/jpeg&quot;);
+        content.Add(photoContent, &quot;photos[]&quot;, Path.GetFileName(photo));
+    }
+
+    var curl = new Curl();
+    var result = await curl.PostAsync(&quot;https://api.example.com/upload-batch&quot;, content);
+}
+</code></pre>
+<h2>Working with Different Content Types</h2>
+<h3>JSON Data</h3>
+<pre><code class="language-csharp">// Send JSON
+var userData = new
+{
+    name = &quot;Jane Smith&quot;,
+    email = &quot;jane@example.com&quot;,
+    preferences = new
+    {
+        newsletter = true,
+        notifications = false
+    }
+};
+
+var result = await curl.PostJsonAsync(&quot;https://api.example.com/users&quot;, userData);
+</code></pre>
+<h3>XML Data</h3>
+<pre><code class="language-csharp">// Send XML
+var xmlData = @&quot;&lt;?xml version=&quot;&quot;1.0&quot;&quot; encoding=&quot;&quot;UTF-8&quot;&quot;?&gt;
+&lt;user&gt;
+    &lt;name&gt;John Doe&lt;/name&gt;
+    &lt;email&gt;john@example.com&lt;/email&gt;
+    &lt;age&gt;30&lt;/age&gt;
+&lt;/user&gt;&quot;;
+
+curl.Headers.Add(&quot;Content-Type&quot;, &quot;application/xml&quot;);
+var result = await curl.PostAsync(&quot;https://api.example.com/users&quot;, xmlData);
+</code></pre>
+<h3>Plain Text</h3>
+<pre><code class="language-csharp">// Send plain text
+var textData = &quot;This is a plain text message.&quot;;
+
+curl.Headers.Add(&quot;Content-Type&quot;, &quot;text/plain&quot;);
+var result = await curl.PostAsync(&quot;https://api.example.com/message&quot;, textData);
+</code></pre>
+<h2>Query Parameters</h2>
+<h3>Building URLs with Parameters</h3>
+<pre><code class="language-csharp">public class QueryBuilder
+{
+    public static string BuildUrl(string baseUrl, Dictionary&lt;string, string&gt; parameters)
+    {
+        if (parameters == null || parameters.Count == 0)
+            return baseUrl;
+
+        var queryString = string.Join(&quot;&amp;&quot;,
+            parameters.Select(kvp =&gt; $&quot;{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}&quot;)
+        );
+
+        return baseUrl.Contains(&quot;?&quot;)
+            ? $&quot;{baseUrl}&amp;{queryString}&quot;
+            : $&quot;{baseUrl}?{queryString}&quot;;
+    }
+}
+
+// Usage
+var parameters = new Dictionary&lt;string, string&gt;
+{
+    [&quot;search&quot;] = &quot;curl tutorial&quot;,
+    [&quot;page&quot;] = &quot;1&quot;,
+    [&quot;limit&quot;] = &quot;20&quot;,
+    [&quot;sort&quot;] = &quot;relevance&quot;
+};
+
+var url = QueryBuilder.BuildUrl(&quot;https://api.example.com/search&quot;, parameters);
+// Result: https://api.example.com/search?search=curl%20tutorial&amp;page=1&amp;limit=20&amp;sort=relevance
+
+var result = await curl.GetAsync(url);
+</code></pre>
+<h3>Complex Query Parameters</h3>
+<pre><code class="language-csharp">public class AdvancedQueryBuilder
+{
+    public static string BuildUrl(string baseUrl, object parameters)
+    {
+        var properties = parameters.GetType().GetProperties();
+        var queryParts = new List&lt;string&gt;();
+
+        foreach (var prop in properties)
+        {
+            var value = prop.GetValue(parameters);
+
+            if (value == null) continue;
+
+            if (value is IEnumerable&lt;string&gt; list)
+            {
+                // Handle arrays: key[]=value1&amp;key[]=value2
+                foreach (var item in list)
+                {
+                    queryParts.Add($&quot;{prop.Name}[]={Uri.EscapeDataString(item)}&quot;);
+                }
+            }
+            else if (value is DateTime date)
+            {
+                // Handle dates
+                queryParts.Add($&quot;{prop.Name}={Uri.EscapeDataString(date.ToString(&quot;yyyy-MM-dd&quot;))}&quot;);
+            }
+            else
+            {
+                // Handle simple values
+                queryParts.Add($&quot;{prop.Name}={Uri.EscapeDataString(value.ToString())}&quot;);
+            }
+        }
+
+        var queryString = string.Join(&quot;&amp;&quot;, queryParts);
+        return string.IsNullOrEmpty(queryString)
+            ? baseUrl
+            : $&quot;{baseUrl}?{queryString}&quot;;
+    }
+}
+
+// Usage
+var searchParams = new
+{
+    query = &quot;CurlDotNet&quot;,
+    categories = new[] { &quot;tutorials&quot;, &quot;documentation&quot; },
+    dateFrom = DateTime.Now.AddDays(-30),
+    dateTo = DateTime.Now,
+    includeArchived = false
+};
+
+var url = AdvancedQueryBuilder.BuildUrl(&quot;https://api.example.com/search&quot;, searchParams);
+</code></pre>
+<h2>Form Validation and Error Handling</h2>
+<h3>Client-Side Validation</h3>
+<pre><code class="language-csharp">public class FormValidator
+{
+    public static List&lt;string&gt; ValidateRegistrationForm(Dictionary&lt;string, string&gt; formData)
+    {
+        var errors = new List&lt;string&gt;();
+
+        // Required fields
+        if (!formData.ContainsKey(&quot;email&quot;) || string.IsNullOrWhiteSpace(formData[&quot;email&quot;]))
+            errors.Add(&quot;Email is required&quot;);
+
+        if (!formData.ContainsKey(&quot;password&quot;) || string.IsNullOrWhiteSpace(formData[&quot;password&quot;]))
+            errors.Add(&quot;Password is required&quot;);
+
+        // Email format
+        if (formData.TryGetValue(&quot;email&quot;, out var email))
+        {
+            if (!email.Contains(&quot;@&quot;) || !email.Contains(&quot;.&quot;))
+                errors.Add(&quot;Invalid email format&quot;);
+        }
+
+        // Password strength
+        if (formData.TryGetValue(&quot;password&quot;, out var password))
+        {
+            if (password.Length &lt; 8)
+                errors.Add(&quot;Password must be at least 8 characters&quot;);
+        }
+
+        return errors;
+    }
+}
+
+// Usage
+var formData = new Dictionary&lt;string, string&gt;
+{
+    [&quot;email&quot;] = &quot;user@example.com&quot;,
+    [&quot;password&quot;] = &quot;short&quot;
+};
+
+var errors = FormValidator.ValidateRegistrationForm(formData);
+if (errors.Any())
+{
+    Console.WriteLine(&quot;Form validation failed:&quot;);
+    errors.ForEach(e =&gt; Console.WriteLine($&quot;- {e}&quot;));
+}
+else
+{
+    var result = await curl.PostFormAsync(&quot;https://example.com/register&quot;, formData);
+}
+</code></pre>
+<h3>Handling Form Submission Errors</h3>
+<pre><code class="language-csharp">public async Task&lt;bool&gt; SubmitFormWithErrorHandling(string url, Dictionary&lt;string, string&gt; formData)
+{
+    var curl = new Curl();
+    var result = await curl.PostFormAsync(url, formData);
+
+    if (result.IsSuccess)
+    {
+        // Check for application-level errors in response
+        try
+        {
+            var response = JsonSerializer.Deserialize&lt;FormResponse&gt;(result.Data);
+
+            if (response.Success)
+            {
+                Console.WriteLine(&quot;Form submitted successfully!&quot;);
+                return true;
+            }
+            else
+            {
+                Console.WriteLine(&quot;Form submission failed:&quot;);
+                foreach (var error in response.Errors ?? new List&lt;string&gt;())
+                {
+                    Console.WriteLine($&quot;- {error}&quot;);
+                }
+                return false;
+            }
+        }
+        catch (JsonException)
+        {
+            // Non-JSON response might indicate success
+            return true;
+        }
+    }
+    else
+    {
+        // HTTP-level error
+        Console.WriteLine($&quot;HTTP Error {result.StatusCode}: {result.Error}&quot;);
+        return false;
+    }
+}
+
+class FormResponse
+{
+    public bool Success { get; set; }
+    public List&lt;string&gt; Errors { get; set; }
+    public string Message { get; set; }
+}
+</code></pre>
+<h2>CSRF Protection</h2>
+<h3>Handling CSRF Tokens</h3>
+<pre><code class="language-csharp">public class CsrfProtectedForm
+{
+    private readonly Curl _curl = new Curl();
+    private string _csrfToken;
+
+    public async Task&lt;string&gt; GetCsrfToken(string formUrl)
+    {
+        // GET the form page to extract CSRF token
+        var result = await _curl.GetAsync(formUrl);
+
+        if (result.IsSuccess)
+        {
+            // Parse HTML to find CSRF token
+            // Simplified - use proper HTML parser in production
+            var match = Regex.Match(result.Data,
+                @&quot;&lt;input.*?name=&quot;&quot;csrf_token&quot;&quot;.*?value=&quot;&quot;([^&quot;&quot;]+)&quot;&quot;&quot;);
+
+            if (match.Success)
+            {
+                _csrfToken = match.Groups[1].Value;
+                return _csrfToken;
+            }
+        }
+
+        throw new Exception(&quot;Could not retrieve CSRF token&quot;);
+    }
+
+    public async Task&lt;bool&gt; SubmitProtectedForm(string url, Dictionary&lt;string, string&gt; formData)
+    {
+        // Add CSRF token to form data
+        formData[&quot;csrf_token&quot;] = _csrfToken;
+
+        var result = await _curl.PostFormAsync(url, formData);
+        return result.IsSuccess;
+    }
+}
+</code></pre>
+<h2>Form Data Serialization</h2>
+<h3>Custom Form Serializer</h3>
+<pre><code class="language-csharp">public static class FormSerializer
+{
+    public static Dictionary&lt;string, string&gt; Serialize&lt;T&gt;(T obj)
+    {
+        var formData = new Dictionary&lt;string, string&gt;();
+        var properties = typeof(T).GetProperties();
+
+        foreach (var prop in properties)
+        {
+            var value = prop.GetValue(obj);
+
+            if (value == null) continue;
+
+            // Handle different types
+            if (value is bool boolValue)
+            {
+                formData[prop.Name] = boolValue ? &quot;1&quot; : &quot;0&quot;;
+            }
+            else if (value is DateTime dateValue)
+            {
+                formData[prop.Name] = dateValue.ToString(&quot;yyyy-MM-dd&quot;);
+            }
+            else if (value is IEnumerable&lt;string&gt; list &amp;&amp; !(value is string))
+            {
+                var items = list.ToList();
+                for (int i = 0; i &lt; items.Count; i++)
+                {
+                    formData[$&quot;{prop.Name}[{i}]&quot;] = items[i];
+                }
+            }
+            else
+            {
+                formData[prop.Name] = value.ToString();
+            }
+        }
+
+        return formData;
+    }
+}
+
+// Usage
+public class UserProfile
+{
+    public string Name { get; set; }
+    public string Email { get; set; }
+    public DateTime BirthDate { get; set; }
+    public bool Newsletter { get; set; }
+    public List&lt;string&gt; Interests { get; set; }
+}
+
+var profile = new UserProfile
+{
+    Name = &quot;Jane Doe&quot;,
+    Email = &quot;jane@example.com&quot;,
+    BirthDate = new DateTime(1990, 5, 15),
+    Newsletter = true,
+    Interests = new List&lt;string&gt; { &quot;tech&quot;, &quot;music&quot;, &quot;travel&quot; }
+};
+
+var formData = FormSerializer.Serialize(profile);
+var result = await curl.PostFormAsync(&quot;https://example.com/profile&quot;, formData);
+</code></pre>
+<h2>Streaming Form Data</h2>
+<h3>Large Form Submission</h3>
+<pre><code class="language-csharp">public async Task SubmitLargeForm(string url, Stream dataStream)
+{
+    var curl = new Curl();
+
+    // Set content type and length
+    curl.Headers.Add(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;);
+    curl.Headers.Add(&quot;Content-Length&quot;, dataStream.Length.ToString());
+
+    // Stream the content
+    using var streamContent = new StreamContent(dataStream);
+    var result = await curl.PostAsync(url, streamContent);
+
+    if (result.IsSuccess)
+    {
+        Console.WriteLine(&quot;Large form submitted successfully&quot;);
+    }
+}
+</code></pre>
+<h2>Best Practices</h2>
+<ol>
+<li><strong>Validate before submission</strong> - Check required fields client-side</li>
+<li><strong>Encode special characters</strong> - Use URL encoding for form data</li>
+<li><strong>Handle CSRF tokens</strong> - Include security tokens when required</li>
+<li><strong>Set correct Content-Type</strong> - Match the server&#39;s expectations</li>
+<li><strong>Limit file sizes</strong> - Check before uploading large files</li>
+<li><strong>Use HTTPS</strong> - Never send sensitive form data over HTTP</li>
+<li><strong>Handle errors gracefully</strong> - Provide user-friendly error messages</li>
+<li><strong>Implement retry logic</strong> - Handle temporary network failures</li>
+<li><strong>Clean user input</strong> - Sanitize data before submission</li>
+<li><strong>Log submissions</strong> - Track form submission attempts</li>
+</ol>
+<h2>Summary</h2>
+<p>Working with forms and data in CurlDotNet:</p>
+<ul>
+<li>Simple methods for common form submissions</li>
+<li>Support for various content types</li>
+<li>Multipart forms for file uploads</li>
+<li>Query parameter building</li>
+<li>Form validation and error handling</li>
+</ul>
+<h2>What&#39;s Next?</h2>
+<p>Learn about <a href="12-cancellation-tokens.html">cancellation tokens</a> for managing long-running requests.</p>
+<hr>
+<p><a href="10-files-and-downloads.html">← Previous: Files and Downloads</a> | <a href="12-cancellation-tokens.html">Next: Cancellation Tokens →</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

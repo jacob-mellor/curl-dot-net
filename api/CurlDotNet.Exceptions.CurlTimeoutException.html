@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Exceptions.CurlTimeoutException | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Exceptions.md" title="CurlDotNet.Exceptions">CurlDotNet.Exceptions</a></h3>
+<h2>CurlTimeoutException Class</h2>
+<p>Thrown when an operation exceeds the configured timeout period.</p>
+<pre><code class="language-csharp">public class CurlTimeoutException : CurlDotNet.Exceptions.CurlException
+</code></pre>
+<p>Inheritance <a href="https://learn.microsoft.com/en-us/dotnet/api/system.object" title="System.Object">System.Object</a> &#129106; <a href="https://learn.microsoft.com/en-us/dotnet/api/system.exception" title="System.Exception">System.Exception</a> &#129106; <a href="CurlDotNet.Exceptions.CurlException.md" title="CurlDotNet.Exceptions.CurlException">CurlException</a> &#129106; CurlTimeoutException</p>
+<p>Derived<br>&#8627; <a href="CurlDotNet.Exceptions.CurlFtpAcceptTimeoutException.md" title="CurlDotNet.Exceptions.CurlFtpAcceptTimeoutException">CurlFtpAcceptTimeoutException</a><br>&#8627; <a href="CurlDotNet.Exceptions.CurlOperationTimeoutException.md" title="CurlDotNet.Exceptions.CurlOperationTimeoutException">CurlOperationTimeoutException</a></p>
+<h3>Example</h3>
+<pre><code class="language-csharp">try
+{
+    // Set a 5 second timeout
+    var result = await curl.ExecuteAsync(&quot;curl --max-time 5 https://slow-server.com/large-file&quot;);
+}
+catch (CurlTimeoutException ex)
+{
+    Console.WriteLine($&quot;Operation timed out after {ex.Timeout?.TotalSeconds ?? 0} seconds&quot;);
+
+    // Retry with longer timeout
+    Console.WriteLine(&quot;Retrying with 30 second timeout...&quot;);
+    result = await curl.ExecuteAsync(&quot;curl --max-time 30 https://slow-server.com/large-file&quot;);
+}
+</code></pre>
+<h3>Remarks</h3>
+<p>This can occur for connection timeout or total operation timeout.</p>
+<p>Curl error code: CURLE_OPERATION_TIMEDOUT (28)</p>
+<p>AI-Usage: Catch this to implement retry with longer timeout or fail fast.</p>
+<p>AI-Pattern: Log timeout value to help diagnose if timeout is too short.</p>
+<table>
+<thead>
+<tr>
+<th align="left">Constructors</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Exceptions.CurlTimeoutException.#ctor.md#CurlDotNet.Exceptions.CurlTimeoutException.CurlTimeoutException(string,string,System.Nullable_System.TimeSpan_)" title="CurlDotNet.Exceptions.CurlTimeoutException.CurlTimeoutException(string, string, System.Nullable&lt;System.TimeSpan&gt;)">CurlTimeoutException(string, string, Nullable&lt;TimeSpan&gt;)</a></td>
+<td align="left">Initializes a new instance of the <a href="CurlDotNet.Exceptions.CurlTimeoutException.md" title="CurlDotNet.Exceptions.CurlTimeoutException">CurlTimeoutException</a> class.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Exceptions.CurlTimeoutException.#ctor.md#CurlDotNet.Exceptions.CurlTimeoutException.CurlTimeoutException(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)" title="CurlDotNet.Exceptions.CurlTimeoutException.CurlTimeoutException(System.Runtime.Serialization.SerializationInfo, System.Runtime.Serialization.StreamingContext)">CurlTimeoutException(SerializationInfo, StreamingContext)</a></td>
+<td align="left">Initializes a new instance with serialized data.</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th align="left">Properties</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Exceptions.CurlTimeoutException.Timeout.md" title="CurlDotNet.Exceptions.CurlTimeoutException.Timeout">Timeout</a></td>
+<td align="left">Gets the timeout duration that was exceeded.</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th align="left">Methods</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Exceptions.CurlTimeoutException.GetObjectData(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext).md" title="CurlDotNet.Exceptions.CurlTimeoutException.GetObjectData(System.Runtime.Serialization.SerializationInfo, System.Runtime.Serialization.StreamingContext)">GetObjectData(SerializationInfo, StreamingContext)</a></td>
+<td align="left">Sets the <a href="https://learn.microsoft.com/en-us/dotnet/api/system.runtime.serialization.serializationinfo" title="System.Runtime.Serialization.SerializationInfo">System.Runtime.Serialization.SerializationInfo</a> with information about the exception.</td>
+</tr>
+</tbody></table>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

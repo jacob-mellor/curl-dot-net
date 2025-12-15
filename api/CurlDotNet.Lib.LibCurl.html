@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Lib.LibCurl | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Lib.md" title="CurlDotNet.Lib">CurlDotNet.Lib</a></h3>
+<h2>LibCurl Class</h2>
+<p><b>🔧 LibCurl - Object-Oriented API for Programmatic HTTP</b></p>
+<p>Provides a libcurl-style object-oriented API for .NET developers who prefer
+             programmatic control over curl command strings. Perfect for building HTTP clients
+             where you need fine-grained control and reusable configurations.</p>
+<p><b>When to use LibCurl vs Curl String vs CurlRequestBuilder:</b></p>
+<ul>
+<li><b>LibCurl</b> - When you need persistent configuration, reusable instances, or object-oriented patterns</li>
+<li><b>CurlRequestBuilder</b> - When you want fluent method chaining with one-off requests</li>
+<li><b>Curl String</b> - When you have curl commands from docs/examples (paste and go!)</li>
+</ul>
+<p><b>Quick Example:</b></p>
+<pre><code class="language-csharp">using (var curl = new LibCurl())
+{
+    // Configure defaults for all requests
+    curl.WithHeader(&quot;Accept&quot;, &quot;application/json&quot;)
+        .WithBearerToken(&quot;your-token&quot;)
+        .WithTimeout(TimeSpan.FromSeconds(30));
+
+    // Make multiple requests with same configuration
+    var user = await curl.GetAsync(&quot;https://api.example.com/user&quot;);
+    var posts = await curl.GetAsync(&quot;https://api.example.com/posts&quot;);
+}
+</code></pre>
+<pre><code class="language-csharp">public class LibCurl : System.IDisposable
+</code></pre>
+<p>Inheritance <a href="https://learn.microsoft.com/en-us/dotnet/api/system.object" title="System.Object">System.Object</a> &#129106; LibCurl</p>
+<p>Implements <a href="https://learn.microsoft.com/en-us/dotnet/api/system.idisposable" title="System.IDisposable">System.IDisposable</a></p>
+<h3>Remarks</h3>
+<p>LibCurl provides a stateful, reusable client with default configurations
+             that persist across requests. This is ideal for scenarios where you make multiple
+             requests to the same API with the same authentication and headers.</p>
+<p>All methods are thread-safe and can be used concurrently.</p>
+<p>Implements IDisposable - always use with <code>using</code> statement or dispose manually.</p>
+<table>
+<thead>
+<tr>
+<th align="left">Constructors</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.LibCurl().md" title="CurlDotNet.Lib.LibCurl.LibCurl()">LibCurl()</a></td>
+<td align="left">Creates a new LibCurl instance.</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th align="left">Methods</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.Configure(System.Action_CurlDotNet.Core.CurlOptions_).md" title="CurlDotNet.Lib.LibCurl.Configure(System.Action&lt;CurlDotNet.Core.CurlOptions&gt;)">Configure(Action&lt;CurlOptions&gt;)</a></td>
+<td align="left">Configure default options using an action.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.DeleteAsync(string,System.Action_CurlDotNet.Core.CurlOptions_,System.Threading.CancellationToken).md" title="CurlDotNet.Lib.LibCurl.DeleteAsync(string, System.Action&lt;CurlDotNet.Core.CurlOptions&gt;, System.Threading.CancellationToken)">DeleteAsync(string, Action&lt;CurlOptions&gt;, CancellationToken)</a></td>
+<td align="left">Perform a DELETE request.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.Dispose().md" title="CurlDotNet.Lib.LibCurl.Dispose()">Dispose()</a></td>
+<td align="left">Dispose resources.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.GetAsync(string,System.Action_CurlDotNet.Core.CurlOptions_,System.Threading.CancellationToken).md" title="CurlDotNet.Lib.LibCurl.GetAsync(string, System.Action&lt;CurlDotNet.Core.CurlOptions&gt;, System.Threading.CancellationToken)">GetAsync(string, Action&lt;CurlOptions&gt;, CancellationToken)</a></td>
+<td align="left">Perform a GET request.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.HeadAsync(string,System.Action_CurlDotNet.Core.CurlOptions_,System.Threading.CancellationToken).md" title="CurlDotNet.Lib.LibCurl.HeadAsync(string, System.Action&lt;CurlDotNet.Core.CurlOptions&gt;, System.Threading.CancellationToken)">HeadAsync(string, Action&lt;CurlOptions&gt;, CancellationToken)</a></td>
+<td align="left">Perform a HEAD request.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.PatchAsync(string,object,System.Action_CurlDotNet.Core.CurlOptions_,System.Threading.CancellationToken).md" title="CurlDotNet.Lib.LibCurl.PatchAsync(string, object, System.Action&lt;CurlDotNet.Core.CurlOptions&gt;, System.Threading.CancellationToken)">PatchAsync(string, object, Action&lt;CurlOptions&gt;, CancellationToken)</a></td>
+<td align="left">Perform a PATCH request.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.PerformAsync(CurlDotNet.Core.CurlOptions,System.Threading.CancellationToken).md" title="CurlDotNet.Lib.LibCurl.PerformAsync(CurlDotNet.Core.CurlOptions, System.Threading.CancellationToken)">PerformAsync(CurlOptions, CancellationToken)</a></td>
+<td align="left">Perform a custom request with full control.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.PostAsync(string,object,System.Action_CurlDotNet.Core.CurlOptions_,System.Threading.CancellationToken).md" title="CurlDotNet.Lib.LibCurl.PostAsync(string, object, System.Action&lt;CurlDotNet.Core.CurlOptions&gt;, System.Threading.CancellationToken)">PostAsync(string, object, Action&lt;CurlOptions&gt;, CancellationToken)</a></td>
+<td align="left">Perform a POST request.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.PutAsync(string,object,System.Action_CurlDotNet.Core.CurlOptions_,System.Threading.CancellationToken).md" title="CurlDotNet.Lib.LibCurl.PutAsync(string, object, System.Action&lt;CurlDotNet.Core.CurlOptions&gt;, System.Threading.CancellationToken)">PutAsync(string, object, Action&lt;CurlOptions&gt;, CancellationToken)</a></td>
+<td align="left">Perform a PUT request.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.WithBasicAuth(string,string).md" title="CurlDotNet.Lib.LibCurl.WithBasicAuth(string, string)">WithBasicAuth(string, string)</a></td>
+<td align="left">Set basic authentication for all requests.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.WithBearerToken(string).md" title="CurlDotNet.Lib.LibCurl.WithBearerToken(string)">WithBearerToken(string)</a></td>
+<td align="left">Set bearer token authentication for all requests.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.WithConnectTimeout(System.TimeSpan).md" title="CurlDotNet.Lib.LibCurl.WithConnectTimeout(System.TimeSpan)">WithConnectTimeout(TimeSpan)</a></td>
+<td align="left">Set connection timeout for all requests.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.WithFollowRedirects(int).md" title="CurlDotNet.Lib.LibCurl.WithFollowRedirects(int)">WithFollowRedirects(int)</a></td>
+<td align="left">Enable following redirects for all requests.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.WithHeader(string,string).md" title="CurlDotNet.Lib.LibCurl.WithHeader(string, string)">WithHeader(string, string)</a></td>
+<td align="left">Set a default header for all requests.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.WithInsecureSsl().md" title="CurlDotNet.Lib.LibCurl.WithInsecureSsl()">WithInsecureSsl()</a></td>
+<td align="left">Enable ignoring SSL certificate errors (for testing only).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.WithOutputFile(string).md" title="CurlDotNet.Lib.LibCurl.WithOutputFile(string)">WithOutputFile(string)</a></td>
+<td align="left">Set default output file for all requests.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.WithProxy(string,string,string).md" title="CurlDotNet.Lib.LibCurl.WithProxy(string, string, string)">WithProxy(string, string, string)</a></td>
+<td align="left">Set proxy for all requests.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.WithTimeout(System.TimeSpan).md" title="CurlDotNet.Lib.LibCurl.WithTimeout(System.TimeSpan)">WithTimeout(TimeSpan)</a></td>
+<td align="left">Set timeout for all requests.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.WithUserAgent(string).md" title="CurlDotNet.Lib.LibCurl.WithUserAgent(string)">WithUserAgent(string)</a></td>
+<td align="left">Set user agent for all requests.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Lib.LibCurl.WithVerbose().md" title="CurlDotNet.Lib.LibCurl.WithVerbose()">WithVerbose()</a></td>
+<td align="left">Enable verbose output for debugging.</td>
+</tr>
+</tbody></table>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

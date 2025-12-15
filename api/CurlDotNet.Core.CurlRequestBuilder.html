@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Core.CurlRequestBuilder | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Core.md" title="CurlDotNet.Core">CurlDotNet.Core</a></h3>
+<h2>CurlRequestBuilder Class</h2>
+<p><b>🎨 Fluent Builder API - Build curl requests programmatically!</b></p>
+<p>For developers who prefer a fluent API over curl command strings.
+             This builder lets you construct HTTP requests using method chaining,
+             perfect for IntelliSense and compile-time checking.</p>
+<p><b>When to use Builder vs Curl String:</b></p>
+<ul>
+<li><b>Use Builder</b> - When building requests dynamically, need IntelliSense, or prefer type safety</li>
+<li><b>Use Curl String</b> - When you have curl commands from docs/examples (paste and go!)</li>
+</ul>
+<p><b>Quick Example:</b></p>
+<pre><code class="language-csharp">// Build a request fluently
+var result = await CurlRequestBuilder
+    .Get(&quot;https://api.example.com/users&quot;)
+    .WithHeader(&quot;Accept&quot;, &quot;application/json&quot;)
+    .WithHeader(&quot;Authorization&quot;, &quot;Bearer token123&quot;)
+    .WithTimeout(TimeSpan.FromSeconds(30))
+    .ExecuteAsync();
+
+// Same as: curl -H &#39;Accept: application/json&#39; -H &#39;Authorization: Bearer token123&#39; --max-time 30 https://api.example.com/users
+</code></pre>
+<pre><code class="language-csharp">public class CurlRequestBuilder
+</code></pre>
+<p>Inheritance <a href="https://learn.microsoft.com/en-us/dotnet/api/system.object" title="System.Object">System.Object</a> &#129106; CurlRequestBuilder</p>
+<h3>Remarks</h3>
+<p>The builder provides a type-safe, IntelliSense-friendly way to build HTTP requests.
+             All builder methods return the builder itself for method chaining.</p>
+<p>You can convert a builder to a curl command string using <a href="CurlDotNet.Core.CurlRequestBuilder.ToCurlCommand().md" title="CurlDotNet.Core.CurlRequestBuilder.ToCurlCommand()">ToCurlCommand()</a>.</p>
+<table>
+<thead>
+<tr>
+<th align="left">Methods</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.Compressed(bool).md" title="CurlDotNet.Core.CurlRequestBuilder.Compressed(bool)">Compressed(bool)</a></td>
+<td align="left">Enable compression (gzip, deflate, etc.).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.Delete(string).md" title="CurlDotNet.Core.CurlRequestBuilder.Delete(string)">Delete(string)</a></td>
+<td align="left">Create a DELETE request builder.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.Execute().md" title="CurlDotNet.Core.CurlRequestBuilder.Execute()">Execute()</a></td>
+<td align="left">Execute the request synchronously.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.ExecuteAsync.md#CurlDotNet.Core.CurlRequestBuilder.ExecuteAsync(CurlDotNet.Core.CurlSettings,System.Threading.CancellationToken)" title="CurlDotNet.Core.CurlRequestBuilder.ExecuteAsync(CurlDotNet.Core.CurlSettings, System.Threading.CancellationToken)">ExecuteAsync(CurlSettings, CancellationToken)</a></td>
+<td align="left">Execute the request with custom settings.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.ExecuteAsync.md#CurlDotNet.Core.CurlRequestBuilder.ExecuteAsync(System.Threading.CancellationToken)" title="CurlDotNet.Core.CurlRequestBuilder.ExecuteAsync(System.Threading.CancellationToken)">ExecuteAsync(CancellationToken)</a></td>
+<td align="left">Execute the request asynchronously.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.FailOnError(bool).md" title="CurlDotNet.Core.CurlRequestBuilder.FailOnError(bool)">FailOnError(bool)</a></td>
+<td align="left">Fail on HTTP errors (like curl -f).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.FollowRedirects(bool).md" title="CurlDotNet.Core.CurlRequestBuilder.FollowRedirects(bool)">FollowRedirects(bool)</a></td>
+<td align="left">Enable following redirects (301, 302, etc.).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.Get(string).md" title="CurlDotNet.Core.CurlRequestBuilder.Get(string)">Get(string)</a></td>
+<td align="left">Create a GET request builder.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.GetOptions().md" title="CurlDotNet.Core.CurlRequestBuilder.GetOptions()">GetOptions()</a></td>
+<td align="left">Get the underlying options object (for advanced scenarios).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.Head(string).md" title="CurlDotNet.Core.CurlRequestBuilder.Head(string)">Head(string)</a></td>
+<td align="left">Create a HEAD request builder.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.IncludeHeaders(bool).md" title="CurlDotNet.Core.CurlRequestBuilder.IncludeHeaders(bool)">IncludeHeaders(bool)</a></td>
+<td align="left">Include headers in response output (like curl -i).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.Insecure(bool).md" title="CurlDotNet.Core.CurlRequestBuilder.Insecure(bool)">Insecure(bool)</a></td>
+<td align="left">Ignore SSL certificate errors (not recommended for production!).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.Patch(string).md" title="CurlDotNet.Core.CurlRequestBuilder.Patch(string)">Patch(string)</a></td>
+<td align="left">Create a PATCH request builder.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.Post(string).md" title="CurlDotNet.Core.CurlRequestBuilder.Post(string)">Post(string)</a></td>
+<td align="left">Create a POST request builder.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.Put(string).md" title="CurlDotNet.Core.CurlRequestBuilder.Put(string)">Put(string)</a></td>
+<td align="left">Create a PUT request builder.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.Request(string,string).md" title="CurlDotNet.Core.CurlRequestBuilder.Request(string, string)">Request(string, string)</a></td>
+<td align="left">Create a custom method request builder.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.SaveToFile(string).md" title="CurlDotNet.Core.CurlRequestBuilder.SaveToFile(string)">SaveToFile(string)</a></td>
+<td align="left">Save response to file (like curl -o).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.SaveWithRemoteName().md" title="CurlDotNet.Core.CurlRequestBuilder.SaveWithRemoteName()">SaveWithRemoteName()</a></td>
+<td align="left">Use remote filename for output (like curl -O).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.Silent(bool).md" title="CurlDotNet.Core.CurlRequestBuilder.Silent(bool)">Silent(bool)</a></td>
+<td align="left">Enable silent mode (like curl -s).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.ToCurlCommand().md" title="CurlDotNet.Core.CurlRequestBuilder.ToCurlCommand()">ToCurlCommand()</a></td>
+<td align="left">Convert this builder to a curl command string. Useful for debugging or logging what will be executed.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.Verbose(bool).md" title="CurlDotNet.Core.CurlRequestBuilder.Verbose(bool)">Verbose(bool)</a></td>
+<td align="left">Enable verbose output (like curl -v).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithAuth(string).md" title="CurlDotNet.Core.CurlRequestBuilder.WithAuth(string)">WithAuth(string)</a></td>
+<td align="left">Set custom authentication header.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithBasicAuth(string,string).md" title="CurlDotNet.Core.CurlRequestBuilder.WithBasicAuth(string, string)">WithBasicAuth(string, string)</a></td>
+<td align="left">Set basic authentication (username:password).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithBearerToken(string).md" title="CurlDotNet.Core.CurlRequestBuilder.WithBearerToken(string)">WithBearerToken(string)</a></td>
+<td align="left">Set bearer token authentication.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithBinaryData(byte%5B%5D).md" title="CurlDotNet.Core.CurlRequestBuilder.WithBinaryData(byte[])">WithBinaryData(byte[])</a></td>
+<td align="left">Add binary data for upload.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithConnectTimeout(System.TimeSpan).md" title="CurlDotNet.Core.CurlRequestBuilder.WithConnectTimeout(System.TimeSpan)">WithConnectTimeout(TimeSpan)</a></td>
+<td align="left">Set connection timeout.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithCookie(string).md" title="CurlDotNet.Core.CurlRequestBuilder.WithCookie(string)">WithCookie(string)</a></td>
+<td align="left">Set cookie string.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithCookieJar(string).md" title="CurlDotNet.Core.CurlRequestBuilder.WithCookieJar(string)">WithCookieJar(string)</a></td>
+<td align="left">Set cookie jar file path.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithData(string).md" title="CurlDotNet.Core.CurlRequestBuilder.WithData(string)">WithData(string)</a></td>
+<td align="left">Add POST/PUT data as string.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithFile(string,string).md" title="CurlDotNet.Core.CurlRequestBuilder.WithFile(string, string)">WithFile(string, string)</a></td>
+<td align="left">Upload a file.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithFormData(System.Collections.Generic.Dictionary_string,string_).md" title="CurlDotNet.Core.CurlRequestBuilder.WithFormData(System.Collections.Generic.Dictionary&lt;string,string&gt;)">WithFormData(Dictionary&lt;string,string&gt;)</a></td>
+<td align="left">Add form data (application/x-www-form-urlencoded).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithHeader(string,string).md" title="CurlDotNet.Core.CurlRequestBuilder.WithHeader(string, string)">WithHeader(string, string)</a></td>
+<td align="left">Add a header to the request.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithHeaders(System.Collections.Generic.Dictionary_string,string_).md" title="CurlDotNet.Core.CurlRequestBuilder.WithHeaders(System.Collections.Generic.Dictionary&lt;string,string&gt;)">WithHeaders(Dictionary&lt;string,string&gt;)</a></td>
+<td align="left">Add multiple headers at once.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithHttpVersion(string).md" title="CurlDotNet.Core.CurlRequestBuilder.WithHttpVersion(string)">WithHttpVersion(string)</a></td>
+<td align="left">Set HTTP version (1.0, 1.1, or 2.0).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithJson(object).md" title="CurlDotNet.Core.CurlRequestBuilder.WithJson(object)">WithJson(object)</a></td>
+<td align="left">Add POST/PUT data as JSON (automatically serializes and sets Content-Type).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithMaxRedirects(int).md" title="CurlDotNet.Core.CurlRequestBuilder.WithMaxRedirects(int)">WithMaxRedirects(int)</a></td>
+<td align="left">Set maximum number of redirects to follow.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithMultipartForm(System.Collections.Generic.Dictionary_string,string_,System.Collections.Generic.Dictionary_string,string_).md" title="CurlDotNet.Core.CurlRequestBuilder.WithMultipartForm(System.Collections.Generic.Dictionary&lt;string,string&gt;, System.Collections.Generic.Dictionary&lt;string,string&gt;)">WithMultipartForm(Dictionary&lt;string,string&gt;, Dictionary&lt;string,string&gt;)</a></td>
+<td align="left">Add multipart form data with file uploads.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithProxy.md#CurlDotNet.Core.CurlRequestBuilder.WithProxy(string)" title="CurlDotNet.Core.CurlRequestBuilder.WithProxy(string)">WithProxy(string)</a></td>
+<td align="left">Set proxy URL.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithProxy.md#CurlDotNet.Core.CurlRequestBuilder.WithProxy(string,string,string)" title="CurlDotNet.Core.CurlRequestBuilder.WithProxy(string, string, string)">WithProxy(string, string, string)</a></td>
+<td align="left">Set proxy with authentication.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithRange(string).md" title="CurlDotNet.Core.CurlRequestBuilder.WithRange(string)">WithRange(string)</a></td>
+<td align="left">Set range for partial downloads (like curl -r).</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithReferer(string).md" title="CurlDotNet.Core.CurlRequestBuilder.WithReferer(string)">WithReferer(string)</a></td>
+<td align="left">Set the Referer header.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithTimeout(System.TimeSpan).md" title="CurlDotNet.Core.CurlRequestBuilder.WithTimeout(System.TimeSpan)">WithTimeout(TimeSpan)</a></td>
+<td align="left">Set timeout for the entire operation.</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Core.CurlRequestBuilder.WithUserAgent(string).md" title="CurlDotNet.Core.CurlRequestBuilder.WithUserAgent(string)">WithUserAgent(string)</a></td>
+<td align="left">Set the User-Agent header.</td>
+</tr>
+</tbody></table>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

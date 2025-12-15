@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial 12: Cancellation Tokens | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Tutorial 12: Cancellation Tokens</h1>
+<p>Learn how to cancel long-running requests, implement timeouts, and manage request lifecycle with CancellationTokens in CurlDotNet.</p>
+<h2>What Are Cancellation Tokens?</h2>
+<p>CancellationTokens provide a cooperative way to cancel asynchronous operations in .NET:</p>
+<pre><code class="language-csharp">// Create a cancellation token source
+var cts = new CancellationTokenSource();
+
+// Pass the token to an async operation
+var result = await curl.GetAsync(url, cts.Token);
+
+// Cancel the operation from anywhere
+cts.Cancel();
+</code></pre>
+<h2>Basic Cancellation</h2>
+<h3>Simple Request Cancellation</h3>
+<pre><code class="language-csharp">public async Task BasicCancellation()
+{
+    var curl = new Curl();
+    var cts = new CancellationTokenSource();
+
+    // Cancel after 5 seconds
+    cts.CancelAfter(TimeSpan.FromSeconds(5));
+
+    try
+    {
+        var result = await curl.GetAsync(
+            &quot;https://slow-api.example.com/data&quot;,
+            cts.Token
+        );
+
+        Console.WriteLine(&quot;Request completed!&quot;);
+    }
+    catch (OperationCanceledException)
+    {
+        Console.WriteLine(&quot;Request was cancelled after 5 seconds&quot;);
+    }
+}
+</code></pre>
+<h3>User-Initiated Cancellation</h3>
+<pre><code class="language-csharp">public async Task UserCancellation()
+{
+    var curl = new Curl();
+    var cts = new CancellationTokenSource();
+
+    // Start request in background
+    var task = Task.Run(async () =&gt;
+    {
+        try
+        {
+            var result = await curl.GetAsync(
+                &quot;https://api.example.com/large-dataset&quot;,
+                cts.Token
+            );
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine(&quot;Download cancelled by user&quot;);
+            return null;
+        }
+    });
+
+    // Allow user to cancel
+    Console.WriteLine(&quot;Press &#39;c&#39; to cancel download...&quot;);
+    if (Console.ReadKey().Key == ConsoleKey.C)
+    {
+        cts.Cancel();
+        Console.WriteLine(&quot;\nCancelling...&quot;);
+    }
+
+    await task;
+}
+</code></pre>
+<h2>Timeout Patterns</h2>
+<h3>Request-Specific Timeout</h3>
+<pre><code class="language-csharp">public async Task&lt;CurlResult&gt; GetWithTimeout(string url, int timeoutSeconds)
+{
+    var curl = new Curl();
+    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+
+    try
+    {
+        return await curl.GetAsync(url, cts.Token);
+    }
+    catch (OperationCanceledException)
+    {
+        return new CurlResult
+        {
+            IsSuccess = false,
+            Error = $&quot;Request timed out after {timeoutSeconds} seconds&quot;
+        };
+    }
+}
+</code></pre>
+<h3>Different Timeouts for Different Operations</h3>
+<pre><code class="language-csharp">public class TimeoutManager
+{
+    private readonly Curl _curl = new Curl();
+
+    public async Task&lt;CurlResult&gt; QuickGet(string url)
+    {
+        // Short timeout for quick operations
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        return await _curl.GetAsync(url, cts.Token);
+    }
+
+    public async Task&lt;CurlResult&gt; LongRunningPost(string url, object data)
+    {
+        // Longer timeout for complex operations
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        return await _curl.PostJsonAsync(url, data, cts.Token);
+    }
+
+    public async Task&lt;byte[]&gt; DownloadFile(string url)
+    {
+        // Very long timeout for file downloads
+        using var cts = new CancellationTokenSource(TimeSpan.FromHours(1));
+        return await _curl.GetBytesAsync(url, cts.Token);
+    }
+}
+</code></pre>
+<h2>Combining Multiple Cancellation Sources</h2>
+<h3>Linked Cancellation Tokens</h3>
+<pre><code class="language-csharp">public async Task LinkedCancellation()
+{
+    // Global timeout for all operations
+    var globalCts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+
+    // User cancellation source
+    var userCts = new CancellationTokenSource();
+
+    // Combine both sources
+    using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+        globalCts.Token,
+        userCts.Token
+    );
+
+    var curl = new Curl();
+
+    try
+    {
+        // Cancelled if either source triggers
+        var result = await curl.GetAsync(
+            &quot;https://api.example.com/data&quot;,
+            linkedCts.Token
+        );
+    }
+    catch (OperationCanceledException)
+    {
+        if (globalCts.IsCancellationRequested)
+            Console.WriteLine(&quot;Global timeout reached&quot;);
+        else if (userCts.IsCancellationRequested)
+            Console.WriteLine(&quot;Cancelled by user&quot;);
+    }
+}
+</code></pre>
+<h2>Progress with Cancellation</h2>
+<h3>Cancellable Download with Progress</h3>
+<pre><code class="language-csharp">public async Task DownloadWithProgressAndCancellation(
+    string url,
+    string outputPath,
+    CancellationToken cancellationToken)
+{
+    var curl = new Curl();
+    var progress = new Progress&lt;DownloadProgress&gt;(p =&gt;
+    {
+        Console.Write($&quot;\rDownloading: {p.PercentComplete:F1}% &quot; +
+                     $&quot;({p.BytesDownloaded}/{p.TotalBytes} bytes)&quot;);
+
+        // Check if user wants to cancel
+        if (Console.KeyAvailable &amp;&amp; Console.ReadKey(true).Key == ConsoleKey.Escape)
+        {
+            Console.WriteLine(&quot;\nCancellation requested...&quot;);
+            // Trigger cancellation through external mechanism
+        }
+    });
+
+    try
+    {
+        await curl.DownloadFileAsync(url, outputPath, progress, cancellationToken);
+        Console.WriteLine(&quot;\nDownload completed!&quot;);
+    }
+    catch (OperationCanceledException)
+    {
+        Console.WriteLine(&quot;\nDownload cancelled!&quot;);
+
+        // Clean up partial file
+        if (File.Exists(outputPath))
+        {
+            File.Delete(outputPath);
+        }
+    }
+}
+
+public class DownloadProgress
+{
+    public long BytesDownloaded { get; set; }
+    public long TotalBytes { get; set; }
+    public double PercentComplete =&gt; (double)BytesDownloaded / TotalBytes * 100;
+}
+</code></pre>
+<h2>Batch Operations with Cancellation</h2>
+<h3>Cancel Multiple Requests</h3>
+<pre><code class="language-csharp">public async Task BatchRequestsWithCancellation(List&lt;string&gt; urls)
+{
+    var curl = new Curl();
+    var cts = new CancellationTokenSource();
+    var results = new ConcurrentBag&lt;CurlResult&gt;();
+
+    // Set overall timeout
+    cts.CancelAfter(TimeSpan.FromMinutes(5));
+
+    try
+    {
+        await Parallel.ForEachAsync(urls, cts.Token, async (url, ct) =&gt;
+        {
+            try
+            {
+                var result = await curl.GetAsync(url, ct);
+                results.Add(result);
+                Console.WriteLine($&quot;✓ Completed: {url}&quot;);
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine($&quot;✗ Cancelled: {url}&quot;);
+            }
+        });
+    }
+    catch (OperationCanceledException)
+    {
+        Console.WriteLine($&quot;Batch operation cancelled. Completed {results.Count}/{urls.Count} requests&quot;);
+    }
+}
+</code></pre>
+<h2>Graceful Cancellation</h2>
+<h3>Clean Shutdown Pattern</h3>
+<pre><code class="language-csharp">public class GracefulHttpClient : IDisposable
+{
+    private readonly Curl _curl = new Curl();
+    private readonly CancellationTokenSource _shutdownCts = new();
+    private readonly List&lt;Task&gt; _activeTasks = new();
+
+    public async Task&lt;CurlResult&gt; GetAsync(string url)
+    {
+        var tcs = new TaskCompletionSource&lt;CurlResult&gt;();
+
+        var task = Task.Run(async () =&gt;
+        {
+            try
+            {
+                var result = await _curl.GetAsync(url, _shutdownCts.Token);
+                tcs.SetResult(result);
+            }
+            catch (OperationCanceledException)
+            {
+                tcs.SetCanceled();
+            }
+        });
+
+        lock (_activeTasks)
+        {
+            _activeTasks.Add(task);
+        }
+
+        return await tcs.Task;
+    }
+
+    public async Task ShutdownAsync()
+    {
+        Console.WriteLine(&quot;Initiating graceful shutdown...&quot;);
+
+        // Signal all operations to cancel
+        _shutdownCts.Cancel();
+
+        // Wait for all active tasks to complete
+        Task[] tasks;
+        lock (_activeTasks)
+        {
+            tasks = _activeTasks.ToArray();
+        }
+
+        try
+        {
+            await Task.WhenAll(tasks);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected during shutdown
+        }
+
+        Console.WriteLine(&quot;Shutdown complete&quot;);
+    }
+
+    public void Dispose()
+    {
+        _shutdownCts?.Dispose();
+    }
+}
+</code></pre>
+<h2>Retry with Cancellation</h2>
+<h3>Cancellable Retry Logic</h3>
+<pre><code class="language-csharp">public async Task&lt;CurlResult&gt; RetryWithCancellation(
+    string url,
+    int maxRetries = 3,
+    CancellationToken cancellationToken = default)
+{
+    var curl = new Curl();
+
+    for (int attempt = 0; attempt &lt; maxRetries; attempt++)
+    {
+        // Check for cancellation before each attempt
+        cancellationToken.ThrowIfCancellationRequested();
+
+        try
+        {
+            Console.WriteLine($&quot;Attempt {attempt + 1} of {maxRetries}...&quot;);
+
+            // Create timeout for this attempt
+            using var attemptCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                attemptCts.Token
+            );
+
+            var result = await curl.GetAsync(url, linkedCts.Token);
+
+            if (result.IsSuccess)
+                return result;
+
+            // Check if we should retry
+            if (attempt &lt; maxRetries - 1)
+            {
+                var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+                Console.WriteLine($&quot;Retrying in {delay.TotalSeconds} seconds...&quot;);
+
+                await Task.Delay(delay, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // Individual attempt timed out, but overall operation not cancelled
+            Console.WriteLine($&quot;Attempt {attempt + 1} timed out&quot;);
+        }
+    }
+
+    throw new Exception($&quot;Failed after {maxRetries} attempts&quot;);
+}
+</code></pre>
+<h2>Cancellation in Background Services</h2>
+<h3>Background Download Service</h3>
+<pre><code class="language-csharp">public class BackgroundDownloadService : BackgroundService
+{
+    private readonly ILogger&lt;BackgroundDownloadService&gt; _logger;
+    private readonly Queue&lt;DownloadTask&gt; _downloadQueue = new();
+    private readonly Curl _curl = new Curl();
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            if (_downloadQueue.TryDequeue(out var downloadTask))
+            {
+                await ProcessDownload(downloadTask, stoppingToken);
+            }
+            else
+            {
+                // Wait for new tasks
+                await Task.Delay(1000, stoppingToken);
+            }
+        }
+    }
+
+    private async Task ProcessDownload(DownloadTask task, CancellationToken stoppingToken)
+    {
+        try
+        {
+            _logger.LogInformation($&quot;Starting download: {task.Url}&quot;);
+
+            // Combine service stopping token with task-specific timeout
+            using var taskCts = new CancellationTokenSource(task.Timeout);
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                stoppingToken,
+                taskCts.Token
+            );
+
+            var result = await _curl.GetBytesAsync(task.Url, linkedCts.Token);
+
+            await File.WriteAllBytesAsync(task.OutputPath, result, stoppingToken);
+
+            _logger.LogInformation($&quot;Download completed: {task.OutputPath}&quot;);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            _logger.LogInformation(&quot;Service is shutting down&quot;);
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning($&quot;Download timed out: {task.Url}&quot;);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $&quot;Download failed: {task.Url}&quot;);
+        }
+    }
+
+    public void QueueDownload(string url, string outputPath, TimeSpan timeout)
+    {
+        _downloadQueue.Enqueue(new DownloadTask
+        {
+            Url = url,
+            OutputPath = outputPath,
+            Timeout = timeout
+        });
+    }
+
+    private class DownloadTask
+    {
+        public string Url { get; set; }
+        public string OutputPath { get; set; }
+        public TimeSpan Timeout { get; set; }
+    }
+}
+</code></pre>
+<h2>Testing with Cancellation</h2>
+<h3>Unit Testing Cancellation</h3>
+<pre><code class="language-csharp">[TestClass]
+public class CancellationTests
+{
+    [TestMethod]
+    public async Task TestRequestCancellation()
+    {
+        // Arrange
+        var curl = new Mock&lt;ICurl&gt;();
+        var cts = new CancellationTokenSource();
+
+        curl.Setup(x =&gt; x.GetAsync(It.IsAny&lt;string&gt;(), It.IsAny&lt;CancellationToken&gt;()))
+            .Returns(async (string url, CancellationToken ct) =&gt;
+            {
+                await Task.Delay(1000, ct);
+                return new CurlResult { IsSuccess = true };
+            });
+
+        // Act
+        cts.CancelAfter(500);
+
+        // Assert
+        await Assert.ThrowsExceptionAsync&lt;OperationCanceledException&gt;(async () =&gt;
+        {
+            await curl.Object.GetAsync(&quot;https://example.com&quot;, cts.Token);
+        });
+    }
+
+    [TestMethod]
+    public async Task TestGracefulCancellation()
+    {
+        // Arrange
+        var service = new GracefulHttpClient();
+
+        // Act
+        var task1 = service.GetAsync(&quot;https://example1.com&quot;);
+        var task2 = service.GetAsync(&quot;https://example2.com&quot;);
+
+        await service.ShutdownAsync();
+
+        // Assert
+        Assert.IsTrue(task1.IsCanceled || task1.IsCompleted);
+        Assert.IsTrue(task2.IsCanceled || task2.IsCompleted);
+    }
+}
+</code></pre>
+<h2>Best Practices</h2>
+<ol>
+<li><strong>Always dispose CancellationTokenSource</strong> - Use <code>using</code> statements</li>
+<li><strong>Check for cancellation regularly</strong> - In long-running loops</li>
+<li><strong>Clean up on cancellation</strong> - Delete partial files, close connections</li>
+<li><strong>Provide meaningful timeouts</strong> - Different operations need different limits</li>
+<li><strong>Handle OperationCanceledException</strong> - Distinguish from other errors</li>
+<li><strong>Use linked tokens</strong> - Combine multiple cancellation conditions</li>
+<li><strong>Test cancellation paths</strong> - Ensure graceful handling</li>
+<li><strong>Log cancellations</strong> - Track why operations were cancelled</li>
+<li><strong>Respect cancellation immediately</strong> - Don&#39;t delay after cancellation</li>
+<li><strong>Document cancellation behavior</strong> - Make it clear how operations can be cancelled</li>
+</ol>
+<h2>Summary</h2>
+<p>Cancellation tokens provide powerful control over async operations:</p>
+<ul>
+<li>Cancel long-running requests</li>
+<li>Implement flexible timeout strategies</li>
+<li>Coordinate multiple operations</li>
+<li>Build responsive applications</li>
+<li>Handle shutdowns gracefully</li>
+</ul>
+<h2>What&#39;s Next?</h2>
+<p>Learn about <a href="13-parallel-requests.html">parallel requests</a> to improve performance with concurrent operations.</p>
+<hr>
+<p><a href="11-forms-and-data.html">← Previous: Forms and Data</a> | <a href="13-parallel-requests.html">Next: Parallel Requests →</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

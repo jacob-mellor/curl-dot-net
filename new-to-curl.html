@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New to curl? Start Here! | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>New to curl? Start Here!</h1>
+<p>Welcome! If you&#39;re new to curl or HTTP clients in general, you&#39;re in the right place. This guide will help you understand what curl is, why CurlDotNet exists, and how to get started with making HTTP requests in .NET.</p>
+<h2>What is curl?</h2>
+<p>curl (pronounced &quot;curl&quot; or &quot;see-URL&quot;) is one of the most widely used command-line tools and libraries for transferring data with URLs. Created in 1996, it&#39;s battle-tested, incredibly reliable, and installed on billions of devices worldwide.</p>
+<h3>Why curl matters:</h3>
+<ul>
+<li><strong>Universal</strong>: Pre-installed on macOS, Linux, and Windows 10+</li>
+<li><strong>Reliable</strong>: 25+ years of development and testing</li>
+<li><strong>Powerful</strong>: Supports 20+ protocols (HTTP, HTTPS, FTP, SFTP, etc.)</li>
+<li><strong>Trusted</strong>: Used by NASA, Fortune 500 companies, and millions of developers</li>
+</ul>
+<h2>What is CurlDotNet?</h2>
+<p>CurlDotNet brings the power and reliability of curl to .NET developers through a pure C# implementation. Unlike other .NET HTTP clients that have their own implementations, CurlDotNet provides curl&#39;s exact behavior and features.</p>
+<h3>Key Benefits:</h3>
+<ul>
+<li><strong>100% Pure C#</strong>: No native dependencies or P/Invoke</li>
+<li><strong>Cross-platform</strong>: Works everywhere .NET runs</li>
+<li><strong>Familiar</strong>: If you know curl commands, you know CurlDotNet</li>
+<li><strong>Modern</strong>: Full async/await support with .NET best practices</li>
+</ul>
+<h2>Your First Request</h2>
+<p>Making an HTTP request with CurlDotNet is simple:</p>
+<pre><code class="language-csharp">using CurlDotNet;
+
+// Create a GET request
+var curl = new Curl();
+var result = await curl.GetAsync(&quot;https://api.github.com/users/github&quot;);
+
+// Check if successful
+if (result.IsSuccess)
+{
+    Console.WriteLine(result.Data);  // JSON response
+}
+else
+{
+    Console.WriteLine($&quot;Error: {result.Error}&quot;);
+}
+</code></pre>
+<h2>Common Use Cases</h2>
+<h3>1. Fetching Data from APIs</h3>
+<pre><code class="language-csharp">var curl = new Curl();
+var weather = await curl.GetAsync(&quot;https://api.weather.gov/gridpoints/TOP/31,80&quot;);
+</code></pre>
+<h3>2. Submitting Forms</h3>
+<pre><code class="language-csharp">var formData = new FormUrlEncodedContent(new Dictionary&lt;string, string&gt;
+{
+    [&quot;username&quot;] = &quot;user@example.com&quot;,
+    [&quot;password&quot;] = &quot;secure123&quot;
+});
+
+var result = await curl.PostAsync(&quot;https://example.com/login&quot;, formData);
+</code></pre>
+<h3>3. Downloading Files</h3>
+<pre><code class="language-csharp">await curl.DownloadFileAsync(
+    &quot;https://example.com/document.pdf&quot;,
+    &quot;/path/to/save/document.pdf&quot;
+);
+</code></pre>
+<h2>Key Concepts</h2>
+<h3>The Curl Object</h3>
+<p>The <code>Curl</code> class is your main interface to the library. Create one instance and reuse it for multiple requests:</p>
+<pre><code class="language-csharp">var curl = new Curl();  // Create once, use many times
+</code></pre>
+<h3>Results and Error Handling</h3>
+<p>Every operation returns a <code>CurlResult</code> with:</p>
+<ul>
+<li><code>IsSuccess</code>: Did the request complete successfully?</li>
+<li><code>Data</code>: The response body (if successful)</li>
+<li><code>StatusCode</code>: HTTP status code</li>
+<li><code>Error</code>: Error message (if failed)</li>
+<li><code>Headers</code>: Response headers</li>
+</ul>
+<h3>Async by Default</h3>
+<p>CurlDotNet is built for modern .NET with async/await:</p>
+<pre><code class="language-csharp">// All operations are async
+await curl.GetAsync(url);
+await curl.PostAsync(url, data);
+await curl.PutAsync(url, data);
+await curl.DeleteAsync(url);
+</code></pre>
+<h2>Next Steps</h2>
+<p>Now that you understand the basics:</p>
+<ol>
+<li><strong><a href="getting-started/installation.html">Install CurlDotNet</a></strong> - Add it to your project</li>
+<li><strong><a href="tutorials/01-what-is-dotnet.html">Follow the Tutorials</a></strong> - Step-by-step learning path</li>
+<li><strong><a href="cookbook/index.html">Try the Cookbook</a></strong> - Copy-paste solutions for common tasks</li>
+<li><strong><a href="https://github.com/jacob-mellor/curl-dot-net/tree/master/examples">Explore Examples</a></strong> - Complete working applications</li>
+</ol>
+<h2>Getting Help</h2>
+<ul>
+<li><strong>Documentation</strong>: You&#39;re already here!</li>
+<li><strong>Examples</strong>: Check the <a href="https://github.com/jacob-mellor/curl-dot-net/tree/master/examples">examples directory</a></li>
+<li><strong>Issues</strong>: <a href="https://github.com/jacob-mellor/curl-dot-net/issues">Report bugs or ask questions</a></li>
+<li><strong>Cookbook</strong>: <a href="cookbook/index.html">Common recipes and patterns</a></li>
+</ul>
+<h2>Why Choose CurlDotNet?</h2>
+<p>If you&#39;re wondering why to use CurlDotNet over HttpClient or RestSharp:</p>
+<ul>
+<li><strong>Consistency</strong>: Same behavior as curl command-line tool</li>
+<li><strong>Simplicity</strong>: Minimal API surface, easy to learn</li>
+<li><strong>Reliability</strong>: Built on curl&#39;s proven foundation</li>
+<li><strong>Performance</strong>: Optimized for real-world usage</li>
+<li><strong>Support</strong>: Active development and community</li>
+</ul>
+<p>Ready to start? <a href="getting-started/installation.html">Install CurlDotNet</a> and make your first request in minutes!</p>
+<hr>
+<p><em>CurlDotNet is the .NET binding for the world&#39;s most trusted HTTP client. Join millions of developers who rely on curl every day.</em></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

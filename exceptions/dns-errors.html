@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Resolution Errors | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>DNS Resolution Errors</h1>
+<h2>Overview</h2>
+<p>DNS errors occur when CurlDotNet cannot resolve a hostname to an IP address. This is one of the most common network errors and usually indicates connectivity or DNS configuration issues.</p>
+<h2>Common Error Scenarios</h2>
+<h3>1. Host Not Found</h3>
+<p><strong>Problem:</strong> The hostname doesn&#39;t exist in DNS.</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Typo in hostname</li>
+<li>Domain doesn&#39;t exist</li>
+<li>Domain expired</li>
+<li>Internal hostname on wrong network</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<pre><code class="language-csharp">try
+{
+    var result = await curl.ExecuteAsync(&quot;curl https://example.com&quot;);
+}
+catch (CurlDnsException ex)
+{
+    Console.WriteLine($&quot;DNS lookup failed for: {ex.Host}&quot;);
+
+    // Try with IP address instead
+    var ipAddress = &quot;93.184.216.34&quot;; // example.com IP
+    result = await curl.ExecuteAsync($&quot;curl https://{ipAddress}&quot;);
+
+    // Or try alternative domain
+    result = await curl.ExecuteAsync(&quot;curl https://www.example.com&quot;);
+}
+</code></pre>
+<h3>2. DNS Server Unreachable</h3>
+<p><strong>Problem:</strong> Cannot reach the configured DNS servers.</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>No internet connection</li>
+<li>Firewall blocking DNS (port 53)</li>
+<li>Corporate proxy requirements</li>
+<li>DNS server down</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<pre><code class="language-csharp">// Test with public DNS servers
+public async Task&lt;bool&gt; TestDnsConnectivity()
+{
+    // Try resolving with different DNS servers
+    var testHosts = new[]
+    {
+        &quot;8.8.8.8&quot;,      // Google DNS
+        &quot;1.1.1.1&quot;,      // Cloudflare DNS
+        &quot;208.67.222.222&quot; // OpenDNS
+    };
+
+    foreach (var dns in testHosts)
+    {
+        try
+        {
+            // Test with IP to bypass DNS
+            var result = await curl.ExecuteAsync($&quot;curl http://{dns}&quot;);
+            return true;
+        }
+        catch
+        {
+            continue;
+        }
+    }
+    return false;
+}
+</code></pre>
+<h3>3. DNS Cache Issues</h3>
+<p><strong>Problem:</strong> Stale DNS cache returning outdated IP addresses.</p>
+<p><strong>Solutions:</strong></p>
+<pre><code class="language-csharp">// Force fresh DNS lookup
+public class DnsHelper
+{
+    public static void FlushDnsCache()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            Process.Start(&quot;ipconfig&quot;, &quot;/flushdns&quot;);
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            Process.Start(&quot;dscacheutil&quot;, &quot;-flushcache&quot;);
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            Process.Start(&quot;systemctl&quot;, &quot;restart systemd-resolved&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>Best Practices</h2>
+<h3>1. DNS Resolution with Fallback</h3>
+<pre><code class="language-csharp">public class DnsResolver
+{
+    private readonly Dictionary&lt;string, string&gt; _knownHosts = new()
+    {
+        { &quot;api.example.com&quot;, &quot;93.184.216.34&quot; },
+        { &quot;cdn.example.com&quot;, &quot;151.101.1.140&quot; }
+    };
+
+    public async Task&lt;CurlResult&gt; ExecuteWithDnsFallback(string url)
+    {
+        var uri = new Uri(url);
+        var curl = new Curl();
+
+        try
+        {
+            // Try normal DNS resolution
+            return await curl.ExecuteAsync($&quot;curl {url}&quot;);
+        }
+        catch (CurlDnsException ex)
+        {
+            // Try with known IP if available
+            if (_knownHosts.TryGetValue(uri.Host, out var ipAddress))
+            {
+                var ipUrl = url.Replace(uri.Host, ipAddress);
+                // Add Host header for virtual hosting
+                return await curl.ExecuteAsync(
+                    $&quot;curl -H \&quot;Host: {uri.Host}\&quot; {ipUrl}&quot;
+                );
+            }
+            throw;
+        }
+    }
+}
+</code></pre>
+<h3>2. Custom DNS Resolution</h3>
+<pre><code class="language-csharp">public class CustomDnsResolver
+{
+    public async Task&lt;string&gt; ResolveHost(string hostname)
+    {
+        try
+        {
+            var addresses = await Dns.GetHostAddressesAsync(hostname);
+            return addresses.FirstOrDefault()?.ToString();
+        }
+        catch (SocketException)
+        {
+            return null;
+        }
+    }
+
+    public async Task&lt;CurlResult&gt; ExecuteWithCustomDns(string url)
+    {
+        var uri = new Uri(url);
+        var ipAddress = await ResolveHost(uri.Host);
+
+        if (ipAddress == null)
+        {
+            throw new CurlDnsException(uri.Host);
+        }
+
+        var curl = new Curl();
+        var ipUrl = url.Replace(uri.Host, ipAddress);
+        return await curl.ExecuteAsync(
+            $&quot;curl --resolve {uri.Host}:{uri.Port ?? 443}:{ipAddress} {url}&quot;
+        );
+    }
+}
+</code></pre>
+<h2>Debugging Tips</h2>
+<h3>1. Test DNS Resolution</h3>
+<pre><code class="language-csharp">public async Task DiagnoseDns(string hostname)
+{
+    Console.WriteLine($&quot;Diagnosing DNS for: {hostname}&quot;);
+
+    // Try system DNS resolution
+    try
+    {
+        var addresses = await Dns.GetHostAddressesAsync(hostname);
+        Console.WriteLine($&quot;Resolved to: {string.Join(&quot;, &quot;, addresses.Select(a =&gt; a.ToString()))}&quot;);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($&quot;System DNS failed: {ex.Message}&quot;);
+    }
+
+    // Try with curl
+    var curl = new Curl();
+    var result = await curl.ExecuteAsync($&quot;curl -v https://{hostname}&quot;);
+    Console.WriteLine($&quot;Curl output: {result.StdErr}&quot;);
+}
+</code></pre>
+<h3>2. Use Alternative DNS</h3>
+<pre><code class="language-csharp">// Use specific DNS server with curl
+var result = await curl.ExecuteAsync(
+    &quot;curl --dns-servers 8.8.8.8,8.8.4.4 https://example.com&quot;
+);
+</code></pre>
+<h3>3. Check Network Connectivity</h3>
+<pre><code class="language-csharp">public async Task&lt;bool&gt; CheckConnectivity()
+{
+    var checks = new Dictionary&lt;string, string&gt;
+    {
+        { &quot;DNS (Google)&quot;, &quot;8.8.8.8&quot; },
+        { &quot;DNS (Cloudflare)&quot;, &quot;1.1.1.1&quot; },
+        { &quot;HTTP&quot;, &quot;http://www.google.com&quot; },
+        { &quot;HTTPS&quot;, &quot;https://www.google.com&quot; }
+    };
+
+    foreach (var check in checks)
+    {
+        try
+        {
+            var result = await curl.ExecuteAsync($&quot;curl -I --max-time 5 {check.Value}&quot;);
+            Console.WriteLine($&quot;✓ {check.Key}: OK&quot;);
+        }
+        catch
+        {
+            Console.WriteLine($&quot;✗ {check.Key}: FAILED&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>Platform-Specific Solutions</h2>
+<h3>Windows</h3>
+<pre><code class="language-csharp">// Reset Windows network stack
+Process.Start(&quot;netsh&quot;, &quot;winsock reset&quot;);
+Process.Start(&quot;netsh&quot;, &quot;int ip reset&quot;);
+Process.Start(&quot;ipconfig&quot;, &quot;/release&quot;);
+Process.Start(&quot;ipconfig&quot;, &quot;/renew&quot;);
+Process.Start(&quot;ipconfig&quot;, &quot;/flushdns&quot;);
+</code></pre>
+<h3>macOS</h3>
+<pre><code class="language-csharp">// Clear DNS cache on macOS
+Process.Start(&quot;sudo&quot;, &quot;killall -HUP mDNSResponder&quot;);
+Process.Start(&quot;sudo&quot;, &quot;dscacheutil -flushcache&quot;);
+</code></pre>
+<h3>Linux</h3>
+<pre><code class="language-csharp">// Restart DNS resolver
+Process.Start(&quot;sudo&quot;, &quot;systemctl restart systemd-resolved&quot;);
+// Or for older systems
+Process.Start(&quot;sudo&quot;, &quot;service nscd restart&quot;);
+</code></pre>
+<h2>Configuration</h2>
+<h3>hosts File Override</h3>
+<pre><code class="language-csharp">public void AddHostsEntry(string hostname, string ipAddress)
+{
+    string hostsPath;
+    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    {
+        hostsPath = @&quot;C:\Windows\System32\drivers\etc\hosts&quot;;
+    }
+    else
+    {
+        hostsPath = &quot;/etc/hosts&quot;;
+    }
+
+    var entry = $&quot;{ipAddress} {hostname}&quot;;
+    File.AppendAllText(hostsPath, Environment.NewLine + entry);
+}
+</code></pre>
+<h2>Related Documentation</h2>
+<ul>
+<li><a href="connection-errors.html">Connection Errors</a></li>
+<li><a href="timeout-errors.html">Timeout Errors</a></li>
+<li><a href="/guides/network-troubleshooting.html">Network Troubleshooting Guide</a></li>
+<li><a href="/api/CurlDotNet.Exceptions.CurlDnsException.html">CurlDotNet DNS API Reference</a></li>
+</ul>
+<h2>Error Prevention Checklist</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Validate hostnames before requests</li>
+<li><input disabled="" type="checkbox"> Implement DNS fallback mechanisms</li>
+<li><input disabled="" type="checkbox"> Cache successful DNS resolutions</li>
+<li><input disabled="" type="checkbox"> Handle both IPv4 and IPv6</li>
+<li><input disabled="" type="checkbox"> Test with IP addresses to isolate DNS issues</li>
+<li><input disabled="" type="checkbox"> Configure appropriate DNS timeouts</li>
+<li><input disabled="" type="checkbox"> Use reliable DNS servers</li>
+<li><input disabled="" type="checkbox"> Implement retry logic for transient failures</li>
+<li><input disabled="" type="checkbox"> Monitor DNS resolution performance</li>
+<li><input disabled="" type="checkbox"> Document internal hostnames and IPs</li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

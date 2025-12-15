@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet to libcurl API Mapping | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>CurlDotNet to libcurl API Mapping</h1>
+<p>This document maps CurlDotNet&#39;s .NET API to the underlying libcurl C library concepts, helping developers understand the relationship between the two APIs.</p>
+<h2>Overview</h2>
+<p>CurlDotNet provides a .NET wrapper around libcurl&#39;s functionality, offering three main API styles:</p>
+<ol>
+<li><strong>String-based API</strong> - Direct curl command execution</li>
+<li><strong>Fluent Builder API</strong> - Type-safe request building</li>
+<li><strong>Low-level LibCurl API</strong> - Direct libcurl option setting</li>
+</ol>
+<h2>Core Concepts Mapping</h2>
+<h3>libcurl Easy Interface → CurlDotNet Core Classes</h3>
+<table>
+<thead>
+<tr>
+<th>libcurl Concept</th>
+<th>CurlDotNet Equivalent</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>CURL*</code> handle</td>
+<td><code>CurlEasy</code> class</td>
+<td>Single transfer handle</td>
+</tr>
+<tr>
+<td><code>curl_easy_init()</code></td>
+<td><code>new CurlEasy()</code></td>
+<td>Initialize a session</td>
+</tr>
+<tr>
+<td><code>curl_easy_setopt()</code></td>
+<td><code>CurlEasy.SetOpt()</code></td>
+<td>Set transfer options</td>
+</tr>
+<tr>
+<td><code>curl_easy_perform()</code></td>
+<td><code>CurlEasy.Perform()</code></td>
+<td>Execute transfer</td>
+</tr>
+<tr>
+<td><code>curl_easy_cleanup()</code></td>
+<td><code>CurlEasy.Dispose()</code></td>
+<td>Clean up resources</td>
+</tr>
+<tr>
+<td><code>curl_easy_getinfo()</code></td>
+<td><code>CurlResult</code> properties</td>
+<td>Get transfer information</td>
+</tr>
+</tbody></table>
+<h3>Common CURLOPT Options Mapping</h3>
+<table>
+<thead>
+<tr>
+<th>libcurl Option</th>
+<th>CurlDotNet Method/Property</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>CURLOPT_URL</code></td>
+<td><code>SetUrl()</code></td>
+<td><code>.SetUrl(&quot;https://api.example.com&quot;)</code></td>
+</tr>
+<tr>
+<td><code>CURLOPT_HTTPHEADER</code></td>
+<td><code>AddHeader()</code></td>
+<td><code>.AddHeader(&quot;Accept&quot;, &quot;application/json&quot;)</code></td>
+</tr>
+<tr>
+<td><code>CURLOPT_POSTFIELDS</code></td>
+<td><code>SetBody()</code></td>
+<td><code>.SetBody(&quot;{\&quot;key\&quot;:\&quot;value\&quot;}&quot;)</code></td>
+</tr>
+<tr>
+<td><code>CURLOPT_CUSTOMREQUEST</code></td>
+<td><code>SetMethod()</code></td>
+<td><code>.SetMethod(&quot;PUT&quot;)</code></td>
+</tr>
+<tr>
+<td><code>CURLOPT_TIMEOUT</code></td>
+<td><code>SetTimeout()</code></td>
+<td><code>.SetTimeout(TimeSpan.FromSeconds(30))</code></td>
+</tr>
+<tr>
+<td><code>CURLOPT_FOLLOWLOCATION</code></td>
+<td><code>FollowRedirects()</code></td>
+<td><code>.FollowRedirects(true)</code></td>
+</tr>
+<tr>
+<td><code>CURLOPT_SSL_VERIFYPEER</code></td>
+<td><code>SetSslVerification()</code></td>
+<td><code>.SetSslVerification(false)</code></td>
+</tr>
+<tr>
+<td><code>CURLOPT_USERAGENT</code></td>
+<td><code>SetUserAgent()</code></td>
+<td><code>.SetUserAgent(&quot;MyApp/1.0&quot;)</code></td>
+</tr>
+<tr>
+<td><code>CURLOPT_COOKIE</code></td>
+<td><code>AddCookie()</code></td>
+<td><code>.AddCookie(&quot;session=abc123&quot;)</code></td>
+</tr>
+<tr>
+<td><code>CURLOPT_HTTPAUTH</code></td>
+<td><code>SetAuthentication()</code></td>
+<td><code>.SetAuthentication(&quot;user&quot;, &quot;pass&quot;)</code></td>
+</tr>
+<tr>
+<td><code>CURLOPT_PROXY</code></td>
+<td><code>SetProxy()</code></td>
+<td><code>.SetProxy(&quot;http://proxy:8080&quot;)</code></td>
+</tr>
+<tr>
+<td><code>CURLOPT_VERBOSE</code></td>
+<td><code>SetVerbose()</code></td>
+<td><code>.SetVerbose(true)</code></td>
+</tr>
+</tbody></table>
+<h3>HTTP Methods Mapping</h3>
+<table>
+<thead>
+<tr>
+<th>curl Command</th>
+<th>libcurl</th>
+<th>CurlDotNet</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>curl -X GET</code></td>
+<td><code>CURLOPT_HTTPGET</code></td>
+<td><code>Curl.GetAsync()</code></td>
+</tr>
+<tr>
+<td><code>curl -X POST</code></td>
+<td><code>CURLOPT_POST</code></td>
+<td><code>Curl.PostAsync()</code></td>
+</tr>
+<tr>
+<td><code>curl -X PUT</code></td>
+<td><code>CURLOPT_UPLOAD</code></td>
+<td><code>Curl.PutAsync()</code></td>
+</tr>
+<tr>
+<td><code>curl -X DELETE</code></td>
+<td><code>CURLOPT_CUSTOMREQUEST</code></td>
+<td><code>Curl.DeleteAsync()</code></td>
+</tr>
+<tr>
+<td><code>curl -X PATCH</code></td>
+<td><code>CURLOPT_CUSTOMREQUEST</code></td>
+<td><code>Curl.PatchAsync()</code></td>
+</tr>
+<tr>
+<td><code>curl -I</code></td>
+<td><code>CURLOPT_NOBODY</code></td>
+<td><code>Curl.HeadAsync()</code></td>
+</tr>
+</tbody></table>
+<h3>Response Information (CURLINFO) Mapping</h3>
+<table>
+<thead>
+<tr>
+<th>libcurl Info</th>
+<th>CurlDotNet Property</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>CURLINFO_RESPONSE_CODE</code></td>
+<td><code>CurlResult.StatusCode</code></td>
+<td>HTTP response code</td>
+</tr>
+<tr>
+<td><code>CURLINFO_TOTAL_TIME</code></td>
+<td><code>CurlResult.ElapsedTime</code></td>
+<td>Total request time</td>
+</tr>
+<tr>
+<td><code>CURLINFO_SIZE_DOWNLOAD</code></td>
+<td><code>CurlResult.DownloadSize</code></td>
+<td>Bytes downloaded</td>
+</tr>
+<tr>
+<td><code>CURLINFO_SIZE_UPLOAD</code></td>
+<td><code>CurlResult.UploadSize</code></td>
+<td>Bytes uploaded</td>
+</tr>
+<tr>
+<td><code>CURLINFO_CONTENT_TYPE</code></td>
+<td><code>CurlResult.ContentType</code></td>
+<td>Content-Type header</td>
+</tr>
+<tr>
+<td><code>CURLINFO_EFFECTIVE_URL</code></td>
+<td><code>CurlResult.EffectiveUrl</code></td>
+<td>Final URL after redirects</td>
+</tr>
+<tr>
+<td><code>CURLINFO_PRIMARY_IP</code></td>
+<td><code>CurlResult.ServerIp</code></td>
+<td>Server IP address</td>
+</tr>
+<tr>
+<td><code>CURLINFO_NAMELOOKUP_TIME</code></td>
+<td><code>CurlTimings.NameLookup</code></td>
+<td>DNS resolution time</td>
+</tr>
+<tr>
+<td><code>CURLINFO_CONNECT_TIME</code></td>
+<td><code>CurlTimings.Connect</code></td>
+<td>Connection time</td>
+</tr>
+<tr>
+<td><code>CURLINFO_PRETRANSFER_TIME</code></td>
+<td><code>CurlTimings.PreTransfer</code></td>
+<td>Pre-transfer time</td>
+</tr>
+<tr>
+<td><code>CURLINFO_STARTTRANSFER_TIME</code></td>
+<td><code>CurlTimings.StartTransfer</code></td>
+<td>Time to first byte</td>
+</tr>
+</tbody></table>
+<h3>Error Codes (CURLcode) Mapping</h3>
+<table>
+<thead>
+<tr>
+<th>libcurl Error</th>
+<th>CurlDotNet Exception</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>CURLE_OK</code></td>
+<td>(no exception)</td>
+<td>Success</td>
+</tr>
+<tr>
+<td><code>CURLE_UNSUPPORTED_PROTOCOL</code></td>
+<td><code>CurlUnsupportedProtocolException</code></td>
+<td>Protocol not supported</td>
+</tr>
+<tr>
+<td><code>CURLE_FAILED_INIT</code></td>
+<td><code>CurlFailedInitException</code></td>
+<td>Failed initialization</td>
+</tr>
+<tr>
+<td><code>CURLE_URL_MALFORMAT</code></td>
+<td><code>CurlMalformedUrlException</code></td>
+<td>Malformed URL</td>
+</tr>
+<tr>
+<td><code>CURLE_COULDNT_RESOLVE_HOST</code></td>
+<td><code>CurlCouldntResolveHostException</code></td>
+<td>DNS resolution failed</td>
+</tr>
+<tr>
+<td><code>CURLE_COULDNT_CONNECT</code></td>
+<td><code>CurlCouldntConnectException</code></td>
+<td>Connection failed</td>
+</tr>
+<tr>
+<td><code>CURLE_HTTP_RETURNED_ERROR</code></td>
+<td><code>CurlHttpException</code></td>
+<td>HTTP error response</td>
+</tr>
+<tr>
+<td><code>CURLE_OPERATION_TIMEDOUT</code></td>
+<td><code>CurlTimeoutException</code></td>
+<td>Operation timeout</td>
+</tr>
+<tr>
+<td><code>CURLE_SSL_CONNECT_ERROR</code></td>
+<td><code>CurlSslConnectErrorException</code></td>
+<td>SSL connection error</td>
+</tr>
+<tr>
+<td><code>CURLE_TOO_MANY_REDIRECTS</code></td>
+<td><code>CurlTooManyRedirectsException</code></td>
+<td>Redirect limit exceeded</td>
+</tr>
+<tr>
+<td><code>CURLE_AUTH_ERROR</code></td>
+<td><code>CurlAuthenticationException</code></td>
+<td>Authentication failed</td>
+</tr>
+</tbody></table>
+<h2>Usage Examples</h2>
+<h3>Example 1: Basic GET Request</h3>
+<p><strong>libcurl (C)</strong>:</p>
+<pre><code class="language-c">CURL *curl = curl_easy_init();
+curl_easy_setopt(curl, CURLOPT_URL, &quot;https://api.example.com/data&quot;);
+curl_easy_perform(curl);
+curl_easy_cleanup(curl);
+</code></pre>
+<p><strong>CurlDotNet</strong>:</p>
+<pre><code class="language-csharp">var result = await Curl.GetAsync(&quot;https://api.example.com/data&quot;);
+</code></pre>
+<h3>Example 2: POST with Headers</h3>
+<p><strong>libcurl (C)</strong>:</p>
+<pre><code class="language-c">CURL *curl = curl_easy_init();
+struct curl_slist *headers = NULL;
+headers = curl_slist_append(headers, &quot;Content-Type: application/json&quot;);
+curl_easy_setopt(curl, CURLOPT_URL, &quot;https://api.example.com/data&quot;);
+curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+curl_easy_setopt(curl, CURLOPT_POSTFIELDS, &quot;{\&quot;key\&quot;:\&quot;value\&quot;}&quot;);
+curl_easy_perform(curl);
+curl_slist_free_all(headers);
+curl_easy_cleanup(curl);
+</code></pre>
+<p><strong>CurlDotNet</strong>:</p>
+<pre><code class="language-csharp">var result = await Curl.PostAsync(
+    &quot;https://api.example.com/data&quot;,
+    &quot;{\&quot;key\&quot;:\&quot;value\&quot;}&quot;,
+    &quot;application/json&quot;
+);
+</code></pre>
+<h3>Example 3: Custom Options</h3>
+<p><strong>libcurl (C)</strong>:</p>
+<pre><code class="language-c">CURL *curl = curl_easy_init();
+curl_easy_setopt(curl, CURLOPT_URL, &quot;https://api.example.com/data&quot;);
+curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
+curl_easy_perform(curl);
+curl_easy_cleanup(curl);
+</code></pre>
+<p><strong>CurlDotNet</strong>:</p>
+<pre><code class="language-csharp">var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/data&quot;)
+    .SetTimeout(TimeSpan.FromSeconds(30))
+    .FollowRedirects(true)
+    .SetMaxRedirects(5)
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h3>Example 4: Authentication</h3>
+<p><strong>libcurl (C)</strong>:</p>
+<pre><code class="language-c">CURL *curl = curl_easy_init();
+curl_easy_setopt(curl, CURLOPT_URL, &quot;https://api.example.com/secure&quot;);
+curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BEARER);
+curl_easy_setopt(curl, CURLOPT_XOAUTH2_BEARER, &quot;token123&quot;);
+curl_easy_perform(curl);
+curl_easy_cleanup(curl);
+</code></pre>
+<p><strong>CurlDotNet</strong>:</p>
+<pre><code class="language-csharp">var result = await new CurlRequestBuilder()
+    .SetUrl(&quot;https://api.example.com/secure&quot;)
+    .AddHeader(&quot;Authorization&quot;, &quot;Bearer token123&quot;)
+    .Build()
+    .ExecuteAsync();
+</code></pre>
+<h2>Advanced Features</h2>
+<h3>Multi Interface (Parallel Transfers)</h3>
+<table>
+<thead>
+<tr>
+<th>libcurl Multi</th>
+<th>CurlDotNet</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>curl_multi_init()</code></td>
+<td><code>CurlMulti()</code></td>
+<td>Initialize multi handle</td>
+</tr>
+<tr>
+<td><code>curl_multi_add_handle()</code></td>
+<td><code>AddHandle()</code></td>
+<td>Add easy handle to multi</td>
+</tr>
+<tr>
+<td><code>curl_multi_perform()</code></td>
+<td><code>PerformAsync()</code></td>
+<td>Execute all transfers</td>
+</tr>
+<tr>
+<td><code>curl_multi_cleanup()</code></td>
+<td><code>Dispose()</code></td>
+<td>Clean up multi handle</td>
+</tr>
+</tbody></table>
+<p><strong>Example</strong>:</p>
+<pre><code class="language-csharp">// CurlDotNet parallel execution
+var tasks = urls.Select(url =&gt; Curl.GetAsync(url));
+var results = await Task.WhenAll(tasks);
+</code></pre>
+<h3>Share Interface (Connection Sharing)</h3>
+<table>
+<thead>
+<tr>
+<th>libcurl Share</th>
+<th>CurlDotNet</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>curl_share_init()</code></td>
+<td><code>CurlShare()</code></td>
+<td>Initialize share handle</td>
+</tr>
+<tr>
+<td><code>curl_share_setopt()</code></td>
+<td><code>SetShareOpt()</code></td>
+<td>Configure sharing</td>
+</tr>
+<tr>
+<td><code>CURLSHOPT_SHARE</code></td>
+<td>Share cookies/DNS/SSL</td>
+<td>Share data between handles</td>
+</tr>
+</tbody></table>
+<h2>Performance Considerations</h2>
+<h3>Connection Reuse</h3>
+<ul>
+<li><strong>libcurl</strong>: Uses <code>curl_easy_reset()</code> to reuse handles</li>
+<li><strong>CurlDotNet</strong>: Automatic connection pooling via <code>HttpClient</code> backend</li>
+</ul>
+<h3>DNS Caching</h3>
+<ul>
+<li><strong>libcurl</strong>: <code>CURLOPT_DNS_CACHE_TIMEOUT</code></li>
+<li><strong>CurlDotNet</strong>: Automatic DNS caching with configurable TTL</li>
+</ul>
+<h3>SSL Session Caching</h3>
+<ul>
+<li><strong>libcurl</strong>: <code>CURLOPT_SSL_SESSIONID_CACHE</code></li>
+<li><strong>CurlDotNet</strong>: Automatic SSL session reuse</li>
+</ul>
+<h2>Migration Guide</h2>
+<h3>From libcurl C to CurlDotNet</h3>
+<ol>
+<li><em><em>Replace curl_easy_</em> functions</em>* with CurlDotNet class methods</li>
+<li><em><em>Convert CURLOPT_</em> options</em>* to fluent method calls</li>
+<li><strong>Replace manual memory management</strong> with .NET garbage collection</li>
+<li><strong>Use async/await</strong> instead of blocking calls</li>
+<li><strong>Handle exceptions</strong> instead of checking return codes</li>
+</ol>
+<h3>From curl Command Line to CurlDotNet</h3>
+<p>Simply use the string-based API:</p>
+<pre><code class="language-csharp">// Direct command execution
+var result = await Curl.ExecuteAsync(&quot;curl -X GET https://api.example.com -H &#39;Accept: application/json&#39;&quot;);
+</code></pre>
+<h2>Platform-Specific Notes</h2>
+<h3>Windows</h3>
+<ul>
+<li>Uses Windows Certificate Store for SSL</li>
+<li>Supports Windows Authentication (NTLM/Kerberos)</li>
+</ul>
+<h3>Linux/macOS</h3>
+<ul>
+<li>Uses OpenSSL/LibreSSL for SSL</li>
+<li>Supports system proxy settings</li>
+</ul>
+<h3>Mobile (Xamarin/MAUI)</h3>
+<ul>
+<li>Reduced binary size via linking</li>
+<li>Platform-specific HTTP handlers available</li>
+</ul>
+<h2>Further Reading</h2>
+<ul>
+<li><a href="https://curl.se/libcurl/c/">libcurl Documentation</a></li>
+<li><a href="https://jacob-mellor.github.io/curl-dot-net">CurlDotNet API Reference</a></li>
+<li><a href="https://curl.se/docs/">curl Command Line Tool</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

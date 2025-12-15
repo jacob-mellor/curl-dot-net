@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📚 CurlDotNet Documentation Overview | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>📚 CurlDotNet Documentation Overview</h1>
+<p>Welcome to CurlDotNet! This file provides quick access to all documentation, whether you&#39;re browsing on GitHub or our documentation site.</p>
+<h2>🌐 Online Documentation</h2>
+<p><strong>Full documentation with search</strong>: <a href="https://jacob-mellor.github.io/curl-dot-net/">https://jacob-mellor.github.io/curl-dot-net/</a></p>
+<h2>📖 Browse Documentation on GitHub</h2>
+<p>All documentation is available directly in this repository. You can read it on GitHub without leaving this page:</p>
+<h3>🚀 Getting Started</h3>
+<ul>
+<li><a href="docs/getting-started/installation.html"><strong>Installation Guide</strong></a> - Get CurlDotNet installed and configured</li>
+<li><a href="docs/tutorials/04-your-first-request.html"><strong>Quick Start Tutorial</strong></a> - Make your first request in 5 minutes</li>
+<li><a href="docs/getting-started/"><strong>README</strong></a> - Overview of getting started</li>
+</ul>
+<h3>📘 User Manual</h3>
+<p>Complete user manual with all documentation:</p>
+<h4>Core Concepts</h4>
+<ul>
+<li><a href="docs/tutorials/01-what-is-dotnet.html"><strong>What is .NET?</strong></a> - For developers new to .NET</li>
+<li><a href="docs/tutorials/02-what-is-curl.html"><strong>What is curl?</strong></a> - Understanding curl basics</li>
+<li><a href="docs/tutorials/03-what-is-async.html"><strong>Async Programming</strong></a> - Understanding async/await</li>
+</ul>
+<h4>API Documentation</h4>
+<ul>
+<li><a href="docs/api-guide/"><strong>API Guide</strong></a> - Complete API reference</li>
+<li><a href="docs/api-guide/curl-class/"><strong>String API</strong></a> - Using curl command strings</li>
+<li><a href="docs/api-guide/curl-request-builder/"><strong>Builder API</strong></a> - Fluent interface</li>
+<li><a href="docs/api-guide/libcurl/"><strong>LibCurl API</strong></a> - Low-level access</li>
+</ul>
+<h4>Practical Examples</h4>
+<ul>
+<li><a href="docs/cookbook/"><strong>Cookbook</strong></a> - Ready-to-use code recipes</li>
+<li><a href="docs/cookbook/beginner/simple-get.html"><strong>Simple GET Request</strong></a> - Basic HTTP GET</li>
+<li><a href="docs/cookbook/beginner/send-json.html"><strong>POST JSON Data</strong></a> - Sending JSON</li>
+<li><a href="docs/cookbook/beginner/upload-file.html"><strong>File Upload</strong></a> - Uploading files</li>
+<li><a href="docs/cookbook/beginner/handle-errors.html"><strong>Error Handling</strong></a> - Handle errors properly</li>
+</ul>
+<h4>Authentication</h4>
+<ul>
+<li><a href="docs/authentication/"><strong>Authentication Guide</strong></a> - All auth methods</li>
+<li><a href="docs/authentication/basic-auth.html"><strong>Basic Auth</strong></a> - Username/password auth</li>
+<li><a href="docs/authentication/bearer-tokens.html"><strong>Bearer Tokens</strong></a> - Token authentication</li>
+<li><a href="docs/authentication/api-keys.html"><strong>API Keys</strong></a> - API key authentication</li>
+</ul>
+<h4>Advanced Topics</h4>
+<ul>
+<li><a href="docs/advanced/performance.html"><strong>Performance</strong></a> - Optimization techniques</li>
+<li><a href="docs/advanced/middleware/"><strong>Middleware</strong></a> - Custom middleware</li>
+<li><a href="docs/advanced/testing.html"><strong>Testing</strong></a> - Testing strategies</li>
+<li><a href="docs/advanced/circuit-breaker.html"><strong>Circuit Breaker</strong></a> - Resilience patterns</li>
+</ul>
+<h4>Migration Guides</h4>
+<ul>
+<li><a href="docs/migration/from-httpclient.html"><strong>From HttpClient</strong></a> - Migrate from HttpClient</li>
+<li><a href="docs/migration/from-restsharp.html"><strong>From RestSharp</strong></a> - Migrate from RestSharp</li>
+</ul>
+<h4>Troubleshooting</h4>
+<ul>
+<li><a href="docs/troubleshooting/common-issues.html"><strong>Common Issues</strong></a> - Solutions to common problems</li>
+<li><a href="docs/troubleshooting/"><strong>FAQ</strong></a> - Frequently asked questions</li>
+</ul>
+<h2>🔍 Quick Code Examples</h2>
+<h3>Simple GET Request</h3>
+<pre><code class="language-csharp">using CurlDotNet;
+
+var result = await Curl.ExecuteAsync(&quot;curl https://api.github.com&quot;);
+Console.WriteLine(result.Body);
+</code></pre>
+<h3>POST with JSON</h3>
+<pre><code class="language-csharp">var json = @&quot;{&quot;&quot;name&quot;&quot;:&quot;&quot;John Doe&quot;&quot;,&quot;&quot;email&quot;&quot;:&quot;&quot;john@example.com&quot;&quot;}&quot;;
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/users
+    -H &#39;Content-Type: application/json&#39;
+    -d &#39;{json}&#39;
+&quot;);
+</code></pre>
+<h3>Using Builder API</h3>
+<pre><code class="language-csharp">var result = await new CurlRequestBuilder()
+    .WithUrl(&quot;https://api.github.com/user&quot;)
+    .WithHeader(&quot;Authorization&quot;, &quot;Bearer your-token&quot;)
+    .WithMethod(&quot;GET&quot;)
+    .ExecuteAsync();
+</code></pre>
+<h2>📁 Documentation Structure</h2>
+<pre><code>docs/
+├── README.md                    # Main documentation index
+├── getting-started/            # Installation and setup
+│   ├── README.md
+│   └── installation.md
+├── tutorials/                  # Step-by-step tutorials
+│   ├── README.md
+│   ├── 01-what-is-dotnet.md
+│   ├── 02-what-is-curl.md
+│   └── ...
+├── api-guide/                  # API reference
+│   ├── README.md
+│   ├── curl-class/
+│   ├── curl-request-builder/
+│   └── libcurl/
+├── cookbook/                   # Code recipes
+│   ├── README.md
+│   ├── beginner/
+│   ├── intermediate/
+│   └── real-world/
+├── authentication/            # Auth methods
+│   ├── README.md
+│   ├── basic-auth.md
+│   └── ...
+├── troubleshooting/          # Problem solving
+│   ├── README.md
+│   └── common-issues.md
+└── ...
+</code></pre>
+<h2>🎯 Quick Navigation</h2>
+<table>
+<thead>
+<tr>
+<th>I want to...</th>
+<th>Go to...</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Install CurlDotNet</td>
+<td><a href="docs/getting-started/installation.html">Installation Guide</a></td>
+</tr>
+<tr>
+<td>Learn the basics</td>
+<td><a href="docs/tutorials/">Tutorials</a></td>
+</tr>
+<tr>
+<td>See code examples</td>
+<td><a href="docs/cookbook/">Cookbook</a></td>
+</tr>
+<tr>
+<td>Read API docs</td>
+<td><a href="docs/api-guide/">API Guide</a></td>
+</tr>
+<tr>
+<td>Solve a problem</td>
+<td><a href="docs/troubleshooting/">Troubleshooting</a></td>
+</tr>
+<tr>
+<td>Migrate from HttpClient</td>
+<td><a href="docs/migration/from-httpclient.html">Migration Guide</a></td>
+</tr>
+</tbody></table>
+<h2>💡 Why Read Docs on GitHub?</h2>
+<ul>
+<li><strong>No build needed</strong> - Read markdown directly</li>
+<li><strong>Always up-to-date</strong> - See the latest changes</li>
+<li><strong>Easy navigation</strong> - Use GitHub&#39;s file browser</li>
+<li><strong>Search support</strong> - Use GitHub&#39;s search</li>
+<li><strong>Direct links</strong> - Share specific sections easily</li>
+</ul>
+<h2>🤝 Contributing</h2>
+<p>Found an issue in the documentation? Want to add an example?</p>
+<ul>
+<li><a href="https://github.com/jacob-mellor/curl-dot-net/tree/master/docs">Edit on GitHub</a></li>
+<li><a href="https://github.com/jacob-mellor/curl-dot-net/issues">Open an issue</a></li>
+<li><a href="https://github.com/jacob-mellor/curl-dot-net/discussions">Start a discussion</a></li>
+</ul>
+<h2>📦 Installation</h2>
+<pre><code class="language-bash">dotnet add package CurlDotNet
+</code></pre>
+<hr>
+<p><strong>Full Documentation Site</strong>: <a href="https://jacob-mellor.github.io/curl-dot-net/">https://jacob-mellor.github.io/curl-dot-net/</a>
+<strong>NuGet Package</strong>: <a href="https://www.nuget.org/packages/CurlDotNet/">https://www.nuget.org/packages/CurlDotNet/</a>
+<strong>GitHub Repository</strong>: <a href="https://github.com/jacob-mellor/curl-dot-net">https://github.com/jacob-mellor/curl-dot-net</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

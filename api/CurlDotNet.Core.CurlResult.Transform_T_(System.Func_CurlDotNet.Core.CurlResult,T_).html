@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Core.CurlResult.Transform_T_(System.Func_CurlDotNet.Core.CurlResult,T_) | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Core.md" title="CurlDotNet.Core">CurlDotNet.Core</a>.<a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a></h3>
+<h2>CurlResult.Transform&lt;T&gt;(Func&lt;CurlResult,T&gt;) Method</h2>
+<p><b>Transform the result using your own function.</b></p>
+<p>Extract or convert data however you need:</p>
+<pre><code class="language-csharp">// Extract just what you need
+var name = result.Transform(r =&gt;
+{
+    var user = r.ParseJson&lt;User&gt;();
+    return user.Name;
+});
+
+// Convert to your own type
+var summary = result.Transform(r =&gt; new
+{
+    Success = r.IsSuccess,
+    Size = r.Body?.Length ?? 0,
+    Type = r.GetHeader(&quot;Content-Type&quot;)
+});
+</code></pre>
+<pre><code class="language-csharp">public T Transform&lt;T&gt;(System.Func&lt;CurlDotNet.Core.CurlResult,T&gt; transformer);
+</code></pre>
+<h4>Type parameters</h4>
+<p><a name='CurlDotNet.Core.CurlResult.Transform_T_(System.Func_CurlDotNet.Core.CurlResult,T_).T'></a></p>
+<p><code>T</code></p>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Core.CurlResult.Transform_T_(System.Func_CurlDotNet.Core.CurlResult,T_).transformer'></a></p>
+<p><code>transformer</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.func-2" title="System.Func`2">System.Func&lt;</a><a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.func-2" title="System.Func`2">,</a><a href="CurlDotNet.Core.CurlResult.Transform_T_(System.Func_CurlDotNet.Core.CurlResult,T_).md#CurlDotNet.Core.CurlResult.Transform_T_(System.Func_CurlDotNet.Core.CurlResult,T_).T" title="CurlDotNet.Core.CurlResult.Transform&lt;T&gt;(System.Func&lt;CurlDotNet.Core.CurlResult,T&gt;).T">T</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.func-2" title="System.Func`2">&gt;</a></p>
+<h4>Returns</h4>
+<p><a href="CurlDotNet.Core.CurlResult.Transform_T_(System.Func_CurlDotNet.Core.CurlResult,T_).md#CurlDotNet.Core.CurlResult.Transform_T_(System.Func_CurlDotNet.Core.CurlResult,T_).T" title="CurlDotNet.Core.CurlResult.Transform&lt;T&gt;(System.Func&lt;CurlDotNet.Core.CurlResult,T&gt;).T">T</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

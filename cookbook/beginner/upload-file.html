@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe: Upload Files | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Recipe: Upload Files</h1>
+<h2>🎯 What You&#39;ll Build</h2>
+<p>Programs that upload files to servers - images, documents, videos, and any file type.</p>
+<h2>🥘 Ingredients</h2>
+<ul>
+<li>CurlDotNet package</li>
+<li>A file to upload</li>
+<li>An API endpoint that accepts file uploads</li>
+<li>10 minutes</li>
+</ul>
+<h2>📖 The Recipe</h2>
+<h3>Step 1: Simple File Upload</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class Program
+{
+    static async Task Main()
+    {
+        Console.WriteLine(&quot;Uploading file...&quot;);
+
+        // Upload a file using multipart form data
+        var result = await Curl.ExecuteAsync(@&quot;
+            curl -X POST https://httpbin.org/post \
+              -F &#39;file=@document.pdf&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ File uploaded successfully!&quot;);
+            Console.WriteLine(result.Body);
+        }
+    }
+}
+</code></pre>
+<h3>Step 2: Upload with Additional Fields</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class UploadWithMetadata
+{
+    static async Task Main()
+    {
+        Console.WriteLine(&quot;Uploading file with metadata...&quot;);
+
+        var result = await Curl.ExecuteAsync(@&quot;
+            curl -X POST https://httpbin.org/post \
+              -F &#39;file=@document.pdf&#39; \
+              -F &#39;title=My Document&#39; \
+              -F &#39;description=Important document&#39; \
+              -F &#39;category=reports&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ File and metadata uploaded!&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>🍳 Complete Examples</h2>
+<h3>Example 1: Upload Image</h3>
+<pre><code class="language-csharp">using System;
+using System.IO;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class ImageUpload
+{
+    static async Task Main()
+    {
+        string imagePath = &quot;photo.jpg&quot;;
+        string uploadUrl = &quot;https://httpbin.org/post&quot;;
+
+        // Verify file exists
+        if (!File.Exists(imagePath))
+        {
+            Console.WriteLine($&quot;✗ File not found: {imagePath}&quot;);
+            return;
+        }
+
+        var fileInfo = new FileInfo(imagePath);
+        Console.WriteLine($&quot;Uploading {fileInfo.Name} ({fileInfo.Length:N0} bytes)...&quot;);
+
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST {uploadUrl} \
+              -F &#39;file=@{imagePath}&#39; \
+              -F &#39;filename={fileInfo.Name}&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ Image uploaded successfully!&quot;);
+            dynamic response = result.AsJsonDynamic();
+            Console.WriteLine($&quot;Server response: {response.files.file}&quot;);
+        }
+        else
+        {
+            Console.WriteLine($&quot;✗ Upload failed: {result.StatusCode}&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 2: Upload with Authentication</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class AuthenticatedUpload
+{
+    static async Task Main()
+    {
+        string apiToken = Environment.GetEnvironmentVariable(&quot;API_TOKEN&quot;);
+        string filePath = &quot;report.pdf&quot;;
+        string uploadUrl = &quot;https://api.example.com/upload&quot;;
+
+        Console.WriteLine(&quot;Uploading file with authentication...&quot;);
+
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST {uploadUrl} \
+              -H &#39;Authorization: Bearer {apiToken}&#39; \
+              -F &#39;file=@{filePath}&#39; \
+              -F &#39;access=private&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ File uploaded to protected endpoint!&quot;);
+            var response = result.ParseJson&lt;UploadResponse&gt;();
+            Console.WriteLine($&quot;File ID: {response.FileId}&quot;);
+            Console.WriteLine($&quot;URL: {response.Url}&quot;);
+        }
+        else if (result.StatusCode == 401)
+        {
+            Console.WriteLine(&quot;✗ Authentication failed. Check your token.&quot;);
+        }
+    }
+
+    public class UploadResponse
+    {
+        public string FileId { get; set; }
+        public string Url { get; set; }
+        public long Size { get; set; }
+    }
+}
+</code></pre>
+<h3>Example 3: Upload Multiple Files</h3>
+<pre><code class="language-csharp">using System;
+using System.IO;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class MultipleFileUpload
+{
+    static async Task Main()
+    {
+        string[] files = {
+            &quot;document1.pdf&quot;,
+            &quot;document2.pdf&quot;,
+            &quot;image.jpg&quot;
+        };
+
+        string uploadUrl = &quot;https://httpbin.org/post&quot;;
+
+        Console.WriteLine($&quot;Uploading {files.Length} files...\n&quot;);
+
+        // Build command with multiple files
+        string command = $&quot;curl -X POST {uploadUrl}&quot;;
+        foreach (var file in files)
+        {
+            if (File.Exists(file))
+            {
+                command += $&quot; -F &#39;files[]=@{file}&#39;&quot;;
+            }
+            else
+            {
+                Console.WriteLine($&quot;Warning: {file} not found, skipping&quot;);
+            }
+        }
+
+        var result = await Curl.ExecuteAsync(command);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ All files uploaded successfully!&quot;);
+            dynamic response = result.AsJsonDynamic();
+            Console.WriteLine($&quot;Uploaded files: {response.files}&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 4: Upload with Progress Tracking</h3>
+<pre><code class="language-csharp">using System;
+using System.IO;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class UploadWithProgress
+{
+    static async Task UploadFile(string filePath, string uploadUrl)
+    {
+        var fileInfo = new FileInfo(filePath);
+
+        Console.WriteLine($&quot;Uploading {fileInfo.Name}...&quot;);
+        Console.WriteLine($&quot;Size: {fileInfo.Length:N0} bytes&quot;);
+
+        var startTime = DateTime.Now;
+
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST {uploadUrl} \
+              -F &#39;file=@{filePath}&#39; \
+              --progress-bar
+        &quot;);
+
+        var duration = DateTime.Now - startTime;
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine($&quot;\n✓ Upload completed in {duration.TotalSeconds:F1}s&quot;);
+
+            // Calculate upload speed
+            double mbps = (fileInfo.Length / 1024.0 / 1024.0) / duration.TotalSeconds;
+            Console.WriteLine($&quot;Average speed: {mbps:F2} MB/s&quot;);
+        }
+    }
+
+    static async Task Main()
+    {
+        await UploadFile(&quot;large-file.zip&quot;, &quot;https://httpbin.org/post&quot;);
+    }
+}
+</code></pre>
+<h3>Example 5: Upload Binary Data</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class BinaryUpload
+{
+    static async Task Main()
+    {
+        string filePath = &quot;data.bin&quot;;
+        string uploadUrl = &quot;https://httpbin.org/post&quot;;
+
+        Console.WriteLine(&quot;Uploading binary data...&quot;);
+
+        // Upload as binary data (not multipart)
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST {uploadUrl} \
+              -H &#39;Content-Type: application/octet-stream&#39; \
+              --data-binary &#39;@{filePath}&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ Binary data uploaded!&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 6: Upload JSON with File Reference</h3>
+<pre><code class="language-csharp">using System;
+using System.Text.Json;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class JsonFileUpload
+{
+    public class UploadRequest
+    {
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public string Category { get; set; }
+        public bool IsPublic { get; set; }
+    }
+
+    static async Task Main()
+    {
+        string filePath = &quot;document.pdf&quot;;
+        string uploadUrl = &quot;https://httpbin.org/post&quot;;
+
+        var metadata = new UploadRequest
+        {
+            Title = &quot;Important Document&quot;,
+            Description = &quot;Quarterly report&quot;,
+            Category = &quot;Reports&quot;,
+            IsPublic = false
+        };
+
+        string json = JsonSerializer.Serialize(metadata);
+
+        Console.WriteLine(&quot;Uploading file with JSON metadata...&quot;);
+
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST {uploadUrl} \
+              -F &#39;file=@{filePath}&#39; \
+              -F &#39;metadata={json}&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ File uploaded with metadata!&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 7: Chunked Upload (Large Files)</h3>
+<pre><code class="language-csharp">using System;
+using System.IO;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class ChunkedUpload
+{
+    static async Task UploadInChunks(string filePath, string uploadUrl, int chunkSize = 1024 * 1024)
+    {
+        var fileInfo = new FileInfo(filePath);
+        int totalChunks = (int)Math.Ceiling((double)fileInfo.Length / chunkSize);
+
+        Console.WriteLine($&quot;Uploading {fileInfo.Name} in {totalChunks} chunks...&quot;);
+
+        using var fileStream = File.OpenRead(filePath);
+        byte[] buffer = new byte[chunkSize];
+        int chunkNumber = 0;
+
+        while (true)
+        {
+            int bytesRead = await fileStream.ReadAsync(buffer, 0, chunkSize);
+            if (bytesRead == 0) break;
+
+            chunkNumber++;
+            Console.Write($&quot;\rUploading chunk {chunkNumber}/{totalChunks}...&quot;);
+
+            // Create temporary chunk file
+            string chunkPath = $&quot;chunk_{chunkNumber}.tmp&quot;;
+            await File.WriteAllBytesAsync(chunkPath, buffer[..bytesRead]);
+
+            // Upload chunk
+            var result = await Curl.ExecuteAsync($@&quot;
+                curl -X POST {uploadUrl} \
+                  -F &#39;chunk=@{chunkPath}&#39; \
+                  -F &#39;chunkNumber={chunkNumber}&#39; \
+                  -F &#39;totalChunks={totalChunks}&#39; \
+                  -F &#39;filename={fileInfo.Name}&#39;
+            &quot;);
+
+            // Clean up chunk file
+            File.Delete(chunkPath);
+
+            if (!result.IsSuccess)
+            {
+                Console.WriteLine($&quot;\n✗ Chunk {chunkNumber} failed: {result.StatusCode}&quot;);
+                return;
+            }
+        }
+
+        Console.WriteLine(&quot;\n✓ All chunks uploaded successfully!&quot;);
+    }
+
+    static async Task Main()
+    {
+        await UploadInChunks(&quot;large-video.mp4&quot;, &quot;https://httpbin.org/post&quot;);
+    }
+}
+</code></pre>
+<h2>🎨 Variations</h2>
+<h3>Upload with Custom Content Type</h3>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(@&quot;
+    curl -X POST https://api.example.com/upload \
+      -F &#39;file=@image.jpg;type=image/jpeg&#39;
+&quot;);
+</code></pre>
+<h3>Upload with Custom Filename</h3>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(@&quot;
+    curl -X POST https://api.example.com/upload \
+      -F &#39;file=@local-file.pdf;filename=remote-name.pdf&#39;
+&quot;);
+</code></pre>
+<h3>Upload from Memory (Data URI)</h3>
+<pre><code class="language-csharp">string base64Data = Convert.ToBase64String(fileBytes);
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/upload \
+      -F &#39;file=data:image/png;base64,{base64Data};filename=image.png&#39;
+&quot;);
+</code></pre>
+<h2>🐛 Troubleshooting</h2>
+<h3>Problem: File Not Found</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-csharp">string filePath = &quot;document.pdf&quot;;
+
+if (!File.Exists(filePath))
+{
+    Console.WriteLine($&quot;✗ File not found: {Path.GetFullPath(filePath)}&quot;);
+    return;
+}
+
+var result = await Curl.ExecuteAsync($&quot;curl -X POST https://api.example.com/upload -F &#39;file=@{filePath}&#39;&quot;);
+</code></pre>
+<h3>Problem: File Too Large</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-csharp">var fileInfo = new FileInfo(&quot;large-file.zip&quot;);
+long maxSize = 50 * 1024 * 1024; // 50 MB
+
+if (fileInfo.Length &gt; maxSize)
+{
+    Console.WriteLine($&quot;✗ File too large: {fileInfo.Length:N0} bytes (max: {maxSize:N0})&quot;);
+    Console.WriteLine(&quot;Consider using chunked upload&quot;);
+    return;
+}
+</code></pre>
+<p>For more details, see the <a href="../../troubleshooting/">troubleshooting guide</a>.</p>
+<h3>Problem: Upload Timeout</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-csharp">// Increase timeout for large files
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/upload \
+      -F &#39;file=@large-file.mp4&#39; \
+      --max-time 3600
+&quot;);
+</code></pre>
+<p>For more details, see the <a href="../../troubleshooting/">troubleshooting guide</a>.</p>
+<h3>Problem: Authentication Required</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-csharp">string apiKey = Environment.GetEnvironmentVariable(&quot;API_KEY&quot;);
+
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/upload \
+      -H &#39;Authorization: Bearer {apiKey}&#39; \
+      -F &#39;file=@document.pdf&#39;
+&quot;);
+
+if (result.StatusCode == 401)
+{
+    Console.WriteLine(&quot;✗ Authentication failed&quot;);
+    // Documentation: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/common-issues.md#authentication-errors
+}
+</code></pre>
+<h2>🎓 Best Practices</h2>
+<h3>1. Always Verify File Exists</h3>
+<pre><code class="language-csharp">string filePath = &quot;document.pdf&quot;;
+
+if (!File.Exists(filePath))
+{
+    Console.WriteLine($&quot;Error: File not found at {Path.GetFullPath(filePath)}&quot;);
+    return;
+}
+
+// Proceed with upload
+</code></pre>
+<h3>2. Check File Size Before Upload</h3>
+<pre><code class="language-csharp">var fileInfo = new FileInfo(filePath);
+
+if (fileInfo.Length == 0)
+{
+    Console.WriteLine(&quot;Error: File is empty&quot;);
+    return;
+}
+
+Console.WriteLine($&quot;Uploading {fileInfo.Length:N0} bytes...&quot;);
+</code></pre>
+<h3>3. Handle Upload Errors Gracefully</h3>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync($&quot;curl -X POST {url} -F &#39;file=@{file}&#39;&quot;);
+
+    if (result.IsSuccess)
+    {
+        Console.WriteLine(&quot;✓ Upload successful&quot;);
+    }
+    else
+    {
+        Console.WriteLine($&quot;✗ Upload failed: {result.StatusCode}&quot;);
+        Console.WriteLine($&quot;Response: {result.Body}&quot;);
+    }
+}
+catch (CurlTimeoutException ex)
+{
+    Console.WriteLine($&quot;Upload timed out: {ex.Message}&quot;);
+}
+catch (CurlException ex)
+{
+    Console.WriteLine($&quot;Upload error: {ex.Message}&quot;);
+}
+</code></pre>
+<h3>4. Use Environment Variables for Credentials</h3>
+<pre><code class="language-csharp">// Never hardcode API keys!
+string apiKey = Environment.GetEnvironmentVariable(&quot;API_KEY&quot;)
+    ?? throw new Exception(&quot;API_KEY environment variable not set&quot;);
+
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST {url} \
+      -H &#39;Authorization: Bearer {apiKey}&#39; \
+      -F &#39;file=@{file}&#39;
+&quot;);
+</code></pre>
+<h3>5. Validate Response</h3>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync($&quot;curl -X POST {url} -F &#39;file=@{file}&#39;&quot;);
+
+if (result.IsSuccess)
+{
+    try
+    {
+        var response = result.ParseJson&lt;UploadResponse&gt;();
+
+        if (!string.IsNullOrEmpty(response.FileUrl))
+        {
+            Console.WriteLine($&quot;✓ File uploaded: {response.FileUrl}&quot;);
+        }
+        else
+        {
+            Console.WriteLine(&quot;Warning: Upload succeeded but no URL returned&quot;);
+        }
+    }
+    catch
+    {
+        Console.WriteLine(&quot;Warning: Could not parse response&quot;);
+    }
+}
+</code></pre>
+<h2>🚀 Next Steps</h2>
+<p>Now that you can upload files:</p>
+<ol>
+<li>Learn to <a href="download-file.html">Download Files</a></li>
+<li>Try <a href="post-form.html">POST Form Data</a></li>
+<li>Explore <a href="handle-errors.html">Error Handling</a></li>
+<li>Build <a href="call-api.html">API Client</a></li>
+</ol>
+<h2>📚 Related Recipes</h2>
+<ul>
+<li><a href="download-file.html">Download Files</a> - Getting files from servers</li>
+<li><a href="post-form.html">POST Form Data</a> - Submitting forms</li>
+<li><a href="send-json.html">Send JSON</a> - Sending structured data</li>
+<li><a href="handle-errors.html">Handle Errors</a> - Robust error handling</li>
+</ul>
+<h2>🎓 Key Takeaways</h2>
+<ul>
+<li>Use <code>-F &#39;file=@filepath&#39;</code> for multipart uploads</li>
+<li>Use <code>--data-binary &#39;@filepath&#39;</code> for raw binary uploads</li>
+<li>Always check if file exists before uploading</li>
+<li>Set appropriate timeouts for large files</li>
+<li>Handle authentication with environment variables</li>
+<li>Validate responses after upload</li>
+<li>Consider chunked uploads for very large files</li>
+<li>Clean up temporary files</li>
+</ul>
+<h2>📖 Quick Reference</h2>
+<pre><code class="language-csharp">// Simple file upload
+await Curl.ExecuteAsync(&quot;curl -X POST {url} -F &#39;file=@document.pdf&#39;&quot;);
+
+// With metadata
+await Curl.ExecuteAsync(@&quot;
+    curl -X POST {url} \
+      -F &#39;file=@document.pdf&#39; \
+      -F &#39;title=My Document&#39;
+&quot;);
+
+// With authentication
+await Curl.ExecuteAsync($@&quot;
+    curl -X POST {url} \
+      -H &#39;Authorization: Bearer {token}&#39; \
+      -F &#39;file=@document.pdf&#39;
+&quot;);
+
+// Binary upload
+await Curl.ExecuteAsync(@&quot;
+    curl -X POST {url} \
+      --data-binary &#39;@file.bin&#39;
+&quot;);
+
+// Multiple files
+await Curl.ExecuteAsync(@&quot;
+    curl -X POST {url} \
+      -F &#39;file1=@doc1.pdf&#39; \
+      -F &#39;file2=@doc2.pdf&#39;
+&quot;);
+</code></pre>
+<hr>
+<p><strong>Need help?</strong> Check <a href="../../troubleshooting/common-issues.html">Troubleshooting</a> | <strong>Have questions?</strong> Ask in <a href="https://github.com/jacob-mellor/curl-dot-net/discussions">Discussions</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

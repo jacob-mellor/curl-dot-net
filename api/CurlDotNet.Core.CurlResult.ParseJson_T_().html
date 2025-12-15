@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Core.CurlResult.ParseJson_T_() | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.Core.md" title="CurlDotNet.Core">CurlDotNet.Core</a>.<a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a></h3>
+<h2>CurlResult.ParseJson&lt;T&gt;() Method</h2>
+<p><b>Parse the JSON response into your C# class.</b></p>
+<p>The most common operation - turning JSON into objects. This method uses <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.json.jsonserializer" title="System.Text.Json.JsonSerializer">System.Text.Json.JsonSerializer</a> 
+             in .NET 6+ and <a href="https://learn.microsoft.com/en-us/dotnet/api/newtonsoft.json.jsonconvert" title="Newtonsoft.Json.JsonConvert">Newtonsoft.Json.JsonConvert</a> in .NET Standard 2.0 for maximum compatibility.</p>
+<p><b>Example:</b></p>
+<pre><code class="language-csharp">// Define your class matching the JSON structure
+public class User
+{
+    public string Name { get; set; }
+    public string Email { get; set; }
+    public int Id { get; set; }
+}
+
+// Parse the response
+var user = result.ParseJson&lt;User&gt;();
+Console.WriteLine($&quot;Hello {user.Name}!&quot;);
+
+// Or parse arrays
+var users = result.ParseJson&lt;List&lt;User&gt;&gt;();
+Console.WriteLine($&quot;Found {users.Count} users&quot;);
+</code></pre>
+<p><b>Tip:</b> Use <a href="https://json2csharp.com">https://json2csharp.com</a> to generate C# classes from JSON!</p>
+<pre><code class="language-csharp">public T ParseJson&lt;T&gt;();
+</code></pre>
+<h4>Type parameters</h4>
+<p><a name='CurlDotNet.Core.CurlResult.ParseJson_T_().T'></a></p>
+<p><code>T</code></p>
+<p>The type to deserialize to. Must match the JSON structure. Can be a class, struct, or collection type like <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1" title="System.Collections.Generic.List`1">System.Collections.Generic.List&lt;&gt;</a> or <a href="https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.dictionary-2" title="System.Collections.Generic.Dictionary`2">System.Collections.Generic.Dictionary&lt;&gt;</a>.</p>
+<h4>Returns</h4>
+<p><a href="CurlDotNet.Core.CurlResult.ParseJson_T_().md#CurlDotNet.Core.CurlResult.ParseJson_T_().T" title="CurlDotNet.Core.CurlResult.ParseJson&lt;T&gt;().T">T</a><br>An instance of <a href="CurlDotNet.Core.CurlResult.ParseJson_T_().md#CurlDotNet.Core.CurlResult.ParseJson_T_().T" title="CurlDotNet.Core.CurlResult.ParseJson&lt;T&gt;().T">T</a> with data from the JSON <a href="CurlDotNet.Core.CurlResult.Body.md" title="CurlDotNet.Core.CurlResult.Body">Body</a>.</p>
+<h4>Exceptions</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.argumentnullexception" title="System.ArgumentNullException">System.ArgumentNullException</a><br>Thrown when <a href="CurlDotNet.Core.CurlResult.Body.md" title="CurlDotNet.Core.CurlResult.Body">Body</a> is null or empty.</p>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.invalidoperationexception" title="System.InvalidOperationException">System.InvalidOperationException</a><br>Thrown when JSON deserialization fails or JSON doesn&#39;t match type <a href="CurlDotNet.Core.CurlResult.ParseJson_T_().md#CurlDotNet.Core.CurlResult.ParseJson_T_().T" title="CurlDotNet.Core.CurlResult.ParseJson&lt;T&gt;().T">T</a>.</p>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/jsonexception" title="JsonException">JsonException</a><br>Thrown when the JSON syntax is invalid. See <a href="https://learn.microsoft.com/en-us/dotnet/api/system.exception.innerexception" title="System.Exception.InnerException">System.Exception.InnerException</a> for details.</p>
+<h3>Remarks</h3>
+<p>This method automatically detects whether to use System.Text.Json or Newtonsoft.Json based on the target framework.</p>
+<p>For complex JSON structures, consider using <a href="CurlDotNet.Core.CurlResult.AsJsonDynamic().md" title="CurlDotNet.Core.CurlResult.AsJsonDynamic()">AsJsonDynamic()</a> for exploration, then creating a typed class.</p>
+<p>If T doesn&#39;t match the JSON structure, properties that don&#39;t match will be left at their default values.</p>
+<h3>See Also</h3>
+<ul>
+<li><a href="CurlDotNet.Core.CurlResult.AsJson_T_().md" title="CurlDotNet.Core.CurlResult.AsJson&lt;T&gt;()">Alternative method name for parsing JSON</a></li>
+<li><a href="CurlDotNet.Core.CurlResult.AsJsonDynamic().md" title="CurlDotNet.Core.CurlResult.AsJsonDynamic()">Parse JSON as dynamic object without a class</a></li>
+<li><a href="CurlDotNet.Core.CurlResult.Body.md" title="CurlDotNet.Core.CurlResult.Body">The JSON string being parsed</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

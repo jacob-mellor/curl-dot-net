@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Curl.DownloadAsync(string,string) | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.md" title="CurlDotNet">CurlDotNet</a>.<a href="CurlDotNet.Curl.md" title="CurlDotNet.Curl">Curl</a></h3>
+<h2>Curl.DownloadAsync(string, string) Method</h2>
+<p><b>Download a file from a URL and save it to disk.</b></p>
+<p>Downloads any file and saves it to the specified path. Shows progress if the file is large.</p>
+<p><b>Example:</b></p>
+<pre><code class="language-csharp">// Download a PDF
+await Curl.Download(
+    &quot;https://example.com/manual.pdf&quot;,
+    @&quot;C:\Downloads\manual.pdf&quot;
+);
+
+// Download with original filename
+await Curl.Download(
+    &quot;https://example.com/installer.exe&quot;,
+    @&quot;C:\Downloads\installer.exe&quot;
+);
+
+Console.WriteLine(&quot;Download complete!&quot;);
+</code></pre>
+<p><b>With Error Handling:</b></p>
+<pre><code class="language-csharp">try
+{
+    await Curl.Download(url, &quot;output.zip&quot;);
+    Console.WriteLine(&quot;✅ Download successful&quot;);
+}
+catch (CurlHttpException ex) when (ex.StatusCode == 404)
+{
+    Console.WriteLine(&quot;❌ File not found&quot;);
+}
+catch (Exception ex)
+{
+    Console.WriteLine($&quot;❌ Download failed: {ex.Message}&quot;);
+}
+</code></pre>
+<pre><code class="language-csharp">public static System.Threading.Tasks.Task&lt;CurlDotNet.Core.CurlResult&gt; DownloadAsync(string url, string outputPath);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Curl.DownloadAsync(string,string).url'></a></p>
+<p><code>url</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>The URL of the file to download.</p>
+<p><a name='CurlDotNet.Curl.DownloadAsync(string,string).outputPath'></a></p>
+<p><code>outputPath</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>Where to save the file. Can be:</p>
+<ul>
+<li>Full path: <code>@&quot;C:\Downloads\file.pdf&quot;</code></li>
+<li>Relative path: <code>&quot;downloads/file.pdf&quot;</code></li>
+<li>Just filename: <code>&quot;file.pdf&quot;</code> (saves to current directory)</li>
+</ul>
+<h4>Returns</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">System.Threading.Tasks.Task&lt;</a><a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a><a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1" title="System.Threading.Tasks.Task`1">&gt;</a><br>A <a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a> with download information.</p>
+<h3>Remarks</h3>
+<p>This is equivalent to: <code>Curl.Execute($&quot;curl -o {outputPath} {url}&quot;)</code></p>
+<p>For large files with progress, use <a href="CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string,CurlDotNet.Core.CurlSettings)" title="CurlDotNet.Curl.Execute(string, CurlDotNet.Core.CurlSettings)">Execute(string, CurlSettings)</a> with OnProgress callback.</p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

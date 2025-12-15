@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirect Handling Errors | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Redirect Handling Errors</h1>
+<h2>Overview</h2>
+<p>Redirect errors occur when CurlDotNet encounters too many HTTP redirects or gets stuck in a redirect loop. By default, curl follows up to 50 redirects, but this can be configured.</p>
+<h2>Common Error Scenarios</h2>
+<h3>1. Redirect Loops</h3>
+<p><strong>Problem:</strong> The server redirects in a circular pattern (A → B → C → A).</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>Misconfigured web server</li>
+<li>Incorrect rewrite rules</li>
+<li>Authentication redirect loops</li>
+<li>Protocol switching loops (HTTP ↔ HTTPS)</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<pre><code class="language-csharp">try
+{
+    var result = await curl.ExecuteAsync(&quot;curl -L https://example.com/page&quot;);
+}
+catch (CurlRedirectException ex)
+{
+    Console.WriteLine($&quot;Redirect loop detected after {ex.RedirectCount} redirects&quot;);
+    Console.WriteLine($&quot;Last URL: {ex.LastUrl}&quot;);
+
+    // Try with limited redirects
+    result = await curl.ExecuteAsync(&quot;curl --max-redirs 5 https://example.com/page&quot;);
+
+    // Or don&#39;t follow redirects at all
+    result = await curl.ExecuteAsync(&quot;curl https://example.com/page&quot;); // No -L flag
+}
+</code></pre>
+<h3>2. Excessive Redirect Chains</h3>
+<p><strong>Problem:</strong> Server uses long chains of redirects (more than necessary).</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>URL shortener chains</li>
+<li>Tracking redirects</li>
+<li>Load balancer redirects</li>
+<li>CDN redirects</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<pre><code class="language-csharp">// Limit redirect count
+var maxRedirects = 10;
+var result = await curl.ExecuteAsync($&quot;curl --max-redirs {maxRedirects} -L {url}&quot;);
+
+// Or handle redirects manually
+var response = await curl.ExecuteAsync(&quot;curl -I &quot; + url); // Get headers only
+if (response.Headers.ContainsKey(&quot;Location&quot;))
+{
+    var newUrl = response.Headers[&quot;Location&quot;];
+    // Manually follow with control
+    result = await curl.ExecuteAsync($&quot;curl {newUrl}&quot;);
+}
+</code></pre>
+<h3>3. Cross-Domain Redirect Issues</h3>
+<p><strong>Problem:</strong> Redirects across different domains cause security or cookie issues.</p>
+<p><strong>Common Causes:</strong></p>
+<ul>
+<li>OAuth flows</li>
+<li>Payment gateways</li>
+<li>SSO systems</li>
+<li>CDN redirects</li>
+</ul>
+<p><strong>Solutions:</strong></p>
+<pre><code class="language-csharp">// Follow redirects but be aware of domain changes
+public async Task&lt;CurlResult&gt; FollowRedirectsCarefully(string url)
+{
+    var curl = new Curl();
+    var visitedUrls = new HashSet&lt;string&gt;();
+    var currentUrl = url;
+    var redirectCount = 0;
+    var maxRedirects = 10;
+
+    while (redirectCount &lt; maxRedirects)
+    {
+        if (visitedUrls.Contains(currentUrl))
+        {
+            throw new Exception($&quot;Redirect loop detected at: {currentUrl}&quot;);
+        }
+        visitedUrls.Add(currentUrl);
+
+        // Get headers only
+        var result = await curl.ExecuteAsync($&quot;curl -I {currentUrl}&quot;);
+
+        // Check for redirect
+        if (result.StatusCode &gt;= 300 &amp;&amp; result.StatusCode &lt; 400)
+        {
+            var location = result.Headers[&quot;Location&quot;];
+            Console.WriteLine($&quot;Redirecting from {currentUrl} to {location}&quot;);
+            currentUrl = location;
+            redirectCount++;
+        }
+        else
+        {
+            // Final request
+            return await curl.ExecuteAsync($&quot;curl {currentUrl}&quot;);
+        }
+    }
+
+    throw new CurlRedirectException($&quot;Too many redirects&quot;, redirectCount, currentUrl);
+}
+</code></pre>
+<h2>Best Practices</h2>
+<h3>1. Smart Redirect Handling</h3>
+<pre><code class="language-csharp">public class SmartRedirectHandler
+{
+    private readonly int _maxRedirects;
+    private readonly bool _followHttps;
+
+    public SmartRedirectHandler(int maxRedirects = 10, bool followHttpsOnly = true)
+    {
+        _maxRedirects = maxRedirects;
+        _followHttps = followHttpsOnly;
+    }
+
+    public async Task&lt;CurlResult&gt; Execute(string url)
+    {
+        var curl = new Curl();
+
+        // First, check without following redirects
+        var checkResult = await curl.ExecuteAsync($&quot;curl -I {url}&quot;);
+
+        if (checkResult.StatusCode &gt;= 300 &amp;&amp; checkResult.StatusCode &lt; 400)
+        {
+            var location = checkResult.Headers[&quot;Location&quot;];
+
+            // Security check: only follow HTTPS redirects if configured
+            if (_followHttps &amp;&amp; !location.StartsWith(&quot;https://&quot;))
+            {
+                throw new SecurityException($&quot;Refusing to follow non-HTTPS redirect: {location}&quot;);
+            }
+
+            // Follow with limit
+            return await curl.ExecuteAsync($&quot;curl --max-redirs {_maxRedirects} -L {url}&quot;);
+        }
+
+        return await curl.ExecuteAsync($&quot;curl {url}&quot;);
+    }
+}
+</code></pre>
+<h3>2. Redirect Chain Analysis</h3>
+<pre><code class="language-csharp">public class RedirectChainAnalyzer
+{
+    public class RedirectInfo
+    {
+        public string From { get; set; }
+        public string To { get; set; }
+        public int StatusCode { get; set; }
+        public TimeSpan Duration { get; set; }
+    }
+
+    public async Task&lt;List&lt;RedirectInfo&gt;&gt; AnalyzeRedirectChain(string url)
+    {
+        var chain = new List&lt;RedirectInfo&gt;();
+        var curl = new Curl();
+        var currentUrl = url;
+        var maxRedirects = 20;
+
+        for (int i = 0; i &lt; maxRedirects; i++)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            var result = await curl.ExecuteAsync($&quot;curl -I {currentUrl}&quot;);
+            stopwatch.Stop();
+
+            if (result.StatusCode &gt;= 300 &amp;&amp; result.StatusCode &lt; 400)
+            {
+                var location = result.Headers[&quot;Location&quot;];
+                chain.Add(new RedirectInfo
+                {
+                    From = currentUrl,
+                    To = location,
+                    StatusCode = result.StatusCode,
+                    Duration = stopwatch.Elapsed
+                });
+                currentUrl = location;
+            }
+            else
+            {
+                break; // No more redirects
+            }
+        }
+
+        return chain;
+    }
+
+    public void PrintChain(List&lt;RedirectInfo&gt; chain)
+    {
+        Console.WriteLine(&quot;Redirect Chain Analysis:&quot;);
+        Console.WriteLine(&quot;========================&quot;);
+        foreach (var redirect in chain)
+        {
+            Console.WriteLine($&quot;{redirect.StatusCode}: {redirect.From}&quot;);
+            Console.WriteLine($&quot;  → {redirect.To}&quot;);
+            Console.WriteLine($&quot;  Time: {redirect.Duration.TotalMilliseconds}ms&quot;);
+        }
+        Console.WriteLine($&quot;Total redirects: {chain.Count}&quot;);
+    }
+}
+</code></pre>
+<h2>Debugging Tips</h2>
+<h3>1. Trace Redirect Path</h3>
+<pre><code class="language-csharp">// Use verbose mode to see all redirects
+var result = await curl.ExecuteAsync(&quot;curl -v -L --max-redirs 10 &quot; + url);
+// Parse stderr for redirect information
+</code></pre>
+<h3>2. Detect Redirect Type</h3>
+<pre><code class="language-csharp">public static string GetRedirectType(int statusCode)
+{
+    return statusCode switch
+    {
+        301 =&gt; &quot;Moved Permanently&quot;,
+        302 =&gt; &quot;Found (Temporary)&quot;,
+        303 =&gt; &quot;See Other&quot;,
+        304 =&gt; &quot;Not Modified&quot;,
+        307 =&gt; &quot;Temporary Redirect&quot;,
+        308 =&gt; &quot;Permanent Redirect&quot;,
+        _ =&gt; &quot;Unknown&quot;
+    };
+}
+</code></pre>
+<h3>3. Common Redirect Patterns</h3>
+<pre><code class="language-csharp">public class RedirectPatternDetector
+{
+    public enum RedirectPattern
+    {
+        None,
+        HttpToHttps,
+        WwwRedirect,
+        TrailingSlash,
+        AuthenticationFlow,
+        Loop,
+        Chain
+    }
+
+    public RedirectPattern DetectPattern(List&lt;string&gt; urlChain)
+    {
+        if (urlChain.Count &lt; 2) return RedirectPattern.None;
+
+        // Check for loops
+        if (urlChain.Distinct().Count() != urlChain.Count)
+            return RedirectPattern.Loop;
+
+        // Check for HTTP to HTTPS
+        if (urlChain[0].StartsWith(&quot;http://&quot;) &amp;&amp; urlChain[1].StartsWith(&quot;https://&quot;))
+            return RedirectPattern.HttpToHttps;
+
+        // Check for www redirect
+        var first = new Uri(urlChain[0]);
+        var second = new Uri(urlChain[1]);
+        if (first.Host.StartsWith(&quot;www.&quot;) != second.Host.StartsWith(&quot;www.&quot;))
+            return RedirectPattern.WwwRedirect;
+
+        // Check for trailing slash
+        if (first.AbsolutePath + &quot;/&quot; == second.AbsolutePath)
+            return RedirectPattern.TrailingSlash;
+
+        return RedirectPattern.Chain;
+    }
+}
+</code></pre>
+<h2>Configuration Options</h2>
+<h3>Curl Redirect Options</h3>
+<pre><code class="language-csharp">// Different redirect handling strategies
+public class RedirectOptions
+{
+    // Follow all redirects (default limit: 50)
+    public async Task&lt;CurlResult&gt; FollowAll(string url)
+        =&gt; await curl.ExecuteAsync($&quot;curl -L {url}&quot;);
+
+    // Follow with custom limit
+    public async Task&lt;CurlResult&gt; FollowLimited(string url, int limit)
+        =&gt; await curl.ExecuteAsync($&quot;curl -L --max-redirs {limit} {url}&quot;);
+
+    // Don&#39;t follow redirects
+    public async Task&lt;CurlResult&gt; NoFollow(string url)
+        =&gt; await curl.ExecuteAsync($&quot;curl {url}&quot;);
+
+    // Follow and preserve method (307/308 compliance)
+    public async Task&lt;CurlResult&gt; FollowPreserveMethod(string url)
+        =&gt; await curl.ExecuteAsync($&quot;curl -L --post301 --post302 --post303 {url}&quot;);
+}
+</code></pre>
+<h2>Related Documentation</h2>
+<ul>
+<li><a href="http-errors.html">HTTP Error Handling</a></li>
+<li><a href="dns-errors.html">DNS Errors</a></li>
+<li><a href="timeout-errors.html">Timeout Errors</a></li>
+<li><a href="/api/CurlDotNet.Exceptions.CurlRedirectException.html">CurlDotNet Redirect API Reference</a></li>
+</ul>
+<h2>Error Prevention Checklist</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Set reasonable redirect limits (5-10 for most cases)</li>
+<li><input disabled="" type="checkbox"> Implement loop detection for manual redirect following</li>
+<li><input disabled="" type="checkbox"> Log redirect chains for debugging</li>
+<li><input disabled="" type="checkbox"> Consider security implications of cross-domain redirects</li>
+<li><input disabled="" type="checkbox"> Handle protocol changes (HTTP to HTTPS) appropriately</li>
+<li><input disabled="" type="checkbox"> Test with various redirect scenarios</li>
+<li><input disabled="" type="checkbox"> Monitor redirect performance impact</li>
+<li><input disabled="" type="checkbox"> Implement timeout for redirect chains</li>
+<li><input disabled="" type="checkbox"> Validate final destination URLs</li>
+<li><input disabled="" type="checkbox"> Consider caching redirect destinations</li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

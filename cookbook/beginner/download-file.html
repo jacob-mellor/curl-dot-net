@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe: Download Files | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Recipe: Download Files</h1>
+<h2>🎯 What You&#39;ll Build</h2>
+<p>Programs that download files from the internet - documents, images, videos, archives, and more.</p>
+<h2>🥘 Ingredients</h2>
+<ul>
+<li>CurlDotNet package</li>
+<li>Internet connection</li>
+<li>10 minutes</li>
+</ul>
+<h2>📖 The Recipe</h2>
+<h3>Step 1: Simple Download</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class Program
+{
+    static async Task Main()
+    {
+        Console.WriteLine(&quot;Downloading file...&quot;);
+
+        // Download and save directly to file
+        var result = await Curl.ExecuteAsync(
+            &quot;curl -o image.jpg https://picsum.photos/400/300&quot;
+        );
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ File downloaded successfully!&quot;);
+            Console.WriteLine(&quot;✓ Saved as: image.jpg&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Step 2: Download with Progress</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class DownloadWithProgress
+{
+    static async Task Main()
+    {
+        Console.WriteLine(&quot;Downloading large file with progress...\n&quot;);
+
+        var result = await Curl.ExecuteAsync(
+            &quot;curl -o file.zip https://example.com/largefile.zip --progress-bar&quot;
+        );
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine($&quot;\n✓ Downloaded: {result.Body.Length} bytes&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>🍳 Complete Examples</h2>
+<h3>Example 1: Download Image</h3>
+<pre><code class="language-csharp">using System;
+using System.IO;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class ImageDownloader
+{
+    static async Task Main()
+    {
+        string imageUrl = &quot;https://picsum.photos/800/600&quot;;
+        string outputPath = &quot;downloaded-image.jpg&quot;;
+
+        Console.WriteLine($&quot;Downloading from {imageUrl}...&quot;);
+
+        try
+        {
+            var result = await Curl.ExecuteAsync($&quot;curl -o {outputPath} {imageUrl}&quot;);
+
+            if (result.IsSuccess)
+            {
+                var fileInfo = new FileInfo(outputPath);
+                Console.WriteLine($&quot;✓ Image downloaded!&quot;);
+                Console.WriteLine($&quot;✓ Size: {fileInfo.Length:N0} bytes&quot;);
+                Console.WriteLine($&quot;✓ Location: {fileInfo.FullName}&quot;);
+            }
+            else
+            {
+                Console.WriteLine($&quot;✗ Download failed: {result.StatusCode}&quot;);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($&quot;✗ Error: {ex.Message}&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 2: Download PDF Document</h3>
+<pre><code class="language-csharp">using System;
+using System.IO;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class PdfDownloader
+{
+    static async Task Main()
+    {
+        string pdfUrl = &quot;https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf&quot;;
+        string filename = &quot;document.pdf&quot;;
+
+        Console.WriteLine(&quot;Downloading PDF document...&quot;);
+
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -o {filename} \
+                 -L \
+                 {pdfUrl}
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            var fileInfo = new FileInfo(filename);
+
+            Console.WriteLine(&quot;✓ PDF downloaded successfully!&quot;);
+            Console.WriteLine($&quot;  File: {fileInfo.Name}&quot;);
+            Console.WriteLine($&quot;  Size: {fileInfo.Length:N0} bytes&quot;);
+            Console.WriteLine($&quot;  Path: {fileInfo.FullName}&quot;);
+
+            // Verify it&#39;s a PDF
+            if (fileInfo.Extension.ToLower() == &quot;.pdf&quot;)
+            {
+                Console.WriteLine(&quot;  Type: ✓ Valid PDF file&quot;);
+            }
+        }
+    }
+}
+</code></pre>
+<h3>Example 3: Download to Memory (Then Save)</h3>
+<pre><code class="language-csharp">using System;
+using System.IO;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class DownloadToMemory
+{
+    static async Task Main()
+    {
+        string url = &quot;https://httpbin.org/image/jpeg&quot;;
+
+        Console.WriteLine(&quot;Downloading to memory...&quot;);
+
+        // Download to memory (don&#39;t use -o flag)
+        var result = await Curl.ExecuteAsync($&quot;curl {url}&quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine($&quot;✓ Downloaded {result.Body.Length} bytes&quot;);
+
+            // Now save to file
+            string filename = &quot;image-from-memory.jpg&quot;;
+            result.SaveToFile(filename);
+
+            Console.WriteLine($&quot;✓ Saved to {filename}&quot;);
+
+            // Or save with custom logic
+            await File.WriteAllTextAsync(&quot;custom-save.jpg&quot;, result.Body);
+            Console.WriteLine(&quot;✓ Also saved with custom logic&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 4: Download Multiple Files</h3>
+<pre><code class="language-csharp">using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class MultipleDownloader
+{
+    static async Task Main()
+    {
+        var downloads = new Dictionary&lt;string, string&gt;
+        {
+            [&quot;image1.jpg&quot;] = &quot;https://picsum.photos/400/300?random=1&quot;,
+            [&quot;image2.jpg&quot;] = &quot;https://picsum.photos/400/300?random=2&quot;,
+            [&quot;image3.jpg&quot;] = &quot;https://picsum.photos/400/300?random=3&quot;,
+            [&quot;document.pdf&quot;] = &quot;https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf&quot;
+        };
+
+        Console.WriteLine($&quot;Downloading {downloads.Count} files...\n&quot;);
+
+        int success = 0;
+        int failed = 0;
+
+        foreach (var download in downloads)
+        {
+            string filename = download.Key;
+            string url = download.Value;
+
+            Console.Write($&quot;Downloading {filename}... &quot;);
+
+            try
+            {
+                var result = await Curl.ExecuteAsync($&quot;curl -o {filename} {url}&quot;);
+
+                if (result.IsSuccess)
+                {
+                    var fileInfo = new FileInfo(filename);
+                    Console.WriteLine($&quot;✓ ({fileInfo.Length:N0} bytes)&quot;);
+                    success++;
+                }
+                else
+                {
+                    Console.WriteLine($&quot;✗ (Status: {result.StatusCode})&quot;);
+                    failed++;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($&quot;✗ (Error: {ex.Message})&quot;);
+                failed++;
+            }
+        }
+
+        Console.WriteLine($&quot;\nResults: {success} succeeded, {failed} failed&quot;);
+    }
+}
+</code></pre>
+<h3>Example 5: Resume Interrupted Download</h3>
+<pre><code class="language-csharp">using System;
+using System.IO;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class ResumableDownload
+{
+    static async Task DownloadWithResume(string url, string filename)
+    {
+        var fileInfo = new FileInfo(filename);
+
+        if (fileInfo.Exists)
+        {
+            Console.WriteLine($&quot;Found partial file ({fileInfo.Length} bytes)&quot;);
+            Console.WriteLine(&quot;Attempting to resume...&quot;);
+
+            // Resume download from where it left off
+            var result = await Curl.ExecuteAsync($@&quot;
+                curl -o {filename} \
+                     -C - \
+                     {url}
+            &quot;);
+
+            if (result.IsSuccess)
+            {
+                Console.WriteLine(&quot;✓ Download resumed and completed!&quot;);
+            }
+        }
+        else
+        {
+            Console.WriteLine(&quot;Starting fresh download...&quot;);
+
+            var result = await Curl.ExecuteAsync($&quot;curl -o {filename} {url}&quot;);
+
+            if (result.IsSuccess)
+            {
+                Console.WriteLine(&quot;✓ Download completed!&quot;);
+            }
+        }
+    }
+
+    static async Task Main()
+    {
+        string url = &quot;https://speed.hetzner.de/100MB.bin&quot;; // Large test file
+        string filename = &quot;large-file.bin&quot;;
+
+        await DownloadWithResume(url, filename);
+
+        var fileInfo = new FileInfo(filename);
+        Console.WriteLine($&quot;Final size: {fileInfo.Length:N0} bytes&quot;);
+    }
+}
+</code></pre>
+<h3>Example 6: Download with Authentication</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class AuthenticatedDownload
+{
+    static async Task Main()
+    {
+        string apiToken = Environment.GetEnvironmentVariable(&quot;API_TOKEN&quot;);
+        string fileUrl = &quot;https://api.example.com/files/report.pdf&quot;;
+        string outputFile = &quot;report.pdf&quot;;
+
+        Console.WriteLine(&quot;Downloading protected file...&quot;);
+
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -o {outputFile} \
+                 -H &#39;Authorization: Bearer {apiToken}&#39; \
+                 {fileUrl}
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ Protected file downloaded successfully!&quot;);
+        }
+        else if (result.StatusCode == 401)
+        {
+            Console.WriteLine(&quot;✗ Authentication failed. Check your token.&quot;);
+        }
+        else if (result.StatusCode == 403)
+        {
+            Console.WriteLine(&quot;✗ Access forbidden. You don&#39;t have permission.&quot;);
+        }
+        else
+        {
+            Console.WriteLine($&quot;✗ Download failed: {result.StatusCode}&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 7: Download with Custom Headers</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class CustomHeaderDownload
+{
+    static async Task Main()
+    {
+        string url = &quot;https://api.example.com/files/data.csv&quot;;
+        string filename = &quot;data.csv&quot;;
+
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -o {filename} \
+                 -H &#39;Accept: text/csv&#39; \
+                 -H &#39;User-Agent: MyApp/1.0&#39; \
+                 -H &#39;X-API-Key: your-api-key&#39; \
+                 {url}
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ File downloaded with custom headers!&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>🎨 Variations</h2>
+<h3>Using Different Output Options</h3>
+<pre><code class="language-csharp">// Save to specific file
+var result = await Curl.ExecuteAsync(&quot;curl -o output.jpg https://example.com/image.jpg&quot;);
+
+// Save with remote filename
+var result = await Curl.ExecuteAsync(&quot;curl -O https://example.com/image.jpg&quot;);
+// Creates: image.jpg
+
+// Save to directory
+var result = await Curl.ExecuteAsync(&quot;curl -o downloads/file.zip https://example.com/file.zip&quot;);
+</code></pre>
+<h3>Following Redirects</h3>
+<pre><code class="language-csharp">// Many download links redirect - use -L to follow
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -L -o file.zip https://bit.ly/shortened-link
+&quot;);
+</code></pre>
+<h3>Setting Timeout for Large Files</h3>
+<pre><code class="language-csharp">// Increase timeout for large downloads
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -o large-file.iso \
+         --connect-timeout 30 \
+         --max-time 3600 \
+         https://example.com/large-file.iso
+&quot;);
+</code></pre>
+<h3>Download with Retry</h3>
+<pre><code class="language-csharp">// Retry on failure
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -o file.zip \
+         --retry 3 \
+         --retry-delay 5 \
+         https://example.com/file.zip
+&quot;);
+</code></pre>
+<h3>Limit Download Speed</h3>
+<pre><code class="language-csharp">// Limit to 1MB/s
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -o file.zip \
+         --limit-rate 1M \
+         https://example.com/file.zip
+&quot;);
+</code></pre>
+<h2>🔧 Checking File Properties</h2>
+<h3>Verify Downloaded File</h3>
+<pre><code class="language-csharp">using System;
+using System.IO;
+using System.Security.Cryptography;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class VerifyDownload
+{
+    static async Task Main()
+    {
+        string url = &quot;https://example.com/file.zip&quot;;
+        string filename = &quot;file.zip&quot;;
+        string expectedMd5 = &quot;5d41402abc4b2a76b9719d911017c592&quot;;
+
+        // Download
+        var result = await Curl.ExecuteAsync($&quot;curl -o {filename} {url}&quot;);
+
+        if (result.IsSuccess)
+        {
+            var fileInfo = new FileInfo(filename);
+
+            // Check if file exists
+            if (fileInfo.Exists)
+            {
+                Console.WriteLine($&quot;✓ File exists: {fileInfo.Name}&quot;);
+                Console.WriteLine($&quot;✓ Size: {fileInfo.Length:N0} bytes&quot;);
+
+                // Verify MD5 checksum
+                using var md5 = MD5.Create();
+                using var stream = File.OpenRead(filename);
+                var hash = md5.ComputeHash(stream);
+                var hashString = BitConverter.ToString(hash).Replace(&quot;-&quot;, &quot;&quot;).ToLower();
+
+                if (hashString == expectedMd5)
+                {
+                    Console.WriteLine(&quot;✓ Checksum verified!&quot;);
+                }
+                else
+                {
+                    Console.WriteLine(&quot;✗ Checksum mismatch!&quot;);
+                    Console.WriteLine($&quot;  Expected: {expectedMd5}&quot;);
+                    Console.WriteLine($&quot;  Got: {hashString}&quot;);
+                }
+            }
+        }
+    }
+}
+</code></pre>
+<h2>🐛 Troubleshooting</h2>
+<h3>Problem: File Not Downloaded</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl -o file.jpg https://example.com/file.jpg&quot;);
+
+// Check result
+if (!result.IsSuccess)
+{
+    Console.WriteLine($&quot;Download failed: {result.StatusCode}&quot;);
+    Console.WriteLine($&quot;Response: {result.Body}&quot;);
+}
+
+// Check if file exists
+if (File.Exists(&quot;file.jpg&quot;))
+{
+    Console.WriteLine(&quot;✓ File created&quot;);
+}
+else
+{
+    Console.WriteLine(&quot;✗ File not created&quot;);
+}
+</code></pre>
+<p>For more details, see our <a href="../../troubleshooting/common-issues.md#http-errors">HTTP error troubleshooting guide</a>.</p>
+<h3>Problem: Partial Download</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-csharp">// Check file size
+var fileInfo = new FileInfo(&quot;file.zip&quot;);
+Console.WriteLine($&quot;Downloaded: {fileInfo.Length:N0} bytes&quot;);
+
+// Resume if incomplete
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -o file.zip \
+         -C - \
+         https://example.com/file.zip
+&quot;);
+</code></pre>
+<h3>Problem: Timeout on Large Files</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-csharp">// Increase timeout
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -o large-file.iso \
+         --max-time 7200 \
+         https://example.com/large-file.iso
+&quot;);
+</code></pre>
+<p>For more details, see our <a href="../../troubleshooting/common-issues.md#timeout-errors">timeout troubleshooting guide</a>.</p>
+<h3>Problem: Permission Denied</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-csharp">// Make sure you have write permission in the directory
+string downloadPath = Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+    &quot;Downloads&quot;,
+    &quot;file.zip&quot;
+);
+
+// Ensure directory exists
+Directory.CreateDirectory(Path.GetDirectoryName(downloadPath));
+
+var result = await Curl.ExecuteAsync($&quot;curl -o {downloadPath} https://example.com/file.zip&quot;);
+</code></pre>
+<h3>Problem: Corrupted Download</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-csharp">// Always verify downloads
+string url = &quot;https://example.com/file.zip&quot;;
+string filename = &quot;file.zip&quot;;
+long expectedSize = 1024000; // Expected size in bytes
+
+var result = await Curl.ExecuteAsync($&quot;curl -o {filename} {url}&quot;);
+
+if (result.IsSuccess)
+{
+    var fileInfo = new FileInfo(filename);
+
+    if (fileInfo.Length == expectedSize)
+    {
+        Console.WriteLine(&quot;✓ File size correct&quot;);
+    }
+    else
+    {
+        Console.WriteLine($&quot;✗ Size mismatch! Expected {expectedSize}, got {fileInfo.Length}&quot;);
+        Console.WriteLine(&quot;Retrying download...&quot;);
+
+        // Delete and retry
+        File.Delete(filename);
+        await Curl.ExecuteAsync($&quot;curl -o {filename} {url}&quot;);
+    }
+}
+</code></pre>
+<h2>📊 Download Progress Tracking</h2>
+<h3>Basic Progress</h3>
+<pre><code class="language-csharp">using System;
+using System.IO;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class ProgressDownload
+{
+    static async Task DownloadWithProgress(string url, string filename)
+    {
+        Console.WriteLine(&quot;Starting download...&quot;);
+
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -o {filename} \
+                 --progress-bar \
+                 {url}
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            var fileInfo = new FileInfo(filename);
+            Console.WriteLine($&quot;\n✓ Downloaded {fileInfo.Length:N0} bytes&quot;);
+        }
+    }
+
+    static async Task Main()
+    {
+        await DownloadWithProgress(
+            &quot;https://speed.hetzner.de/10MB.bin&quot;,
+            &quot;test-file.bin&quot;
+        );
+    }
+}
+</code></pre>
+<h2>🎓 Best Practices</h2>
+<h3>1. Always Check If Download Succeeded</h3>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl -o file.jpg https://example.com/file.jpg&quot;);
+
+if (result.IsSuccess)
+{
+    // Verify file exists and has content
+    var fileInfo = new FileInfo(&quot;file.jpg&quot;);
+    if (fileInfo.Exists &amp;&amp; fileInfo.Length &gt; 0)
+    {
+        Console.WriteLine(&quot;✓ Download successful&quot;);
+    }
+    else
+    {
+        Console.WriteLine(&quot;✗ File is empty or missing&quot;);
+    }
+}
+</code></pre>
+<h3>2. Handle Network Errors</h3>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(&quot;curl -o file.zip https://example.com/file.zip&quot;);
+}
+catch (CurlTimeoutException ex)
+{
+    Console.WriteLine(&quot;Download timed out - try again later&quot;);
+    // Documentation: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/common-issues.md#timeout-errors
+}
+catch (CurlException ex)
+{
+    Console.WriteLine($&quot;Download failed: {ex.Message}&quot;);
+    // Documentation: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/
+}
+</code></pre>
+<h3>3. Use Appropriate Timeouts</h3>
+<pre><code class="language-csharp">// Small files: 30 seconds
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -o small.txt \
+         --max-time 30 \
+         https://example.com/small.txt
+&quot;);
+
+// Large files: 1 hour
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -o large.iso \
+         --max-time 3600 \
+         https://example.com/large.iso
+&quot;);
+</code></pre>
+<h3>4. Clean Up on Failure</h3>
+<pre><code class="language-csharp">string filename = &quot;file.zip&quot;;
+
+try
+{
+    var result = await Curl.ExecuteAsync($&quot;curl -o {filename} https://example.com/file.zip&quot;);
+
+    if (!result.IsSuccess)
+    {
+        // Delete partial file
+        if (File.Exists(filename))
+        {
+            File.Delete(filename);
+        }
+    }
+}
+catch
+{
+    // Clean up on exception
+    if (File.Exists(filename))
+    {
+        File.Delete(filename);
+    }
+    throw;
+}
+</code></pre>
+<h3>5. Use Descriptive Filenames</h3>
+<pre><code class="language-csharp">// Bad: generic name
+var result = await Curl.ExecuteAsync(&quot;curl -o file.jpg https://example.com/image.jpg&quot;);
+
+// Good: descriptive name with timestamp
+string timestamp = DateTime.Now.ToString(&quot;yyyyMMdd-HHmmss&quot;);
+string filename = $&quot;report-{timestamp}.pdf&quot;;
+var result = await Curl.ExecuteAsync($&quot;curl -o {filename} https://example.com/report.pdf&quot;);
+</code></pre>
+<h2>🚀 Next Steps</h2>
+<p>Now that you can download files:</p>
+<ol>
+<li>Learn to <a href="upload-file.html">Upload Files</a></li>
+<li>Try <a href="post-form.html">POST Form Data</a></li>
+<li>Explore <a href="handle-errors.html">Error Handling</a></li>
+<li>Build <a href="call-api.html">API Client</a></li>
+</ol>
+<h2>📚 Related Recipes</h2>
+<ul>
+<li><a href="simple-get.html">Simple GET Request</a> - Basic HTTP requests</li>
+<li><a href="upload-file.html">Upload Files</a> - Sending files to servers</li>
+<li><a href="handle-errors.html">Handle Errors</a> - Robust error handling</li>
+<li><a href="post-form.html">POST Form Data</a> - Submitting forms</li>
+</ul>
+<h2>🎓 Key Takeaways</h2>
+<ul>
+<li>Use <code>-o filename</code> to save to a specific file</li>
+<li>Use <code>-O</code> to save with remote filename</li>
+<li>Use <code>-L</code> to follow redirects</li>
+<li>Use <code>-C -</code> to resume interrupted downloads</li>
+<li>Always verify downloaded files</li>
+<li>Set appropriate timeouts for large files</li>
+<li>Handle network errors gracefully</li>
+<li>Clean up partial downloads on failure</li>
+</ul>
+<h2>📖 Quick Reference</h2>
+<pre><code class="language-csharp">// Simple download
+await Curl.ExecuteAsync(&quot;curl -o file.jpg https://example.com/file.jpg&quot;);
+
+// Download with redirect
+await Curl.ExecuteAsync(&quot;curl -L -o file.zip https://example.com/file.zip&quot;);
+
+// Resume download
+await Curl.ExecuteAsync(&quot;curl -C - -o file.zip https://example.com/file.zip&quot;);
+
+// Download with timeout
+await Curl.ExecuteAsync(&quot;curl -o file.pdf --max-time 300 https://example.com/file.pdf&quot;);
+
+// Save to memory then file
+var result = await Curl.ExecuteAsync(&quot;curl https://example.com/file.jpg&quot;);
+result.SaveToFile(&quot;file.jpg&quot;);
+</code></pre>
+<hr>
+<p><strong>Need help?</strong> Check <a href="../../troubleshooting/common-issues.html">Troubleshooting</a> | <strong>Have questions?</strong> Ask in <a href="https://github.com/jacob-mellor/curl-dot-net/discussions">Discussions</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

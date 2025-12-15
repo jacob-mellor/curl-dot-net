@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Errors | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Authentication Errors</h1>
+<h2>Overview</h2>
+<p>Authentication errors occur when credentials are missing, invalid, or the authentication method is not supported.</p>
+<h2>Common Authentication Methods</h2>
+<h3>1. Basic Authentication</h3>
+<pre><code class="language-csharp">// Correct usage
+var result = await curl.ExecuteAsync(
+    &quot;curl -u username:password https://api.example.com&quot;
+);
+
+// Handle auth errors
+try
+{
+    var result = await curl.ExecuteAsync(&quot;curl https://api.example.com/protected&quot;);
+}
+catch (CurlAuthenticationException ex)
+{
+    Console.WriteLine($&quot;Auth failed: {ex.Message}&quot;);
+    // Retry with credentials
+    var result = await curl.ExecuteAsync(&quot;curl -u user:pass https://api.example.com/protected&quot;);
+}
+</code></pre>
+<h3>2. Bearer Token Authentication</h3>
+<pre><code class="language-csharp">var token = &quot;eyJhbGc...&quot;;
+var result = await curl.ExecuteAsync(
+    $&quot;curl -H \&quot;Authorization: Bearer {token}\&quot; https://api.example.com&quot;
+);
+</code></pre>
+<h3>3. API Key Authentication</h3>
+<pre><code class="language-csharp">var apiKey = &quot;your-api-key&quot;;
+var result = await curl.ExecuteAsync(
+    $&quot;curl -H \&quot;X-API-Key: {apiKey}\&quot; https://api.example.com&quot;
+);
+</code></pre>
+<h2>Solutions for Common Issues</h2>
+<h3>Invalid Credentials</h3>
+<ul>
+<li>Verify username/password</li>
+<li>Check for special characters that need escaping</li>
+<li>Ensure credentials haven&#39;t expired</li>
+</ul>
+<h3>Wrong Authentication Method</h3>
+<ul>
+<li>Check API documentation for required auth type</li>
+<li>Try different authentication headers</li>
+</ul>
+<h3>Token Expiration</h3>
+<pre><code class="language-csharp">public async Task&lt;CurlResult&gt; ExecuteWithTokenRefresh(string url)
+{
+    try
+    {
+        return await curl.ExecuteAsync($&quot;curl -H \&quot;Authorization: Bearer {_token}\&quot; {url}&quot;);
+    }
+    catch (CurlAuthenticationException)
+    {
+        _token = await RefreshToken();
+        return await curl.ExecuteAsync($&quot;curl -H \&quot;Authorization: Bearer {_token}\&quot; {url}&quot;);
+    }
+}
+</code></pre>
+<h2>Related Documentation</h2>
+<ul>
+<li><a href="http-errors.html">HTTP Errors</a></li>
+<li><a href="/guides/security.html">Security Best Practices</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

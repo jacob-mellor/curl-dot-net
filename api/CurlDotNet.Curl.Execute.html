@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Curl.Execute | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.md" title="CurlDotNet">CurlDotNet</a>.<a href="CurlDotNet.Curl.md" title="CurlDotNet.Curl">Curl</a></h3>
+<h2>Curl.Execute Method</h2>
+<table>
+<thead>
+<tr>
+<th align="left">Overloads</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string)" title="CurlDotNet.Curl.Execute(string)">Execute(string)</a></td>
+<td align="left"><b>⚠️ SYNCHRONOUS - Execute curl command and WAIT for it to complete (BLOCKS thread).</b>  This method BLOCKS your thread until the HTTP request completes. Your application              will FREEZE during this time. Only use when async is not possible.  <b>When to use SYNC (this method):</b>...  <b>Example - When sync is OK:</b>`...`  <b>⚠️ WARNING:</b> This blocks your thread. The application cannot do anything else              while waiting for the HTTP response. Use ExecuteAsync instead whenever possible!</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string,CurlDotNet.Core.CurlSettings)" title="CurlDotNet.Curl.Execute(string, CurlDotNet.Core.CurlSettings)">Execute(string, CurlSettings)</a></td>
+<td align="left"><b>⚠️ SYNCHRONOUS with settings - Blocks thread with advanced options.</b></td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string,System.Threading.CancellationToken)" title="CurlDotNet.Curl.Execute(string, System.Threading.CancellationToken)">Execute(string, CancellationToken)</a></td>
+<td align="left"><b>⚠️ SYNCHRONOUS with cancellation - Blocks thread but can be cancelled.</b>  Still BLOCKS your thread, but can be cancelled. Prefer ExecuteAsync with cancellation.`...`</td>
+</tr>
+</tbody></table>
+<p><a name='CurlDotNet.Curl.Execute(string)'></a></p>
+<h2>Curl.Execute(string) Method</h2>
+<p><b>⚠️ SYNCHRONOUS - Execute curl command and WAIT for it to complete (BLOCKS thread).</b></p>
+<p>This method BLOCKS your thread until the HTTP request completes. Your application
+             will FREEZE during this time. Only use when async is not possible.</p>
+<p><b>When to use SYNC (this method):</b></p>
+<ul>
+<li>⚠️ Console applications with simple flow</li>
+<li>⚠️ Legacy code that can&#39;t use async</li>
+<li>⚠️ Unit tests (sometimes)</li>
+<li>⚠️ Quick scripts or tools</li>
+<li>❌ NEVER in UI applications (will freeze)</li>
+<li>❌ NEVER in web applications (reduces throughput)</li>
+</ul>
+<p><b>Example - When sync is OK:</b></p>
+<pre><code class="language-csharp">// ✅ OK - Simple console app
+static void Main()
+{
+    var result = Curl.Execute(&quot;curl https://api.example.com&quot;);
+    Console.WriteLine(result.Body);
+}
+
+// ✅ OK - Unit test
+[Test]
+public void TestApi()
+{
+    var result = Curl.Execute(&quot;curl https://api.example.com&quot;);
+    Assert.AreEqual(200, result.StatusCode);
+}
+
+// ❌ BAD - Will freeze UI!
+private void Button_Click(object sender, EventArgs e)
+{
+    var result = Curl.Execute(&quot;curl https://api.example.com&quot;); // FREEZES UI!
+    textBox.Text = result.Body;
+}
+</code></pre>
+<p><b>⚠️ WARNING:</b> This blocks your thread. The application cannot do anything else
+             while waiting for the HTTP response. Use ExecuteAsync instead whenever possible!</p>
+<pre><code class="language-csharp">public static CurlDotNet.Core.CurlResult Execute(string command);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Curl.Execute(string).command'></a></p>
+<p><code>command</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p>The curl command to execute</p>
+<h4>Returns</h4>
+<p><a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a><br>The result (blocks until complete)</p>
+<p><a name='CurlDotNet.Curl.Execute(string,CurlDotNet.Core.CurlSettings)'></a></p>
+<h2>Curl.Execute(string, CurlSettings) Method</h2>
+<p><b>⚠️ SYNCHRONOUS with settings - Blocks thread with advanced options.</b></p>
+<pre><code class="language-csharp">public static CurlDotNet.Core.CurlResult Execute(string command, CurlDotNet.Core.CurlSettings settings);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Curl.Execute(string,CurlDotNet.Core.CurlSettings).command'></a></p>
+<p><code>command</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p><a name='CurlDotNet.Curl.Execute(string,CurlDotNet.Core.CurlSettings).settings'></a></p>
+<p><code>settings</code> <a href="CurlDotNet.Core.CurlSettings.md" title="CurlDotNet.Core.CurlSettings">CurlSettings</a></p>
+<h4>Returns</h4>
+<p><a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a></p>
+<p><a name='CurlDotNet.Curl.Execute(string,System.Threading.CancellationToken)'></a></p>
+<h2>Curl.Execute(string, CancellationToken) Method</h2>
+<p><b>⚠️ SYNCHRONOUS with cancellation - Blocks thread but can be cancelled.</b></p>
+<p>Still BLOCKS your thread, but can be cancelled. Prefer ExecuteAsync with cancellation.</p>
+<pre><code class="language-csharp">// Blocks thread but can timeout
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+var result = Curl.Execute(&quot;curl https://api.example.com&quot;, cts.Token);
+</code></pre>
+<pre><code class="language-csharp">public static CurlDotNet.Core.CurlResult Execute(string command, System.Threading.CancellationToken cancellationToken);
+</code></pre>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.Curl.Execute(string,System.Threading.CancellationToken).command'></a></p>
+<p><code>command</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.string" title="System.String">System.String</a></p>
+<p><a name='CurlDotNet.Curl.Execute(string,System.Threading.CancellationToken).cancellationToken'></a></p>
+<p><code>cancellationToken</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.threading.cancellationtoken" title="System.Threading.CancellationToken">System.Threading.CancellationToken</a></p>
+<h4>Returns</h4>
+<p><a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

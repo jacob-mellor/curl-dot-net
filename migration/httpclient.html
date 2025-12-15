@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migrating from HttpClient to CurlDotNet | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Migrating from HttpClient to CurlDotNet</h1>
+<p>This guide helps you migrate from <code>System.Net.Http.HttpClient</code> to CurlDotNet. While HttpClient is built into .NET, CurlDotNet offers simpler APIs, better error handling, and curl&#39;s proven reliability.</p>
+<h2>Key Differences</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>HttpClient</th>
+<th>CurlDotNet</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Initialization</td>
+<td>Complex setup with handlers</td>
+<td>Simple, ready to use</td>
+</tr>
+<tr>
+<td>Error Handling</td>
+<td>Exceptions + status codes</td>
+<td>Result pattern with clear errors</td>
+</tr>
+<tr>
+<td>Content Reading</td>
+<td>Multiple steps</td>
+<td>Direct access to data</td>
+</tr>
+<tr>
+<td>Default Behavior</td>
+<td>Must configure everything</td>
+<td>Sensible defaults</td>
+</tr>
+<tr>
+<td>curl Compatibility</td>
+<td>None</td>
+<td>100% compatible</td>
+</tr>
+</tbody></table>
+<h2>Basic Migration Examples</h2>
+<h3>Simple GET Request</h3>
+<p><strong>HttpClient:</strong></p>
+<pre><code class="language-csharp">using var client = new HttpClient();
+try
+{
+    var response = await client.GetAsync(&quot;https://api.example.com/users&quot;);
+    response.EnsureSuccessStatusCode();
+    var content = await response.Content.ReadAsStringAsync();
+    Console.WriteLine(content);
+}
+catch (HttpRequestException ex)
+{
+    Console.WriteLine($&quot;Error: {ex.Message}&quot;);
+}
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl();
+var result = await curl.GetAsync(&quot;https://api.example.com/users&quot;);
+
+if (result.IsSuccess)
+{
+    Console.WriteLine(result.Data);
+}
+else
+{
+    Console.WriteLine($&quot;Error: {result.Error}&quot;);
+}
+</code></pre>
+<h3>POST with JSON</h3>
+<p><strong>HttpClient:</strong></p>
+<pre><code class="language-csharp">using var client = new HttpClient();
+var json = JsonSerializer.Serialize(new { name = &quot;John&quot;, age = 30 });
+var content = new StringContent(json, Encoding.UTF8, &quot;application/json&quot;);
+
+try
+{
+    var response = await client.PostAsync(&quot;https://api.example.com/users&quot;, content);
+    response.EnsureSuccessStatusCode();
+    var result = await response.Content.ReadAsStringAsync();
+    Console.WriteLine(result);
+}
+catch (HttpRequestException ex)
+{
+    Console.WriteLine($&quot;Error: {ex.Message}&quot;);
+}
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl();
+var data = new { name = &quot;John&quot;, age = 30 };
+var result = await curl.PostJsonAsync(&quot;https://api.example.com/users&quot;, data);
+
+if (result.IsSuccess)
+{
+    Console.WriteLine(result.Data);
+}
+else
+{
+    Console.WriteLine($&quot;Error: {result.Error}&quot;);
+}
+</code></pre>
+<h3>Setting Headers</h3>
+<p><strong>HttpClient:</strong></p>
+<pre><code class="language-csharp">using var client = new HttpClient();
+client.DefaultRequestHeaders.Add(&quot;Authorization&quot;, &quot;Bearer token123&quot;);
+client.DefaultRequestHeaders.Add(&quot;X-Custom-Header&quot;, &quot;value&quot;);
+
+var response = await client.GetAsync(&quot;https://api.example.com/protected&quot;);
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl();
+curl.Headers.Add(&quot;Authorization&quot;, &quot;Bearer token123&quot;);
+curl.Headers.Add(&quot;X-Custom-Header&quot;, &quot;value&quot;);
+
+var result = await curl.GetAsync(&quot;https://api.example.com/protected&quot;);
+</code></pre>
+<h3>Timeout Configuration</h3>
+<p><strong>HttpClient:</strong></p>
+<pre><code class="language-csharp">using var client = new HttpClient();
+client.Timeout = TimeSpan.FromSeconds(30);
+
+try
+{
+    var response = await client.GetAsync(&quot;https://slow-api.example.com&quot;);
+}
+catch (TaskCanceledException)
+{
+    Console.WriteLine(&quot;Request timed out&quot;);
+}
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl
+{
+    Timeout = TimeSpan.FromSeconds(30)
+};
+
+var result = await curl.GetAsync(&quot;https://slow-api.example.com&quot;);
+if (!result.IsSuccess &amp;&amp; result.Error.Contains(&quot;timeout&quot;))
+{
+    Console.WriteLine(&quot;Request timed out&quot;);
+}
+</code></pre>
+<h2>Advanced Scenarios</h2>
+<h3>Custom Request with Multiple Headers</h3>
+<p><strong>HttpClient:</strong></p>
+<pre><code class="language-csharp">using var client = new HttpClient();
+using var request = new HttpRequestMessage(HttpMethod.Put, &quot;https://api.example.com/resource&quot;);
+request.Headers.Add(&quot;Authorization&quot;, &quot;Bearer token&quot;);
+request.Headers.Add(&quot;X-Request-ID&quot;, Guid.NewGuid().ToString());
+request.Content = new StringContent(jsonData, Encoding.UTF8, &quot;application/json&quot;);
+
+var response = await client.SendAsync(request);
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl();
+var result = await curl.SendAsync(new CurlRequest
+{
+    Url = &quot;https://api.example.com/resource&quot;,
+    Method = HttpMethod.Put,
+    Headers = new Dictionary&lt;string, string&gt;
+    {
+        [&quot;Authorization&quot;] = &quot;Bearer token&quot;,
+        [&quot;X-Request-ID&quot;] = Guid.NewGuid().ToString()
+    },
+    Content = jsonData
+});
+</code></pre>
+<h3>Form Data Submission</h3>
+<p><strong>HttpClient:</strong></p>
+<pre><code class="language-csharp">using var client = new HttpClient();
+var formData = new FormUrlEncodedContent(new[]
+{
+    new KeyValuePair&lt;string, string&gt;(&quot;username&quot;, &quot;user@example.com&quot;),
+    new KeyValuePair&lt;string, string&gt;(&quot;password&quot;, &quot;secure123&quot;)
+});
+
+var response = await client.PostAsync(&quot;https://example.com/login&quot;, formData);
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl();
+var formData = new Dictionary&lt;string, string&gt;
+{
+    [&quot;username&quot;] = &quot;user@example.com&quot;,
+    [&quot;password&quot;] = &quot;secure123&quot;
+};
+
+var result = await curl.PostFormAsync(&quot;https://example.com/login&quot;, formData);
+</code></pre>
+<h3>File Upload</h3>
+<p><strong>HttpClient:</strong></p>
+<pre><code class="language-csharp">using var client = new HttpClient();
+using var content = new MultipartFormDataContent();
+using var fileStream = File.OpenRead(&quot;document.pdf&quot;);
+content.Add(new StreamContent(fileStream), &quot;file&quot;, &quot;document.pdf&quot;);
+
+var response = await client.PostAsync(&quot;https://api.example.com/upload&quot;, content);
+</code></pre>
+<p><strong>CurlDotNet:</strong></p>
+<pre><code class="language-csharp">var curl = new Curl();
+var result = await curl.UploadFileAsync(
+    &quot;https://api.example.com/upload&quot;,
+    &quot;document.pdf&quot;,
+    &quot;file&quot;
+);
+</code></pre>
+<h2>Error Handling Comparison</h2>
+<h3>HttpClient Error Handling</h3>
+<pre><code class="language-csharp">try
+{
+    var response = await client.GetAsync(url);
+
+    if (response.IsSuccessStatusCode)
+    {
+        var content = await response.Content.ReadAsStringAsync();
+        // Process content
+    }
+    else
+    {
+        // Handle HTTP error status codes
+        switch (response.StatusCode)
+        {
+            case HttpStatusCode.NotFound:
+                Console.WriteLine(&quot;Resource not found&quot;);
+                break;
+            case HttpStatusCode.Unauthorized:
+                Console.WriteLine(&quot;Authentication required&quot;);
+                break;
+            default:
+                Console.WriteLine($&quot;Error: {response.StatusCode}&quot;);
+                break;
+        }
+    }
+}
+catch (HttpRequestException ex)
+{
+    // Network errors
+    Console.WriteLine($&quot;Request failed: {ex.Message}&quot;);
+}
+catch (TaskCanceledException)
+{
+    // Timeout
+    Console.WriteLine(&quot;Request timed out&quot;);
+}
+catch (Exception ex)
+{
+    // Other errors
+    Console.WriteLine($&quot;Unexpected error: {ex.Message}&quot;);
+}
+</code></pre>
+<h3>CurlDotNet Error Handling</h3>
+<pre><code class="language-csharp">var result = await curl.GetAsync(url);
+
+if (result.IsSuccess)
+{
+    // Process result.Data
+}
+else
+{
+    // All errors in one place
+    Console.WriteLine($&quot;Error: {result.Error}&quot;);
+    Console.WriteLine($&quot;Status: {result.StatusCode}&quot;);
+
+    // Specific error handling if needed
+    if (result.StatusCode == HttpStatusCode.NotFound)
+    {
+        Console.WriteLine(&quot;Resource not found&quot;);
+    }
+}
+</code></pre>
+<h2>Dependency Injection</h2>
+<h3>HttpClient with DI</h3>
+<pre><code class="language-csharp">// In Startup.cs or Program.cs
+services.AddHttpClient&lt;MyService&gt;(client =&gt;
+{
+    client.BaseAddress = new Uri(&quot;https://api.example.com&quot;);
+    client.DefaultRequestHeaders.Add(&quot;User-Agent&quot;, &quot;MyApp&quot;);
+});
+
+// In service
+public class MyService
+{
+    private readonly HttpClient _client;
+
+    public MyService(HttpClient client)
+    {
+        _client = client;
+    }
+}
+</code></pre>
+<h3>CurlDotNet with DI</h3>
+<pre><code class="language-csharp">// In Startup.cs or Program.cs
+services.AddSingleton&lt;ICurl&gt;(sp =&gt; new Curl
+{
+    BaseUrl = &quot;https://api.example.com&quot;,
+    Headers = { [&quot;User-Agent&quot;] = &quot;MyApp&quot; }
+});
+
+// In service
+public class MyService
+{
+    private readonly ICurl _curl;
+
+    public MyService(ICurl curl)
+    {
+        _curl = curl;
+    }
+}
+</code></pre>
+<h2>Testing</h2>
+<h3>Mocking HttpClient</h3>
+<pre><code class="language-csharp">// Complex setup with HttpMessageHandler
+var mockHandler = new Mock&lt;HttpMessageHandler&gt;();
+mockHandler.Protected()
+    .Setup&lt;Task&lt;HttpResponseMessage&gt;&gt;(&quot;SendAsync&quot;,
+        ItExpr.IsAny&lt;HttpRequestMessage&gt;(),
+        ItExpr.IsAny&lt;CancellationToken&gt;())
+    .ReturnsAsync(new HttpResponseMessage
+    {
+        StatusCode = HttpStatusCode.OK,
+        Content = new StringContent(&quot;test data&quot;)
+    });
+
+var client = new HttpClient(mockHandler.Object);
+</code></pre>
+<h3>Mocking CurlDotNet</h3>
+<pre><code class="language-csharp">// Simple interface mocking
+var mockCurl = new Mock&lt;ICurl&gt;();
+mockCurl.Setup(x =&gt; x.GetAsync(It.IsAny&lt;string&gt;()))
+    .ReturnsAsync(new CurlResult
+    {
+        IsSuccess = true,
+        Data = &quot;test data&quot;,
+        StatusCode = HttpStatusCode.OK
+    });
+</code></pre>
+<h2>Migration Checklist</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Replace <code>HttpClient</code> instances with <code>Curl</code></li>
+<li><input disabled="" type="checkbox"> Convert <code>HttpRequestMessage</code> to <code>CurlRequest</code> or direct method calls</li>
+<li><input disabled="" type="checkbox"> Update error handling from exceptions to result pattern</li>
+<li><input disabled="" type="checkbox"> Simplify content reading (no more <code>ReadAsStringAsync</code>)</li>
+<li><input disabled="" type="checkbox"> Update header management</li>
+<li><input disabled="" type="checkbox"> Adjust timeout configuration</li>
+<li><input disabled="" type="checkbox"> Update dependency injection registration</li>
+<li><input disabled="" type="checkbox"> Simplify unit tests</li>
+<li><input disabled="" type="checkbox"> Remove unnecessary using statements and disposal patterns</li>
+</ul>
+<h2>Benefits After Migration</h2>
+<ol>
+<li><strong>Simpler Code</strong>: Less boilerplate, more readable</li>
+<li><strong>Better Errors</strong>: Clear error messages without exception handling</li>
+<li><strong>Consistent Behavior</strong>: Same results on all platforms</li>
+<li><strong>Easier Testing</strong>: Simple interface mocking</li>
+<li><strong>curl Compatibility</strong>: Use curl knowledge and documentation</li>
+</ol>
+<h2>Common Pitfalls</h2>
+<ol>
+<li><strong>Don&#39;t dispose Curl</strong>: Unlike HttpClient, Curl doesn&#39;t need disposal</li>
+<li><strong>Result pattern</strong>: Remember to check <code>IsSuccess</code> instead of catching exceptions</li>
+<li><strong>Direct data access</strong>: No need for <code>ReadAsStringAsync()</code>, just use <code>result.Data</code></li>
+<li><strong>Header persistence</strong>: Headers added to Curl instance persist across requests</li>
+</ol>
+<h2>Need Help?</h2>
+<ul>
+<li>Check the <a href="https://github.com/jacob-mellor/curl-dot-net/tree/master/examples">examples</a> for working code</li>
+<li>Review the <a href="../api/index.html">API documentation</a> for detailed method signatures</li>
+<li>Ask questions in <a href="https://github.com/jacob-mellor/curl-dot-net/issues">GitHub Issues</a></li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

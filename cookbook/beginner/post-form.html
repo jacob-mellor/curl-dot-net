@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe: POST Form Data | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>Recipe: POST Form Data</h1>
+<h2>🎯 What You&#39;ll Build</h2>
+<p>Programs that submit HTML forms programmatically - login forms, search forms, contact forms, and more.</p>
+<h2>🥘 Ingredients</h2>
+<ul>
+<li>CurlDotNet package</li>
+<li>An API endpoint that accepts form data</li>
+<li>10 minutes</li>
+</ul>
+<h2>📖 The Recipe</h2>
+<h3>Step 1: Simple Form POST</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class Program
+{
+    static async Task Main()
+    {
+        Console.WriteLine(&quot;Submitting form...&quot;);
+
+        // POST form data (application/x-www-form-urlencoded)
+        var result = await Curl.ExecuteAsync(@&quot;
+            curl -X POST https://httpbin.org/post \
+              -d &#39;username=john&#39; \
+              -d &#39;password=secret123&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ Form submitted successfully!&quot;);
+            Console.WriteLine(result.Body);
+        }
+    }
+}
+</code></pre>
+<h3>Step 2: Multiple Form Fields</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class ContactForm
+{
+    static async Task Main()
+    {
+        Console.WriteLine(&quot;Submitting contact form...&quot;);
+
+        var result = await Curl.ExecuteAsync(@&quot;
+            curl -X POST https://httpbin.org/post \
+              -d &#39;name=John Doe&#39; \
+              -d &#39;email=john@example.com&#39; \
+              -d &#39;subject=Question&#39; \
+              -d &#39;message=Hello, I have a question&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ Contact form submitted!&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>🍳 Complete Examples</h2>
+<h3>Example 1: Login Form</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class LoginForm
+{
+    static async Task&lt;string&gt; Login(string username, string password)
+    {
+        Console.WriteLine($&quot;Logging in as {username}...&quot;);
+
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST https://httpbin.org/post \
+              -d &#39;username={username}&#39; \
+              -d &#39;password={password}&#39; \
+              -d &#39;remember=true&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ Login successful!&quot;);
+
+            // Extract token from response
+            dynamic response = result.AsJsonDynamic();
+            string token = response.form.token ?? &quot;dummy-token&quot;;
+
+            return token;
+        }
+        else if (result.StatusCode == 401)
+        {
+            Console.WriteLine(&quot;✗ Invalid credentials&quot;);
+            return null;
+        }
+        else
+        {
+            Console.WriteLine($&quot;✗ Login failed: {result.StatusCode}&quot;);
+            return null;
+        }
+    }
+
+    static async Task Main()
+    {
+        Console.Write(&quot;Username: &quot;);
+        string username = Console.ReadLine();
+
+        Console.Write(&quot;Password: &quot;);
+        string password = Console.ReadLine();
+
+        string token = await Login(username, password);
+
+        if (token != null)
+        {
+            Console.WriteLine($&quot;Token: {token}&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 2: Search Form</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class SearchForm
+{
+    static async Task&lt;SearchResults&gt; Search(string query, string category = &quot;all&quot;, int page = 1)
+    {
+        Console.WriteLine($&quot;Searching for &#39;{query}&#39;...&quot;);
+
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST https://httpbin.org/post \
+              -d &#39;q={Uri.EscapeDataString(query)}&#39; \
+              -d &#39;category={category}&#39; \
+              -d &#39;page={page}&#39; \
+              -d &#39;limit=10&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            return result.ParseJson&lt;SearchResults&gt;();
+        }
+
+        return null;
+    }
+
+    public class SearchResults
+    {
+        public int Total { get; set; }
+        public SearchItem[] Items { get; set; }
+    }
+
+    public class SearchItem
+    {
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public string Url { get; set; }
+    }
+
+    static async Task Main()
+    {
+        var results = await Search(&quot;C# programming&quot;, &quot;tutorials&quot;, 1);
+
+        if (results != null)
+        {
+            Console.WriteLine($&quot;Found {results.Total} results&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 3: Registration Form</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class RegistrationForm
+{
+    public class UserRegistration
+    {
+        public string Username { get; set; }
+        public string Email { get; set; }
+        public string Password { get; set; }
+        public string FullName { get; set; }
+        public bool AcceptTerms { get; set; }
+        public bool Newsletter { get; set; }
+    }
+
+    static async Task&lt;bool&gt; Register(UserRegistration user)
+    {
+        Console.WriteLine($&quot;Registering user {user.Username}...&quot;);
+
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST https://httpbin.org/post \
+              -d &#39;username={user.Username}&#39; \
+              -d &#39;email={user.Email}&#39; \
+              -d &#39;password={user.Password}&#39; \
+              -d &#39;full_name={user.FullName}&#39; \
+              -d &#39;accept_terms={user.AcceptTerms.ToString().ToLower()}&#39; \
+              -d &#39;newsletter={user.Newsletter.ToString().ToLower()}&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ Registration successful!&quot;);
+            return true;
+        }
+        else if (result.StatusCode == 409)
+        {
+            Console.WriteLine(&quot;✗ Username or email already exists&quot;);
+            return false;
+        }
+        else
+        {
+            Console.WriteLine($&quot;✗ Registration failed: {result.StatusCode}&quot;);
+            return false;
+        }
+    }
+
+    static async Task Main()
+    {
+        var newUser = new UserRegistration
+        {
+            Username = &quot;johndoe&quot;,
+            Email = &quot;john@example.com&quot;,
+            Password = &quot;SecurePass123!&quot;,
+            FullName = &quot;John Doe&quot;,
+            AcceptTerms = true,
+            Newsletter = true
+        };
+
+        bool success = await Register(newUser);
+
+        if (success)
+        {
+            Console.WriteLine(&quot;Welcome! Please check your email to verify your account.&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 4: Form with Arrays/Multiple Values</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class FormWithArrays
+{
+    static async Task Main()
+    {
+        string[] interests = { &quot;coding&quot;, &quot;reading&quot;, &quot;gaming&quot; };
+        string[] languages = { &quot;C#&quot;, &quot;JavaScript&quot;, &quot;Python&quot; };
+
+        Console.WriteLine(&quot;Submitting preferences...&quot;);
+
+        // Build form data with arrays
+        string formData = &quot;name=John&quot;;
+        foreach (var interest in interests)
+        {
+            formData += $&quot; -d &#39;interests[]={interest}&#39;&quot;;
+        }
+        foreach (var lang in languages)
+        {
+            formData += $&quot; -d &#39;languages[]={lang}&#39;&quot;;
+        }
+
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST https://httpbin.org/post \
+              -d &#39;{formData}&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ Preferences submitted!&quot;);
+            dynamic response = result.AsJsonDynamic();
+            Console.WriteLine($&quot;Interests: {response.form.interests}&quot;);
+            Console.WriteLine($&quot;Languages: {response.form.languages}&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 5: Form Data from Object</h3>
+<pre><code class="language-csharp">using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class FormBuilder
+{
+    static string BuildFormData(Dictionary&lt;string, string&gt; fields)
+    {
+        return string.Join(&quot; &quot;, fields.Select(kvp =&gt;
+            $&quot;-d &#39;{kvp.Key}={Uri.EscapeDataString(kvp.Value)}&#39;&quot;
+        ));
+    }
+
+    static async Task Main()
+    {
+        var formData = new Dictionary&lt;string, string&gt;
+        {
+            [&quot;first_name&quot;] = &quot;John&quot;,
+            [&quot;last_name&quot;] = &quot;Doe&quot;,
+            [&quot;email&quot;] = &quot;john@example.com&quot;,
+            [&quot;phone&quot;] = &quot;+1-555-0123&quot;,
+            [&quot;message&quot;] = &quot;Hello, I&#39;d like more information&quot;
+        };
+
+        string dataString = BuildFormData(formData);
+
+        var result = await Curl.ExecuteAsync($@&quot;
+            curl -X POST https://httpbin.org/post {dataString}
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ Form submitted!&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 6: Multipart Form (Form + Files)</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class MultipartForm
+{
+    static async Task Main()
+    {
+        Console.WriteLine(&quot;Submitting multipart form...&quot;);
+
+        // Multipart form with both fields and files
+        var result = await Curl.ExecuteAsync(@&quot;
+            curl -X POST https://httpbin.org/post \
+              -F &#39;name=John Doe&#39; \
+              -F &#39;email=john@example.com&#39; \
+              -F &#39;profile_picture=@photo.jpg&#39; \
+              -F &#39;resume=@resume.pdf&#39; \
+              -F &#39;cover_letter=@letter.txt&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ Application submitted!&quot;);
+            dynamic response = result.AsJsonDynamic();
+            Console.WriteLine($&quot;Files uploaded: {response.files}&quot;);
+        }
+    }
+}
+</code></pre>
+<h3>Example 7: Form with Custom Content Type</h3>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using CurlDotNet;
+
+class CustomContentType
+{
+    static async Task Main()
+    {
+        // Explicitly set content type
+        var result = await Curl.ExecuteAsync(@&quot;
+            curl -X POST https://httpbin.org/post \
+              -H &#39;Content-Type: application/x-www-form-urlencoded&#39; \
+              -d &#39;key1=value1&#39; \
+              -d &#39;key2=value2&#39;
+        &quot;);
+
+        if (result.IsSuccess)
+        {
+            Console.WriteLine(&quot;✓ Form submitted with custom content type!&quot;);
+        }
+    }
+}
+</code></pre>
+<h2>🎨 Variations</h2>
+<h3>URL-Encoded Form Data (Default)</h3>
+<pre><code class="language-csharp">// Standard form submission
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -X POST https://api.example.com/form \
+      -d &#39;field1=value1&#39; \
+      -d &#39;field2=value2&#39;
+&quot;);
+</code></pre>
+<h3>Multipart Form Data</h3>
+<pre><code class="language-csharp">// For file uploads and complex forms
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -X POST https://api.example.com/form \
+      -F &#39;field1=value1&#39; \
+      -F &#39;field2=value2&#39; \
+      -F &#39;file=@document.pdf&#39;
+&quot;);
+</code></pre>
+<h3>Form Data from String</h3>
+<pre><code class="language-csharp">// All fields in one string
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -X POST https://api.example.com/form \
+      -d &#39;field1=value1&amp;field2=value2&amp;field3=value3&#39;
+&quot;);
+</code></pre>
+<h3>Form Data with Authentication</h3>
+<pre><code class="language-csharp">string apiKey = Environment.GetEnvironmentVariable(&quot;API_KEY&quot;);
+
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/form \
+      -H &#39;Authorization: Bearer {apiKey}&#39; \
+      -d &#39;field1=value1&#39; \
+      -d &#39;field2=value2&#39;
+&quot;);
+</code></pre>
+<h2>🐛 Troubleshooting</h2>
+<h3>Problem: Special Characters in Form Data</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-csharp">// URL-encode special characters
+string message = &quot;Hello &amp; welcome to our site!&quot;;
+string encoded = Uri.EscapeDataString(message);
+
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/form \
+      -d &#39;message={encoded}&#39;
+&quot;);
+</code></pre>
+<h3>Problem: Form Submission Returns 400 Bad Request</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-csharp">// Check required fields and data types
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -X POST https://api.example.com/form \
+      -d &#39;username=john&#39; \
+      -d &#39;email=john@example.com&#39; \
+      -d &#39;age=25&#39;
+&quot;);
+
+if (result.StatusCode == 400)
+{
+    Console.WriteLine(&quot;Bad request - check required fields:&quot;);
+    Console.WriteLine(result.Body); // Server usually provides details
+}
+</code></pre>
+<p>For more details, see our <a href="../../troubleshooting/common-issues.md#http-errors">HTTP error troubleshooting guide</a>.</p>
+<h3>Problem: Form Data Not Being Sent</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-csharp">// Ensure you&#39;re using POST method
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -X POST https://api.example.com/form \
+      -d &#39;field=value&#39;
+&quot;);
+
+// Check what was sent
+Console.WriteLine($&quot;Status: {result.StatusCode}&quot;);
+Console.WriteLine($&quot;Response: {result.Body}&quot;);
+</code></pre>
+<h3>Problem: Authentication Required</h3>
+<p><strong>Solution:</strong></p>
+<pre><code class="language-csharp">try
+{
+    var result = await Curl.ExecuteAsync(@&quot;
+        curl -X POST https://api.example.com/form \
+          -d &#39;field=value&#39;
+    &quot;);
+}
+catch (CurlHttpReturnedErrorException ex) when (ex.StatusCode == 401)
+{
+    Console.WriteLine(&quot;Authentication required. Add credentials:&quot;);
+    Console.WriteLine(&quot;Example: -H &#39;Authorization: Bearer token&#39;&quot;);
+    // Documentation: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/common-issues.md#authentication-errors
+}
+</code></pre>
+<h2>🎓 Best Practices</h2>
+<h3>1. Validate Input Before Submitting</h3>
+<pre><code class="language-csharp">bool ValidateEmail(string email)
+{
+    try
+    {
+        var addr = new System.Net.Mail.MailAddress(email);
+        return addr.Address == email;
+    }
+    catch
+    {
+        return false;
+    }
+}
+
+string email = &quot;john@example.com&quot;;
+
+if (!ValidateEmail(email))
+{
+    Console.WriteLine(&quot;Invalid email address&quot;);
+    return;
+}
+
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/form \
+      -d &#39;email={email}&#39;
+&quot;);
+</code></pre>
+<h3>2. Escape Special Characters</h3>
+<pre><code class="language-csharp">// Always escape user input
+string userInput = &quot;O&#39;Brien &amp; Associates&quot;;
+string safe = Uri.EscapeDataString(userInput);
+
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/form \
+      -d &#39;company={safe}&#39;
+&quot;);
+</code></pre>
+<h3>3. Handle Empty Fields</h3>
+<pre><code class="language-csharp">string optionalField = &quot;&quot;;
+
+var result = await Curl.ExecuteAsync($@&quot;
+    curl -X POST https://api.example.com/form \
+      -d &#39;required_field=value&#39; \
+      {(string.IsNullOrEmpty(optionalField) ? &quot;&quot; : $&quot;-d &#39;optional_field={optionalField}&#39;&quot;)}
+&quot;);
+</code></pre>
+<h3>4. Use HTTPS for Sensitive Data</h3>
+<pre><code class="language-csharp">// Always use HTTPS for passwords and sensitive data
+var result = await Curl.ExecuteAsync(@&quot;
+    curl -X POST https://api.example.com/login \
+      -d &#39;username=john&#39; \
+      -d &#39;password=secret123&#39;
+&quot;);
+
+// Never use HTTP for sensitive data!
+// var result = await Curl.ExecuteAsync(&quot;curl -X POST http://api.example.com/login ...&quot;);
+</code></pre>
+<h3>5. Check Response Status</h3>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(@&quot;
+    curl -X POST https://api.example.com/form \
+      -d &#39;field=value&#39;
+&quot;);
+
+if (result.StatusCode == 200)
+{
+    Console.WriteLine(&quot;✓ Form submitted successfully&quot;);
+}
+else if (result.StatusCode == 400)
+{
+    Console.WriteLine(&quot;✗ Invalid form data&quot;);
+    Console.WriteLine($&quot;Details: {result.Body}&quot;);
+}
+else if (result.StatusCode == 422)
+{
+    Console.WriteLine(&quot;✗ Validation failed&quot;);
+    Console.WriteLine($&quot;Errors: {result.Body}&quot;);
+}
+else
+{
+    Console.WriteLine($&quot;✗ Unexpected status: {result.StatusCode}&quot;);
+}
+</code></pre>
+<h2>🚀 Next Steps</h2>
+<p>Now that you can submit forms:</p>
+<ol>
+<li>Learn to <a href="upload-file.html">Upload Files</a> with multipart forms</li>
+<li>Try <a href="send-json.html">Send JSON</a> for API requests</li>
+<li>Explore <a href="handle-errors.html">Error Handling</a></li>
+<li>Build <a href="call-api.html">API Client</a></li>
+</ol>
+<h2>📚 Related Recipes</h2>
+<ul>
+<li><a href="send-json.html">Send JSON</a> - Alternative to form data</li>
+<li><a href="upload-file.html">Upload Files</a> - Multipart form uploads</li>
+<li><a href="simple-get.html">Simple GET</a> - Fetching data</li>
+<li><a href="handle-errors.html">Handle Errors</a> - Robust error handling</li>
+</ul>
+<h2>🎓 Key Takeaways</h2>
+<ul>
+<li>Use <code>-d</code> for URL-encoded form data</li>
+<li>Use <code>-F</code> for multipart form data (with files)</li>
+<li>Always escape special characters with <code>Uri.EscapeDataString()</code></li>
+<li>Use HTTPS for sensitive data (passwords, etc.)</li>
+<li>Validate input before submitting</li>
+<li>Check response status codes</li>
+<li>Handle errors gracefully</li>
+<li>Multiple <code>-d</code> flags for multiple fields</li>
+</ul>
+<h2>📖 Quick Reference</h2>
+<pre><code class="language-csharp">// Simple form
+await Curl.ExecuteAsync(@&quot;
+    curl -X POST {url} \
+      -d &#39;field1=value1&#39; \
+      -d &#39;field2=value2&#39;
+&quot;);
+
+// All fields in one string
+await Curl.ExecuteAsync(@&quot;
+    curl -X POST {url} \
+      -d &#39;field1=value1&amp;field2=value2&#39;
+&quot;);
+
+// With authentication
+await Curl.ExecuteAsync($@&quot;
+    curl -X POST {url} \
+      -H &#39;Authorization: Bearer {token}&#39; \
+      -d &#39;field=value&#39;
+&quot;);
+
+// Multipart form (with files)
+await Curl.ExecuteAsync(@&quot;
+    curl -X POST {url} \
+      -F &#39;field=value&#39; \
+      -F &#39;file=@document.pdf&#39;
+&quot;);
+
+// With escaped special characters
+string safe = Uri.EscapeDataString(userInput);
+await Curl.ExecuteAsync($@&quot;
+    curl -X POST {url} \
+      -d &#39;field={safe}&#39;
+&quot;);
+</code></pre>
+<hr>
+<p><strong>Need help?</strong> Check <a href="../../troubleshooting/common-issues.html">Troubleshooting</a> | <strong>Have questions?</strong> Ask in <a href="https://github.com/jacob-mellor/curl-dot-net/discussions">Discussions</a></p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

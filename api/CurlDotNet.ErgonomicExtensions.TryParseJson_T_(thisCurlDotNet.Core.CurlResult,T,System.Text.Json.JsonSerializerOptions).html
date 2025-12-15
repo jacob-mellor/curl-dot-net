@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.ErgonomicExtensions.TryParseJson_T_(thisCurlDotNet.Core.CurlResult,T,System.Text.Json.JsonSerializerOptions) | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.md" title="CurlDotNet">CurlDotNet</a>.<a href="CurlDotNet.ErgonomicExtensions.md" title="CurlDotNet.ErgonomicExtensions">ErgonomicExtensions</a></h3>
+<h2>ErgonomicExtensions.TryParseJson&lt;T&gt;(this CurlResult, T, JsonSerializerOptions) Method</h2>
+<p>Try to parse the response body as JSON. Returns false if parsing fails.</p>
+<pre><code class="language-csharp">public static bool TryParseJson&lt;T&gt;(this CurlDotNet.Core.CurlResult result, out T value, System.Text.Json.JsonSerializerOptions? options=null)
+    where T : class;
+</code></pre>
+<h4>Type parameters</h4>
+<p><a name='CurlDotNet.ErgonomicExtensions.TryParseJson_T_(thisCurlDotNet.Core.CurlResult,T,System.Text.Json.JsonSerializerOptions).T'></a></p>
+<p><code>T</code></p>
+<p>The type to deserialize to</p>
+<h4>Parameters</h4>
+<p><a name='CurlDotNet.ErgonomicExtensions.TryParseJson_T_(thisCurlDotNet.Core.CurlResult,T,System.Text.Json.JsonSerializerOptions).result'></a></p>
+<p><code>result</code> <a href="CurlDotNet.Core.CurlResult.md" title="CurlDotNet.Core.CurlResult">CurlResult</a></p>
+<p>The CurlResult to parse</p>
+<p><a name='CurlDotNet.ErgonomicExtensions.TryParseJson_T_(thisCurlDotNet.Core.CurlResult,T,System.Text.Json.JsonSerializerOptions).value'></a></p>
+<p><code>value</code> <a href="CurlDotNet.ErgonomicExtensions.TryParseJson_T_(thisCurlDotNet.Core.CurlResult,T,System.Text.Json.JsonSerializerOptions).md#CurlDotNet.ErgonomicExtensions.TryParseJson_T_(thisCurlDotNet.Core.CurlResult,T,System.Text.Json.JsonSerializerOptions).T" title="CurlDotNet.ErgonomicExtensions.TryParseJson&lt;T&gt;(this CurlDotNet.Core.CurlResult, T, System.Text.Json.JsonSerializerOptions).T">T</a></p>
+<p>The deserialized object if successful</p>
+<p><a name='CurlDotNet.ErgonomicExtensions.TryParseJson_T_(thisCurlDotNet.Core.CurlResult,T,System.Text.Json.JsonSerializerOptions).options'></a></p>
+<p><code>options</code> <a href="https://learn.microsoft.com/en-us/dotnet/api/system.text.json.jsonserializeroptions" title="System.Text.Json.JsonSerializerOptions">System.Text.Json.JsonSerializerOptions</a></p>
+<p>Optional JSON serializer options</p>
+<h4>Returns</h4>
+<p><a href="https://learn.microsoft.com/en-us/dotnet/api/system.boolean" title="System.Boolean">System.Boolean</a><br>True if parsing succeeded, false otherwise</p>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

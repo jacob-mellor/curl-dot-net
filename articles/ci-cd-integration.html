@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI/CD Integration with CurlDotNet | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h1>CI/CD Integration with CurlDotNet</h1>
+<p>Bring the copy-paste power of curl into your automation pipelines. This article walks through practical ways to run CurlDotNet inside GitHub Actions, Azure DevOps, and other CI/CD systems.</p>
+<h2>Why Use CurlDotNet in Pipelines?</h2>
+<ul>
+<li><strong>Consistency</strong> – run the same curl snippets locally and in CI without shell differences</li>
+<li><strong>Strong Typing &amp; Validation</strong> – parse responses with .NET types before deploying</li>
+<li><strong>Secure Secrets Handling</strong> – consume secrets from CI vaults instead of embedding tokens in scripts</li>
+<li><strong>Cross-Platform</strong> – works identically on Linux, macOS, and Windows runners</li>
+</ul>
+<h2>GitHub Actions Example</h2>
+<pre><code class="language-yaml">name: Api Smoke Tests
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: &#39;8.0.x&#39;
+      - name: Restore tools
+        run: dotnet restore
+
+      - name: Run CurlDotNet smoke tests
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: dotnet run --project examples/00-Complete-Sample/00-Complete-Sample.csproj
+</code></pre>
+<p>Inside the sample app:</p>
+<pre><code class="language-csharp">var response = await Curl.ExecuteAsync($@&quot;
+    curl -X GET https://api.example.com/health
+    -H &#39;Authorization: Bearer {Environment.GetEnvironmentVariable(&quot;API_TOKEN&quot;)}&#39;
+&quot;);
+
+response.EnsureSuccess();
+Console.WriteLine(&quot;Health endpoint passed CI check&quot;);
+</code></pre>
+<h2>Azure DevOps Example</h2>
+<pre><code class="language-yaml">steps:
+- task: UseDotNet@2
+  inputs:
+    packageType: &#39;sdk&#39;
+    version: &#39;8.0.x&#39;
+
+- script: dotnet test tests/CurlDotNet.IntegrationTests/CurlDotNet.IntegrationTests.csproj
+  env:
+    API_TOKEN: $(apiToken)
+</code></pre>
+<p>Use pipeline variables or Azure Key Vault secrets for sensitive data. CurlDotNet automatically reads environment variables via <code>--header &quot;Authorization: Bearer $API_TOKEN&quot;</code> just like native curl.</p>
+<h2>Containerized Smoke Tests</h2>
+<p>Use the DotNet CLI to run a portable test harness:</p>
+<pre><code class="language-dockerfile">FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY . .
+RUN dotnet publish tests/CurlDotNet.Tests/CurlDotNet.Tests.csproj -c Release -o /app/tests
+
+FROM mcr.microsoft.com/dotnet/runtime:8.0
+WORKDIR /app
+COPY --from=build /app/tests .
+
+ENTRYPOINT [&quot;dotnet&quot;, &quot;CurlDotNet.Tests.dll&quot;, &quot;--filter&quot;, &quot;Category=Smoke&quot;]
+</code></pre>
+<p>Run it from any orchestrator to confirm APIs behave before or after deployments.</p>
+<h2>Tips for Stable Pipelines</h2>
+<ol>
+<li><strong>Use <code>--connect-timeout</code> + retries</strong> to handle transient network blips:<pre><code class="language-csharp">var settings = new CurlSettings()
+    .WithConnectTimeout(5)
+    .WithRetries(3, delayMs: 500);
+await Curl.ExecuteAsync(&quot;curl --max-time 10 https://api.example.com/status&quot;, settings);
+</code></pre>
+</li>
+<li><strong>Mask secrets</strong> in console output. Prefer <code>curl --header &quot;Authorization: Bearer ****&quot;</code> when logging commands.</li>
+<li><strong>Store sample requests in source control</strong> (e.g., under <code>tests/Smoke/</code>) to reuse locally and remotely.</li>
+<li><strong>Fail Fast</strong> by calling <code>result.EnsureSuccess()</code> and surfacing the body for debugging.</li>
+</ol>
+<h2>Next Steps</h2>
+<ul>
+<li>Add targeted smoke or contract tests under <code>tests/</code> so pipelines can run <code>dotnet test --filter Category=Smoke</code>.</li>
+<li>Combine CurlDotNet with approval gates to validate external dependencies before promoting builds.</li>
+<li>Explore <a href="../guides/logging-observability.html">Logging &amp; Observability</a> to capture verbose output automatically in CI logs.</li>
+</ul>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>

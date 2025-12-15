@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CurlDotNet.Curl | CurlDotNet Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body { max-width: 980px; margin: 0 auto; padding: 20px; }
+        .markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+        @media (max-width: 767px) { .markdown-body { padding: 15px; } }
+        a { color: #0366d6; }
+        pre { background: #f6f8fa; padding: 16px; overflow: auto; }
+    </style>
+</head>
+<body class="markdown-body">
+<h4><a href="index.md" title="index">CurlDotNet</a></h4>
+<h3><a href="CurlDotNet.md" title="CurlDotNet">CurlDotNet</a></h3>
+<h2>Curl Class</h2>
+<p><b>🚀 THE MAIN CURLDOTNET CLASS - Start here!</b></p>
+<p>This class lets you run ANY curl command in C# by just copying and pasting it as a string.
+             No translation needed. No learning curve. If it works in curl, it works here.</p>
+<p><b>Quick Start:</b></p>
+<pre><code class="language-csharp">// Just paste any curl command as a string:
+var response = await Curl.Execute(&quot;curl https://api.github.com&quot;);
+Console.WriteLine(response.Body);  // That&#39;s it! You&#39;re done!
+</code></pre>
+<p><b>What is curl?</b> curl is the universal tool for making HTTP requests from the command line.
+             Every API documentation uses it. Now you can use those exact same commands in your C# code.</p>
+<p><b>Learn more:</b></p>
+<ul>
+<li>📖 curl documentation: <a href="https://curl.se/docs/" title="https://curl.se/docs/">https://curl.se/docs/</a></li>
+<li>📚 curl tutorial: <a href="https://curl.se/docs/tutorial.html" title="https://curl.se/docs/tutorial.html">https://curl.se/docs/tutorial.html</a></li>
+<li>⌨️ curl command generator: <a href="https://curlbuilder.com/" title="https://curlbuilder.com/">https://curlbuilder.com/</a></li>
+</ul>
+<pre><code class="language-csharp">public static class Curl
+</code></pre>
+<p>Inheritance <a href="https://learn.microsoft.com/en-us/dotnet/api/system.object" title="System.Object">System.Object</a> &#129106; Curl</p>
+<h3>Remarks</h3>
+<p><b>Why use CurlDotNet instead of HttpClient?</b></p>
+<ol>
+<li>✂️ <strong>Copy &amp; Paste</strong> - Use commands directly from API docs without translation</li>
+<li>🎓 <strong>No Learning Curve</strong> - If you know curl (everyone does), you know this</li>
+<li>🔄 <strong>Easy Migration</strong> - Move from bash scripts to C# without rewriting</li>
+<li>📦 <strong>All Features</strong> - Supports all 300+ curl options out of the box</li>
+</ol>
+<p><b>Thread Safety:</b> All methods are thread-safe. You can call them from multiple threads simultaneously.</p>
+<p><b>Memory Efficiency:</b> Responses are streamed, not loaded into memory all at once. Perfect for large files.</p>
+<p><b>Sponsored by</b><a href="https://ironsoftware.com" title="https://ironsoftware.com">IronSoftware</a> - creators of IronPDF, IronOCR, IronXL, and IronBarcode.</p>
+<p><b>Two Ways to Use CurlDotNet:</b></p>
+<ol>
+<li><b>Paste curl commands:</b> Just copy/paste any curl command string - it works!</li>
+</ol>
+<pre><code class="language-csharp">var result = await Curl.ExecuteAsync(&quot;curl -X POST https://api.example.com/data -H &#39;Content-Type: application/json&#39; -d &#39;{\&quot;key\&quot;:\&quot;value\&quot;}&#39;&quot;);
+</code></pre>
+<ol start="2">
+<li><b>Use fluent builder:</b> For programmatic API with IntelliSense</li>
+</ol>
+<pre><code class="language-csharp">var result = await CurlRequestBuilder.Post(&quot;https://api.example.com/data&quot;).WithHeader(&quot;Content-Type&quot;, &quot;application/json&quot;).WithJson(new { key = &quot;value&quot; }).ExecuteAsync();
+</code></pre>
+<table>
+<thead>
+<tr>
+<th align="left">Properties</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Curl.DefaultConnectTimeoutSeconds.md" title="CurlDotNet.Curl.DefaultConnectTimeoutSeconds">DefaultConnectTimeoutSeconds</a></td>
+<td align="left"><b>Sets how long to wait for a connection to be established (in seconds).</b>  This is different from the total timeout - it only applies to making the initial connection.              Like adding <code>--connect-timeout</code> to every curl command.  <b>Example:</b>`...`  <b>Tip:</b> Set this lower than DefaultMaxTimeSeconds to fail fast on dead servers.  <b>Learn more:</b><a href="https://curl.se/docs/manpage.html#--connect-timeout" title="https://curl.se/docs/manpage.html#--connect-timeout">curl --connect-timeout documentation</a></td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.DefaultFollowRedirects.md" title="CurlDotNet.Curl.DefaultFollowRedirects">DefaultFollowRedirects</a></td>
+<td align="left"><b>Controls whether curl automatically follows HTTP redirects (301, 302, etc).</b>  When true, acts like adding <code>-L</code> or <code>--location</code> to every command.              Many APIs use redirects, so you often want this enabled.  <b>Example:</b>`...`  <b>Security note:</b> Be careful following redirects to untrusted sources.  <b>Learn more:</b><a href="https://curl.se/docs/manpage.html#-L" title="https://curl.se/docs/manpage.html#-L">curl -L documentation</a></td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.DefaultInsecure.md" title="CurlDotNet.Curl.DefaultInsecure">DefaultInsecure</a></td>
+<td align="left"><b>⚠️ WARNING: Disables SSL certificate validation - ONLY use for development/testing!</b>  When true, acts like adding <code>-k</code> or <code>--insecure</code> to every command.              This accepts any SSL certificate, even self-signed or expired ones.  <b>Example (DEVELOPMENT ONLY):</b>`...`  <b>🔴 NEVER use this in production!</b> It makes you vulnerable to man-in-the-middle attacks.  <b>Learn more:</b><a href="https://curl.se/docs/manpage.html#-k" title="https://curl.se/docs/manpage.html#-k">curl -k documentation</a></td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.DefaultMaxTimeSeconds.md" title="CurlDotNet.Curl.DefaultMaxTimeSeconds">DefaultMaxTimeSeconds</a></td>
+<td align="left"><b>Sets a global timeout for all curl operations (in seconds).</b>  This is like adding <code>--max-time</code> to every curl command automatically.              Set to 0 (default) for no timeout. Individual commands can still override this.  <b>Example:</b>`...`  <b>Learn more:</b><a href="https://curl.se/docs/manpage.html#-m" title="https://curl.se/docs/manpage.html#-m">curl --max-time documentation</a></td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th align="left">Methods</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><a href="CurlDotNet.Curl.Download(string,string).md" title="CurlDotNet.Curl.Download(string, string)">Download(string, string)</a></td>
+<td align="left"><b>⚠️ SYNCHRONOUS file download (blocks thread).</b></td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.DownloadAsync(string,string).md" title="CurlDotNet.Curl.DownloadAsync(string, string)">DownloadAsync(string, string)</a></td>
+<td align="left"><b>Download a file from a URL and save it to disk.</b>  Downloads any file and saves it to the specified path. Shows progress if the file is large.  <b>Example:</b>`...`  <b>With Error Handling:</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string)" title="CurlDotNet.Curl.Execute(string)">Execute(string)</a></td>
+<td align="left"><b>⚠️ SYNCHRONOUS - Execute curl command and WAIT for it to complete (BLOCKS thread).</b>  This method BLOCKS your thread until the HTTP request completes. Your application              will FREEZE during this time. Only use when async is not possible.  <b>When to use SYNC (this method):</b>...  <b>Example - When sync is OK:</b>`...`  <b>⚠️ WARNING:</b> This blocks your thread. The application cannot do anything else              while waiting for the HTTP response. Use ExecuteAsync instead whenever possible!</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string,CurlDotNet.Core.CurlSettings)" title="CurlDotNet.Curl.Execute(string, CurlDotNet.Core.CurlSettings)">Execute(string, CurlSettings)</a></td>
+<td align="left"><b>⚠️ SYNCHRONOUS with settings - Blocks thread with advanced options.</b></td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string,System.Threading.CancellationToken)" title="CurlDotNet.Curl.Execute(string, System.Threading.CancellationToken)">Execute(string, CancellationToken)</a></td>
+<td align="left"><b>⚠️ SYNCHRONOUS with cancellation - Blocks thread but can be cancelled.</b>  Still BLOCKS your thread, but can be cancelled. Prefer ExecuteAsync with cancellation.`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string)" title="CurlDotNet.Curl.ExecuteAsync(string)">ExecuteAsync(string)</a></td>
+<td align="left"><b>🎯 THE MAIN METHOD - Executes any curl command and returns the response.</b>  Just paste ANY curl command as a string. It works exactly like running curl from the command line,              but returns the result as a nice C# object you can work with.  <b>Simple Example:</b>`...`  <b>Real-World Example from Stripe Docs:</b>`...`  <b>All HTTP Methods Supported:</b>`...`  <b>Common Options:</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,CurlDotNet.Core.CurlSettings)" title="CurlDotNet.Curl.ExecuteAsync(string, CurlDotNet.Core.CurlSettings)">ExecuteAsync(string, CurlSettings)</a></td>
+<td align="left"><b>Execute with advanced settings - for when you need more control.</b>  Use this overload when you need features beyond what curl command strings provide,              like progress callbacks, custom HTTP handlers, or retry policies.  <b>Example with Progress Reporting:</b>`...`  <b>Example with Custom Retry Policy:</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,System.Threading.CancellationToken)" title="CurlDotNet.Curl.ExecuteAsync(string, System.Threading.CancellationToken)">ExecuteAsync(string, CancellationToken)</a></td>
+<td align="left"><b>Execute a curl command with cancellation support - perfect for long-running operations.</b>  This lets you cancel the HTTP request if it&#39;s taking too long or if the user cancels.              Essential for good user experience in desktop and mobile apps.  <b>Basic Example:</b>`...`  <b>User-Cancellable Download:</b>`...`  <b>Web API with Request Timeout:</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.ExecuteManyAsync(string%5B%5D).md" title="CurlDotNet.Curl.ExecuteManyAsync(string[])">ExecuteManyAsync(string[])</a></td>
+<td align="left"><b>Execute multiple curl commands in parallel - great for performance!</b>  Runs multiple HTTP requests at the same time, which is much faster than running them one by one.              Perfect for fetching data from multiple APIs or endpoints simultaneously.  <b>Example - Fetch Multiple APIs:</b>`...`  <b>Example - Aggregate Data:</b>`...`  <b>Error Handling - Some May Fail:</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.Get(string).md" title="CurlDotNet.Curl.Get(string)">Get(string)</a></td>
+<td align="left"><b>⚠️ SYNCHRONOUS GET request (blocks thread).</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.GetAsync(string).md" title="CurlDotNet.Curl.GetAsync(string)">GetAsync(string)</a></td>
+<td align="left"><b>Quick GET request - simpler syntax for basic GET operations.</b>  When you just need to GET a URL without any options, use this shortcut method.  <b>Example:</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.Post(string,string).md" title="CurlDotNet.Curl.Post(string, string)">Post(string, string)</a></td>
+<td align="left"><b>⚠️ SYNCHRONOUS POST request (blocks thread).</b></td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.PostAsync(string,string).md" title="CurlDotNet.Curl.PostAsync(string, string)">PostAsync(string, string)</a></td>
+<td align="left"><b>Quick POST request - simpler syntax for posting data.</b>  Convenient method for simple POST requests with string data.  <b>Example:</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.PostJson(string,object).md" title="CurlDotNet.Curl.PostJson(string, object)">PostJson(string, object)</a></td>
+<td align="left"><b>⚠️ SYNCHRONOUS POST with JSON (blocks thread).</b></td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.PostJsonAsync(string,object).md" title="CurlDotNet.Curl.PostJsonAsync(string, object)">PostJsonAsync(string, object)</a></td>
+<td align="left"><b>POST with JSON data - automatically serializes objects to JSON.</b>  The easiest way to POST JSON data. Pass any object and it&#39;s automatically              serialized to JSON with the correct Content-Type header.  <b>Example:</b>`...`  <b>Works with any object:</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.ToFetch(string).md" title="CurlDotNet.Curl.ToFetch(string)">ToFetch(string)</a></td>
+<td align="left"><b>Convert curl command to JavaScript fetch() code.</b>  Generates JavaScript code that does the same thing as your curl command.              Useful for web developers who need the same request in JavaScript.  <b>Example:</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.ToHttpClient(string).md" title="CurlDotNet.Curl.ToHttpClient(string)">ToHttpClient(string)</a></td>
+<td align="left"><b>Convert curl command to C# HttpClient code - great for learning!</b>  Shows you exactly how to write the same request using HttpClient.              Perfect for understanding what curl is doing or migrating to pure HttpClient.  <b>Example:</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.ToPythonRequests(string).md" title="CurlDotNet.Curl.ToPythonRequests(string)">ToPythonRequests(string)</a></td>
+<td align="left"><b>Convert curl command to Python requests code.</b>  Generates Python code using the popular &#39;requests&#39; library.              Great for Python developers or data scientists.  <b>Example:</b>`...`</td>
+</tr>
+<tr>
+<td align="left"><a href="CurlDotNet.Curl.Validate(string).md" title="CurlDotNet.Curl.Validate(string)">Validate(string)</a></td>
+<td align="left"><b>Check if a curl command is valid without executing it.</b>  Useful for validating user input or checking commands before running them.              This only checks syntax, not whether the URL actually exists.  <b>Example:</b>`...`  <b>Validate User Input:</b>`...`</td>
+</tr>
+</tbody></table>
+
+
+<hr>
+<p><a href="/">← Back to Home</a> | <a href="https://github.com/jacob-mellor/curl-dot-net">GitHub</a> | <a href="https://www.nuget.org/packages/CurlDotNet/">NuGet</a></p>
+</body>
+</html>
