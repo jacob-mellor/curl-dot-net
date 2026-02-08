@@ -152,6 +152,24 @@ await Curl.PostAsync("https://api.example.com/upload")
     .ExecuteAsync();
 ```
 
+### Binary File Downloads
+```csharp
+// Download binary files (Office docs, PDFs, ZIPs, etc.) - automatically detected
+var result = await Curl.ExecuteAsync("curl -o report.xlsx https://example.com/report.xlsx");
+
+// Force binary mode for servers with incorrect Content-Type headers
+var report = await CurlRequestBuilder.Get("https://example.com/report.xlsx")
+    .AsBinary()
+    .WithOutput("report.xlsx")
+    .ExecuteAsync();
+
+// Register custom MIME types as binary
+var data = await CurlRequestBuilder.Get("https://example.com/data")
+    .WithBinaryContentType("application/x-custom-format")
+    .ExecuteAsync();
+data.SaveToFile("output.bin");
+```
+
 ### Proxy Support
 ```csharp
 // HTTP proxy

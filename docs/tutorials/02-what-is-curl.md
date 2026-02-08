@@ -9,7 +9,7 @@
 
 ## 📚 Prerequisites
 
-- [Tutorial 1: What is .NET and C#?](01-what-is-dotnet.md)
+- [Tutorial 1: What is .NET and C#?](01-what-is-dotnet.html)
 
 ## 🌍 The Big Picture
 
@@ -483,7 +483,7 @@ Want to learn more about curl itself?
 - [curl Tutorial](https://curl.se/docs/tutorial.html) - Learn curl basics
 - [curl Man Page](https://curl.se/docs/manpage.html) - All options explained
 
-For CurlDotNet-specific information, see our [troubleshooting guide](../troubleshooting/common-issues.md) for links to documentation with detailed error explanations.
+For CurlDotNet-specific information, see our [troubleshooting guide](../troubleshooting/common-issues.html) for links to documentation with detailed error explanations.
 
 ## 🎓 Key Takeaways
 
@@ -499,7 +499,7 @@ For CurlDotNet-specific information, see our [troubleshooting guide](../troubles
 
 Now that you understand curl:
 
-1. **Next Tutorial** → [Understanding Async/Await](03-what-is-async.md)
+1. **Next Tutorial** → [Understanding Async/Await](03-what-is-async.html)
 2. **Try curl yourself** - Open a terminal and run `curl https://api.github.com`
 3. **Look at API docs** - Notice how they all use curl
 4. **Experiment** - Try different curl options
@@ -527,6 +527,6 @@ curl is a universal tool that developers use to interact with web services. Curl
 
 ---
 
-**Ready for the next tutorial?** → [Understanding Async/Await](03-what-is-async.md)
+**Ready for the next tutorial?** → [Understanding Async/Await](03-what-is-async.html)
 
-**Need help?** Check the [Troubleshooting Guide](../troubleshooting/common-issues.md) or ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check the [Troubleshooting Guide](../troubleshooting/common-issues.html) or ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)

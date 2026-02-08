@@ -417,7 +417,7 @@ if (result.StatusCode == 404)
 }
 ```
 
-For more details, see our [HTTP error troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.html#http-errors).
+For more details, see our [HTTP error troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.md#http-errors).
 
 ### Problem: "403 Forbidden"
 
@@ -432,7 +432,7 @@ var result = await Curl.ExecuteAsync(@"
 ");
 ```
 
-For more details, see our [authentication troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.html#authentication-errors).
+For more details, see our [authentication troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.md#authentication-errors).
 
 ### Problem: Response is Empty
 
@@ -467,7 +467,7 @@ catch (System.Text.Json.JsonException ex)
 }
 ```
 
-For more details, see our [JSON troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.html#json-parsing-errors).
+For more details, see our [JSON troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.md#json-parsing-errors).
 
 ### Problem: Timeout
 
@@ -483,7 +483,7 @@ var result = await Curl.ExecuteAsync(@"
 ");
 ```
 
-For more details, see our [timeout troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.html#timeout-errors).
+For more details, see our [timeout troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.md#timeout-errors).
 
 ## 📊 Query Parameters Guide
 
@@ -564,12 +564,12 @@ try
 catch (CurlDnsException ex)
 {
     Console.WriteLine($"DNS error: {ex.Message}");
-    // See: https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.html#dns-errors
+    // See: https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.md#dns-errors
 }
 catch (CurlTimeoutException ex)
 {
     Console.WriteLine($"Timeout: {ex.Message}");
-    // See: https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.html#timeout-errors
+    // See: https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.md#timeout-errors
 }
 catch (CurlException ex)
 {
@@ -605,17 +605,17 @@ var result = await Curl.ExecuteAsync($@"
 
 Now that you can make GET requests:
 
-1. Learn to [Send JSON Data](send-json.md) with POST requests
-2. Try [Downloading Files](download-file.md)
-3. Explore [Handling Errors](handle-errors.md)
-4. Build an [API Client](call-api.md)
+1. Learn to [Send JSON Data](send-json.html) with POST requests
+2. Try [Downloading Files](download-file.html)
+3. Explore [Handling Errors](handle-errors.html)
+4. Build an [API Client](call-api.html)
 
 ## 📚 Related Recipes
 
-- [Call an API](call-api.md) - Building a complete API client
-- [Send JSON](send-json.md) - POST requests with JSON
-- [Handle Errors](handle-errors.md) - Robust error handling
-- [Download Files](download-file.md) - Saving files from URLs
+- [Call an API](call-api.html) - Building a complete API client
+- [Send JSON](send-json.html) - POST requests with JSON
+- [Handle Errors](handle-errors.html) - Robust error handling
+- [Download Files](download-file.html) - Saving files from URLs
 
 ## 🎓 Key Takeaways
 
@@ -656,4 +656,4 @@ if (result.IsSuccess)
 
 ---
 
-**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.md) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.html) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)

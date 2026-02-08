@@ -583,8 +583,8 @@ Parallel requests can dramatically improve performance:
 
 ## What's Next?
 
-Learn about [debugging requests](14-debugging-requests.md) to troubleshoot issues effectively.
+Learn about [debugging requests](14-debugging-requests.html) to troubleshoot issues effectively.
 
 ---
 
-[← Previous: Cancellation Tokens](12-cancellation-tokens.md) | [Next: Debugging Requests →](14-debugging-requests.md)
+[← Previous: Cancellation Tokens](12-cancellation-tokens.html) | [Next: Debugging Requests →](14-debugging-requests.html)

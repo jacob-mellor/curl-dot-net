@@ -354,8 +354,8 @@ Understanding these properties and using them correctly is the foundation for bu
 
 ## What's Next?
 
-In the next tutorial, we'll dive deeper into [error handling](06-handling-errors.md) and learn how to build resilient applications that gracefully handle network failures.
+In the next tutorial, we'll dive deeper into [error handling](06-handling-errors.html) and learn how to build resilient applications that gracefully handle network failures.
 
 ---
 
-[← Previous: Your First Request](04-your-first-request.md) | [Next: Handling Errors →](06-handling-errors.md)
+[← Previous: Your First Request](04-your-first-request.html) | [Next: Handling Errors →](06-handling-errors.html)

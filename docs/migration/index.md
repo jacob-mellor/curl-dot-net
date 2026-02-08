@@ -4,7 +4,7 @@ Moving to CurlDotNet from another HTTP client? These guides will help you migrat
 
 ## Available Migration Guides
 
-### [Migrating from HttpClient](httpclient.md)
+### [Migrating from HttpClient](httpclient.html)
 Learn how to replace `System.Net.Http.HttpClient` with CurlDotNet, including:
 - Basic request patterns
 - Header management
@@ -12,7 +12,7 @@ Learn how to replace `System.Net.Http.HttpClient` with CurlDotNet, including:
 - Error handling
 - Performance considerations
 
-### [Migrating from RestSharp](restsharp.md)
+### [Migrating from RestSharp](restsharp.html)
 Transition from RestSharp to CurlDotNet with:
 - Request building patterns
 - Serialization/deserialization
@@ -81,4 +81,4 @@ We provide helpers to make migration easier:
 
 - [GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues) - Ask questions or report problems
 - [Examples](https://github.com/jacob-mellor/curl-dot-net/tree/master/examples) - See working code
-- [API Documentation](../api/index.md) - Detailed API reference
+- [API Documentation](../api/index.html) - Detailed API reference

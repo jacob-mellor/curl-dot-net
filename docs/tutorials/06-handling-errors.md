@@ -460,8 +460,8 @@ Proper error handling is essential for building reliable applications. CurlDotNe
 
 ## What's Next?
 
-In the next tutorial, we'll learn about [working with JSON data](07-json-for-beginners.md), the most common format for modern APIs.
+In the next tutorial, we'll learn about [working with JSON data](07-json-for-beginners.html), the most common format for modern APIs.
 
 ---
 
-[← Previous: Understanding Results](05-understanding-results.md) | [Next: JSON for Beginners →](07-json-for-beginners.md)
+[← Previous: Understanding Results](05-understanding-results.html) | [Next: JSON for Beginners →](07-json-for-beginners.html)

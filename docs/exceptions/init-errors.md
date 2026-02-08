@@ -47,5 +47,5 @@ public void DiagnoseInitFailure()
 ```
 
 ## Related Documentation
-- [Installation Guide](/getting-started/installation.md)
-- [System Requirements](/getting-started/requirements.md)
+- [Installation Guide](/getting-started/installation.html)
+- [System Requirements](/getting-started/requirements.html)

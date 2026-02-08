@@ -17,10 +17,10 @@ dotnet add package CurlDotNet
 ## Tutorial Series
 
 ### Getting Started with .NET and CurlDotNet
-1. **[What is .NET and C#?](01-what-is-dotnet.md)** - Understanding the .NET ecosystem
-2. **[What is curl?](02-what-is-curl.md)** - Learn about the curl command-line tool
-3. **[Understanding Async/Await](03-what-is-async.md)** - Asynchronous programming in C#
-4. **[Your First Request](04-your-first-request.md)** - Make your first HTTP request with CurlDotNet
+1. **[What is .NET and C#?](01-what-is-dotnet.html)** - Understanding the .NET ecosystem
+2. **[What is curl?](02-what-is-curl.html)** - Learn about the curl command-line tool
+3. **[Understanding Async/Await](03-what-is-async.html)** - Asynchronous programming in C#
+4. **[Your First Request](04-your-first-request.html)** - Make your first HTTP request with CurlDotNet
 
 ## Learning Path
 
@@ -70,4 +70,4 @@ By completing these tutorials, you'll understand:
 
 ---
 
-Ready to start? Begin with **[What is .NET and C#?](01-what-is-dotnet.md)** →
+Ready to start? Begin with **[What is .NET and C#?](01-what-is-dotnet.html)** →

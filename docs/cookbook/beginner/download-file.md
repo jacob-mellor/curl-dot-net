@@ -740,17 +740,17 @@ var result = await Curl.ExecuteAsync($"curl -o {filename} https://example.com/re
 
 Now that you can download files:
 
-1. Learn to [Upload Files](upload-file.md)
-2. Try [POST Form Data](post-form.md)
-3. Explore [Error Handling](handle-errors.md)
-4. Build [API Client](call-api.md)
+1. Learn to [Upload Files](upload-file.html)
+2. Try [POST Form Data](post-form.html)
+3. Explore [Error Handling](handle-errors.html)
+4. Build [API Client](call-api.html)
 
 ## 📚 Related Recipes
 
-- [Simple GET Request](simple-get.md) - Basic HTTP requests
-- [Upload Files](upload-file.md) - Sending files to servers
-- [Handle Errors](handle-errors.md) - Robust error handling
-- [POST Form Data](post-form.md) - Submitting forms
+- [Simple GET Request](simple-get.html) - Basic HTTP requests
+- [Upload Files](upload-file.html) - Sending files to servers
+- [Handle Errors](handle-errors.html) - Robust error handling
+- [POST Form Data](post-form.html) - Submitting forms
 
 ## 🎓 Key Takeaways
 
@@ -785,4 +785,4 @@ result.SaveToFile("file.jpg");
 
 ---
 
-**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.md) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.html) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)

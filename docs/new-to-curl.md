@@ -102,9 +102,9 @@ await curl.DeleteAsync(url);
 
 Now that you understand the basics:
 
-1. **[Install CurlDotNet](getting-started/installation.md)** - Add it to your project
-2. **[Follow the Tutorials](tutorials/01-what-is-dotnet.md)** - Step-by-step learning path
-3. **[Try the Cookbook](cookbook/index.md)** - Copy-paste solutions for common tasks
+1. **[Install CurlDotNet](getting-started/installation.html)** - Add it to your project
+2. **[Follow the Tutorials](tutorials/01-what-is-dotnet.html)** - Step-by-step learning path
+3. **[Try the Cookbook](cookbook/index.html)** - Copy-paste solutions for common tasks
 4. **[Explore Examples](https://github.com/jacob-mellor/curl-dot-net/tree/master/examples)** - Complete working applications
 
 ## Getting Help
@@ -112,7 +112,7 @@ Now that you understand the basics:
 - **Documentation**: You're already here!
 - **Examples**: Check the [examples directory](https://github.com/jacob-mellor/curl-dot-net/tree/master/examples)
 - **Issues**: [Report bugs or ask questions](https://github.com/jacob-mellor/curl-dot-net/issues)
-- **Cookbook**: [Common recipes and patterns](cookbook/index.md)
+- **Cookbook**: [Common recipes and patterns](cookbook/index.html)
 
 ## Why Choose CurlDotNet?
 
@@ -124,7 +124,7 @@ If you're wondering why to use CurlDotNet over HttpClient or RestSharp:
 - **Performance**: Optimized for real-world usage
 - **Support**: Active development and community
 
-Ready to start? [Install CurlDotNet](getting-started/installation.md) and make your first request in minutes!
+Ready to start? [Install CurlDotNet](getting-started/installation.html) and make your first request in minutes!
 
 ---
 

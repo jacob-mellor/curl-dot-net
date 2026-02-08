@@ -126,6 +126,24 @@ await Curl.PostAsync("https://api.example.com/upload")
     .ExecuteAsync();
 ```
 
+### Binary File Downloads
+```csharp
+// Office docs, PDFs, ZIPs, etc. are automatically detected as binary
+var result = await Curl.ExecuteAsync("curl -o report.xlsx https://example.com/report.xlsx");
+
+// Force binary mode for servers with incorrect Content-Type headers
+var report = await CurlRequestBuilder.Get("https://example.com/report.xlsx")
+    .AsBinary()
+    .WithOutput("report.xlsx")
+    .ExecuteAsync();
+
+// Register custom MIME types as binary
+var data = await CurlRequestBuilder.Get("https://example.com/data")
+    .WithBinaryContentType("application/x-custom-format")
+    .ExecuteAsync();
+data.SaveToFile("output.bin");
+```
+
 ### 🔒 Proxy Support - NEW
 
 CurlDotNet provides comprehensive proxy support for various scenarios:

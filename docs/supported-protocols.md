@@ -86,6 +86,6 @@ public string GetProtocolFromUrl(string url)
 - List: `-l`
 
 ## Related Documentation
-- [URL Syntax Errors](exceptions/url-errors.md)
-- [SSL/TLS Errors](exceptions/ssl-errors.md)
+- [URL Syntax Errors](exceptions/url-errors.html)
+- [SSL/TLS Errors](exceptions/ssl-errors.html)
 - [Protocol Specifications](https://curl.se/docs/protdocs.html)

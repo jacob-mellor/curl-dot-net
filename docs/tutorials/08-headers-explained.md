@@ -406,8 +406,8 @@ Headers control how HTTP requests and responses behave:
 
 ## What's Next?
 
-Learn about [authentication basics](09-authentication-basics.md) and how to securely access protected APIs.
+Learn about [authentication basics](09-authentication-basics.html) and how to securely access protected APIs.
 
 ---
 
-[← Previous: JSON for Beginners](07-json-for-beginners.md) | [Next: Authentication Basics →](09-authentication-basics.md)
+[← Previous: JSON for Beginners](07-json-for-beginners.html) | [Next: Authentication Basics →](09-authentication-basics.html)

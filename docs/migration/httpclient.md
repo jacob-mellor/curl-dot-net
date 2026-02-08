@@ -389,5 +389,5 @@ mockCurl.Setup(x => x.GetAsync(It.IsAny<string>()))
 ## Need Help?
 
 - Check the [examples](https://github.com/jacob-mellor/curl-dot-net/tree/master/examples) for working code
-- Review the [API documentation](../api/index.md) for detailed method signatures
+- Review the [API documentation](../api/index.html) for detailed method signatures
 - Ask questions in [GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues)

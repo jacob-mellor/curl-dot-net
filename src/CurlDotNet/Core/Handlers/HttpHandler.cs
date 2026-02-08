@@ -302,7 +302,7 @@ namespace CurlDotNet.Core
                 // Read body
                 if (!options.HeadOnly)
                 {
-                    if (IsTextContent(response.Content))
+                    if (IsTextContent(response.Content, options))
                     {
                         responseText = await response.Content.ReadAsStringAsync();
                     }
@@ -510,15 +510,204 @@ namespace CurlDotNet.Core
             return Path.Combine(Directory.GetCurrentDirectory(), fileName);
         }
 
-        private bool IsTextContent(HttpContent content)
+        /// <summary>
+        /// Known binary MIME types that must never be treated as text, even if their
+        /// MIME type string contains substrings like "xml" (e.g., openxmlformats).
+        /// </summary>
+        private static readonly HashSet<string> KnownBinaryMimeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            var contentType = content.Headers.ContentType?.MediaType;
-            if (contentType == null) return true;
+            // Microsoft Office Open XML (ZIP-based, contain "xml" in MIME type but are binary)
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",           // .xlsx
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.template",        // .xltx
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",     // .docx
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.template",     // .dotx
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",   // .pptx
+            "application/vnd.openxmlformats-officedocument.presentationml.template",       // .potx
+            "application/vnd.openxmlformats-officedocument.presentationml.slideshow",      // .ppsx
 
-            return contentType.StartsWith("text/") ||
-                   contentType.Contains("json") ||
-                   contentType.Contains("xml") ||
-                   contentType.Contains("javascript");
+            // Legacy Microsoft Office formats (binary)
+            "application/vnd.ms-excel",                      // .xls
+            "application/vnd.ms-powerpoint",                 // .ppt
+            "application/msword",                            // .doc
+            "application/vnd.ms-excel.sheet.macroEnabled.12", // .xlsm
+            "application/vnd.ms-word.document.macroEnabled.12", // .docm
+            "application/vnd.ms-powerpoint.presentation.macroEnabled.12", // .pptm
+
+            // OpenDocument formats (ZIP-based)
+            "application/vnd.oasis.opendocument.spreadsheet",    // .ods
+            "application/vnd.oasis.opendocument.text",           // .odt
+            "application/vnd.oasis.opendocument.presentation",   // .odp
+
+            // Archive/compression formats
+            "application/zip",                               // .zip
+            "application/x-zip-compressed",                  // .zip (alternative)
+            "application/gzip",                              // .gz
+            "application/x-gzip",                            // .gz (alternative)
+            "application/x-tar",                             // .tar
+            "application/x-bzip2",                           // .bz2
+            "application/x-7z-compressed",                   // .7z
+            "application/x-rar-compressed",                  // .rar
+            "application/vnd.rar",                           // .rar (IANA)
+
+            // PDF
+            "application/pdf",                               // .pdf
+
+            // Executables and installers
+            "application/x-msdownload",                      // .exe, .dll
+            "application/x-msi",                             // .msi
+            "application/vnd.apple.installer+xml",           // .pkg (despite +xml, this is binary)
+            "application/x-apple-diskimage",                 // .dmg
+            "application/x-deb",                             // .deb
+            "application/x-rpm",                             // .rpm
+
+            // Images
+            "image/jpeg",                                    // .jpg, .jpeg
+            "image/png",                                     // .png
+            "image/gif",                                     // .gif
+            "image/bmp",                                     // .bmp
+            "image/webp",                                    // .webp
+            "image/tiff",                                    // .tiff, .tif
+            "image/x-icon",                                  // .ico
+            "image/vnd.microsoft.icon",                      // .ico (IANA)
+
+            // Audio
+            "audio/mpeg",                                    // .mp3
+            "audio/wav",                                     // .wav
+            "audio/ogg",                                     // .ogg
+            "audio/flac",                                    // .flac
+            "audio/aac",                                     // .aac
+            "audio/webm",                                    // .weba
+
+            // Video
+            "video/mp4",                                     // .mp4
+            "video/mpeg",                                    // .mpeg
+            "video/webm",                                    // .webm
+            "video/x-msvideo",                               // .avi
+            "video/quicktime",                               // .mov
+            "video/x-matroska",                              // .mkv
+
+            // Fonts
+            "font/woff",                                     // .woff
+            "font/woff2",                                    // .woff2
+            "font/ttf",                                      // .ttf
+            "font/otf",                                      // .otf
+            "application/font-woff",                         // .woff (legacy)
+            "application/font-woff2",                        // .woff2 (legacy)
+
+            // Binary data / streams
+            "application/octet-stream",                      // generic binary
+            "application/x-binary",                          // generic binary
+            "application/macbinary",                         // Mac binary
+
+            // Database
+            "application/x-sqlite3",                         // .sqlite, .db
+            "application/vnd.sqlite3",                       // .sqlite (alternative)
+
+            // Java
+            "application/java-archive",                      // .jar
+            "application/x-java-archive",                    // .jar (alternative)
+
+            // WebAssembly
+            "application/wasm",                              // .wasm
+
+            // Protobuf
+            "application/protobuf",                          // Protocol Buffers
+            "application/x-protobuf",                        // Protocol Buffers (alternative)
+            "application/grpc",                              // gRPC
+
+            // Serialization formats (binary)
+            "application/x-msgpack",                         // MessagePack
+            "application/msgpack",                           // MessagePack (alternative)
+            "application/cbor",                              // CBOR
+            "application/avro",                              // Apache Avro
+            "application/thrift",                            // Apache Thrift
+        };
+
+        /// <summary>
+        /// Determines whether the HTTP content should be treated as text or binary.
+        /// Uses precise MIME type matching, a comprehensive known-binary registry,
+        /// and user-configurable overrides to avoid corrupting binary data.
+        /// </summary>
+        /// <param name="content">The HTTP response content to inspect.</param>
+        /// <param name="options">The curl options that may contain user overrides for content type detection.</param>
+        /// <returns><c>true</c> if the content should be read as text; <c>false</c> for binary.</returns>
+        private bool IsTextContent(HttpContent content, CurlOptions options = null)
+        {
+            // User override: force all content as binary
+            if (options?.ForceBinary == true) return false;
+
+            var contentType = content.Headers.ContentType?.MediaType;
+
+            // If no content type, assume binary to avoid corruption
+            // (binary data read as text is corrupted, but text read as binary is lossless)
+            if (contentType == null) return false;
+
+            // User override: custom binary content types take highest priority
+            if (options?.BinaryContentTypes != null && options.BinaryContentTypes.Count > 0)
+            {
+                foreach (var binaryType in options.BinaryContentTypes)
+                {
+                    if (contentType.Equals(binaryType, StringComparison.OrdinalIgnoreCase))
+                        return false;
+                }
+            }
+
+            // User override: custom text content types
+            if (options?.TextContentTypes != null && options.TextContentTypes.Count > 0)
+            {
+                foreach (var textType in options.TextContentTypes)
+                {
+                    if (contentType.Equals(textType, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+
+            // Check against known binary MIME types (catches Office docs, PDFs, archives, etc.)
+            if (KnownBinaryMimeTypes.Contains(contentType))
+                return false;
+
+            // All binary media type categories
+            if (contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ||
+                contentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) ||
+                contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase) ||
+                contentType.StartsWith("font/", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            // All text/* types are text
+            if (contentType.StartsWith("text/", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // JSON types: application/json, application/vnd.api+json, etc.
+            if (contentType.EndsWith("+json", StringComparison.OrdinalIgnoreCase) ||
+                contentType.Equals("application/json", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // XML types: application/xml, application/soap+xml, application/rss+xml, etc.
+            // But NOT application/vnd.openxmlformats-* (caught above in KnownBinaryMimeTypes)
+            if (contentType.EndsWith("+xml", StringComparison.OrdinalIgnoreCase) ||
+                contentType.Equals("application/xml", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // JavaScript types
+            if (contentType.Equals("application/javascript", StringComparison.OrdinalIgnoreCase) ||
+                contentType.Equals("application/ecmascript", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // GraphQL
+            if (contentType.Equals("application/graphql", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // YAML
+            if (contentType.Equals("application/x-yaml", StringComparison.OrdinalIgnoreCase) ||
+                contentType.Equals("application/yaml", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // Form data (text-based)
+            if (contentType.Equals("application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            // Everything else is binary (safe default: binary read as text corrupts, text read as binary is lossless)
+            return false;
         }
 
         private bool IsContentHeader(string headerName)

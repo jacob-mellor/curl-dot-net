@@ -468,6 +468,6 @@ var users = result.IsSuccess
 ## Need Help?
 
 - Review [working examples](https://github.com/jacob-mellor/curl-dot-net/tree/master/examples)
-- Check the [cookbook](../cookbook/index.md) for common recipes
-- Read the [API documentation](../api/index.md) for detailed method information
+- Check the [cookbook](../cookbook/index.html) for common recipes
+- Read the [API documentation](../api/index.html) for detailed method information
 - Ask questions in [GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues)

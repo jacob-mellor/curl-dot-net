@@ -530,8 +530,8 @@ Cancellation tokens provide powerful control over async operations:
 
 ## What's Next?
 
-Learn about [parallel requests](13-parallel-requests.md) to improve performance with concurrent operations.
+Learn about [parallel requests](13-parallel-requests.html) to improve performance with concurrent operations.
 
 ---
 
-[← Previous: Forms and Data](11-forms-and-data.md) | [Next: Parallel Requests →](13-parallel-requests.md)
+[← Previous: Forms and Data](11-forms-and-data.html) | [Next: Parallel Requests →](13-parallel-requests.html)

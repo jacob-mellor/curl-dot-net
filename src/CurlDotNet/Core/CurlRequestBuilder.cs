@@ -586,6 +586,82 @@ namespace CurlDotNet.Core
             return this;
         }
 
+        /// <summary>
+        /// Force the response to be treated as binary data, regardless of Content-Type header.
+        /// </summary>
+        /// <remarks>
+        /// <para>Use this when downloading files from servers that serve binary content with
+        /// incorrect or misleading Content-Type headers. When enabled, the response body
+        /// is always read as a byte array, preventing corruption of binary data.</para>
+        /// </remarks>
+        /// <example>
+        /// <code language="csharp">
+        /// // Download an .xlsx file that a server incorrectly serves as text/plain
+        /// var result = await CurlRequestBuilder
+        ///     .Get("https://example.com/report.xlsx")
+        ///     .AsBinary()
+        ///     .WithOutput("report.xlsx")
+        ///     .ExecuteAsync();
+        ///
+        /// // The file is now saved correctly as binary data
+        /// </code>
+        /// </example>
+        /// <returns>Builder for method chaining.</returns>
+        public CurlRequestBuilder AsBinary()
+        {
+            _options.ForceBinary = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Register a MIME type that should always be treated as binary data.
+        /// </summary>
+        /// <remarks>
+        /// <para>The library already recognizes common binary types (Office documents, PDFs,
+        /// archives, images, audio, video, fonts, etc.). Use this for custom or unusual
+        /// MIME types that your server uses for binary content.</para>
+        /// </remarks>
+        /// <param name="mimeType">The MIME type to treat as binary (e.g., "application/x-custom-binary").</param>
+        /// <returns>Builder for method chaining.</returns>
+        /// <example>
+        /// <code language="csharp">
+        /// var result = await CurlRequestBuilder
+        ///     .Get("https://example.com/data")
+        ///     .WithBinaryContentType("application/x-custom-format")
+        ///     .WithOutput("data.bin")
+        ///     .ExecuteAsync();
+        /// </code>
+        /// </example>
+        public CurlRequestBuilder WithBinaryContentType(string mimeType)
+        {
+            _options.BinaryContentTypes.Add(mimeType);
+            return this;
+        }
+
+        /// <summary>
+        /// Register a MIME type that should always be treated as text content.
+        /// </summary>
+        /// <remarks>
+        /// <para>Use this for custom MIME types that the library treats as binary by default
+        /// but that you know contain text data.</para>
+        /// </remarks>
+        /// <param name="mimeType">The MIME type to treat as text (e.g., "application/x-custom-text").</param>
+        /// <returns>Builder for method chaining.</returns>
+        /// <example>
+        /// <code language="csharp">
+        /// var result = await CurlRequestBuilder
+        ///     .Get("https://example.com/config")
+        ///     .WithTextContentType("application/x-custom-config")
+        ///     .ExecuteAsync();
+        /// Console.WriteLine(result.Body); // Treated as text
+        /// </code>
+        /// </example>
+        public CurlRequestBuilder WithTextContentType(string mimeType)
+        {
+            _options.TextContentTypes.Add(mimeType);
+            return this;
+        }
+
         #endregion
 
         #region Execution

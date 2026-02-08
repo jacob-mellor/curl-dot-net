@@ -680,4 +680,4 @@ You've completed all 14 tutorials! You now have a comprehensive understanding of
 
 ---
 
-[← Previous: Parallel Requests](13-parallel-requests.md) | [Back to Tutorials](README.md)
+[← Previous: Parallel Requests](13-parallel-requests.html) | [Back to Tutorials](README.html)

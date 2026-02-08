@@ -9,7 +9,7 @@
 
 ## 📚 Prerequisites
 
-- [Tutorial 1: What is .NET and C#?](01-what-is-dotnet.md)
+- [Tutorial 1: What is .NET and C#?](01-what-is-dotnet.html)
 
 ## 🍳 The Restaurant Analogy
 
@@ -328,7 +328,7 @@ class Program
 
 Now that you understand async/await:
 
-1. **Next Tutorial** → [Your First Request](04-your-first-request.md)
+1. **Next Tutorial** → [Your First Request](04-your-first-request.html)
 2. **Practice** → Try the interactive example above
 3. **Experiment** → What happens without `await`?
 
@@ -356,6 +356,6 @@ A: For network requests, file I/O, and database calls - yes! For simple calculat
 
 ---
 
-**Ready to make your first request?** → [Your First Request](04-your-first-request.md)
+**Ready to make your first request?** → [Your First Request](04-your-first-request.html)
 
-**Still confused?** That's normal! Try the examples and it will click. Check [Common Issues](../troubleshooting/common-issues.md) if you get stuck.
+**Still confused?** That's normal! Try the examples and it will click. Check [Common Issues](../troubleshooting/common-issues.html) if you get stuck.

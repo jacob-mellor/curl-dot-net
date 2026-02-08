@@ -335,6 +335,68 @@ namespace CurlDotNet.Core
         public bool DisableEprt { get; set; }
 
         /// <summary>
+        /// Forces all response content to be treated as binary data, regardless of Content-Type header.
+        /// </summary>
+        /// <remarks>
+        /// <para>When set to <c>true</c>, the response body will always be read as a byte array
+        /// using ReadAsByteArrayAsync. This prevents
+        /// corruption of binary files that may have incorrect Content-Type headers from the server.</para>
+        /// <para>Use this when downloading files from servers that serve binary content with
+        /// text-like Content-Type headers (e.g., a server returning .xlsx files as text/plain).</para>
+        /// </remarks>
+        /// <example>
+        /// <code language="csharp">
+        /// // Using the fluent builder:
+        /// var result = await CurlRequestBuilder
+        ///     .Get("https://example.com/report.xlsx")
+        ///     .AsBinary()
+        ///     .ExecuteAsync();
+        /// </code>
+        /// </example>
+        public bool ForceBinary { get; set; }
+
+        /// <summary>
+        /// Additional MIME types that should be treated as binary data.
+        /// </summary>
+        /// <remarks>
+        /// <para>These MIME types take priority over the built-in text content type detection.
+        /// Use this to override the default behavior for specific MIME types that your server
+        /// may serve with unexpected Content-Type headers.</para>
+        /// <para>The library already recognizes common binary types including Office documents
+        /// (.xlsx, .docx, .pptx), PDFs, archives, images, audio, video, and more.</para>
+        /// </remarks>
+        /// <example>
+        /// <code language="csharp">
+        /// // Using the fluent builder:
+        /// var result = await CurlRequestBuilder
+        ///     .Get("https://example.com/data")
+        ///     .WithBinaryContentType("application/x-custom-binary")
+        ///     .ExecuteAsync();
+        /// </code>
+        /// </example>
+        public List<string> BinaryContentTypes { get; set; } = new List<string>();
+
+        /// <summary>
+        /// Additional MIME types that should be treated as text content.
+        /// </summary>
+        /// <remarks>
+        /// <para>These MIME types take priority over the built-in binary detection (but not
+        /// <see cref="BinaryContentTypes"/> which has highest priority). Use this to override
+        /// the default behavior for MIME types that you know are text but that the library
+        /// treats as binary by default.</para>
+        /// </remarks>
+        /// <example>
+        /// <code language="csharp">
+        /// // Using the fluent builder:
+        /// var result = await CurlRequestBuilder
+        ///     .Get("https://example.com/data")
+        ///     .WithTextContentType("application/x-custom-text")
+        ///     .ExecuteAsync();
+        /// </code>
+        /// </example>
+        public List<string> TextContentTypes { get; set; } = new List<string>();
+
+        /// <summary>
         /// Clone this options object.
         /// </summary>
         public CurlOptions Clone()
@@ -397,7 +459,10 @@ namespace CurlDotNet.Core
                 RetryMaxTime = RetryMaxTime,
                 LocationTrusted = LocationTrusted,
                 DisableEpsv = DisableEpsv,
-                DisableEprt = DisableEprt
+                DisableEprt = DisableEprt,
+                ForceBinary = ForceBinary,
+                BinaryContentTypes = new List<string>(BinaryContentTypes),
+                TextContentTypes = new List<string>(TextContentTypes)
             };
         }
     }
