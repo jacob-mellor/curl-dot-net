@@ -152,6 +152,24 @@ await Curl.PostAsync("https://api.example.com/upload")
     .ExecuteAsync();
 ```
 
+### JSON API Requests (--json flag)
+```csharp
+// Use curl's --json flag - automatically sets Content-Type and Accept headers
+var result = await Curl.ExecuteAsync(
+    "curl --json '{\"query\":\"search term\"}' https://api.example.com/search");
+
+// Read JSON body from a file (just like curl)
+var result = await Curl.ExecuteAsync(
+    @"curl --json @""c:\data\query.json"" https://api.example.com/search");
+
+// Combine with other curl flags - proxies, auth, output, etc.
+var result = await Curl.ExecuteAsync(@"curl -X POST
+    -H ""Authorization: Bearer token""
+    --json @query.json
+    -L -k -o result.json
+    https://graph.microsoft.com/beta/security/runHuntingQuery");
+```
+
 ### Binary File Downloads
 ```csharp
 // Download binary files (Office docs, PDFs, ZIPs, etc.) - automatically detected

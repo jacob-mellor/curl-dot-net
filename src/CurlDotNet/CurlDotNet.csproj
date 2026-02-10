@@ -31,9 +31,9 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>9.3.3</Version>
-    <AssemblyVersion>9.3.3.0</AssemblyVersion>
-    <FileVersion>9.3.3.0</FileVersion>
+    <Version>9.4.0</Version>
+    <AssemblyVersion>9.4.0.0</AssemblyVersion>
+    <FileVersion>9.4.0.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
@@ -80,17 +80,17 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 9.3.3 - Fix binary content detection for Office documents
-BUGFIX: .xlsx, .docx, .pptx files no longer corrupted when downloaded
-   - Root cause: "xml" substring in "openxmlformats" MIME type triggered text detection
-   - Now uses precise MIME type matching instead of substring matching
-NEW: Comprehensive known-binary MIME type registry (100+ types)
-   - Office documents, PDFs, archives, images, audio, video, fonts, and more
-NEW: ForceBinary option to override content type detection
-   - CurlRequestBuilder.AsBinary() - force binary mode
-   - CurlRequestBuilder.WithBinaryContentType() - register custom binary MIME types
-   - CurlRequestBuilder.WithTextContentType() - register custom text MIME types
-FIXED: Null Content-Type now defaults to binary (previously defaulted to text)
+    <PackageReleaseNotes>Version 9.4.0 - Add --json flag support (curl 7.82+ compatibility)
+NEW: --json flag support (GitHub Issue #32)
+   - Shorthand for --data with Content-Type: application/json and Accept: application/json
+   - Supports @filename syntax to read JSON from files
+   - Supports --json=data inline syntax
+   - Multiple --json flags concatenate without separator (matching curl behavior)
+   - Works with -X PUT/PATCH/DELETE method overrides
+   - 26 new unit tests covering all scenarios
+CLARIFIED: CurlDotNet never calls curl.exe (GitHub Issue #33)
+   - Pure .NET transpiler - no external process dependencies
+   - Works in any .NET environment including restricted containers
 Frameworks: netstandard2.0, net472, net48, net8.0, net9.0, net10.0
 Sponsored by IronSoftware
 

@@ -56,15 +56,15 @@ if (Directory.Exists("obj"))
     Directory.Delete("obj", recursive: true);
 }
 
-// Run DocFX metadata and build
-var metadataResult = await RunCommand("docfx", "metadata");
+// Run DocFX metadata and build using docfx.json in project root
+var metadataResult = await RunCommand("docfx", "metadata docfx.json");
 if (metadataResult != 0)
 {
     AnsiConsole.MarkupLine("[red]❌ DocFX metadata generation failed[/]");
     Environment.Exit(1);
 }
 
-var docfxResult = await RunCommand("docfx", "build");
+var docfxResult = await RunCommand("docfx", "build docfx.json");
 if (docfxResult != 0)
 {
     AnsiConsole.MarkupLine("[red]❌ DocFX build failed[/]");

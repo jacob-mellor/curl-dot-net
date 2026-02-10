@@ -79,6 +79,8 @@ test-packages/
 # DocFX / Documentation
 _site/
 _api/
+api/*.yml
+api/.manifest
 *.log
 jacob/
 docs/_site/

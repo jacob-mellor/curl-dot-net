@@ -117,6 +117,7 @@ namespace CurlDotNet.Core
             "--data-raw",
             "--data-binary",
             "--data-urlencode",
+            "--json",
             "--form",
             "--output",
             "--user-agent",
@@ -548,6 +549,17 @@ namespace CurlDotNet.Core
                     }
                     return true;
 
+                case "--json":
+                    AppendJsonData(options, value);
+                    options.Headers["Content-Type"] = "application/json";
+                    options.Headers["Accept"] = "application/json";
+                    if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")
+                    {
+                        options.Method = "POST";
+                        methodSpecified = true;
+                    }
+                    return true;
+
                 case "--form":
                 case "-F":
                     ParseFormField(value, options);
@@ -921,6 +933,28 @@ namespace CurlDotNet.Core
             else
             {
                 options.Data = $"{options.Data}&{value}";
+            }
+        }
+
+        /// <summary>
+        /// Appends JSON data to the options. Unlike <see cref="AppendData"/>, multiple --json
+        /// values are concatenated without any separator, matching curl's behavior.
+        /// Curl 7.82+ introduced --json as shorthand for --data with JSON headers.
+        /// </summary>
+        private void AppendJsonData(CurlOptions options, string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return;
+            }
+
+            if (string.IsNullOrEmpty(options.Data))
+            {
+                options.Data = value;
+            }
+            else
+            {
+                options.Data = $"{options.Data}{value}";
             }
         }
 
