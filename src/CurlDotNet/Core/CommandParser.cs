@@ -529,6 +529,15 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--data-raw":
+                    options.DataRaw = true;
+                    AppendData(options, value);
+                    if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")
+                    {
+                        options.Method = "POST";
+                        methodSpecified = true;
+                    }
+                    return true;
+
                 case "--data-binary":
                     AppendData(options, value);
                     if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")

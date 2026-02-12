@@ -132,7 +132,7 @@ await Curl.PostAsync("https://api.example.com/upload")
 var result = await Curl.ExecuteAsync(
     "curl --json '{\"query\":\"search term\"}' https://api.example.com/search");
 
-// Read JSON body from a file (just like curl)
+// Read JSON body from a file (just like curl) - @file reads file contents at execution time
 var result = await Curl.ExecuteAsync(
     @"curl --json @""c:\data\query.json"" https://api.example.com/search");
 
@@ -142,6 +142,18 @@ var result = await Curl.ExecuteAsync(@"curl -X POST
     --json @query.json
     -L -k -o result.json
     https://graph.microsoft.com/beta/security/runHuntingQuery");
+```
+
+### @file References for Request Data
+```csharp
+// -d @file reads file contents and sends as request body (like curl)
+var result = await Curl.ExecuteAsync(@"curl -d @data.json https://api.example.com");
+
+// --data-binary @file also reads file contents
+var result = await Curl.ExecuteAsync(@"curl --data-binary @payload.bin https://api.example.com");
+
+// --data-raw @file sends the literal string "@file" (no file reading - matches curl behavior)
+var result = await Curl.ExecuteAsync(@"curl --data-raw @not-a-file https://api.example.com");
 ```
 
 ### Binary File Downloads

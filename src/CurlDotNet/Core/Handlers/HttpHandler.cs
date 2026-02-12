@@ -252,7 +252,21 @@ namespace CurlDotNet.Core
             // Text data
             if (!string.IsNullOrEmpty(options.Data))
             {
-                var content = new StringContent(options.Data, Encoding.UTF8);
+                var data = options.Data;
+
+                // Resolve @file references (curl reads file contents when data starts with @)
+                // --data-raw sets DataRaw=true which disables @ expansion (like real curl)
+                if (!options.DataRaw && data.StartsWith("@"))
+                {
+                    var filePath = data.Substring(1);
+                    if (!File.Exists(filePath))
+                    {
+                        throw new CurlFileCouldntReadException(filePath, options.OriginalCommand);
+                    }
+                    data = File.ReadAllText(filePath);
+                }
+
+                var content = new StringContent(data, Encoding.UTF8);
 
                 // Set content type from headers if specified
                 if (options.Headers.TryGetValue("Content-Type", out var contentType))

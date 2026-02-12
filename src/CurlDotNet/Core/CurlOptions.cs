@@ -48,6 +48,19 @@ namespace CurlDotNet.Core
         public bool DataUrlEncode { get; set; }
 
         /// <summary>
+        /// Whether the data was provided via --data-raw, which prevents @file expansion.
+        /// When true, a leading @ in <see cref="Data"/> is treated as a literal character
+        /// rather than a file reference. This matches curl's --data-raw behavior.
+        /// </summary>
+        /// <remarks>
+        /// <para>In curl, --data-raw is identical to --data except that @ has no special meaning.
+        /// This is useful when the data literally starts with @ and should not be interpreted
+        /// as a file reference.</para>
+        /// <para>See: https://curl.se/docs/manpage.html#--data-raw</para>
+        /// </remarks>
+        public bool DataRaw { get; set; }
+
+        /// <summary>
         /// Binary data for upload.
         /// </summary>
         public byte[]? BinaryData { get; set; }
@@ -408,6 +421,7 @@ namespace CurlDotNet.Core
                 Headers = new Dictionary<string, string>(Headers),
                 Data = Data,
                 DataUrlEncode = DataUrlEncode,
+                DataRaw = DataRaw,
                 BinaryData = BinaryData,
                 FormData = new Dictionary<string, string>(FormData),
                 Files = new Dictionary<string, string>(Files),
