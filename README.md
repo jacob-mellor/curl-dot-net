@@ -129,6 +129,28 @@ await Curl.GetAsync("https://api.example.com")
     .ExecuteAsync();
 ```
 
+### AWS Signature V4 Authentication (--aws-sigv4)
+```csharp
+// Sign requests with AWS SigV4 - works with AWS, GCP, and custom providers
+var result = await Curl.ExecuteAsync(
+    @"curl --aws-sigv4 ""aws:amz:us-east-1:s3"" -u ""AKID:SECRET"" https://s3.us-east-1.amazonaws.com/my-bucket");
+
+// API Gateway with request body
+var result = await Curl.ExecuteAsync(
+    @"curl --aws-sigv4 ""aws:amz:eu-central-1:execute-api"" -u ""AKID:SECRET""
+    --json '{""action"":""invoke""}' https://abc123.execute-api.eu-central-1.amazonaws.com/prod/fn");
+
+// Google Cloud Platform
+var result = await Curl.ExecuteAsync(
+    @"curl --aws-sigv4 ""gcp:goog:us-central1:storage"" -u ""KEY:SECRET""
+    https://storage.googleapis.com/my-bucket/my-object");
+
+// Temporary credentials with session token
+var result = await Curl.ExecuteAsync(
+    @"curl --aws-sigv4 ""aws:amz:us-east-1:s3"" -u ""AKID:SECRET""
+    -H ""x-amz-security-token: SESSION_TOKEN"" https://s3.amazonaws.com/bucket");
+```
+
 ### File Operations
 ```csharp
 // Download file with progress

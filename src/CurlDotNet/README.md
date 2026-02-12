@@ -110,6 +110,23 @@ await Curl.GetAsync("https://api.example.com")
     .ExecuteAsync();
 ```
 
+### AWS Signature V4 Authentication (--aws-sigv4)
+```csharp
+// Sign requests with AWS SigV4 - works with AWS, GCP, and custom providers
+var result = await Curl.ExecuteAsync(
+    @"curl --aws-sigv4 ""aws:amz:us-east-1:s3"" -u ""AKID:SECRET"" https://s3.us-east-1.amazonaws.com/my-bucket");
+
+// Google Cloud Platform
+var result = await Curl.ExecuteAsync(
+    @"curl --aws-sigv4 ""gcp:goog:us-central1:storage"" -u ""KEY:SECRET""
+    https://storage.googleapis.com/my-bucket/my-object");
+
+// Custom provider (any SigV4-compatible service)
+var result = await Curl.ExecuteAsync(
+    @"curl --aws-sigv4 ""middleearth:gondor:shire:hobbiton"" -u ""frodo:ring""
+    https://api.middleearth.example.com/quest");
+```
+
 ### File Operations
 ```csharp
 // Download with progress

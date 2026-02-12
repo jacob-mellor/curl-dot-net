@@ -348,6 +348,30 @@ namespace CurlDotNet.Core
         public bool DisableEprt { get; set; }
 
         /// <summary>
+        /// AWS Signature Version 4 configuration for authenticating requests to AWS services.
+        /// Set by the <c>--aws-sigv4</c> flag.
+        /// </summary>
+        /// <remarks>
+        /// <para>When set, the request will be signed using the AWS Signature Version 4 algorithm.
+        /// Credentials must be provided via the <see cref="Credentials"/> property (<c>--user ACCESS_KEY:SECRET_KEY</c>).</para>
+        /// <para>The config format is <c>provider1[:provider2[:region[:service]]]</c>.</para>
+        /// <para>Common values:</para>
+        /// <list type="bullet">
+        /// <item><c>"aws:amz:us-east-1:s3"</c> — AWS S3 in us-east-1</item>
+        /// <item><c>"aws:amz:eu-west-1:execute-api"</c> — AWS API Gateway in eu-west-1</item>
+        /// <item><c>"gcp:goog"</c> — Google Cloud Platform</item>
+        /// </list>
+        /// <para>See: <see href="https://curl.se/libcurl/c/CURLOPT_AWS_SIGV4.html"/></para>
+        /// </remarks>
+        /// <example>
+        /// <code language="csharp">
+        /// // Equivalent to: curl --aws-sigv4 "aws:amz:us-east-1:s3" --user "AKID:SECRET" https://s3.amazonaws.com/bucket
+        /// var result = await Curl.RunAsync("curl --aws-sigv4 \"aws:amz:us-east-1:s3\" -u \"AKID:SECRET\" https://s3.amazonaws.com/bucket");
+        /// </code>
+        /// </example>
+        public AwsSigV4Config? AwsSigV4 { get; set; }
+
+        /// <summary>
         /// Forces all response content to be treated as binary data, regardless of Content-Type header.
         /// </summary>
         /// <remarks>
@@ -476,7 +500,8 @@ namespace CurlDotNet.Core
                 DisableEprt = DisableEprt,
                 ForceBinary = ForceBinary,
                 BinaryContentTypes = new List<string>(BinaryContentTypes),
-                TextContentTypes = new List<string>(TextContentTypes)
+                TextContentTypes = new List<string>(TextContentTypes),
+                AwsSigV4 = AwsSigV4
             };
         }
     }

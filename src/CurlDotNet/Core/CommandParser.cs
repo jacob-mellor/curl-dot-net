@@ -147,7 +147,8 @@ namespace CurlDotNet.Core
             "--socks5",
             "--retry",
             "--retry-delay",
-            "--retry-max-time"
+            "--retry-max-time",
+            "--aws-sigv4"
         };
 
         public CurlOptions Parse(string command)
@@ -809,6 +810,10 @@ namespace CurlDotNet.Core
 
                 case "--location-trusted":
                     options.LocationTrusted = true;
+                    return true;
+
+                case "--aws-sigv4":
+                    options.AwsSigV4 = AwsSigV4Config.Parse(value);
                     return true;
             }
 

@@ -154,7 +154,12 @@ namespace CurlDotNet.Core
             }
 
             // Set authorization
-            if (options.Credentials != null)
+            if (options.AwsSigV4 != null && options.Credentials != null)
+            {
+                // AWS SigV4 signing - must happen after content is set, so we defer it below
+                // (handled after content is added)
+            }
+            else if (options.Credentials != null)
             {
                 var auth = Convert.ToBase64String(Encoding.UTF8.GetBytes(
                     $"{options.Credentials.UserName}:{options.Credentials.Password}"));
@@ -179,6 +184,16 @@ namespace CurlDotNet.Core
             if (ShouldHaveContent(method, options))
             {
                 request.Content = CreateContent(options);
+            }
+
+            // Apply AWS SigV4 signing after content is set (signing requires payload hash)
+            if (options.AwsSigV4 != null && options.Credentials != null)
+            {
+                AwsSigV4Signer.SignRequest(
+                    request,
+                    options.AwsSigV4,
+                    options.Credentials.UserName,
+                    options.Credentials.Password);
             }
 
             return request;

@@ -31,9 +31,9 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>9.4.1</Version>
-    <AssemblyVersion>9.4.1.0</AssemblyVersion>
-    <FileVersion>9.4.1.0</FileVersion>
+    <Version>9.5.0</Version>
+    <AssemblyVersion>9.5.0.0</AssemblyVersion>
+    <FileVersion>9.5.0.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
@@ -80,15 +80,17 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 9.4.1 - Fix @file reference resolution for --data, --json, --data-binary
-FIX: @file references now correctly read file contents (GitHub Issue #32 follow-up)
-   - -d @file.json now reads and sends the file contents instead of literal "@file.json"
-   - --json @file.json reads file contents with proper JSON headers
-   - --data-binary @file reads file contents for binary upload
-   - --data-raw @file correctly sends @ literally (matching curl behavior)
-   - Non-existent files throw CurlFileCouldntReadException with helpful error message
-   - 14 new tests covering all @file scenarios including Massimo's reported case
-NEW: DataRaw property on CurlOptions to distinguish --data-raw from --data
+    <PackageReleaseNotes>Version 9.5.0 - Add --aws-sigv4 support for AWS/GCP/custom cloud authentication
+NEW: --aws-sigv4 flag for AWS Signature Version 4 request signing
+   - Pure C# implementation with zero external dependencies
+   - Format: --aws-sigv4 "provider1:provider2:region:service"
+   - AWS: --aws-sigv4 "aws:amz:us-east-1:s3" --user "AKID:SECRET"
+   - GCP: --aws-sigv4 "gcp:goog:region:service" --user "AKID:SECRET"
+   - Custom providers: any SigV4-compatible service
+   - Auto-detects region and service from URL hostname when omitted
+   - Signs request payload, headers, and query parameters
+   - Adds Authorization, x-{provider}-date, and x-{provider}-content-sha256 headers
+   - Comprehensive test suite with deterministic signature verification
 Frameworks: netstandard2.0, net472, net48, net8.0, net9.0, net10.0
 Sponsored by IronSoftware
 
