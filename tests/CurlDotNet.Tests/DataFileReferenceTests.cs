@@ -443,6 +443,163 @@ namespace CurlDotNet.Tests
 
         #endregion
 
+        #region Binary file integrity (@file preserves bytes)
+
+        [Fact]
+        public async Task Data_WithBinaryFileReference_PreservesBytesExactly()
+        {
+            // Arrange - bytes that would be corrupted by UTF-8 ReadAllText round-trip
+            // 0xFF, 0xFE are invalid UTF-8 lead bytes; 0x80 is invalid as a start byte
+            var binaryData = new byte[] { 0x00, 0x01, 0x7F, 0x80, 0xFE, 0xFF, 0xC0, 0xC1, 0xF5, 0xAB, 0xCD, 0xEF };
+            var filePath = CreateTempBinaryFile(binaryData, ".bin");
+
+            var (handler, mock) = CreateMockHandler();
+            HttpRequestMessage capturedRequest = null;
+            mock.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("OK", Encoding.UTF8, "text/plain")
+                });
+
+            var options = new CurlOptions
+            {
+                Url = "https://api.example.com/upload",
+                Method = "PUT",
+                Data = $"@{filePath}"
+            };
+
+            // Act
+            await handler.ExecuteAsync(options, CancellationToken.None);
+
+            // Assert - bytes must match exactly (no UTF-8 corruption)
+            var sentBytes = await capturedRequest.Content.ReadAsByteArrayAsync();
+            sentBytes.Should().Equal(binaryData, "binary file bytes must be preserved exactly without UTF-8 re-encoding");
+        }
+
+        [Fact]
+        public async Task Json_WithBinaryFileReference_PreservesBytesExactly()
+        {
+            // Arrange - simulates SharePoint upload session scenario:
+            // --json @file.bin --request PUT
+            var binaryData = new byte[256];
+            for (int i = 0; i < 256; i++)
+                binaryData[i] = (byte)i; // All possible byte values 0x00-0xFF
+            var filePath = CreateTempBinaryFile(binaryData, ".bin");
+
+            var (handler, mock) = CreateMockHandler();
+            HttpRequestMessage capturedRequest = null;
+            mock.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("OK", Encoding.UTF8, "text/plain")
+                });
+
+            var parser = new CommandParser();
+            var options = parser.Parse($"curl --json @\"{filePath}\" --request PUT https://upload.example.com/session");
+
+            // Act
+            await handler.ExecuteAsync(options, CancellationToken.None);
+
+            // Assert - all 256 byte values must survive the round-trip
+            var sentBytes = await capturedRequest.Content.ReadAsByteArrayAsync();
+            sentBytes.Should().Equal(binaryData, "all 256 byte values must be preserved when uploading binary via --json @file");
+
+            // Assert - Content-Type should be application/json (set by --json flag)
+            capturedRequest.Content.Headers.ContentType.MediaType.Should().Be("application/json");
+
+            // Assert - method should be PUT (overridden by --request)
+            capturedRequest.Method.Should().Be(HttpMethod.Put);
+        }
+
+        [Fact]
+        public async Task DataBinary_WithBinaryFileReference_PreservesBytesExactly()
+        {
+            // Arrange
+            var binaryData = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }; // PNG header
+            var filePath = CreateTempBinaryFile(binaryData, ".png");
+
+            var (handler, mock) = CreateMockHandler();
+            HttpRequestMessage capturedRequest = null;
+            mock.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("OK", Encoding.UTF8, "text/plain")
+                });
+
+            var parser = new CommandParser();
+            var options = parser.Parse($"curl --data-binary @\"{filePath}\" https://api.example.com/upload");
+
+            // Act
+            await handler.ExecuteAsync(options, CancellationToken.None);
+
+            // Assert - PNG header bytes preserved exactly
+            var sentBytes = await capturedRequest.Content.ReadAsByteArrayAsync();
+            sentBytes.Should().Equal(binaryData, "binary file data (PNG header) must be preserved byte-for-byte");
+        }
+
+        [Fact]
+        public async Task Json_WithBinaryFile_SharePointUploadSession_Scenario()
+        {
+            // Arrange - exact scenario: SharePoint upload session with binary .bin file
+            // The URL has single quotes in query params (guid='...') and the file is binary
+            var uploadChunk = new byte[1024];
+            new Random(42).NextBytes(uploadChunk); // Deterministic random binary data
+            var filePath = CreateTempBinaryFile(uploadChunk, ".bin");
+
+            var (handler, mock) = CreateMockHandler();
+            HttpRequestMessage capturedRequest = null;
+            mock.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("{\"expirationDateTime\":\"2024-01-01\"}", Encoding.UTF8, "application/json")
+                });
+
+            var parser = new CommandParser();
+            var options = parser.Parse(
+                $"curl \"https://example.sharepoint.com/sites/test/_api/v2.0/drive/items/ABC123/uploadSession?overwrite=True&rename=False\" --json @\"{filePath}\" --request PUT");
+
+            // Act
+            await handler.ExecuteAsync(options, CancellationToken.None);
+
+            // Assert - binary upload data preserved
+            var sentBytes = await capturedRequest.Content.ReadAsByteArrayAsync();
+            sentBytes.Should().Equal(uploadChunk, "SharePoint upload chunk bytes must be preserved exactly");
+            sentBytes.Length.Should().Be(1024);
+
+            // Assert - method is PUT
+            capturedRequest.Method.Should().Be(HttpMethod.Put);
+        }
+
+        #endregion
+
         #region Data without @ is unchanged
 
         [Fact]

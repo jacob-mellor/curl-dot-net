@@ -278,7 +278,23 @@ namespace CurlDotNet.Core
                     {
                         throw new CurlFileCouldntReadException(filePath, options.OriginalCommand);
                     }
-                    data = File.ReadAllText(filePath);
+
+                    // Read as raw bytes to preserve binary data integrity.
+                    // File.ReadAllText() corrupts binary files by decoding invalid UTF-8
+                    // sequences as replacement characters (U+FFFD) then re-encoding.
+                    var fileBytes = File.ReadAllBytes(filePath);
+                    var byteContent = new ByteArrayContent(fileBytes);
+
+                    if (options.Headers.TryGetValue("Content-Type", out var fileContentType))
+                    {
+                        byteContent.Headers.ContentType = MediaTypeHeaderValue.Parse(fileContentType);
+                    }
+                    else
+                    {
+                        byteContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/x-www-form-urlencoded");
+                    }
+
+                    return byteContent;
                 }
 
                 var content = new StringContent(data, Encoding.UTF8);

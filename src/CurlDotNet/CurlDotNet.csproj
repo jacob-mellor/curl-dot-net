@@ -31,9 +31,9 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>9.5.0</Version>
-    <AssemblyVersion>9.5.0.0</AssemblyVersion>
-    <FileVersion>9.5.0.0</FileVersion>
+    <Version>9.5.1</Version>
+    <AssemblyVersion>9.5.1.0</AssemblyVersion>
+    <FileVersion>9.5.1.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
@@ -80,17 +80,12 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 9.5.0 - Add --aws-sigv4 support for AWS/GCP/custom cloud authentication
-NEW: --aws-sigv4 flag for AWS Signature Version 4 request signing
-   - Pure C# implementation with zero external dependencies
-   - Format: --aws-sigv4 "provider1:provider2:region:service"
-   - AWS: --aws-sigv4 "aws:amz:us-east-1:s3" --user "AKID:SECRET"
-   - GCP: --aws-sigv4 "gcp:goog:region:service" --user "AKID:SECRET"
-   - Custom providers: any SigV4-compatible service
-   - Auto-detects region and service from URL hostname when omitted
-   - Signs request payload, headers, and query parameters
-   - Adds Authorization, x-{provider}-date, and x-{provider}-content-sha256 headers
-   - Comprehensive test suite with deterministic signature verification
+    <PackageReleaseNotes>Version 9.5.1 - Fix binary file corruption in @file references
+FIX: Binary files uploaded via --json @file, --data @file, or --data-binary @file were corrupted
+   - File.ReadAllText() decoded binary bytes as UTF-8, replacing invalid sequences with U+FFFD
+   - Now uses File.ReadAllBytes() + ByteArrayContent to preserve data byte-for-byte
+   - Fixes SharePoint upload sessions and any binary file upload via @file references
+   - Added 4 new binary integrity tests covering all byte values (0x00-0xFF)
 Frameworks: netstandard2.0, net472, net48, net8.0, net9.0, net10.0
 Sponsored by IronSoftware
 
