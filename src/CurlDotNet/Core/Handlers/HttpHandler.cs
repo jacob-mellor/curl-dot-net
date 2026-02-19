@@ -184,6 +184,22 @@ namespace CurlDotNet.Core
             if (ShouldHaveContent(method, options))
             {
                 request.Content = CreateContent(options);
+
+                // Apply content headers that were skipped from request.Headers above.
+                // In .NET HttpClient, headers like Content-Range, Content-Encoding, etc.
+                // must be set on HttpContent.Headers, not HttpRequestMessage.Headers.
+                if (request.Content != null)
+                {
+                    foreach (var header in options.Headers)
+                    {
+                        if (IsContentHeader(header.Key) &&
+                            !string.Equals(header.Key, "Content-Type", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Content-Type is already handled in CreateContent()
+                            request.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                        }
+                    }
+                }
             }
 
             // Apply AWS SigV4 signing after content is set (signing requires payload hash)
@@ -758,7 +774,8 @@ namespace CurlDotNet.Core
         private bool IsContentHeader(string headerName)
         {
             var contentHeaders = new[] { "Content-Type", "Content-Length", "Content-Encoding",
-                "Content-Language", "Content-Location", "Content-Disposition" };
+                "Content-Language", "Content-Location", "Content-Disposition",
+                "Content-Range", "Content-MD5" };
             return contentHeaders.Contains(headerName, StringComparer.OrdinalIgnoreCase);
         }
 

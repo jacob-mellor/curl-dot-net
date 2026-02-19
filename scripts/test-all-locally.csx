@@ -5,135 +5,110 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Spectre.Console;
 
 // Comprehensive Local Testing Script
-// This script runs ALL tests locally to catch issues before pushing
+// Runs build, docs, tests, and NuGet pack in a single pass with no redundant rebuilds.
+// Pass --include-integration to also run network-dependent integration tests.
+
+var includeIntegration = Args.Any(a => a == "--include-integration");
 
 AnsiConsole.Write(new FigletText("CurlDotNet Tests")
     .Color(Color.Blue));
 
+if (!includeIntegration)
+{
+    AnsiConsole.MarkupLine("[dim]Running Unit + Synthetic tests only. Use --include-integration for all.[/]");
+}
+
 var stopwatch = Stopwatch.StartNew();
 var hasErrors = false;
 
-// Step 0: Generate API documentation
-AnsiConsole.MarkupLine("[yellow]Step 0: Generating API documentation...[/]");
-AnsiConsole.Write(new Rule("[blue]Documentation Generation[/]").LeftJustified());
+// On macOS, tests only target net10.0 (net48 requires Mono which isn't installed).
+// On Windows, omit the flag so dotnet test runs all configured frameworks.
+var frameworkArg = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+    ? ""
+    : "--framework net10.0";
 
-if (await RunCommand("dotnet", "build -c Release") != 0)
-{
-    AnsiConsole.MarkupLine("[red]❌ Build failed![/]");
-    hasErrors = true;
-}
-else
-{
-    await RunCommand("dotnet", "script scripts/generate-docs.csx");
-}
-
-// Step 1: Clean and build
-AnsiConsole.MarkupLine("\n[yellow]Step 1: Clean build...[/]");
+// Step 1: Build once (reused by docs, tests, and pack via --no-build)
+AnsiConsole.MarkupLine("\n[yellow]Step 1: Building...[/]");
 AnsiConsole.Write(new Rule("[blue]Build[/]").LeftJustified());
 
-await RunCommand("dotnet", "clean");
 if (await RunCommand("dotnet", "build -c Release") != 0)
 {
-    AnsiConsole.MarkupLine("[red]❌ Build failed![/]");
-    hasErrors = true;
+    AnsiConsole.MarkupLine("[red]Build failed![/]");
+    Environment.Exit(1);
 }
-else
-{
-    AnsiConsole.MarkupLine("[green]✓ Build succeeded[/]");
-}
+AnsiConsole.MarkupLine("[green]Build succeeded[/]");
 
-// Step 2: Run ALL tests
-AnsiConsole.MarkupLine("\n[yellow]Step 2: Running ALL tests...[/]");
+// Step 2: Generate API documentation (uses existing build output - no rebuild)
+AnsiConsole.MarkupLine("\n[yellow]Step 2: Generating API documentation...[/]");
+AnsiConsole.Write(new Rule("[blue]Documentation Generation[/]").LeftJustified());
+
+await RunCommand("dotnet", "script scripts/generate-docs.csx -- --no-build");
+
+// Step 3: Run tests
+AnsiConsole.MarkupLine("\n[yellow]Step 3: Running tests...[/]");
 AnsiConsole.Write(new Rule("[blue]Test Execution[/]").LeftJustified());
 
-var testResult = await RunCommand("dotnet", "test -c Release --logger:console;verbosity=minimal");
+// Use positive filter (Category=Synthetic|Category=Unit) to run only properly-categorized
+// fast tests. Tests without a Category trait may start local HTTP servers that never terminate.
+// --blame-hang kills any test that hangs beyond 30s (prevents infinite waits from orphaned servers).
+// --blame-hang-dump-type none avoids permission issues with crash dump creation on macOS.
+var filter = includeIntegration
+    ? ""
+    : "--filter \"Category=Synthetic|Category=Unit\"";
+
+var testArgs = $"test -c Release --no-build {frameworkArg} {filter} --blame-hang --blame-hang-timeout 30s --blame-hang-dump-type none --logger:console;verbosity=minimal";
+
+var testResult = await RunCommand("dotnet", testArgs);
 if (testResult != 0)
 {
-    AnsiConsole.MarkupLine("[red]❌ Tests failed![/]");
+    AnsiConsole.MarkupLine("[red]Tests had failures![/]");
     hasErrors = true;
 }
 else
 {
-    AnsiConsole.MarkupLine("[green]✓ All tests passed[/]");
+    AnsiConsole.MarkupLine("[green]All tests passed[/]");
 }
 
-// Step 3: Check test coverage
-AnsiConsole.MarkupLine("\n[yellow]Step 3: Checking test coverage...[/]");
-AnsiConsole.Write(new Rule("[blue]Coverage Analysis[/]").LeftJustified());
-
-// Check if coverlet is installed
-var coverletCheck = await RunCommandWithOutput("dotnet", "tool list -g");
-if (!coverletCheck.Contains("coverlet.console"))
-{
-    AnsiConsole.MarkupLine("[dim]ℹ️  Coverage tool not installed (install with: dotnet tool install -g coverlet.console)[/]");
-}
-else
-{
-    await RunCommand("dotnet", "test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover");
-}
-
-// Step 4: Build documentation
-AnsiConsole.MarkupLine("\n[yellow]Step 4: Building documentation...[/]");
-AnsiConsole.Write(new Rule("[blue]Documentation[/]").LeftJustified());
-
-var docsPath = Path.Combine(Directory.GetCurrentDirectory(), "gh-pages");
-if (Directory.Exists(docsPath))
-{
-    AnsiConsole.MarkupLine($"[green]✓ Documentation found at {docsPath}[/]");
-}
-else
-{
-    AnsiConsole.MarkupLine("[dim]ℹ️  Documentation not configured[/]");
-}
-
-// Step 5: Create NuGet package
-AnsiConsole.MarkupLine("\n[yellow]Step 5: Creating NuGet package...[/]");
+// Step 4: Create and validate NuGet package (uses existing build - no rebuild)
+AnsiConsole.MarkupLine("\n[yellow]Step 4: Creating NuGet package...[/]");
 AnsiConsole.Write(new Rule("[blue]NuGet Package[/]").LeftJustified());
 
 var packagesDir = Path.Combine(Path.GetTempPath(), $"curl-packages-{DateTime.Now:yyyyMMdd-HHmmss}");
-if (!Directory.Exists(packagesDir))
-{
-    Directory.CreateDirectory(packagesDir);
-}
+Directory.CreateDirectory(packagesDir);
 
-if (await RunCommand("dotnet", $"pack -c Release -o {packagesDir}") != 0)
+if (await RunCommand("dotnet", $"pack -c Release --no-build -o {packagesDir}") != 0)
 {
-    AnsiConsole.MarkupLine("[red]❌ Package creation failed![/]");
+    AnsiConsole.MarkupLine("[red]Package creation failed![/]");
     hasErrors = true;
 }
 else
 {
-    AnsiConsole.MarkupLine("[green]✓ Package created successfully[/]");
+    var packageFiles = Directory.GetFiles(packagesDir, "*.nupkg");
+    if (packageFiles.Any())
+    {
+        AnsiConsole.MarkupLine($"[green]Package created: {Path.GetFileName(packageFiles.First())}[/]");
+    }
+    else
+    {
+        AnsiConsole.MarkupLine("[red]No package found![/]");
+        hasErrors = true;
+    }
 }
 
-// Step 6: Validate package
-AnsiConsole.MarkupLine("\n[yellow]Step 6: Validating package...[/]");
-AnsiConsole.Write(new Rule("[blue]Package Validation[/]").LeftJustified());
-
-var packageFiles = Directory.GetFiles(packagesDir, "*.nupkg");
-if (packageFiles.Any())
-{
-    AnsiConsole.MarkupLine($"[green]✓ Package created: {Path.GetFileName(packageFiles.First())}[/]");
-}
-else
-{
-    AnsiConsole.MarkupLine("[red]❌ No package found![/]");
-    hasErrors = true;
-}
-
-// Step 7: Check for common issues
-AnsiConsole.MarkupLine("\n[yellow]Step 7: Checking for common issues...[/]");
+// Step 5: Check for common issues
+AnsiConsole.MarkupLine("\n[yellow]Step 5: Checking for common issues...[/]");
 AnsiConsole.Write(new Rule("[blue]Issue Detection[/]").LeftJustified());
 
-// Check for uncommitted changes
 var gitStatus = await RunCommandWithOutput("git", "status --porcelain");
 if (!string.IsNullOrWhiteSpace(gitStatus))
 {
-    AnsiConsole.MarkupLine("[yellow]⚠️  You have uncommitted changes[/]");
+    AnsiConsole.MarkupLine("[yellow]You have uncommitted changes[/]");
 }
 
 // Final summary
@@ -142,17 +117,16 @@ stopwatch.Stop();
 
 if (hasErrors)
 {
-    AnsiConsole.MarkupLine($"[red]❌ SOME TESTS FAILED[/]");
-    AnsiConsole.MarkupLine("[yellow]Fix issues above before pushing![/]");
+    AnsiConsole.MarkupLine($"[red]SOME STEPS HAD FAILURES - review output above[/]");
     Environment.Exit(1);
 }
 else
 {
-    AnsiConsole.MarkupLine($"[green]✅ ALL TESTS PASSED[/]");
+    AnsiConsole.MarkupLine($"[green]ALL STEPS PASSED[/]");
     AnsiConsole.MarkupLine($"[dim]Total time: {stopwatch.Elapsed.TotalSeconds:F1} seconds[/]");
 }
 
-// Helper functions
+// Helper: run a command with 5-minute timeout to prevent infinite hangs
 async Task<int> RunCommand(string command, string args, bool silent = false)
 {
     var startInfo = new ProcessStartInfo
@@ -165,7 +139,20 @@ async Task<int> RunCommand(string command, string args, bool silent = false)
     };
 
     using var process = Process.Start(startInfo);
-    await process.WaitForExitAsync();
+    if (process == null) return -1;
+
+    using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+    try
+    {
+        await process.WaitForExitAsync(cts.Token);
+    }
+    catch (OperationCanceledException)
+    {
+        AnsiConsole.MarkupLine($"[red]Command timed out after 5 minutes: {Markup.Escape(command + " " + args)}[/]");
+        process.Kill(true);
+        return -1;
+    }
+
     return process.ExitCode;
 }
 
@@ -181,17 +168,23 @@ async Task<string> RunCommandWithOutput(string command, string args)
     };
 
     using var process = Process.Start(startInfo);
-    if (process == null)
-    {
-        return string.Empty;
-    }
+    if (process == null) return string.Empty;
 
     var outputTask = process.StandardOutput.ReadToEndAsync();
     var errorTask = process.StandardError.ReadToEndAsync();
-    await process.WaitForExitAsync();
+
+    using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+    try
+    {
+        await process.WaitForExitAsync(cts.Token);
+    }
+    catch (OperationCanceledException)
+    {
+        process.Kill(true);
+        return string.Empty;
+    }
 
     var output = await outputTask;
     var error = await errorTask;
-
     return string.IsNullOrEmpty(error) ? output : $"{output}\n{error}";
 }

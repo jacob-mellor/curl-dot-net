@@ -386,6 +386,178 @@ namespace CurlDotNet.Tests
             values.Should().Contain(v => v.Contains("gzip") && v.Contains("deflate"));
         }
 
+        [Fact]
+        public async Task ExecuteAsync_WithContentRangeHeader_AppliesHeaderToContent()
+        {
+            // Arrange - Reproduces Massimo's SharePoint upload session bug
+            // where Content-Range was silently dropped from PUT requests
+            var options = new CurlOptions
+            {
+                Url = "https://api.example.com/upload",
+                Method = "PUT",
+                Data = "binary-data-placeholder",
+                Headers = new Dictionary<string, string>
+                {
+                    ["Content-Range"] = "bytes 0-38109094/38109095",
+                    ["Content-Length"] = "38109095"
+                }
+            };
+            HttpRequestMessage capturedRequest = null;
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) => capturedRequest = req)
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            // Act
+            await _handler.ExecuteAsync(options, CancellationToken.None);
+
+            // Assert - Content-Range MUST be on Content.Headers, not Request.Headers
+            capturedRequest.Content.Should().NotBeNull();
+            capturedRequest.Content.Headers.TryGetValues("Content-Range", out var rangeValues).Should().BeTrue(
+                "Content-Range header must be forwarded to HttpContent.Headers for SharePoint upload sessions");
+            rangeValues.Should().Contain("bytes 0-38109094/38109095");
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_WithContentDispositionHeader_AppliesHeaderToContent()
+        {
+            // Arrange
+            var options = new CurlOptions
+            {
+                Url = "https://api.example.com/upload",
+                Method = "POST",
+                Data = "file-content",
+                Headers = new Dictionary<string, string>
+                {
+                    ["Content-Disposition"] = "attachment; filename=\"test.bin\""
+                }
+            };
+            HttpRequestMessage capturedRequest = null;
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) => capturedRequest = req)
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            // Act
+            await _handler.ExecuteAsync(options, CancellationToken.None);
+
+            // Assert
+            capturedRequest.Content.Should().NotBeNull();
+            capturedRequest.Content.Headers.TryGetValues("Content-Disposition", out var dispValues).Should().BeTrue(
+                "Content-Disposition header must be forwarded to HttpContent.Headers");
+            dispValues.Should().Contain(v => v.Contains("test.bin"));
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_WithContentEncodingHeader_AppliesHeaderToContent()
+        {
+            // Arrange
+            var options = new CurlOptions
+            {
+                Url = "https://api.example.com/data",
+                Method = "POST",
+                Data = "compressed-data",
+                Headers = new Dictionary<string, string>
+                {
+                    ["Content-Encoding"] = "gzip"
+                }
+            };
+            HttpRequestMessage capturedRequest = null;
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) => capturedRequest = req)
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            // Act
+            await _handler.ExecuteAsync(options, CancellationToken.None);
+
+            // Assert
+            capturedRequest.Content.Should().NotBeNull();
+            capturedRequest.Content.Headers.TryGetValues("Content-Encoding", out var encValues).Should().BeTrue(
+                "Content-Encoding header must be forwarded to HttpContent.Headers");
+            encValues.Should().Contain("gzip");
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_WithMultipleContentHeaders_AppliesAllToContent()
+        {
+            // Arrange - simulates a realistic SharePoint chunked upload with multiple content headers
+            var options = new CurlOptions
+            {
+                Url = "https://api.example.com/upload",
+                Method = "PUT",
+                Data = "chunk-data",
+                Headers = new Dictionary<string, string>
+                {
+                    ["Content-Range"] = "bytes 0-1023/4096",
+                    ["Content-Length"] = "1024",
+                    ["Content-Type"] = "application/octet-stream"
+                }
+            };
+            HttpRequestMessage capturedRequest = null;
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) => capturedRequest = req)
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            // Act
+            await _handler.ExecuteAsync(options, CancellationToken.None);
+
+            // Assert - all three content headers should be on the content
+            capturedRequest.Content.Should().NotBeNull();
+            capturedRequest.Content.Headers.TryGetValues("Content-Range", out var rangeValues).Should().BeTrue();
+            rangeValues.Should().Contain("bytes 0-1023/4096");
+            capturedRequest.Content.Headers.ContentType.ToString().Should().Contain("application/octet-stream");
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_ContentRangeNotOnRequestHeaders()
+        {
+            // Arrange - Verify Content-Range does NOT end up on request.Headers (where .NET silently drops it)
+            var options = new CurlOptions
+            {
+                Url = "https://api.example.com/upload",
+                Method = "PUT",
+                Data = "test-data",
+                Headers = new Dictionary<string, string>
+                {
+                    ["Content-Range"] = "bytes 0-999/1000"
+                }
+            };
+            HttpRequestMessage capturedRequest = null;
+
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((req, ct) => capturedRequest = req)
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+
+            // Act
+            await _handler.ExecuteAsync(options, CancellationToken.None);
+
+            // Assert - Content-Range must NOT be on request.Headers (it would be silently rejected by .NET)
+            capturedRequest.Headers.TryGetValues("Content-Range", out _).Should().BeFalse(
+                "Content-Range is a content header and must not be on HttpRequestMessage.Headers");
+        }
+
         #endregion
 
         #region Content Tests

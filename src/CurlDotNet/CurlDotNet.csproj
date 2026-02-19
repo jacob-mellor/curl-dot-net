@@ -31,7 +31,7 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>9.5.1</Version>
+    <Version>9.5.2</Version>
     <AssemblyVersion>9.5.1.0</AssemblyVersion>
     <FileVersion>9.5.1.0</FileVersion>
 
