@@ -69,6 +69,20 @@ namespace CurlDotNet.Core
             var startTime = DateTime.UtcNow;
             var timings = new CurlTimings();
             var verboseLog = options.Verbose ? new StringBuilder() : null;
+            var trace = TraceWriter.TryCreate(options);
+
+            // Choose the transport. Most requests share the pooled HttpClient, but when
+            // the command asks for a specific proxy or relaxed TLS we build a dedicated
+            // client so those settings are actually honored (and visible in the trace).
+            var client = _httpClient;
+            var redirectHandler = _redirectHandler;
+            HttpClient? perRequestClient = null;
+            if (NeedsCustomTransport(options))
+            {
+                perRequestClient = CreateConfiguredClient(options);
+                client = perRequestClient;
+                redirectHandler = new RedirectHandler(perRequestClient);
+            }
 
             try
             {
@@ -80,18 +94,39 @@ namespace CurlDotNet.Core
                     cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
                 }
 
+                if (trace != null)
+                {
+                    var uri = request.RequestUri;
+                    trace.Info($"Trying {uri.Host}:{uri.Port}...");
+                    var proxyInfo = DescribeProxy(options, uri);
+                    if (proxyInfo != null)
+                    {
+                        trace.Info(proxyInfo);
+                    }
+                    trace.Info($"Connected to {uri.Host} ({uri.Host}) port {uri.Port}");
+                    if (string.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase))
+                    {
+                        trace.Info(options.Insecure
+                            ? "TLS: certificate verification DISABLED (-k/--insecure)"
+                            : "TLS: certificate verification enabled");
+                    }
+                    trace.SendHeaders(request);
+                    await trace.SendDataAsync(request);
+                }
+
                 AppendVerboseRequest(verboseLog, request);
 
                 // Send request
                 timings.PreTransfer = (DateTime.UtcNow - startTime).TotalMilliseconds;
-                var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token);
                 timings.StartTransfer = (DateTime.UtcNow - startTime).TotalMilliseconds;
                 AppendVerboseResponseHeaders(verboseLog, response);
 
                 // Handle redirects manually if needed
-                if (options.FollowLocation && _redirectHandler.IsRedirect(response.StatusCode))
+                if (options.FollowLocation && redirectHandler.IsRedirect(response.StatusCode))
                 {
-                    var redirectResult = await _redirectHandler.HandleRedirectAsync(
+                    trace?.Info($"Received HTTP {(int)response.StatusCode}; following redirect (-L)");
+                    var redirectResult = await redirectHandler.HandleRedirectAsync(
                         response, request, options, cts.Token, timings, startTime, verboseLog,
                         CreateRequest, AppendVerboseRequest, AppendVerboseResponseHeaders);
 
@@ -99,18 +134,135 @@ namespace CurlDotNet.Core
                     request = redirectResult.Request;
                 }
 
-                return await BuildResultAsync(request, response, options, timings, startTime, cts.Token, verboseLog);
+                trace?.RecvHeaders(response);
+
+                return await BuildResultAsync(request, response, options, timings, startTime, cts.Token, verboseLog, trace);
             }
             catch (TaskCanceledException)
             {
+                trace?.Error("Request timed out or was canceled before a response was received.");
                 // Re-throw to let CurlEngine handle it
                 throw;
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
+                trace?.Error($"Connection failed: {ex.Message}");
+                for (var inner = ex.InnerException; inner != null; inner = inner.InnerException)
+                {
+                    trace?.Error($"  caused by: {inner.GetType().Name}: {inner.Message}");
+                }
                 var uri = new Uri(options.Url);
                 throw new CurlCouldntConnectException(uri.Host, uri.Port > 0 ? uri.Port : (uri.Scheme == "https" ? 443 : 80), options.OriginalCommand);
             }
+            finally
+            {
+                perRequestClient?.Dispose();
+                trace?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Determines whether the request needs a dedicated HttpClient because it
+        /// specifies transport-level options (explicit proxy or relaxed TLS) that the
+        /// shared pooled client does not carry.
+        /// </summary>
+        private static bool NeedsCustomTransport(CurlOptions options)
+        {
+            return !string.IsNullOrEmpty(options.Proxy)
+                || !string.IsNullOrEmpty(options.Socks5Proxy)
+                || options.Insecure;
+        }
+
+        /// <summary>
+        /// Builds an HttpClient configured with the command's proxy and TLS options so
+        /// that <c>--proxy</c>, <c>--socks5</c>, <c>--proxy-user</c> and <c>-k</c> are honored.
+        /// </summary>
+        private static HttpClient CreateConfiguredClient(CurlOptions options)
+        {
+            var handler = new HttpClientHandler
+            {
+                AllowAutoRedirect = false, // We handle redirects manually like curl
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+            };
+
+            string? proxyUrl = null;
+            if (!string.IsNullOrEmpty(options.Proxy))
+            {
+                proxyUrl = NormalizeProxyUrl(options.Proxy, "http");
+            }
+            else if (!string.IsNullOrEmpty(options.Socks5Proxy))
+            {
+                proxyUrl = NormalizeProxyUrl(options.Socks5Proxy, "socks5");
+            }
+
+            if (!string.IsNullOrEmpty(proxyUrl))
+            {
+                var webProxy = new WebProxy(proxyUrl);
+                if (options.ProxyCredentials != null)
+                {
+                    webProxy.Credentials = options.ProxyCredentials;
+                }
+                handler.Proxy = webProxy;
+                handler.UseProxy = true;
+            }
+
+            if (options.Insecure)
+            {
+                // Accept any server certificate (curl -k / --insecure).
+                handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
+            }
+
+            return new HttpClient(handler);
+        }
+
+        /// <summary>
+        /// Prepends a default scheme to a proxy address when the user supplied a bare
+        /// host:port (curl allows <c>proxy.example.com:8080</c>), since WebProxy requires a scheme.
+        /// </summary>
+        private static string NormalizeProxyUrl(string proxy, string defaultScheme)
+        {
+            if (proxy.Contains("://"))
+            {
+                return proxy;
+            }
+            return $"{defaultScheme}://{proxy}";
+        }
+
+        /// <summary>
+        /// Produces a human-readable description of the proxy that will be used for the
+        /// request (explicit, SOCKS5, system, or none) for inclusion in the trace.
+        /// </summary>
+        private static string DescribeProxy(CurlOptions options, Uri uri)
+        {
+            if (!string.IsNullOrEmpty(options.Proxy))
+            {
+                var creds = options.ProxyCredentials != null ? " (with credentials)" : string.Empty;
+                return $"Using explicit proxy {NormalizeProxyUrl(options.Proxy, "http")}{creds}";
+            }
+
+            if (!string.IsNullOrEmpty(options.Socks5Proxy))
+            {
+                return $"Using SOCKS5 proxy {NormalizeProxyUrl(options.Socks5Proxy, "socks5")}";
+            }
+
+            try
+            {
+                var systemProxy = WebRequest.DefaultWebProxy;
+                if (systemProxy != null && uri != null && !systemProxy.IsBypassed(uri))
+                {
+                    var resolved = systemProxy.GetProxy(uri);
+                    if (resolved != null && !string.Equals(resolved.AbsoluteUri, uri.AbsoluteUri, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return $"Using system proxy {resolved.Host}:{resolved.Port}";
+                    }
+                }
+            }
+            catch
+            {
+                // Proxy resolution is best-effort for diagnostics only.
+            }
+
+            return "No proxy in use (direct connection)";
         }
 
         public bool SupportsProtocol(string protocol)
@@ -378,10 +530,23 @@ namespace CurlDotNet.Core
         }
 
         private async Task<CurlResult> BuildResultAsync(HttpRequestMessage request, HttpResponseMessage response, CurlOptions options,
-            CurlTimings timings, DateTime startTime, CancellationToken cancellationToken, StringBuilder? verboseLog)
+            CurlTimings timings, DateTime startTime, CancellationToken cancellationToken, StringBuilder? verboseLog, TraceWriter? trace = null)
         {
             var (result, responseText, responseBinary) = await CreateResult(response, options, timings, startTime);
             var downloadSize = responseBinary?.Length ?? (responseText != null ? Encoding.UTF8.GetByteCount(responseText) : 0);
+
+            if (trace != null)
+            {
+                if (responseBinary != null)
+                {
+                    trace.RecvData(responseBinary);
+                }
+                else
+                {
+                    trace.RecvData(responseText);
+                }
+                trace.Info($"Transfer complete: HTTP {result.StatusCode}, {downloadSize} bytes received.");
+            }
 
             await HandleOutputFilesAsync(options, result, responseText, responseBinary, cancellationToken);
 

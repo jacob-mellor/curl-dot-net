@@ -125,6 +125,42 @@ namespace CurlDotNet.Core
         public bool Verbose { get; set; }
 
         /// <summary>
+        /// Path to write a full diagnostic trace (request/response headers and bodies
+        /// dumped as hex + ASCII), set by the <c>--trace</c> option. Use <c>"-"</c> to
+        /// write the trace to standard output.
+        /// </summary>
+        /// <remarks>
+        /// <para>The trace captures connection and proxy selection, TLS verification,
+        /// the exact bytes sent and received, transfer timings, and the precise error
+        /// when a request is blocked or fails. This is the recommended option for
+        /// diagnosing why requests are being rejected behind a proxy.</para>
+        /// <para>See: <see href="https://curl.se/docs/manpage.html#--trace"/></para>
+        /// </remarks>
+        public string? TraceFile { get; set; }
+
+        /// <summary>
+        /// Path to write an ASCII-only diagnostic trace (no hex column), set by the
+        /// <c>--trace-ascii</c> option. Use <c>"-"</c> to write the trace to standard output.
+        /// </summary>
+        /// <remarks>
+        /// <para>Identical to <see cref="TraceFile"/> except the payload dumps omit the
+        /// hexadecimal column, producing a more compact, readable log. When both options
+        /// are supplied, the ASCII format wins.</para>
+        /// <para>See: <see href="https://curl.se/docs/manpage.html#--trace-ascii"/></para>
+        /// </remarks>
+        public string? TraceAsciiFile { get; set; }
+
+        /// <summary>
+        /// Whether to prefix every trace line with a high-resolution timestamp
+        /// (<c>--trace-time</c>). Useful for spotting where time is spent or where a
+        /// request stalls.
+        /// </summary>
+        /// <remarks>
+        /// <para>See: <see href="https://curl.se/docs/manpage.html#--trace-time"/></para>
+        /// </remarks>
+        public bool TraceTime { get; set; }
+
+        /// <summary>
         /// Silent mode (-s flag).
         /// </summary>
         public bool Silent { get; set; }
@@ -457,6 +493,9 @@ namespace CurlDotNet.Core
                 MaxRedirects = MaxRedirects,
                 Insecure = Insecure,
                 Verbose = Verbose,
+                TraceFile = TraceFile,
+                TraceAsciiFile = TraceAsciiFile,
+                TraceTime = TraceTime,
                 Silent = Silent,
                 ShowError = ShowError,
                 FailOnError = FailOnError,

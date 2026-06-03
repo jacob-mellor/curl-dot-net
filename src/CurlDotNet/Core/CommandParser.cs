@@ -148,7 +148,9 @@ namespace CurlDotNet.Core
             "--retry",
             "--retry-delay",
             "--retry-max-time",
-            "--aws-sigv4"
+            "--aws-sigv4",
+            "--trace",
+            "--trace-ascii"
         };
 
         public CurlOptions Parse(string command)
@@ -448,7 +450,9 @@ namespace CurlDotNet.Core
 
                         if (needsValue && string.IsNullOrEmpty(inlineValue))
                         {
-                            if (i + 1 < args.Count && !args[i + 1].StartsWith("-"))
+                            // A lone "-" is never an option; curl uses it to mean stdout
+                            // (e.g. --trace -, -o -), so consume it as the value.
+                            if (i + 1 < args.Count && (!args[i + 1].StartsWith("-") || args[i + 1] == "-"))
                             {
                                 value = args[++i];
                             }
@@ -616,6 +620,18 @@ namespace CurlDotNet.Core
                 case "--verbose":
                 case "-v":
                     options.Verbose = true;
+                    return true;
+
+                case "--trace":
+                    options.TraceFile = value;
+                    return true;
+
+                case "--trace-ascii":
+                    options.TraceAsciiFile = value;
+                    return true;
+
+                case "--trace-time":
+                    options.TraceTime = true;
                     return true;
 
                 case "--silent":
