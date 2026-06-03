@@ -542,6 +542,45 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
+        /// Write a full diagnostic trace of the transfer to a file (like curl <c>--trace</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>The trace records connection and proxy selection, TLS verification, the
+        /// exact bytes sent and received, transfer timings, and the precise error if the
+        /// request is blocked or fails - ideal for troubleshooting requests behind a proxy.</para>
+        /// </remarks>
+        /// <param name="filePath">Path of the trace file to write. Use <c>"-"</c> for standard output.</param>
+        /// <param name="includeTimestamps">When <c>true</c>, prefixes every line with a timestamp (like curl <c>--trace-time</c>).</param>
+        public CurlRequestBuilder WithTrace(string filePath, bool includeTimestamps = false)
+        {
+            _options.TraceFile = filePath;
+            if (includeTimestamps)
+            {
+                _options.TraceTime = true;
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Write an ASCII-only diagnostic trace of the transfer to a file (like curl <c>--trace-ascii</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>Identical to <see cref="WithTrace(string, bool)"/> but the payload dumps
+        /// omit the hexadecimal column, producing a more compact, readable log.</para>
+        /// </remarks>
+        /// <param name="filePath">Path of the trace file to write. Use <c>"-"</c> for standard output.</param>
+        /// <param name="includeTimestamps">When <c>true</c>, prefixes every line with a timestamp (like curl <c>--trace-time</c>).</param>
+        public CurlRequestBuilder WithTraceAscii(string filePath, bool includeTimestamps = false)
+        {
+            _options.TraceAsciiFile = filePath;
+            if (includeTimestamps)
+            {
+                _options.TraceTime = true;
+            }
+            return this;
+        }
+
+        /// <summary>
         /// Enable silent mode (like curl -s).
         /// </summary>
         public CurlRequestBuilder Silent(bool silent = true)

@@ -397,6 +397,57 @@ Console.WriteLine($"First Byte: {result.Timings.FirstByte}ms");
 Console.WriteLine($"Total: {result.Timings.Total}ms");
 ```
 
+### Detailed Trace Logging (`--trace` / `--trace-ascii` / `--trace-time`)
+
+When you need to know *exactly* where a request succeeds or gets blocked — especially
+behind a corporate proxy — write a full diagnostic trace to a log file. The trace
+captures connection and proxy selection, TLS certificate verification, the exact
+request/response headers and bodies, transfer timings, and the precise error if the
+request fails.
+
+```csharp
+// Paste-a-curl-command style: write a full hex+ASCII trace to a file
+await Curl.ExecuteAsync("curl --trace curl-trace.log https://api.example.com");
+
+// Compact, ASCII-only trace with timestamps on every line
+await Curl.ExecuteAsync("curl --trace-ascii curl-trace.txt --trace-time https://api.example.com");
+
+// Send the trace to standard output instead of a file
+await Curl.ExecuteAsync("curl --trace - https://api.example.com");
+
+// Fluent builder equivalent
+var result = await CurlRequestBuilder
+    .Get("https://api.example.com")
+    .WithTrace("curl-trace.log", includeTimestamps: true)
+    .ExecuteAsync();
+```
+
+A trace file looks like this:
+
+```text
+== Info: CurlDotNet trace started 2026-06-03 14:03:27
+== Info: Command: curl --trace curl-trace.log https://api.example.com
+== Info: Trying api.example.com:443...
+== Info: Using explicit proxy http://proxy.corp.local:8080 (with credentials)
+== Info: Connected to api.example.com (api.example.com) port 443
+== Info: TLS: certificate verification enabled
+=> Send header, 142 bytes (0x8e)
+0000: 47 45 54 20 2f 20 48 54 54 50 2f 31 2e 31 0d 0a  GET / HTTP/1.1..
+...
+<= Recv header, 173 bytes (0xad)
+0000: 48 54 54 50 2f 31 2e 31 20 32 30 30 20 4f 4b 0d  HTTP/1.1 200 OK.
+...
+== Info: Transfer complete: HTTP 200, 1256 bytes received.
+```
+
+If the request is blocked, the exact failure is recorded so you can see *which stage*
+rejected it:
+
+```text
+== Error: Connection failed: The proxy tunnel request to proxy 'http://proxy.corp.local:8080' failed with status code '407'.
+== Error:   caused by: HttpRequestException: Proxy authentication required
+```
+
 ### Code Generation
 CurlDotNet can transpile curl commands into code for other languages. This is perfect for building developer tools or converting documentation examples.
 
@@ -444,6 +495,20 @@ If your proxy requires authentication:
 ```csharp
 await Curl.Execute("curl -x http://user:pass@proxy.example.com:8080 https://api.example.com");
 ```
+
+### Where are my requests being blocked? (proxy / firewall debugging)
+If requests work locally but fail behind a proxy or firewall, add `--trace` to capture a
+detailed log of every stage of the transfer. The log shows which proxy was selected,
+whether the TLS handshake completed, the request/response headers, and the precise error
+if the connection is rejected:
+
+```csharp
+await Curl.ExecuteAsync("curl --trace-ascii proxy-debug.log -x http://proxy.corp.local:8080 https://api.example.com");
+// Then open proxy-debug.log and look for the first "== Error:" line.
+```
+
+> Note: As of v9.6.0, `-x`/`--proxy`, `--proxy-user`, `--socks5` and `-k`/`--insecure`
+> are honored for HTTP/HTTPS requests (previously they were only applied to FTP).
 
 ## 🤝 Contributing
 

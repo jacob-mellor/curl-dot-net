@@ -1,10 +1,16 @@
-# CurlDotNet
+# CurlDotNet - curl for C# and .NET
 
-**The Industry Standard curl Experience for C# and .NET**
+[![NuGet Version](https://img.shields.io/nuget/v/CurlDotNet.svg?cacheSeconds=0)](https://www.nuget.org/packages/CurlDotNet/)
+[![Downloads](https://img.shields.io/nuget/dt/CurlDotNet.svg)](https://www.nuget.org/packages/CurlDotNet/)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/jacob-mellor/curl-dot-net/ci-smoke.yml?branch=master)](https://github.com/jacob-mellor/curl-dot-net/actions)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/jacob-mellor/curl-dot-net/blob/master/LICENSE)
+![Coverage](https://img.shields.io/badge/coverage-52.2%25-yellow)
 
-[![NuGet](https://img.shields.io/nuget/v/CurlDotNet.svg?cacheSeconds=0)](https://www.nuget.org/packages/CurlDotNet/) [![Downloads](https://img.shields.io/nuget/dt/CurlDotNet.svg)](https://www.nuget.org/packages/CurlDotNet/) [![Build](https://img.shields.io/github/actions/workflow/status/jacob-mellor/curl-dot-net/ci-smoke.yml?branch=master)](https://github.com/jacob-mellor/curl-dot-net/actions) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/jacob-mellor/curl-dot-net/blob/master/LICENSE) ![Coverage](https://img.shields.io/badge/coverage-65.9%25-yellow)
+![CurlDotNet - Why .NET Needs a POSIX/GNU Userland](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/1o4hlr4tbp6b8k86ew6c.jpg)
 
----
+<div align="center">
+  <img src="https://github.com/jacob-mellor/curl-dot-net/blob/master/src/CurlDotNet/icon128.png?raw=true" alt="CurlDotNet Icon" width="128" height="128"/>
+</div>
 
 ## 🆕 New to curl? Start Here!
 
@@ -30,6 +36,14 @@ var response = await Curl.GetAsync("https://api.github.com/users/octocat")
 // Simple one-liners for common operations
 var json = await Curl.GetJsonAsync<GitHubUser>("https://api.github.com/users/octocat");
 ```
+
+## 📊 Code Coverage
+
+- **Line Coverage:** 65.9%
+- **Branch Coverage:** 72%
+- **Method Coverage:** 59.9%
+- **Tests:** 657 total, 619 passing, 38 failing
+- **Last Updated:** 2025-11-18
 
 ## 📦 Installation
 
@@ -91,7 +105,7 @@ await Curl.PatchAsync("https://api.example.com/users/123")
 ```csharp
 // Bearer Token
 await Curl.GetAsync("https://api.example.com")
-    .WithBearerToken(token)
+    .WithBearerToken("your-token")
     .ExecuteAsync();
 
 // Basic Auth
@@ -101,12 +115,17 @@ await Curl.GetAsync("https://api.example.com")
 
 // API Key
 await Curl.GetAsync("https://api.example.com")
-    .WithHeader("X-API-Key", apiKey)
+    .WithApiKey("X-API-Key", "your-api-key")
     .ExecuteAsync();
 
 // OAuth 2.0
 await Curl.GetAsync("https://api.example.com")
-    .WithOAuth2(clientId, clientSecret, tokenEndpoint)
+    .WithOAuth2("access-token", "Bearer")
+    .ExecuteAsync();
+
+// Custom headers
+await Curl.GetAsync("https://api.example.com")
+    .WithHeader("X-Custom-Auth", "token123")
     .ExecuteAsync();
 ```
 
@@ -116,30 +135,42 @@ await Curl.GetAsync("https://api.example.com")
 var result = await Curl.ExecuteAsync(
     @"curl --aws-sigv4 ""aws:amz:us-east-1:s3"" -u ""AKID:SECRET"" https://s3.us-east-1.amazonaws.com/my-bucket");
 
+// API Gateway with request body
+var result = await Curl.ExecuteAsync(
+    @"curl --aws-sigv4 ""aws:amz:eu-central-1:execute-api"" -u ""AKID:SECRET""
+    --json '{""action"":""invoke""}' https://abc123.execute-api.eu-central-1.amazonaws.com/prod/fn");
+
 // Google Cloud Platform
 var result = await Curl.ExecuteAsync(
     @"curl --aws-sigv4 ""gcp:goog:us-central1:storage"" -u ""KEY:SECRET""
     https://storage.googleapis.com/my-bucket/my-object");
 
-// Custom provider (any SigV4-compatible service)
+// Temporary credentials with session token
 var result = await Curl.ExecuteAsync(
-    @"curl --aws-sigv4 ""middleearth:gondor:shire:hobbiton"" -u ""frodo:ring""
-    https://api.middleearth.example.com/quest");
+    @"curl --aws-sigv4 ""aws:amz:us-east-1:s3"" -u ""AKID:SECRET""
+    -H ""x-amz-security-token: SESSION_TOKEN"" https://s3.amazonaws.com/bucket");
 ```
 
 ### File Operations
 ```csharp
-// Download with progress
-await Curl.DownloadFileAsync("https://example.com/file.zip", "local.zip",
-    progress: (percent) => Console.WriteLine($"{percent}% complete"));
+// Download file with progress
+await Curl.DownloadFileAsync(
+    "https://example.com/large-file.zip",
+    "local-file.zip",
+    progress: (percent) => Console.WriteLine($"Progress: {percent:F1}%")
+);
 
 // Upload file
-await Curl.UploadFileAsync("https://api.example.com/upload", "document.pdf");
-
-// Multipart form upload
 await Curl.PostAsync("https://api.example.com/upload")
-    .WithFile("document", "report.pdf")
-    .WithFormField("description", "Annual report")
+    .WithFile("file", "/path/to/file.pdf")
+    .ExecuteAsync();
+
+// Multipart form data
+await Curl.PostAsync("https://api.example.com/upload")
+    .WithMultipartForm(form => form
+        .AddString("name", "John")
+        .AddFile("document", "/path/to/doc.pdf")
+        .AddFile("image", "/path/to/image.jpg"))
     .ExecuteAsync();
 ```
 
@@ -175,7 +206,7 @@ var result = await Curl.ExecuteAsync(@"curl --data-raw @not-a-file https://api.e
 
 ### Binary File Downloads
 ```csharp
-// Office docs, PDFs, ZIPs, etc. are automatically detected as binary
+// Download binary files (Office docs, PDFs, ZIPs, etc.) - automatically detected
 var result = await Curl.ExecuteAsync("curl -o report.xlsx https://example.com/report.xlsx");
 
 // Force binary mode for servers with incorrect Content-Type headers
@@ -191,60 +222,36 @@ var data = await CurlRequestBuilder.Get("https://example.com/data")
 data.SaveToFile("output.bin");
 ```
 
-### 🔒 Proxy Support - NEW
-
-CurlDotNet provides comprehensive proxy support for various scenarios:
-
+### Proxy Support
 ```csharp
-// HTTP Proxy
+// HTTP proxy
 await Curl.GetAsync("https://api.example.com")
-    .WithProxy("http://proxy.company.com:8080")
-    .ExecuteAsync();
-
-// HTTPS Proxy with authentication
-await Curl.GetAsync("https://api.example.com")
-    .WithProxy("https://proxy.company.com:443")
+    .WithProxy("http://proxy.example.com:8080")
     .WithProxyAuth("username", "password")
     .ExecuteAsync();
 
-// SOCKS5 Proxy (Tor, residential proxies)
-await Curl.GetAsync("https://api.example.com")
-    .WithSocks5Proxy("socks5://localhost:9050")
+// SOCKS5 proxy (Tor)
+await Curl.GetAsync("https://check.torproject.org")
+    .WithSocks5Proxy("socks5://127.0.0.1:9050")
     .ExecuteAsync();
 
-// Rotating/Backconnect Proxy
+// Residential proxy
 await Curl.GetAsync("https://api.example.com")
-    .WithProxy("http://gate.proxy.com:8000")
-    .WithProxyAuth("user-session-random123", "password")
+    .WithProxy("http://gate.smartproxy.com:10000")
+    .WithProxyAuth("user-country-us", "password")
     .ExecuteAsync();
 
-// Proxy with custom headers (for residential/datacenter proxies)
+// Rotating proxy
 await Curl.GetAsync("https://api.example.com")
-    .WithProxy("http://proxy.provider.com:8080")
-    .WithProxyHeader("X-Session-ID", "sticky-session-123")
+    .WithProxy("http://proxy.provider.com:8000")
+    .WithProxyAuth($"user-session-{Guid.NewGuid()}", "password")
     .ExecuteAsync();
 
-// No proxy for specific domains
-await Curl.GetAsync("https://internal.company.com")
-    .WithNoProxy("*.company.com,192.168.*")
+// Backconnect proxy
+await Curl.GetAsync("https://api.example.com")
+    .WithBackconnectProxy("proxy.provider.com", 20001)
     .ExecuteAsync();
 ```
-
-**Why Use Proxies?**
-- **Privacy & Anonymity** - Hide your real IP address
-- **Geographic Access** - Access region-locked content
-- **Web Scraping** - Avoid rate limits and IP bans
-- **Security Testing** - Test from different network locations
-- **Load Distribution** - Spread requests across multiple IPs
-- **Corporate Networks** - Access internet through company proxy
-
-**Proxy Types Supported:**
-- **HTTP/HTTPS Proxies** - Standard web proxies
-- **SOCKS4/SOCKS5** - For any TCP connection
-- **Residential Proxies** - Real device IPs for scraping
-- **Datacenter Proxies** - Fast, reliable proxy servers
-- **Rotating Proxies** - Automatic IP rotation
-- **Backconnect Proxies** - Sticky sessions with rotation
 
 ### Advanced Features
 ```csharp
@@ -290,6 +297,7 @@ await Curl.GetAsync("https://example.com")
 |----------|---------|---------|
 | .NET | 10, 9, 8, 7, 6, 5 | ✅ Full Support |
 | .NET Core | 3.1, 3.0, 2.1 | ✅ Full Support |
+| .NET Framework | 4.8 | ✅ Native (Windows, Mac, Linux via Mono) |
 | .NET Framework | 4.7.2+ | ✅ via .NET Standard 2.0 |
 | .NET Standard | 2.0+ | ✅ Maximum Compatibility |
 | Windows | 10, 11, Server 2016+ | ✅ Native |
@@ -298,105 +306,238 @@ await Curl.GetAsync("https://example.com")
 | iOS | 12+ | ✅ via .NET Standard/MAUI |
 | Android | API 21+ | ✅ via .NET Standard/MAUI |
 | IoT | Raspberry Pi, Arduino | ✅ via .NET IoT |
-| Docker | All .NET images | ✅ Optimized |
-| Azure | Functions, App Service, IoT Hub | ✅ Cloud Ready |
-| AWS | Lambda, ECS, IoT Core | ✅ Cloud Ready |
+| Docker | All Linux images | ✅ Full Support |
+| Azure | App Service, Functions, Container Instances | ✅ Cloud Native |
+| AWS | Lambda, ECS, Fargate | ✅ Cloud Native |
 
-## 🧰 Cross-Platform Shell Compatibility
+## 📖 Documentation
 
-CurlDotNet treats **Ubuntu/Linux syntax as the canonical source of truth** when parsing curl strings, and then normalizes Windows CMD, PowerShell, and macOS variations. Highlights:
-
-- Paste commands directly from Linux/macOS shells (including multi-line `\` continuations).
-- Windows users can keep familiar `%VAR%` or `$env:VAR` environment variables—we expand them transparently.
-- Trouble with quoting? See the dedicated guide: [curl CLI Compatibility Reference](https://jacob-mellor.github.io/curl-dot-net/reference/index.md).
-
-When in doubt, author the command in an Ubuntu shell (or WSL), then copy it into your C# source—CurlDotNet will behave exactly like curl.
-
-## 📚 Documentation
-
-- **[📖 Full Documentation](https://jacob-mellor.github.io/curl-dot-net/)** - Comprehensive guides and tutorials
-- **[🔧 API Reference](https://jacob-mellor.github.io/curl-dot-net/api/index.md)** - Complete API documentation
+- **[🆕 Beginner's Guide](https://jacob-mellor.github.io/curl-dot-net/new-to-curl.md)** - New to curl? Start here
+- **[📚 API Reference](https://jacob-mellor.github.io/curl-dot-net/api/index.md)** - Complete API documentation
 - **[👨‍🍳 Cookbook](https://jacob-mellor.github.io/curl-dot-net/cookbook/index.md)** - Ready-to-use recipes
-- **[🎓 Tutorials](https://jacob-mellor.github.io/curl-dot-net/tutorials/index.md)** - Step-by-step learning
-- **[🔄 Migration Guides](https://jacob-mellor.github.io/curl-dot-net/migration/index.md)** - Move from HttpClient/RestSharp
+- **[📝 Tutorials](https://jacob-mellor.github.io/curl-dot-net/tutorials/index.md)** - Step-by-step guides
+- **[🔄 Migration Guides](https://jacob-mellor.github.io/curl-dot-net/migration/index.md)** - Migration from HttpClient/RestSharp
 
-## ✅ Tests & Coverage
-
-- `dotnet test` (net8.0): **255 tests passed** – parser, CurlResult, builder, middleware, and integration coverage.
-- Parser suite includes Ubuntu, PowerShell, and Windows CMD quoting/env patterns, keeping shell compatibility near 100%.
-- Regenerate docs with `dotnet script scripts/generate-docs.csx` so NuGet + GitHub Pages share the same `<example>` snippets.
-- Framework compatibility: `./scripts/test-framework-compatibility.sh` validates .NET Standard 2.0 & .NET 8 builds.
-
-## 🎯 Common Use Cases
+## 💡 Use Cases
 
 ### REST API Integration
-Perfect for consuming REST APIs with minimal code:
 ```csharp
-var api = new Curl("https://api.example.com")
-    .WithBearerToken(Environment.GetEnvironmentVariable("API_TOKEN"));
-
-var users = await api.GetJsonAsync<List<User>>("/users");
-var newUser = await api.PostJsonAsync<User>("/users", new { name = "Bob" });
+// GitHub API example
+var repos = await Curl.GetJsonAsync<List<Repository>>(
+    "https://api.github.com/users/octocat/repos"
+);
 ```
 
 ### Web Scraping
-Handle complex scraping scenarios with ease:
 ```csharp
+// Scrape with proper headers
 var html = await Curl.GetAsync("https://example.com")
-    .WithUserAgent("Mozilla/5.0...")
-    .WithProxy("http://proxy.com:8080")
-    .GetBodyAsync();
+    .WithUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+    .WithHeader("Accept-Language", "en-US")
+    .ExecuteAsync();
 ```
 
 ### Microservices Communication
-Resilient service-to-service calls:
 ```csharp
-var response = await Curl.GetAsync("http://service-b/api/data")
+// Service-to-service with retry
+var response = await Curl.PostAsync("http://service-b/api/process")
+    .WithJson(requestData)
     .WithRetry(3)
-    .WithCircuitBreaker()
     .WithTimeout(TimeSpan.FromSeconds(5))
     .ExecuteAsync();
 ```
 
-### CI/CD and Automation
-Execute curl commands from scripts:
+### CI/CD Automation
 ```csharp
-var result = await Curl.ExecuteAsync(Environment.GetEnvironmentVariable("CURL_COMMAND"));
-```
-
-## 🔄 Migrating from Other Libraries
-
-### From HttpClient
-```csharp
-// Before: HttpClient
-using var client = new HttpClient();
-client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
-var response = await client.GetAsync("https://api.example.com");
-var content = await response.Content.ReadAsStringAsync();
-
-// After: CurlDotNet
-var content = await Curl.GetAsync("https://api.example.com")
-    .WithBearerToken(token)
-    .GetBodyAsync();
-```
-
-### From RestSharp
-```csharp
-// Before: RestSharp
-var client = new RestClient("https://api.example.com");
-var request = new RestRequest("/users", Method.Get);
-request.AddHeader("Authorization", $"Bearer {token}");
-var response = await client.ExecuteAsync(request);
-
-// After: CurlDotNet
-var response = await Curl.GetAsync("https://api.example.com/users")
-    .WithBearerToken(token)
+// Deploy webhook
+await Curl.PostAsync("https://deploy.example.com/webhook")
+    .WithJson(new {
+        version = "1.2.3",
+        environment = "production"
+    })
+    .WithBearerToken(deployToken)
     .ExecuteAsync();
 ```
 
+## 🔧 Advanced Usage
+
+### Custom Middleware
+```csharp
+// Add custom middleware for logging, caching, etc.
+var result = await Curl.GetAsync("https://api.example.com")
+    .UseMiddleware(async (context, next) => {
+        Console.WriteLine($"Request: {context.Request.Url}");
+        var response = await next();
+        Console.WriteLine($"Response: {response.StatusCode}");
+        return response;
+    })
+    .ExecuteAsync();
+```
+
+### Code Generation
+```csharp
+// Convert curl to other languages
+var pythonCode = Curl.ToPythonRequests("curl -X GET https://api.example.com");
+var jsCode = Curl.ToJavaScriptFetch("curl -X POST https://api.example.com -d '{}'");
+var httpClientCode = Curl.ToHttpClient("curl https://api.example.com");
+```
+
+### Debugging
+```csharp
+// Enable verbose output like curl -v
+var result = await Curl.GetAsync("https://api.example.com")
+    .Verbose(true)
+    .ExecuteAsync();
+
+// Access detailed timing information
+Console.WriteLine($"DNS Lookup: {result.Timings.DnsLookup}ms");
+Console.WriteLine($"Connect: {result.Timings.Connect}ms");
+Console.WriteLine($"TLS Handshake: {result.Timings.TlsHandshake}ms");
+Console.WriteLine($"First Byte: {result.Timings.FirstByte}ms");
+Console.WriteLine($"Total: {result.Timings.Total}ms");
+```
+
+### Detailed Trace Logging (`--trace` / `--trace-ascii` / `--trace-time`)
+
+When you need to know *exactly* where a request succeeds or gets blocked — especially
+behind a corporate proxy — write a full diagnostic trace to a log file. The trace
+captures connection and proxy selection, TLS certificate verification, the exact
+request/response headers and bodies, transfer timings, and the precise error if the
+request fails.
+
+```csharp
+// Paste-a-curl-command style: write a full hex+ASCII trace to a file
+await Curl.ExecuteAsync("curl --trace curl-trace.log https://api.example.com");
+
+// Compact, ASCII-only trace with timestamps on every line
+await Curl.ExecuteAsync("curl --trace-ascii curl-trace.txt --trace-time https://api.example.com");
+
+// Send the trace to standard output instead of a file
+await Curl.ExecuteAsync("curl --trace - https://api.example.com");
+
+// Fluent builder equivalent
+var result = await CurlRequestBuilder
+    .Get("https://api.example.com")
+    .WithTrace("curl-trace.log", includeTimestamps: true)
+    .ExecuteAsync();
+```
+
+A trace file looks like this:
+
+```text
+== Info: CurlDotNet trace started 2026-06-03 14:03:27
+== Info: Command: curl --trace curl-trace.log https://api.example.com
+== Info: Trying api.example.com:443...
+== Info: Using explicit proxy http://proxy.corp.local:8080 (with credentials)
+== Info: Connected to api.example.com (api.example.com) port 443
+== Info: TLS: certificate verification enabled
+=> Send header, 142 bytes (0x8e)
+0000: 47 45 54 20 2f 20 48 54 54 50 2f 31 2e 31 0d 0a  GET / HTTP/1.1..
+...
+<= Recv header, 173 bytes (0xad)
+0000: 48 54 54 50 2f 31 2e 31 20 32 30 30 20 4f 4b 0d  HTTP/1.1 200 OK.
+...
+== Info: Transfer complete: HTTP 200, 1256 bytes received.
+```
+
+If the request is blocked, the exact failure is recorded so you can see *which stage*
+rejected it:
+
+```text
+== Error: Connection failed: The proxy tunnel request to proxy 'http://proxy.corp.local:8080' failed with status code '407'.
+== Error:   caused by: HttpRequestException: Proxy authentication required
+```
+
+### Code Generation
+CurlDotNet can transpile curl commands into code for other languages. This is perfect for building developer tools or converting documentation examples.
+
+```csharp
+// Convert curl to PowerShell
+var powershellCode = Curl.ToPowershellCode("curl -X POST https://api.example.com -d 'data'");
+
+// Convert curl to Python Requests
+var pythonCode = Curl.ToPythonCode("curl -X POST https://api.example.com -d 'data'");
+
+// Convert curl to JavaScript Fetch
+var jsCode = Curl.ToFetchCode("curl -X POST https://api.example.com -d 'data'");
+
+// Convert curl to C# HttpClient
+var csharpCode = Curl.ToHttpClientCode("curl -X POST https://api.example.com -d 'data'");
+```
+
+## ❓ Troubleshooting
+
+### SSL/TLS Issues
+If you encounter SSL errors (e.g., self-signed certificates), you can disable verification for development:
+
+```csharp
+// Global setting (affects all requests)
+Curl.DefaultInsecure = true;
+
+// Per-request setting
+await Curl.Execute("curl -k https://self-signed.local");
+```
+
+### Timeouts
+If requests are timing out, increase the timeout settings:
+
+```csharp
+// Set global timeout to 60 seconds
+Curl.DefaultMaxTimeSeconds = 60;
+
+// Or per request
+await Curl.Execute("curl --max-time 60 https://slow-api.example.com");
+```
+
+### Proxy Authentication
+If your proxy requires authentication:
+
+```csharp
+await Curl.Execute("curl -x http://user:pass@proxy.example.com:8080 https://api.example.com");
+```
+
+### Where are my requests being blocked? (proxy / firewall debugging)
+If requests work locally but fail behind a proxy or firewall, add `--trace` to capture a
+detailed log of every stage of the transfer. The log shows which proxy was selected,
+whether the TLS handshake completed, the request/response headers, and the precise error
+if the connection is rejected:
+
+```csharp
+await Curl.ExecuteAsync("curl --trace-ascii proxy-debug.log -x http://proxy.corp.local:8080 https://api.example.com");
+// Then open proxy-debug.log and look for the first "== Error:" line.
+```
+
+> Note: As of v9.6.0, `-x`/`--proxy`, `--proxy-user`, `--socks5` and `-k`/`--insecure`
+> are honored for HTTP/HTTPS requests (previously they were only applied to FTP).
+
 ## 🤝 Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](https://github.com/jacob-mellor/curl-dot-net/blob/master/CONTRIBUTING.md) for guidelines.
+We welcome contributions! Please see our [Contributing Guide](https://github.com/jacob-mellor/curl-dot-net/blob/master/CONTRIBUTING.md) for details.
+
+### Development Setup
+```bash
+# Clone the repository
+git clone https://github.com/jacob-mellor/curl-dot-net.git
+
+# Build the project
+dotnet build
+
+# Run tests
+dotnet test
+
+# Run with coverage
+dotnet test /p:CollectCoverage=true
+```
+
+## 📊 Examples
+
+Comprehensive examples are available in the [examples](https://github.com/jacob-mellor/curl-dot-net/tree/master/examples) directory:
+
+- **[Basic Examples](examples/BasicExamples/)** - Simple GET, POST, error handling
+- **[Authentication](examples/Authentication/)** - Bearer tokens, OAuth, API keys
+- **[File Operations](examples/FileOperations/)** - Upload, download, progress tracking
+- **[Advanced Scenarios](examples/AdvancedScenarios/)** - Proxies, retries, rate limiting
+- **[Real World](examples/RealWorld/)** - GitHub API, web scraping, complete applications
 
 ## 📄 License
 
@@ -448,5 +589,3 @@ CurlDotNet is part of the [UserLand.NET](https://userland.net) initiative - brin
 **Keywords**: curl C#, curl .NET, C# HTTP client, .NET curl, REST API C#, HTTP requests .NET, web scraping C#, proxy C#, curl for Windows, curl alternative, HttpClient alternative
 
 **Author**: [Jacob Mellor](https://ironsoftware.com/about-us/authors/jacobmellor/) | **Sponsored by [IronSoftware.com](https://ironsoftware.com)**
-
-*Built with ❤️ for the .NET community by CurlDotNet Contributors*
