@@ -773,7 +773,8 @@ namespace CurlDotNet
         /// </remarks>
         public static async Task<CurlResult> DownloadAsync(string url, string outputPath)
         {
-            return await ExecuteAsync($"curl -o {outputPath} {url}");
+            // Quote both values so paths and URLs containing spaces survive parsing
+            return await ExecuteAsync($"curl -o \"{outputPath}\" \"{url}\"");
         }
 
         /// <summary>

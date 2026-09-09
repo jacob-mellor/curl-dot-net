@@ -201,6 +201,15 @@ namespace CurlDotNet.Core
         public NetworkCredential? Credentials { get; set; }
 
         /// <summary>
+        /// HTTP authentication scheme selected on the command line
+        /// (--basic, --digest, --ntlm, --negotiate, --anyauth).
+        /// Null means curl's default: preemptive Basic when credentials are present.
+        /// Challenge-based schemes (digest/ntlm/negotiate/anyauth) are performed via the
+        /// HTTP 401 challenge-response flow instead of a preemptive Authorization header.
+        /// </summary>
+        public string? AuthScheme { get; set; }
+
+        /// <summary>
         /// Alias for Credentials for test compatibility.
         /// </summary>
         public NetworkCredential UserAuth
@@ -504,6 +513,7 @@ namespace CurlDotNet.Core
                 Cookie = Cookie,
                 CookieJar = CookieJar,
                 Credentials = Credentials,
+                AuthScheme = AuthScheme,
                 Proxy = Proxy,
                 ProxyCredentials = ProxyCredentials,
                 MaxTime = MaxTime,

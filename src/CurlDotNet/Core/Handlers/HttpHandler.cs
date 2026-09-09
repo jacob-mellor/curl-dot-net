@@ -170,7 +170,30 @@ namespace CurlDotNet.Core
         {
             return !string.IsNullOrEmpty(options.Proxy)
                 || !string.IsNullOrEmpty(options.Socks5Proxy)
-                || options.Insecure;
+                || options.Insecure
+                || UsesChallengeAuth(options);
+        }
+
+        /// <summary>
+        /// True when the command selected a challenge-response auth scheme
+        /// (--digest, --ntlm, --negotiate, --anyauth) with credentials. These schemes
+        /// are performed by the handler's 401 challenge flow, not a preemptive header,
+        /// so they need a dedicated HttpClient carrying the credentials.
+        /// </summary>
+        internal static bool UsesChallengeAuth(CurlOptions options)
+        {
+            if (options.Credentials == null || string.IsNullOrEmpty(options.AuthScheme))
+                return false;
+            switch (options.AuthScheme.ToLowerInvariant())
+            {
+                case "digest":
+                case "ntlm":
+                case "negotiate":
+                case "anyauth":
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         /// <summary>
@@ -182,8 +205,36 @@ namespace CurlDotNet.Core
             var handler = new HttpClientHandler
             {
                 AllowAutoRedirect = false, // We handle redirects manually like curl
-                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                // curl only engages a cookie engine when -b/-c is given; with UseCookies=true
+                // the container would also swallow manually supplied Cookie headers (issue #41)
+                UseCookies = false
             };
+
+            if (UsesChallengeAuth(options))
+            {
+                // Challenge-based auth (--digest/--ntlm/--negotiate/--anyauth): let the
+                // handler answer the 401 challenge instead of sending a preemptive header.
+                if (options.AuthScheme.Equals("anyauth", StringComparison.OrdinalIgnoreCase)
+                    || !Uri.TryCreate(options.Url, UriKind.Absolute, out var authUri)
+                    || (authUri.Scheme != Uri.UriSchemeHttp && authUri.Scheme != Uri.UriSchemeHttps))
+                {
+                    handler.Credentials = options.Credentials;
+                }
+                else
+                {
+                    var cache = new CredentialCache();
+                    var scheme = options.AuthScheme.ToLowerInvariant() switch
+                    {
+                        "digest" => "Digest",
+                        "ntlm" => "NTLM",
+                        _ => "Negotiate"
+                    };
+                    cache.Add(new Uri(authUri, "/"), scheme, options.Credentials);
+                    handler.Credentials = cache;
+                }
+                handler.PreAuthenticate = false;
+            }
 
             string? proxyUrl = null;
             if (!string.IsNullOrEmpty(options.Proxy))
@@ -311,8 +362,11 @@ namespace CurlDotNet.Core
                 // AWS SigV4 signing - must happen after content is set, so we defer it below
                 // (handled after content is added)
             }
-            else if (options.Credentials != null)
+            else if (options.Credentials != null && !UsesChallengeAuth(options))
             {
+                // Preemptive Basic (curl's default for -u). Challenge schemes
+                // (--digest etc.) are answered by the handler's Credentials instead;
+                // sending Basic here would leak the password and break digest (issue #40).
                 var auth = Convert.ToBase64String(Encoding.UTF8.GetBytes(
                     $"{options.Credentials.UserName}:{options.Credentials.Password}"));
                 request.Headers.Authorization = new AuthenticationHeaderValue("Basic", auth);
@@ -512,16 +566,22 @@ namespace CurlDotNet.Core
                     result.Headers[header.Key] = string.Join(", ", header.Value);
                 }
 
-                // Read body
+                // Read body. Always read raw bytes first so binary data served under a
+                // lying text Content-Type (e.g. an .xlsx sent as text/plain) is never
+                // corrupted by string decoding; curl writes wire bytes verbatim.
                 if (!options.HeadOnly)
                 {
-                    if (IsTextContent(response.Content, options))
+                    var bodyBytes = await response.Content.ReadAsByteArrayAsync();
+                    var charset = response.Content.Headers.ContentType?.CharSet;
+
+                    if (IsTextContent(response.Content, options)
+                        && (IsUserForcedText(response.Content, options) || !LooksBinary(bodyBytes, charset)))
                     {
-                        responseText = await response.Content.ReadAsStringAsync();
+                        responseText = DecodeTextBody(bodyBytes, charset);
                     }
                     else
                     {
-                        responseBinary = await response.Content.ReadAsByteArrayAsync();
+                        responseBinary = bodyBytes;
                     }
                 }
             }
@@ -936,6 +996,122 @@ namespace CurlDotNet.Core
             return false;
         }
 
+        /// <summary>
+        /// True when the user explicitly registered this response's media type as text
+        /// via <see cref="CurlOptions.TextContentTypes"/>. Explicit user overrides beat
+        /// content sniffing.
+        /// </summary>
+        private static bool IsUserForcedText(HttpContent content, CurlOptions options)
+        {
+            var contentType = content.Headers.ContentType?.MediaType;
+            if (contentType == null || options?.TextContentTypes == null)
+                return false;
+            foreach (var textType in options.TextContentTypes)
+            {
+                if (contentType.Equals(textType, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Well-known binary file signatures. Servers frequently serve binary files under
+        /// text/* or application/xml Content-Types (misconfigured MIME maps default unknown
+        /// extensions to text/plain); real curl is immune because it never decodes bytes.
+        /// Sniffing the payload lets us match that behavior.
+        /// </summary>
+        private static readonly byte[][] BinaryMagicNumbers =
+        {
+            new byte[] { 0x50, 0x4B, 0x03, 0x04 },       // ZIP (also .xlsx/.docx/.pptx/.jar)
+            new byte[] { 0x50, 0x4B, 0x05, 0x06 },       // ZIP (empty archive)
+            new byte[] { 0x50, 0x4B, 0x07, 0x08 },       // ZIP (spanned)
+            new byte[] { 0x25, 0x50, 0x44, 0x46 },       // %PDF
+            new byte[] { 0x4D, 0x5A },                   // MZ (.exe/.dll)
+            new byte[] { 0x7F, 0x45, 0x4C, 0x46 },       // ELF
+            new byte[] { 0x1F, 0x8B },                   // gzip
+            new byte[] { 0x42, 0x5A, 0x68 },             // bzip2
+            new byte[] { 0xFD, 0x37, 0x7A, 0x58, 0x5A }, // xz
+            new byte[] { 0x37, 0x7A, 0xBC, 0xAF },       // 7z
+            new byte[] { 0x52, 0x61, 0x72, 0x21 },       // RAR
+            new byte[] { 0x89, 0x50, 0x4E, 0x47 },       // PNG
+            new byte[] { 0xFF, 0xD8, 0xFF },             // JPEG
+            new byte[] { 0x47, 0x49, 0x46, 0x38 },       // GIF8
+            new byte[] { 0xD0, 0xCF, 0x11, 0xE0 },       // OLE2 (.xls/.doc/.ppt/.msi)
+            new byte[] { 0x53, 0x51, 0x4C, 0x69, 0x74 }, // SQLite
+            new byte[] { 0x00, 0x61, 0x73, 0x6D },       // WebAssembly
+        };
+
+        /// <summary>
+        /// Sniffs a payload that headers classified as text for binary content, so a
+        /// mislabeled binary file is stored as bytes instead of being corrupted by
+        /// string decoding.
+        /// </summary>
+        /// <param name="data">The response body bytes.</param>
+        /// <param name="charset">The declared charset, if any (UTF-16 text legitimately contains NUL bytes).</param>
+        internal static bool LooksBinary(byte[] data, string charset = null)
+        {
+            if (data == null || data.Length == 0)
+                return false;
+
+            foreach (var magic in BinaryMagicNumbers)
+            {
+                if (data.Length >= magic.Length)
+                {
+                    var match = true;
+                    for (var i = 0; i < magic.Length; i++)
+                    {
+                        if (data[i] != magic[i]) { match = false; break; }
+                    }
+                    if (match)
+                        return true;
+                }
+            }
+
+            // UTF-16/UTF-32 text contains NUL bytes by design - don't NUL-sniff it.
+            if (charset != null && charset.IndexOf("utf-16", StringComparison.OrdinalIgnoreCase) >= 0)
+                return false;
+            if (charset != null && charset.IndexOf("utf-32", StringComparison.OrdinalIgnoreCase) >= 0)
+                return false;
+            if (data.Length >= 2 && ((data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF)))
+                return false; // UTF-16 BOM
+
+            // NUL byte in the first block => binary (same heuristic git and grep use)
+            var scan = Math.Min(data.Length, 8000);
+            for (var i = 0; i < scan; i++)
+            {
+                if (data[i] == 0)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Decodes a text body from its raw bytes honoring the declared charset and any
+        /// byte-order mark, falling back to UTF-8.
+        /// </summary>
+        private static string DecodeTextBody(byte[] data, string charset)
+        {
+            Encoding encoding = Encoding.UTF8;
+            if (!string.IsNullOrEmpty(charset))
+            {
+                try
+                {
+                    encoding = Encoding.GetEncoding(charset.Trim('"'));
+                }
+                catch (ArgumentException)
+                {
+                    // Unknown charset label - fall back to UTF-8
+                }
+            }
+
+            using (var ms = new MemoryStream(data))
+            using (var reader = new StreamReader(ms, encoding, detectEncodingFromByteOrderMarks: true))
+            {
+                return reader.ReadToEnd();
+            }
+        }
+
         private bool IsContentHeader(string headerName)
         {
             var contentHeaders = new[] { "Content-Type", "Content-Length", "Content-Encoding",
@@ -963,7 +1139,11 @@ namespace CurlDotNet.Core
             var handler = new HttpClientHandler
             {
                 AllowAutoRedirect = false, // We handle redirects manually
-                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                // curl only engages a cookie engine when -b/-c is given; with UseCookies=true
+                // the shared container would swallow manual Cookie headers and leak session
+                // cookies across unrelated Curl.Execute calls (issue #41)
+                UseCookies = false
             };
 
             return new HttpClient(handler);

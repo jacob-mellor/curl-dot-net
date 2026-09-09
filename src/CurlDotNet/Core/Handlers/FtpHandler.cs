@@ -124,19 +124,34 @@ namespace CurlDotNet.Core
                     request.Method == WebRequestMethods.Ftp.ListDirectory ||
                     request.Method == WebRequestMethods.Ftp.ListDirectoryDetails)
                 {
+                    // Read raw bytes: FTP downloads are frequently binary, and decoding
+                    // through a StreamReader corrupts them. Directory listings are text.
+                    byte[] contentBytes;
                     using (var stream = response.GetResponseStream())
-                    using (var reader = new StreamReader(stream))
+                    using (var ms = new MemoryStream())
                     {
-                        result.Body = await reader.ReadToEndAsync();
+                        await stream.CopyToAsync(ms);
+                        contentBytes = ms.ToArray();
                     }
 
-                    // Save to output file if specified
+                    var isListing = request.Method != WebRequestMethods.Ftp.DownloadFile;
+                    if (isListing || !HttpHandler.LooksBinary(contentBytes))
+                    {
+                        result.Body = Encoding.UTF8.GetString(contentBytes);
+                    }
+                    else
+                    {
+                        result.BinaryData = contentBytes;
+                    }
+
+                    // Save to output file if specified - always write the wire bytes
+                    // verbatim, like curl does.
                     if (!string.IsNullOrEmpty(options.OutputFile))
                     {
 #if NETSTANDARD2_0 || NET472 || NET48
-                        await Task.Run(() => File.WriteAllText(options.OutputFile, result.Body), cancellationToken);
+                        await Task.Run(() => File.WriteAllBytes(options.OutputFile, contentBytes), cancellationToken);
 #else
-                        await File.WriteAllTextAsync(options.OutputFile, result.Body, cancellationToken);
+                        await File.WriteAllBytesAsync(options.OutputFile, contentBytes, cancellationToken);
 #endif
                         result.OutputFiles.Add(options.OutputFile);
                     }

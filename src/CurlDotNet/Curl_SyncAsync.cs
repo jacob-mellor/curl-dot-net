@@ -143,7 +143,8 @@ namespace CurlDotNet
         /// </summary>
         public static CurlResult Download(string url, string outputPath)
         {
-            return Execute($"curl -o {outputPath} {url}");
+            // Quote both values so paths and URLs containing spaces survive parsing
+            return Execute($"curl -o \"{outputPath}\" \"{url}\"");
         }
 
         #endregion
