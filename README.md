@@ -37,13 +37,11 @@ var response = await Curl.GetAsync("https://api.github.com/users/octocat")
 var json = await Curl.GetJsonAsync<GitHubUser>("https://api.github.com/users/octocat");
 ```
 
-## 📊 Code Coverage
+## 📊 Quality
 
-- **Line Coverage:** 65.9%
-- **Branch Coverage:** 72%
-- **Method Coverage:** 59.9%
-- **Tests:** 657 total, 619 passing, 38 failing
-- **Last Updated:** 2025-11-18
+- **600+ automated tests** guarding the parser, handlers, middleware, and integration surfaces
+- **CI-gated releases:** every release passes the smoke matrix on Windows, Ubuntu, and macOS across .NET Framework 4.7.2/4.8 and modern .NET
+- **Byte-accuracy verified:** binary downloads are SHA-256-compared against source files in regression tests
 
 ## 📦 Installation
 
