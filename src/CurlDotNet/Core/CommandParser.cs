@@ -223,10 +223,74 @@ namespace CurlDotNet.Core
             command = Regex.Replace(command, @"[ \t]*\^[ \t]*(\r\n|\r|\n)", " ", RegexOptions.Multiline); // Windows CMD
             command = Regex.Replace(command, @"[ \t]*`[ \t]*(\r\n|\r|\n)", " ", RegexOptions.Multiline); // PowerShell
 
-            // Normalize all whitespace sequences to single space
-            command = Regex.Replace(command, @"\s+", " ");
+            // Normalize whitespace sequences to single space - but only OUTSIDE quotes.
+            // Quoted arguments (file paths, -d payloads) may legitimately contain
+            // consecutive spaces, tabs or newlines that must be preserved verbatim.
+            command = CollapseUnquotedWhitespace(command);
 
             return command.Trim();
+        }
+
+        /// <summary>
+        /// Collapses runs of whitespace to a single space outside quoted regions while
+        /// leaving the inside of single- and double-quoted strings untouched, so paths
+        /// like <c>"C:\Temp\file with  double  spaces.txt"</c> and JSON payloads keep
+        /// their exact spacing.
+        /// </summary>
+        private static string CollapseUnquotedWhitespace(string command)
+        {
+            var sb = new StringBuilder(command.Length);
+            var quote = '\0';
+            var lastWasSpace = false;
+
+            for (var i = 0; i < command.Length; i++)
+            {
+                var c = command[i];
+
+                if (quote != '\0')
+                {
+                    sb.Append(c);
+                    if (c == '\\' && quote == '"' && i + 1 < command.Length)
+                    {
+                        sb.Append(command[++i]); // escaped char inside double quotes
+                    }
+                    else if (c == quote)
+                    {
+                        quote = '\0';
+                    }
+                    lastWasSpace = false;
+                    continue;
+                }
+
+                if (c == '"' || c == '\'')
+                {
+                    quote = c;
+                    sb.Append(c);
+                    lastWasSpace = false;
+                }
+                else if (char.IsWhiteSpace(c))
+                {
+                    if (!lastWasSpace)
+                    {
+                        sb.Append(' ');
+                        lastWasSpace = true;
+                    }
+                }
+                else if (c == '\\' && i + 1 < command.Length && command[i + 1] == ' ')
+                {
+                    // Backslash-escaped space outside quotes is a literal space
+                    sb.Append(c);
+                    sb.Append(command[++i]);
+                    lastWasSpace = false;
+                }
+                else
+                {
+                    sb.Append(c);
+                    lastWasSpace = false;
+                }
+            }
+
+            return sb.ToString();
         }
 
         /// <summary>
@@ -615,6 +679,26 @@ namespace CurlDotNet.Core
                 case "--insecure":
                 case "-k":
                     options.Insecure = true;
+                    return true;
+
+                case "--basic":
+                    options.AuthScheme = "basic";
+                    return true;
+
+                case "--digest":
+                    options.AuthScheme = "digest";
+                    return true;
+
+                case "--ntlm":
+                    options.AuthScheme = "ntlm";
+                    return true;
+
+                case "--negotiate":
+                    options.AuthScheme = "negotiate";
+                    return true;
+
+                case "--anyauth":
+                    options.AuthScheme = "anyauth";
                     return true;
 
                 case "--verbose":

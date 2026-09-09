@@ -479,7 +479,11 @@ namespace CurlDotNet.Core
             var handler = new HttpClientHandler
             {
                 AllowAutoRedirect = false, // We handle redirects manually like curl
-                AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+                AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
+                // curl only engages a cookie engine when -b/-c is given; with UseCookies=true
+                // the shared container would swallow manual Cookie headers and leak session
+                // cookies across unrelated requests (issue #41)
+                UseCookies = false
             };
             return new HttpClient(handler);
         }

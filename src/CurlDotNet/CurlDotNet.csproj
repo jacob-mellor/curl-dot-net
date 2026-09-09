@@ -31,9 +31,9 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>9.6.0</Version>
-    <AssemblyVersion>9.6.0.0</AssemblyVersion>
-    <FileVersion>9.6.0.0</FileVersion>
+    <Version>9.7.0</Version>
+    <AssemblyVersion>9.7.0.0</AssemblyVersion>
+    <FileVersion>9.7.0.0</FileVersion>
 
     <!-- Authors and Sponsorship -->
     <Authors>Jacob Mellor;IronSoftware;Daniel Stenberg and curl contributors</Authors>
@@ -80,21 +80,23 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 9.6.0 - Detailed trace logging (--trace / --trace-ascii / --trace-time) + proxy/TLS fixes
-NEW: --trace &lt;file&gt; writes a full diagnostic trace (hex+ASCII) of the whole transfer
-NEW: --trace-ascii &lt;file&gt; writes a compact, ASCII-only trace
-NEW: --trace-time prefixes every trace line with a high-resolution timestamp
-NEW: Fluent API WithTrace()/WithTraceAscii() on CurlRequestBuilder
-   - Captures connection, proxy selection, TLS verification, request/response headers and bodies,
-     transfer timings, and the precise error when a request is blocked - ideal for proxy troubleshooting
-FIX: --proxy / -x, --proxy-user, --socks5 and -k/--insecure are now honored for HTTP/HTTPS
-   - Previously these were parsed but silently ignored on the shared HttpClient
+    <PackageReleaseNotes>Version 9.7.0 - Binary content sniffing + digest auth + curl-accurate cookies
+FIX: Binary files served under a wrong text Content-Type (e.g. .xlsx sent as text/plain) are no
+   longer corrupted. Payloads are sniffed for binary signatures (ZIP/Office, PDF, EXE, images,
+   archives, OLE2) and NUL bytes, matching curl's write-bytes-verbatim behavior. Reported by
+   Massimo Braga - thank you!
+FIX: FTP binary downloads are no longer corrupted (bytes are read raw, text decoding only for listings)
+FIX: (#41) -b/--cookie values and manual Cookie headers now always reach the wire, and session
+   cookies no longer leak between unrelated requests. Like curl, no automatic cookie engine.
+   Thanks linv2 for the precise diagnosis!
+NEW: (#40) --digest, --ntlm, --negotiate, --anyauth and --basic are now supported. -u with a
+   challenge scheme performs the proper 401 challenge-response flow instead of leaking
+   credentials as preemptive Basic. Thanks linv2!
+NEW: CurlOptions.AuthScheme property + parser support for the five auth-scheme flags
 Frameworks: netstandard2.0, net472, net48, net8.0, net9.0, net10.0
 Sponsored by IronSoftware
 
-Documentation: https://jacob-mellor.github.io/curl-dot-net/
-Repository: https://github.com/jacob-mellor/curl-dot-net
-NuGet: https://www.nuget.org/packages/CurlDotNet/</PackageReleaseNotes>
+Documentation: https://jacob-mellor.github.io/curl-dot-net/</PackageReleaseNotes>
 
     <!-- Output and Build -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
