@@ -785,6 +785,95 @@ namespace CurlDotNet.Tests
             ShouldHoldNoSecret(File.Exists(trace) ? File.ReadAllText(trace) : string.Empty, "the trace's own lines");
         }
 
+        // ------------------------------------------------------------------ I. ConfigureAwait(false)
+
+        /// <summary>A UI-like context: continuations posted to it run only when its own thread pumps, which a blocked thread never does.</summary>
+        private sealed class NonPumpingContext : System.Threading.SynchronizationContext
+        {
+            public int Posts;
+
+            public override void Post(System.Threading.SendOrPostCallback d, object? state) => System.Threading.Interlocked.Increment(ref Posts);
+
+            public override void Send(System.Threading.SendOrPostCallback d, object? state) => throw new InvalidOperationException("Send is not expected");
+        }
+
+        [Fact]
+        public void SyncExecute_OnASingleThreadedContext_DoesNotDeadlock()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 302 Found\r\nLocation: /done\r\nContent-Length: 0\r\n\r\n",
+                Ok);
+            CurlResult? result = null;
+            Exception? failure = null;
+            NonPumpingContext? context = null;
+            var thread = new System.Threading.Thread(() =>
+            {
+                context = new NonPumpingContext();
+                System.Threading.SynchronizationContext.SetSynchronizationContext(context);
+                try
+                {
+                    result = Curl.Execute($"curl -L --retry 1 -w \"%{{http_code}}\" {server.Url("/start")}");
+                }
+                catch (Exception ex)
+                {
+                    failure = ex;
+                }
+            }) { IsBackground = true }; // a deadlock must not keep the test host alive
+            thread.Start();
+
+            thread.Join(TimeSpan.FromSeconds(30)).Should().BeTrue("a blocked UI thread must not deadlock the transfer");
+            failure.Should().BeNull();
+            result!.Body.Should().Be("ok\n200");
+            context!.Posts.Should().Be(0, "no continuation is posted back to the caller's context");
+        }
+
+        [Fact]
+        public void EveryAwaitInTheLibrary_UsesConfigureAwaitFalse()
+        {
+            var src = Path.Combine(ExceptionMessageTests.RepoRoot(), "src", "CurlDotNet");
+            var missing = new System.Collections.Generic.List<string>();
+            foreach (var file in Directory.GetFiles(src, "*.cs", SearchOption.AllDirectories)
+                         .Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar)))
+            {
+                var lines = File.ReadAllLines(file);
+                for (var i = 0; i < lines.Length; i++)
+                {
+                    var line = lines[i];
+                    var code = line.TrimStart();
+                    if (code.StartsWith("//", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+                    var at = System.Text.RegularExpressions.Regex.Match(line, @"\bawait\s");
+                    if (!at.Success || line.Substring(0, at.Index).Count(c => c == '"') % 2 == 1)
+                    {
+                        continue; // not an await, or an await inside a string (generated code samples)
+                    }
+                    // the awaited expression: up to the first ';' or unbalanced ')' outside parentheses and braces
+                    var rest = line.Substring(at.Index) + "\n" + string.Join("\n", lines.Skip(i + 1).Take(30));
+                    var depth = 0;
+                    var end = rest.Length;
+                    for (var k = 0; k < rest.Length; k++)
+                    {
+                        var c = rest[k];
+                        if (c == '(' || c == '{' || c == '[') depth++;
+                        else if (c == ')' || c == '}' || c == ']')
+                        {
+                            if (depth == 0) { end = k; break; }
+                            depth--;
+                        }
+                        else if ((c == ';' || c == ',') && depth == 0) { end = k; break; }
+                    }
+                    if (rest.Substring(0, end).TrimEnd().EndsWith(".ConfigureAwait(false)", StringComparison.Ordinal) == false)
+                    {
+                        missing.Add($"{Path.GetFileName(file)}:{i + 1}: {code}");
+                    }
+                }
+            }
+
+            missing.Should().BeEmpty("library code must not resume on the caller's SynchronizationContext");
+        }
+
         // ------------------------------------------------------------------ D. options that are parsed
 
         [Theory]

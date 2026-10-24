@@ -90,9 +90,9 @@ namespace CurlDotNet.Core
                     using (Stream requestStream = await Task.Factory.FromAsync(
                         request.BeginGetRequestStream,
                         request.EndGetRequestStream,
-                        null))
+                        null).ConfigureAwait(false))
                     {
-                        await requestStream.WriteAsync(fileContents, 0, fileContents.Length, cancellationToken);
+                        await requestStream.WriteAsync(fileContents, 0, fileContents.Length, cancellationToken).ConfigureAwait(false);
                     }
                 }
 
@@ -100,7 +100,7 @@ namespace CurlDotNet.Core
                 using var response = (FtpWebResponse)await Task.Factory.FromAsync(
                     request.BeginGetResponse,
                     request.EndGetResponse,
-                    null);
+                    null).ConfigureAwait(false);
 
                 var result = new CurlResult
                 {
@@ -125,7 +125,7 @@ namespace CurlDotNet.Core
                     using (var stream = response.GetResponseStream())
                     using (var ms = new MemoryStream())
                     {
-                        await stream.CopyToAsync(ms);
+                        await stream.CopyToAsync(ms).ConfigureAwait(false);
                         contentBytes = ms.ToArray();
                     }
 

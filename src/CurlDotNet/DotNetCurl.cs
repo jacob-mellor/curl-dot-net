@@ -76,6 +76,11 @@ namespace CurlDotNet
         /// <see cref="global::CurlDotNet.Curl.Execute(string)"/>.
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>Paste any curl command, with or without the leading <c>curl</c>; it is read with
         /// <see cref="global::CurlDotNet.Curl.DefaultFlavor"/>. HTTP error statuses are returned in the result, not
         /// thrown (add <c>-f</c> to throw). Blocks the thread: do not call it on a UI thread; use
@@ -113,6 +118,11 @@ namespace CurlDotNet
         /// <paramref name="timeoutSeconds"/> seconds.
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>The deadline is a cancellation, not curl's <c>--max-time</c>: when it passes, the call throws
         /// <see cref="OperationCanceledException"/> (not <see cref="CurlTimeoutException"/>). If you want curl's exit code
         /// 28 and message instead, put <c>-m 30</c> in the command or use <see cref="DefaultMaxTimeSeconds"/>.</para>
@@ -186,7 +196,7 @@ namespace CurlDotNet
         /// <seealso cref="global::CurlDotNet.Curl.ExecuteAsync(string)"/>
         public static async Task<CurlResult> CurlAsync(string command)
         {
-            return await global::CurlDotNet.Curl.ExecuteAsync(command);
+            return await global::CurlDotNet.Curl.ExecuteAsync(command).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -216,7 +226,7 @@ namespace CurlDotNet
         /// <seealso cref="global::CurlDotNet.Curl.ExecuteAsync(string, CancellationToken)"/>
         public static async Task<CurlResult> CurlAsync(string command, CancellationToken cancellationToken)
         {
-            return await global::CurlDotNet.Curl.ExecuteAsync(command, cancellationToken);
+            return await global::CurlDotNet.Curl.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -244,7 +254,7 @@ namespace CurlDotNet
         /// <seealso cref="CurlSettings"/>
         public static async Task<CurlResult> CurlAsync(string command, CurlSettings settings)
         {
-            return await global::CurlDotNet.Curl.ExecuteAsync(command, settings);
+            return await global::CurlDotNet.Curl.ExecuteAsync(command, settings).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -252,6 +262,11 @@ namespace CurlDotNet
         /// order as the commands.
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>All commands start at once and share the connection pool. If any command throws (DNS failure, timeout,
         /// <c>-f</c> with an error status...), that exception is thrown after all have finished and no results are
         /// returned; HTTP error statuses without <c>-f</c> are not failures. Blocks the calling thread; use
@@ -310,7 +325,7 @@ namespace CurlDotNet
         /// <seealso cref="global::CurlDotNet.Curl.ExecuteManyAsync(string[])"/>
         public static async Task<CurlResult[]> CurlManyAsync(params string[] commands)
         {
-            return await global::CurlDotNet.Curl.ExecuteManyAsync(commands);
+            return await global::CurlDotNet.Curl.ExecuteManyAsync(commands).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -318,6 +333,11 @@ namespace CurlDotNet
         /// <see cref="global::CurlDotNet.Curl.Get(string)"/> (like <c>curl URL</c>).
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>No headers or options; the <c>Default*</c> settings apply. HTTP errors are returned, not thrown.</para>
         /// <para>Example: <c>var result = DotNetCurl.Get("https://api.example.com/health");</c></para>
         /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-synchronously-in-csharp/README.md</para>
@@ -353,7 +373,7 @@ namespace CurlDotNet
         /// <seealso cref="global::CurlDotNet.Curl.GetAsync(string)"/>
         public static async Task<CurlResult> GetAsync(string url)
         {
-            return await global::CurlDotNet.Curl.GetAsync(url);
+            return await global::CurlDotNet.Curl.GetAsync(url).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -361,6 +381,11 @@ namespace CurlDotNet
         /// <see cref="global::CurlDotNet.Curl.Post(string, string)"/> (like <c>curl -d DATA URL</c>).
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>The data is sent exactly as given, with <c>Content-Type: application/x-www-form-urlencoded</c>; use
         /// <see cref="PostJson(string, object)"/> for JSON.</para>
         /// <para>Example: <c>var result = DotNetCurl.Post("https://api.example.com/login", "user=john&amp;pass=secret");</c></para>
@@ -397,7 +422,7 @@ namespace CurlDotNet
         /// <seealso cref="global::CurlDotNet.Curl.PostAsync(string, string)"/>
         public static async Task<CurlResult> PostAsync(string url, string data)
         {
-            return await global::CurlDotNet.Curl.PostAsync(url, data);
+            return await global::CurlDotNet.Curl.PostAsync(url, data).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -405,6 +430,11 @@ namespace CurlDotNet
         /// until the response arrives; same as <see cref="global::CurlDotNet.Curl.PostJson(string, object)"/>.
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>System.Text.Json is used (Newtonsoft.Json on the .NET Standard 2.0 build).</para>
         /// <para>Example: <c>var result = DotNetCurl.PostJson("https://api.example.com/users", new { name = "John" });</c></para>
         /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md</para>
@@ -443,7 +473,7 @@ namespace CurlDotNet
         /// <seealso cref="global::CurlDotNet.Curl.PostJsonAsync(string, object)"/>
         public static async Task<CurlResult> PostJsonAsync(string url, object data)
         {
-            return await global::CurlDotNet.Curl.PostJsonAsync(url, data);
+            return await global::CurlDotNet.Curl.PostJsonAsync(url, data).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -451,6 +481,11 @@ namespace CurlDotNet
         /// <see cref="global::CurlDotNet.Curl.Download(string, string)"/> (like <c>curl -o PATH URL</c>).
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>The folder must exist; an existing file is overwritten; the file is written even for an HTTP error
         /// status, so check <see cref="CurlResult.IsSuccess"/>.</para>
         /// <para>Example: <c>var result = DotNetCurl.Download("https://example.com/a.zip", "downloads/a.zip");</c></para>
@@ -491,7 +526,7 @@ namespace CurlDotNet
         /// <seealso cref="global::CurlDotNet.Curl.DownloadAsync(string, string)"/>
         public static async Task<CurlResult> DownloadAsync(string url, string outputPath)
         {
-            return await global::CurlDotNet.Curl.DownloadAsync(url, outputPath);
+            return await global::CurlDotNet.Curl.DownloadAsync(url, outputPath).ConfigureAwait(false);
         }
 
         /// <summary>

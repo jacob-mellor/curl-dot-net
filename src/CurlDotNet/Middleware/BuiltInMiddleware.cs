@@ -87,7 +87,7 @@ namespace CurlDotNet.Middleware
 
             try
             {
-                var result = await next();
+                var result = await next().ConfigureAwait(false);
                 var elapsed = DateTime.UtcNow - startTime;
                 _logger($"[CURL] Success: Status={result.StatusCode}, Time={elapsed.TotalMilliseconds}ms");
                 return result;
@@ -189,7 +189,7 @@ namespace CurlDotNet.Middleware
             {
                 try
                 {
-                    var result = await next();
+                    var result = await next().ConfigureAwait(false);
 
                     // Check if HTTP error is retryable
                     if (result.StatusCode >= 500 || result.StatusCode == 429)
@@ -197,7 +197,7 @@ namespace CurlDotNet.Middleware
                         if (attempt < _maxRetries)
                         {
                             var delay = TimeSpan.FromMilliseconds(_initialDelay.TotalMilliseconds * Math.Pow(2, attempt));
-                            await MiddlewareDelay.WaitAsync(delay, context, $"RetryMiddleware was waiting {delay.TotalSeconds.ToString("0.###", CultureInfo.InvariantCulture)} s before retry {attempt + 1} of {_maxRetries} (the previous attempt returned HTTP {result.StatusCode})");
+                            await MiddlewareDelay.WaitAsync(delay, context, $"RetryMiddleware was waiting {delay.TotalSeconds.ToString("0.###", CultureInfo.InvariantCulture)} s before retry {attempt + 1} of {_maxRetries} (the previous attempt returned HTTP {result.StatusCode})").ConfigureAwait(false);
                             continue;
                         }
                     }
@@ -218,7 +218,7 @@ namespace CurlDotNet.Middleware
                     if (attempt < _maxRetries)
                     {
                         var delay = TimeSpan.FromMilliseconds(_initialDelay.TotalMilliseconds * Math.Pow(2, attempt));
-                        await MiddlewareDelay.WaitAsync(delay, context, $"RetryMiddleware was waiting {delay.TotalSeconds.ToString("0.###", CultureInfo.InvariantCulture)} s before retry {attempt + 1} of {_maxRetries} (the previous attempt failed with {ex.GetType().Name})");
+                        await MiddlewareDelay.WaitAsync(delay, context, $"RetryMiddleware was waiting {delay.TotalSeconds.ToString("0.###", CultureInfo.InvariantCulture)} s before retry {attempt + 1} of {_maxRetries} (the previous attempt failed with {ex.GetType().Name})").ConfigureAwait(false);
                         continue;
                     }
 
@@ -289,7 +289,7 @@ namespace CurlDotNet.Middleware
             var startTime = DateTime.UtcNow;
             context.Properties["TimingStart"] = startTime;
 
-            var result = await next();
+            var result = await next().ConfigureAwait(false);
 
             var endTime = DateTime.UtcNow;
             var duration = endTime - startTime;
@@ -370,7 +370,7 @@ namespace CurlDotNet.Middleware
             // Only cache GET requests
             if (context.Options?.Method != null && context.Options.Method != "GET")
             {
-                return await next();
+                return await next().ConfigureAwait(false);
             }
 
             var cacheKey = GetCacheKey(context);
@@ -383,7 +383,7 @@ namespace CurlDotNet.Middleware
             }
 
             // Execute and cache
-            var result = await next();
+            var result = await next().ConfigureAwait(false);
 
             if (result.IsSuccess)
             {
@@ -521,7 +521,7 @@ namespace CurlDotNet.Middleware
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
             // Get token
-            var token = await _tokenProvider(context);
+            var token = await _tokenProvider(context).ConfigureAwait(false);
 
             if (!string.IsNullOrEmpty(token))
             {
@@ -545,7 +545,7 @@ namespace CurlDotNet.Middleware
                 }
             }
 
-            return await next();
+            return await next().ConfigureAwait(false);
         }
     }
 
@@ -616,11 +616,11 @@ namespace CurlDotNet.Middleware
         /// <seealso cref="RateLimitMiddleware"/>
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
-            await WaitIfNeeded(context);
+            await WaitIfNeeded(context).ConfigureAwait(false);
 
             try
             {
-                return await next();
+                return await next().ConfigureAwait(false);
             }
             finally
             {
@@ -653,7 +653,7 @@ namespace CurlDotNet.Middleware
             if (waitTime > TimeSpan.Zero)
             {
                 await MiddlewareDelay.WaitAsync(waitTime, context,
-                    $"RateLimitMiddleware was waiting {waitTime.TotalMilliseconds.ToString("0", CultureInfo.InvariantCulture)} ms for a slot under its limit of {_requestsPerSecond} requests per second");
+                    $"RateLimitMiddleware was waiting {waitTime.TotalMilliseconds.ToString("0", CultureInfo.InvariantCulture)} ms for a slot under its limit of {_requestsPerSecond} requests per second").ConfigureAwait(false);
             }
         }
 
@@ -723,7 +723,7 @@ namespace CurlDotNet.Middleware
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
             _modifier(context);
-            return await next();
+            return await next().ConfigureAwait(false);
         }
     }
 
@@ -775,8 +775,8 @@ namespace CurlDotNet.Middleware
         /// <seealso cref="ICurlMiddleware.ExecuteAsync(CurlContext, Func{Task{CurlResult}})"/>
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
-            var result = await next();
-            return await _modifier(result);
+            var result = await next().ConfigureAwait(false);
+            return await _modifier(result).ConfigureAwait(false);
         }
     }
 

@@ -1373,6 +1373,11 @@ namespace CurlDotNet.Core
         /// form of <see cref="ExecuteAsync(CancellationToken)"/> for console apps, scripts and tests.
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>Prefer <see cref="ExecuteAsync(CancellationToken)"/> in ASP.NET, UI and other async code: blocking
         /// a thread pool or UI thread on network I/O wastes threads and can freeze the UI.</para>
         /// <para>Example: <c>var result = CurlRequestBuilder.Get("https://api.example.com/health").Execute(); Console.WriteLine(result.StatusCode);</c></para>
@@ -1443,7 +1448,7 @@ namespace CurlDotNet.Core
             try
             {
                 _options.OriginalCommand = ToCurlCommand();
-                return await engine.ExecuteAsync(_options, cancellationToken);
+                return await engine.ExecuteAsync(_options, cancellationToken).ConfigureAwait(false);
             }
             finally
             {

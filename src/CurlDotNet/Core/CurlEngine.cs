@@ -90,7 +90,7 @@ namespace CurlDotNet.Core
         /// <returns>Result of the curl operation</returns>
         public async Task<CurlResult> ExecuteAsync(string command)
         {
-            return await ExecuteAsync(command, CancellationToken.None);
+            return await ExecuteAsync(command, CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -105,7 +105,7 @@ namespace CurlDotNet.Core
             }
 
             var options = _parser.Parse(command);
-            return await ExecuteAsync(options, cancellationToken);
+            return await ExecuteAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -122,7 +122,7 @@ namespace CurlDotNet.Core
             }
 
             var options = _parser.Parse(command, flavor);
-            return await ExecuteAsync(options, cancellationToken);
+            return await ExecuteAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>The message for a null, empty or whitespace-only command string.</summary>
@@ -145,7 +145,7 @@ namespace CurlDotNet.Core
                 ApplySettings(options, settings);
             }
 
-            return await ExecuteAsync(options, settings?.CancellationToken ?? CancellationToken.None);
+            return await ExecuteAsync(options, settings?.CancellationToken ?? CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace CurlDotNet.Core
         /// </summary>
         public async Task<CurlResult> ExecuteAsync(CurlOptions options)
         {
-            return await ExecuteAsync(options, CancellationToken.None);
+            return await ExecuteAsync(options, CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -180,10 +180,10 @@ namespace CurlDotNet.Core
 
             if (options.AdditionalTransfers == null || options.AdditionalTransfers.Count == 0)
             {
-                return await ExecuteTransferAsync(options, cancellationToken);
+                return await ExecuteTransferAsync(options, cancellationToken).ConfigureAwait(false);
             }
 
-            return await ExecuteTransfersAsync(options, cancellationToken);
+            return await ExecuteTransfersAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -225,7 +225,7 @@ namespace CurlDotNet.Core
 
                 try
                 {
-                    var result = await ExecuteTransferAsync(transfer, cancellationToken);
+                    var result = await ExecuteTransferAsync(transfer, cancellationToken).ConfigureAwait(false);
                     stdout.Append(result.Body);
                     outputFiles.AddRange(result.OutputFiles);
                     last = result;
@@ -267,7 +267,7 @@ namespace CurlDotNet.Core
         {
             try
             {
-                return await RunHandlerAsync(options, cancellationToken);
+                return await RunHandlerAsync(options, cancellationToken).ConfigureAwait(false);
             }
             catch (CurlException ex)
             {
@@ -309,7 +309,7 @@ namespace CurlDotNet.Core
                 }
 
                 // Execute with appropriate handler
-                var result = await handler.ExecuteAsync(options, cancellationToken);
+                var result = await handler.ExecuteAsync(options, cancellationToken).ConfigureAwait(false);
                 result.Command = options.OriginalCommand;
 
                 return result;

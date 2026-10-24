@@ -415,7 +415,7 @@ namespace CurlDotNet
         public static async Task<CurlResult> ExecuteAsync(string command)
         {
             RequireCommand(command, "Curl.ExecuteAsync(command)");
-            return await _engine.ExecuteAsync(command);
+            return await _engine.ExecuteAsync(command).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -478,7 +478,7 @@ namespace CurlDotNet
         public static async Task<CurlResult> ExecuteAsync(string command, CancellationToken cancellationToken)
         {
             RequireCommand(command, "Curl.ExecuteAsync(command, cancellationToken)");
-            return await _engine.ExecuteAsync(command, cancellationToken);
+            return await _engine.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -526,7 +526,7 @@ namespace CurlDotNet
         public static async Task<CurlResult> ExecuteAsync(string command, CurlFlavor flavor)
         {
             RequireCommand(command, "Curl.ExecuteAsync(command, flavor)");
-            return await _engine.ExecuteAsync(command, flavor, CancellationToken.None);
+            return await _engine.ExecuteAsync(command, flavor, CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -559,7 +559,7 @@ namespace CurlDotNet
         public static async Task<CurlResult> ExecuteAsync(string command, CurlFlavor flavor, CancellationToken cancellationToken)
         {
             RequireCommand(command, "Curl.ExecuteAsync(command, flavor, cancellationToken)");
-            return await _engine.ExecuteAsync(command, flavor, cancellationToken);
+            return await _engine.ExecuteAsync(command, flavor, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -647,7 +647,7 @@ namespace CurlDotNet
         public static async Task<CurlResult> ExecuteAsync(string command, CurlSettings settings)
         {
             RequireCommand(command, "Curl.ExecuteAsync(command, settings)");
-            return await _engine.ExecuteAsync(command, settings);
+            return await _engine.ExecuteAsync(command, settings).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -697,7 +697,7 @@ namespace CurlDotNet
         public static async Task<CurlResult> ExecuteAsync(CurlOptions options)
         {
             RequireOptions(options, "Curl.ExecuteAsync(options)");
-            return await _engine.ExecuteAsync(options);
+            return await _engine.ExecuteAsync(options).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -725,7 +725,7 @@ namespace CurlDotNet
         public static async Task<CurlResult> ExecuteAsync(CurlOptions options, CancellationToken cancellationToken)
         {
             RequireOptions(options, "Curl.ExecuteAsync(options, cancellationToken)");
-            return await _engine.ExecuteAsync(options, cancellationToken);
+            return await _engine.ExecuteAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Throws a helpful ArgumentException (the type these methods have always thrown) for a missing command string.</summary>
@@ -854,7 +854,7 @@ namespace CurlDotNet
         /// <seealso cref="DotNetCurl.GetAsync(string)"/>
         public static async Task<CurlResult> GetAsync(string url)
         {
-            return await ExecuteAsync(BuildQuickOptions(url, null, null, null, null, "GetAsync(url)"));
+            return await ExecuteAsync(BuildQuickOptions(url, null, null, null, null, "GetAsync(url)")).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -891,7 +891,7 @@ namespace CurlDotNet
         /// <seealso cref="DotNetCurl.PostAsync(string, string)"/>
         public static async Task<CurlResult> PostAsync(string url, string data)
         {
-            return await ExecuteAsync(BuildQuickOptions(url, "POST", data ?? string.Empty, null, null, "PostAsync(url, data)"));
+            return await ExecuteAsync(BuildQuickOptions(url, "POST", data ?? string.Empty, null, null, "PostAsync(url, data)")).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -941,7 +941,7 @@ namespace CurlDotNet
         public static async Task<CurlResult> PostJsonAsync(string url, object data)
         {
             var json = SerializeJsonForPost(data, url);
-            return await ExecuteAsync(BuildQuickOptions(url, "POST", json, "application/json", null, "PostJsonAsync(url, data)"));
+            return await ExecuteAsync(BuildQuickOptions(url, "POST", json, "application/json", null, "PostJsonAsync(url, data)")).ConfigureAwait(false);
         }
 
         /// <summary>Serializes the PostJson payload, turning serializer failures into a CurlParsingException.</summary>
@@ -1035,7 +1035,7 @@ namespace CurlDotNet
                     DocLinks.HowToDownload), nameof(outputPath));
             }
 
-            return await ExecuteAsync(BuildQuickOptions(url, null, null, null, outputPath, "DownloadAsync(url, outputPath)"));
+            return await ExecuteAsync(BuildQuickOptions(url, null, null, null, outputPath, "DownloadAsync(url, outputPath)")).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1093,7 +1093,7 @@ namespace CurlDotNet
                 $"Curl.ExecuteManyAsync(commands): the command at index {i} of {commands.Length} is null.",
                 "Remove the null entry or fill it with a curl command such as \"curl https://api.example.com\".",
                 DocLinks.Base + "tutorials/13-parallel-requests.md"), nameof(commands))));
-            return await Task.WhenAll(tasks);
+            return await Task.WhenAll(tasks).ConfigureAwait(false);
         }
 
         /// <summary>

@@ -60,18 +60,18 @@ namespace CurlDotNet.Core
                 if (IsBinaryFile(filePath))
                 {
 #if NETSTANDARD2_0 || NET472 || NET48
-                    binaryContent = await Task.Run(() => File.ReadAllBytes(filePath), cancellationToken);
+                    binaryContent = await Task.Run(() => File.ReadAllBytes(filePath), cancellationToken).ConfigureAwait(false);
 #else
-                    binaryContent = await File.ReadAllBytesAsync(filePath, cancellationToken);
+                    binaryContent = await File.ReadAllBytesAsync(filePath, cancellationToken).ConfigureAwait(false);
 #endif
                     result.BinaryData = binaryContent;
                 }
                 else
                 {
 #if NETSTANDARD2_0 || NET472 || NET48
-                    textContent = await Task.Run(() => File.ReadAllText(filePath), cancellationToken);
+                    textContent = await Task.Run(() => File.ReadAllText(filePath), cancellationToken).ConfigureAwait(false);
 #else
-                    textContent = await File.ReadAllTextAsync(filePath, cancellationToken);
+                    textContent = await File.ReadAllTextAsync(filePath, cancellationToken).ConfigureAwait(false);
 #endif
                     result.Body = textContent;
                 }
@@ -79,7 +79,7 @@ namespace CurlDotNet.Core
                 // Handle output file (-o)
                 if (!string.IsNullOrEmpty(options.OutputFile))
                 {
-                    await WriteOutputAsync(options.OutputFile, textContent, binaryContent, options, "-o/--output", cancellationToken);
+                    await WriteOutputAsync(options.OutputFile, textContent, binaryContent, options, "-o/--output", cancellationToken).ConfigureAwait(false);
                     result.OutputFiles.Add(options.OutputFile);
                 }
                 else if (options.UseRemoteFileName)
@@ -90,7 +90,7 @@ namespace CurlDotNet.Core
                         remoteName = "curl-download";
                     }
                     var destination = Path.Combine(Directory.GetCurrentDirectory(), remoteName);
-                    await WriteOutputAsync(destination, textContent, binaryContent, options, "-O/--remote-name", cancellationToken);
+                    await WriteOutputAsync(destination, textContent, binaryContent, options, "-O/--remote-name", cancellationToken).ConfigureAwait(false);
                     result.OutputFiles.Add(destination);
                 }
 
@@ -162,18 +162,18 @@ namespace CurlDotNet.Core
             if (binaryContent != null)
             {
 #if NETSTANDARD2_0 || NET472 || NET48
-                await Task.Run(() => File.WriteAllBytes(destination, binaryContent), cancellationToken);
+                await Task.Run(() => File.WriteAllBytes(destination, binaryContent), cancellationToken).ConfigureAwait(false);
 #else
-                await File.WriteAllBytesAsync(destination, binaryContent, cancellationToken);
+                await File.WriteAllBytesAsync(destination, binaryContent, cancellationToken).ConfigureAwait(false);
 #endif
             }
             else
             {
                 var content = textContent ?? string.Empty;
 #if NETSTANDARD2_0 || NET472 || NET48
-                await Task.Run(() => File.WriteAllText(destination, content), cancellationToken);
+                await Task.Run(() => File.WriteAllText(destination, content), cancellationToken).ConfigureAwait(false);
 #else
-                await File.WriteAllTextAsync(destination, content, cancellationToken);
+                await File.WriteAllTextAsync(destination, content, cancellationToken).ConfigureAwait(false);
 #endif
             }
         }

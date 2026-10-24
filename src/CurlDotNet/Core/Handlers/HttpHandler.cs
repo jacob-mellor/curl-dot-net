@@ -73,7 +73,7 @@ namespace CurlDotNet.Core
         {
             try
             {
-                return await ExecuteWithRetryAsync(options, cancellationToken);
+                return await ExecuteWithRetryAsync(options, cancellationToken).ConfigureAwait(false);
             }
             catch (CurlException ex)
             {
@@ -367,17 +367,17 @@ namespace CurlDotNet.Core
                             : "TLS: certificate verification enabled");
                     }
                     trace.SendHeaders(request);
-                    await trace.SendDataAsync(request);
+                    await trace.SendDataAsync(request).ConfigureAwait(false);
                 }
 
                 AppendVerboseRequest(verboseLog, request);
 
                 // Send request
                 timings.PreTransfer = (DateTime.UtcNow - startTime).TotalMilliseconds;
-                response = await transfer.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+                response = await transfer.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
                 AppendVerboseResponseHeaders(verboseLog, response);
                 // 401/407 challenges (Digest, NTLM, --anyauth) and auth probes are answered like curl
-                var authenticated = await transfer.AuthenticateAsync(response, request, options, token);
+                var authenticated = await transfer.AuthenticateAsync(response, request, options, token).ConfigureAwait(false);
                 response = authenticated.Response;
                 request = authenticated.Request;
                 timings.StartTransfer = (DateTime.UtcNow - startTime).TotalMilliseconds;
@@ -390,7 +390,7 @@ namespace CurlDotNet.Core
                         trace?.Info($"Received HTTP {(int)response.StatusCode}; following redirect (-L)");
                     }
 
-                    var followed = await _redirectHandler.FollowAsync(transfer, response, request, token);
+                    var followed = await _redirectHandler.FollowAsync(transfer, response, request, token).ConfigureAwait(false);
                     response = followed.Response;
                     request = followed.Request;
                 }
@@ -398,7 +398,7 @@ namespace CurlDotNet.Core
                 trace?.RecvHeaders(response);
 
                 readingBody = true;
-                return await FinishTransferAsync(transfer, request, response, token, verboseLog, trace, attempt);
+                return await FinishTransferAsync(transfer, request, response, token, verboseLog, trace, attempt).ConfigureAwait(false);
             }
             catch (CurlException ex)
             {
@@ -936,7 +936,7 @@ namespace CurlDotNet.Core
             Exception? bodyError = null;
             if (!isHead && response.Content != null)
             {
-                (rawBody, bodyError) = await ReadBodyAsync(response.Content, cancellationToken, options.MaxFileSize, options, announced);
+                (rawBody, bodyError) = await ReadBodyAsync(response.Content, cancellationToken, options.MaxFileSize, options, announced).ConfigureAwait(false);
             }
             timings.Total = (DateTime.UtcNow - transfer.StartTime).TotalMilliseconds;
 

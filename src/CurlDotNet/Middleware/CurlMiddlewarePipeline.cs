@@ -160,7 +160,7 @@ namespace CurlDotNet.Middleware
                 pipeline = () => middleware.ExecuteAsync(context, next);
             }
 
-            return await pipeline();
+            return await pipeline().ConfigureAwait(false);
         }
 
         /// <summary>
