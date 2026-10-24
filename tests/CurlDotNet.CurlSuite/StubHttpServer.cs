@@ -112,8 +112,9 @@ public sealed class StubHttpServer : IDisposable
                 byte[] bytes;
                 if (reply == null)
                 {
-                    reply = "HTTP/1.1 404 Not Found\r\nServer: CurlDotNet-stub\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
-                    close = true;
+                    // sws has no page for an unknown part: it just drops the connection
+                    try { client.Client.Shutdown(SocketShutdown.Both); } catch { /* ignore */ }
+                    return;
                 }
                 else
                 {

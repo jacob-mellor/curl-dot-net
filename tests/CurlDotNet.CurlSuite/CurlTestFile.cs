@@ -219,30 +219,27 @@ public sealed class CurlTestPreprocessor
     /// <summary>Converts LF to CRLF, for every line or only for the leading header block.</summary>
     public static string ToCrlf(string text, bool headersOnly)
     {
-        var normalized = text.Replace("\r\n", "\n");
         if (!headersOnly)
         {
-            return normalized.Replace("\n", "\r\n");
+            return text.Replace("\r\n", "\n").Replace("\n", "\r\n");
         }
 
-        var sb = new StringBuilder(normalized.Length + 64);
-        var inHeaders = true;
+        // Header block: every line ending becomes CRLF. Body: bytes untouched (a %CR there is deliberate).
+        var sb = new StringBuilder(text.Length + 64);
         var start = 0;
-        while (start < normalized.Length)
+        while (start < text.Length)
         {
-            var nl = normalized.IndexOf('\n', start);
-            var line = nl < 0 ? normalized.Substring(start) : normalized.Substring(start, nl - start);
-            var hasNewline = nl >= 0;
-            sb.Append(line);
-            if (hasNewline)
+            var nl = text.IndexOf('\n', start);
+            var line = nl < 0 ? text.Substring(start) : text.Substring(start, nl - start);
+            var trimmed = line.TrimEnd('\r');
+            sb.Append(trimmed);
+            if (nl >= 0) sb.Append("\r\n");
+            start = nl < 0 ? text.Length : nl + 1;
+            if (trimmed.Length == 0)
             {
-                sb.Append(inHeaders ? "\r\n" : "\n");
+                sb.Append(text.Substring(start)); // rest is the body, verbatim
+                break;
             }
-            if (inHeaders && line.Length == 0)
-            {
-                inHeaders = false;
-            }
-            start = nl < 0 ? normalized.Length : nl + 1;
         }
         return sb.ToString();
     }

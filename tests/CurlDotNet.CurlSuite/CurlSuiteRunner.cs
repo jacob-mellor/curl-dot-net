@@ -156,8 +156,9 @@ public static class CurlSuiteRunner
         catch (CurlException ex)
         {
             exitCode = ex.CurlErrorCode ?? 1;
-            // what curl would already have written to stdout before failing (-i headers, -w, partial body)
-            stdout = (ex.Data["CurlDotNet.Stdout"] as string ?? string.Empty) + (ex.Data["CurlDotNet.WriteOut"] as string ?? string.Empty);
+            // what curl would already have written to stdout before failing (-i headers, partial body, -w).
+            // The Stdout key already includes the -w text; WriteOut alone is the fallback for older throw sites.
+            stdout = ex.Data["CurlDotNet.Stdout"] as string ?? ex.Data["CurlDotNet.WriteOut"] as string ?? string.Empty;
         }
         catch (Exception ex)
         {
@@ -186,6 +187,11 @@ public static class CurlSuiteRunner
             if (redirectAppend) File.AppendAllText(redirectFile, stdout, Encoding.Latin1);
             else File.WriteAllText(redirectFile, stdout, Encoding.Latin1);
             stdout = string.Empty;
+        }
+        else
+        {
+            // runtests.pl always redirects curl's stdout to %LOGDIR/stdoutNUM; tests verify it with <file name=...>
+            File.WriteAllText(Path.Combine(logDir, $"stdout{test.Number}"), stdout, Encoding.Latin1);
         }
 
         var problems = new List<string>();
@@ -274,6 +280,7 @@ public static class CurlSuiteRunner
             var expected = pre.ProcessSection(section);
             if (!File.Exists(fileName))
             {
+                if (expected.Length == 0) continue; // runtests.pl reads a missing file as empty
                 problems.Add($"file {Path.GetFileName(fileName)}: not written");
                 continue;
             }

@@ -59,6 +59,20 @@ namespace CurlDotNet.Core
         private const int MaxSetCookiesPerResponse = 50;
         private static readonly long MaxAgeCap = 400L * 24 * 3600; // RFC 6265bis: at most 400 days
 
+        /// <summary>
+        /// curl's cap_expires(): an expiry further than 400 days away becomes now + 400 days, rounded to
+        /// the nearest minute (curl aligns it "for the sake of easier testing", and its test suite expects it).
+        /// </summary>
+        private static long CapExpires(long now, long expires)
+        {
+            var cap = now + MaxAgeCap;
+            if (expires <= cap)
+            {
+                return expires;
+            }
+            return (cap + 30) / 60 * 60;
+        }
+
         private readonly List<StoredCookie> _cookies = new List<StoredCookie>();
         private string? _jarPath;
         private long _counter;
@@ -457,11 +471,11 @@ namespace CurlDotNet.Core
 
             if (maxAge.HasValue)
             {
-                cookie.Expires = maxAge.Value <= 0 ? 1 : now + Math.Min(maxAge.Value, MaxAgeCap);
+                cookie.Expires = maxAge.Value <= 0 ? 1 : CapExpires(now, now + maxAge.Value);
             }
             else if (expires.HasValue)
             {
-                cookie.Expires = expires.Value <= 0 ? 1 : Math.Min(expires.Value, now + MaxAgeCap);
+                cookie.Expires = expires.Value <= 0 ? 1 : CapExpires(now, expires.Value);
             }
             else if (badExpires)
             {
