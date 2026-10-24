@@ -644,6 +644,24 @@ namespace CurlDotNet.Exceptions
         /// <param name="command">The curl command that caused the exception.</param>
         public CurlAbortedByCallbackException(string command = null)
             : base("Operation aborted by callback", 42, command) { }
+
+        /// <summary>
+        /// Creates the exception for a transfer that your own callback (for example a progress handler set
+        /// with <see cref="CurlDotNet.Core.CurlSettings.WithProgress"/>) stopped by throwing.
+        /// </summary>
+        /// <remarks>
+        /// <para>curl ends a transfer with exit code 42 when its progress callback returns non-zero; CurlDotNet
+        /// does the same when a callback throws, and keeps the callback's exception as
+        /// <see cref="Exception.InnerException"/>.</para>
+        /// <para>Example: <c>settings.WithProgress((pct, got, total) =&gt; { if (got &gt; limit) throw new OperationCanceledException(); })</c>
+        /// ends the download with this exception once <c>limit</c> bytes have arrived.</para>
+        /// </remarks>
+        /// <param name="message">What the callback did and how to fix it, separated by a newline.</param>
+        /// <param name="command">The curl command that was executing, or null.</param>
+        /// <param name="innerException">The exception the callback threw.</param>
+        /// <seealso cref="CurlDotNet.Core.CurlOptions.ProgressHandler"/>
+        public CurlAbortedByCallbackException(string message, string? command, Exception? innerException)
+            : base(message, 42, command, innerException) { }
     }
 
     /// <summary>

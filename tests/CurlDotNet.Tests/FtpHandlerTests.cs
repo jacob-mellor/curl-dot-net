@@ -466,7 +466,8 @@ namespace CurlDotNet.Tests
 
             // Assert
             exception.FtpStatusCode.Should().Be(550);
-            exception.Message.Should().Be("FTP error");
+            exception.WhatHappened.Should().Be("FTP error");
+            exception.Message.Should().StartWith("FTP error").And.Contain("See https://github.com/jacob-mellor/curl-dot-net/");
             // Note: ErrorCode is protected in base class, checking Message is sufficient
         }
 

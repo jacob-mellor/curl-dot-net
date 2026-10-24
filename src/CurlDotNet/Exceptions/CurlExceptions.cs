@@ -120,26 +120,162 @@ namespace CurlDotNet.Exceptions
         public string StandardOutput => Data[StandardOutputDataKey] as string;
 
         /// <summary>
-        /// Gets additional context information added via fluent methods.
+        /// Extra key/value facts attached with <see cref="WithContext(string, object)"/>, such as a request id
+        /// or the tenant a call was made for, so that logs show them next to the error.
         /// </summary>
+        /// <value>A mutable dictionary; empty unless your own code (or middleware) adds entries. CurlDotNet
+        /// itself never adds keys here.</value>
+        /// <remarks>
+        /// <para>The entries are printed by <see cref="ToDetailedString"/>, serialized by <see cref="ToJson"/> and
+        /// returned by <see cref="GetDiagnosticInfo"/>. They do not change <see cref="Message"/>.</para>
+        /// <para>Example: <c>catch (CurlException ex) { throw ex.WithContext("orderId", 1234); }</c> then
+        /// <c>logger.LogError(ex.ToDetailedString())</c> prints <c>orderId: 1234</c> in the Context section.</para>
+        /// </remarks>
+        /// <seealso cref="WithContext(string, object)"/>
+        /// <seealso cref="WithContext(Dictionary{string, object})"/>
         public Dictionary<string, object> Context { get; } = new Dictionary<string, object>();
 
         /// <summary>
-        /// Gets suggestions for resolving this error.
+        /// How to fix this error, one sentence per entry, taken from the message (every line between the
+        /// first line and the <c>See https://...</c> link) or, when the message has none, from curl's exit code.
         /// </summary>
-        public List<string> Suggestions { get; } = new List<string>();
+        /// <value>Never null. Every exception CurlDotNet throws has at least one entry; an exception you
+        /// construct yourself with a one-line message and no exit code has none until you call
+        /// <see cref="WithSuggestion(string)"/>.</value>
+        /// <remarks>
+        /// <para>The same text already appears in <see cref="Message"/>; this list exists so that a UI or a log
+        /// can show "what happened" (<see cref="WhatHappened"/>) and "how to fix it" separately, for example as
+        /// bullet points under an error banner.</para>
+        /// <para>Example: <c>catch (CurlException ex) { foreach (var fix in ex.Suggestions) Console.WriteLine("- " + fix); }</c>
+        /// prints, for <c>curl https://no-such-host.invalid</c>, a line telling you to check the spelling of the
+        /// host and your DNS settings.</para>
+        /// <para>HTTP errors (<see cref="CurlHttpException"/>) add status-specific advice, such as checking your
+        /// token for a 401 or backing off for a 429.</para>
+        /// </remarks>
+        /// <seealso cref="WithSuggestion(string)"/>
+        /// <seealso cref="WhatHappened"/>
+        /// <seealso cref="DocumentationUrl"/>
+        /// <seealso cref="ToUserFriendlyMessage"/>
+        public List<string> Suggestions
+        {
+            get
+            {
+                EnsureParsed();
+                return _suggestions!;
+            }
+        }
 
         /// <summary>
-        /// Gets or sets custom diagnostic information.
+        /// The first line of <see cref="Message"/>: what went wrong, with the concrete values involved
+        /// (URL, host, option, file path, status code), but without the fix or the documentation link.
         /// </summary>
+        /// <value>A single line such as <c>Could not resolve host: api.exmaple.com (nodename nor servname provided)</c>.</value>
+        /// <remarks>
+        /// <para>This is the text curl itself prints after <c>curl: (6)</c>, and what <c>-w '%{errormsg}'</c>
+        /// expands to. Use it for short status lines; use <see cref="Message"/> or <see cref="ToUserFriendlyMessage"/>
+        /// when the reader also needs the fix.</para>
+        /// <para>Example: <c>statusLabel.Text = ex.WhatHappened;</c> and <c>helpLink.NavigateUri = ex.DocumentationUrl;</c>.</para>
+        /// </remarks>
+        /// <seealso cref="Suggestions"/>
+        /// <seealso cref="DocumentationUrl"/>
+        public string WhatHappened
+        {
+            get
+            {
+                EnsureParsed();
+                return _what!;
+            }
+        }
+
+        /// <summary>
+        /// The documentation page that explains this error and how to fix it: the <c>See https://...</c> link
+        /// at the end of <see cref="Message"/>.
+        /// </summary>
+        /// <value>An absolute <c>https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/...</c> URL, or null
+        /// for an exception you constructed yourself without a link and without an exit code.</value>
+        /// <remarks>
+        /// <para>When the message carries no link but <see cref="CurlErrorCode"/> is set, the page for that exit
+        /// code is used (for example the DNS page for 6, the timeout page for 28, the TLS page for 60).</para>
+        /// <para>Example: <c>Process.Start(new ProcessStartInfo(ex.DocumentationUrl) { UseShellExecute = true });</c>
+        /// opens the page in the browser from a desktop tool.</para>
+        /// </remarks>
+        /// <seealso cref="WhatHappened"/>
+        /// <seealso cref="Suggestions"/>
+        public string? DocumentationUrl
+        {
+            get
+            {
+                EnsureParsed();
+                return _link;
+            }
+        }
+
+        /// <summary>
+        /// The full error text: what happened (first line), how to fix it (following lines) and a
+        /// <c>See https://...</c> documentation link (last line).
+        /// </summary>
+        /// <value>For example:
+        /// <c>Could not resolve host: api.exmaple.com (No such host is known)</c>, then
+        /// <c>Check the spelling of the host in the URL and your DNS settings; --resolve HOST:PORT:ADDRESS pins a name to an address without DNS.</c>,
+        /// then <c>See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md</c>.</value>
+        /// <remarks>
+        /// <para>Older message formats such as <c>For DNS troubleshooting, see: URL</c> are normalised to a
+        /// single trailing <c>See URL</c> line, so a message never carries two links. When a CurlDotNet
+        /// exception has no link of its own, the page for its exit code is appended. A message you pass to a
+        /// constructor yourself is returned unchanged unless it contains such a link or an exit code is set.</para>
+        /// <para><see cref="Exception.ToString"/>, <see cref="ToDetailedString"/>, <see cref="ToJson"/> and
+        /// <see cref="ToUserFriendlyMessage"/> all use this normalised text.</para>
+        /// </remarks>
+        /// <seealso cref="WhatHappened"/>
+        /// <seealso cref="Suggestions"/>
+        /// <seealso cref="DocumentationUrl"/>
+        public override string Message
+        {
+            get
+            {
+                EnsureParsed();
+                return _message!;
+            }
+        }
+
+        /// <summary>
+        /// Free-form diagnostic text attached with <see cref="WithDiagnostics(string)"/>, such as the
+        /// output of <c>-v</c> or a trace file path, printed by <see cref="ToDetailedString"/>.
+        /// </summary>
+        /// <value>Null unless your code sets it; CurlDotNet does not fill it.</value>
+        /// <remarks>
+        /// <para>Example: <c>throw ex.WithDiagnostics(File.ReadAllText("trace.txt"));</c> after running the command
+        /// with <c>--trace-ascii trace.txt</c>, so the full wire log travels with the exception.</para>
+        /// </remarks>
+        /// <seealso cref="WithDiagnostics(string)"/>
+        /// <seealso cref="ToDetailedString"/>
         public string DiagnosticInfo { get; set; }
 
+        private string? _message;
+        private string? _what;
+        private string? _link;
+        private List<string>? _suggestions;
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlException"/> class with a specified error message.
+        /// Creates an exception with a message and, optionally, the command that failed and the exception
+        /// that caused it.
         /// </summary>
-        /// <param name="message">The error message that explains the reason for the exception.</param>
-        /// <param name="command">The curl command that was executing when the error occurred.</param>
-        /// <param name="innerException">The exception that is the cause of the current exception.</param>
+        /// <remarks>
+        /// <para>Write <paramref name="message"/> as three parts: what happened on the first line (with the
+        /// concrete URL, file or option), how to fix it on the following line(s), and
+        /// <c>See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/...</c> on the last line. The fix
+        /// lines become <see cref="Suggestions"/> and the link becomes <see cref="DocumentationUrl"/>.</para>
+        /// <para>Example: <c>throw new CurlException("Config file 'app.curlrc' is empty.\nAdd at least one URL line.\nSee https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md", command);</c></para>
+        /// <para>This overload leaves <see cref="CurlErrorCode"/> null. Use
+        /// <see cref="CurlException(string, int, string, Exception)"/> when you know the curl exit code.</para>
+        /// </remarks>
+        /// <param name="message">What happened, how to fix it, and a <c>See URL</c> line, separated by newlines.
+        /// A plain one-line message is also accepted and returned unchanged by <see cref="Message"/>.</param>
+        /// <param name="command">The curl command (or a description of the API call) that failed, for
+        /// <see cref="Command"/>; null when there was none.</param>
+        /// <param name="innerException">The .NET exception that caused this one, kept as
+        /// <see cref="Exception.InnerException"/>; null when there is none.</param>
+        /// <seealso cref="CurlException(string, int, string, Exception)"/>
         public CurlException(string message, string command = null, Exception innerException = null)
             : base(message, innerException)
         {
@@ -147,16 +283,273 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlException"/> class with a curl error code.
+        /// Creates an exception that carries curl's exit code, so callers can switch on
+        /// <see cref="CurlErrorCode"/> exactly like a shell script switches on <c>$?</c>.
         /// </summary>
-        /// <param name="message">The error message that explains the reason for the exception.</param>
-        /// <param name="curlErrorCode">The curl error code from the original curl implementation.</param>
-        /// <param name="command">The curl command that was executing when the error occurred.</param>
+        /// <remarks>
+        /// <para>Exit codes are the <c>CURLE_*</c> values from <c>curl.h</c>: 6 = could not resolve host,
+        /// 7 = could not connect, 22 = HTTP error with <c>-f</c>, 23 = write error, 28 = timeout, 60 = certificate
+        /// not trusted. The full table is at
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md.</para>
+        /// <para>Example: <c>throw new CurlException("Upload of 'big.iso' was refused by the server.\nSplit the file or raise the server limit.", 25, command);</c>
+        /// produces a message ending with the documentation link for exit code 25.</para>
+        /// </remarks>
+        /// <param name="message">What happened, how to fix it and (optionally) a <c>See URL</c> line, separated by
+        /// newlines. When no link is given, the page for <paramref name="curlErrorCode"/> is appended.</param>
+        /// <param name="curlErrorCode">The curl exit code, 1 to 100 (see <c>man curl</c>, EXIT CODES).</param>
+        /// <param name="command">The curl command that failed, or null.</param>
+        /// <seealso cref="CurlException(string, int, string, Exception)"/>
+        /// <seealso cref="GetCurlErrorName"/>
         public CurlException(string message, int curlErrorCode, string command = null)
             : base(message)
         {
             Command = command;
             CurlErrorCode = curlErrorCode;
+        }
+
+        /// <summary>
+        /// Creates an exception that carries curl's exit code and wraps the .NET exception that caused it
+        /// (for example an <see cref="System.IO.IOException"/> while writing <c>-o</c> output).
+        /// </summary>
+        /// <remarks>
+        /// <para>The wrapped exception stays available as <see cref="Exception.InnerException"/>; the message
+        /// should still say in words what the inner exception means, because many loggers only print the
+        /// outer message.</para>
+        /// <para>Example: <c>catch (IOException io) { throw new CurlException($"Could not write 'out.json': {io.Message}\nCheck that the folder exists and is writable.", 23, command, io); }</c></para>
+        /// </remarks>
+        /// <param name="message">What happened (including the inner cause in words), how to fix it, and
+        /// optionally a <c>See URL</c> line, separated by newlines.</param>
+        /// <param name="curlErrorCode">The curl exit code, 1 to 100.</param>
+        /// <param name="command">The curl command that failed, or null.</param>
+        /// <param name="innerException">The exception that caused this one, or null.</param>
+        /// <seealso cref="CurlException(string, int, string)"/>
+        /// <seealso cref="CurlException(string, string, Exception)"/>
+        public CurlException(string message, int curlErrorCode, string command, Exception innerException)
+            : base(message, innerException)
+        {
+            Command = command;
+            CurlErrorCode = curlErrorCode;
+        }
+
+        /// <summary>
+        /// Builds a three-part message: <paramref name="what"/> on the first line, <paramref name="fix"/> on
+        /// the second, and <c>See </c><paramref name="docUrl"/> on the last.
+        /// </summary>
+        internal static string Compose(string what, string fix, string docUrl)
+        {
+            var text = what.TrimEnd();
+            if (!string.IsNullOrWhiteSpace(fix))
+            {
+                text += "\n" + fix.Trim();
+            }
+            if (!string.IsNullOrEmpty(docUrl))
+            {
+                text += "\nSee " + docUrl;
+            }
+            return text;
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex LinkPattern = new System.Text.RegularExpressions.Regex(
+            @"(?<![^\s.(])(?:(?:for|more)\b[^\n.:;]*?,?\s*)?(?:see|see:|see also:?|docs?:|help:)\s*(?<url>https://github\.com/jacob-mellor/curl-dot-net/[^\s)]+?)[.)]?\s*$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// Splits a raw message into what happened, the fix lines and the documentation link.
+        /// </summary>
+        internal static (string What, List<string> Fixes, string? Link) ParseMessage(string? raw)
+        {
+            var fixes = new List<string>();
+            string? link = null;
+            var kept = new List<string>();
+            foreach (var original in (raw ?? string.Empty).Replace("\r\n", "\n").Split('\n'))
+            {
+                var line = original.TrimEnd();
+                var match = LinkPattern.Match(line);
+                if (match.Success)
+                {
+                    link ??= match.Groups["url"].Value.TrimEnd('.');
+                    line = line.Substring(0, match.Index).TrimEnd();
+                    if (line.EndsWith(",", StringComparison.Ordinal) || line.EndsWith(";", StringComparison.Ordinal))
+                    {
+                        line = line.Substring(0, line.Length - 1);
+                    }
+                }
+                if (line.Trim().Length > 0)
+                {
+                    kept.Add(line.Trim());
+                }
+            }
+
+            var what = kept.Count > 0 ? kept[0] : string.Empty;
+            for (var i = 1; i < kept.Count; i++)
+            {
+                fixes.Add(kept[i]);
+            }
+            return (what, fixes, link);
+        }
+
+        private void EnsureParsed()
+        {
+            if (_message != null)
+            {
+                return;
+            }
+
+            var raw = base.Message;
+            var (what, fixes, link) = ParseMessage(raw);
+
+            // A wrapper must say in words what the wrapped exception reported, because many loggers
+            // print only the outer message.
+            var cause = InnerCause(InnerException);
+            if (cause != null && raw.IndexOf(cause.Value.Detail, StringComparison.Ordinal) < 0)
+            {
+                what = what.TrimEnd('.') + $" (caused by {cause.Value.Type}: {cause.Value.Detail})";
+            }
+
+            var suggestions = new List<string>(fixes);
+            link ??= DefaultDocumentationUrl ?? (CurlErrorCode.HasValue ? DocLinks.ForExitCode(CurlErrorCode) : null);
+            var addedFix = false;
+            if (suggestions.Count == 0)
+            {
+                var fallback = DefaultSuggestion ?? (CurlErrorCode.HasValue ? DefaultFix(CurlErrorCode.Value) : null);
+                if (fallback != null)
+                {
+                    suggestions.Add(fallback);
+                    addedFix = true;
+                }
+            }
+
+            string message;
+            if (link == null && fixes.Count == 0 && !addedFix && cause == null)
+            {
+                message = raw; // a caller's own one-line message stays exactly as given
+            }
+            else
+            {
+                var sb = new StringBuilder(what);
+                foreach (var fix in fixes)
+                {
+                    sb.Append('\n').Append(fix);
+                }
+                if (addedFix)
+                {
+                    sb.Append('\n').Append(suggestions[0]);
+                }
+                if (link != null)
+                {
+                    sb.Append("\nSee ").Append(link);
+                }
+                message = sb.ToString();
+            }
+
+            _what = what;
+            _link = link;
+            _suggestions = _suggestions ?? suggestions;
+            _message = message;
+        }
+
+        /// <summary>The wrapped exception's type and first message line, or null when there is none.</summary>
+        private static (string Type, string Detail)? InnerCause(Exception? inner)
+        {
+            if (inner == null || string.IsNullOrWhiteSpace(inner.Message))
+            {
+                return null;
+            }
+            var firstLine = inner is CurlException curl ? curl.WhatHappened : inner.Message;
+            var newline = firstLine.IndexOf('\n');
+            if (newline >= 0)
+            {
+                firstLine = firstLine.Substring(0, newline);
+            }
+            firstLine = firstLine.Trim().TrimEnd('.');
+            if (firstLine.Length > 200)
+            {
+                firstLine = firstLine.Substring(0, 200) + "...";
+            }
+            return firstLine.Length == 0 ? ((string, string)?)null : (inner.GetType().Name, firstLine);
+        }
+
+        /// <summary>
+        /// The documentation page for this exception type, used when the message does not end with its own
+        /// <c>See https://...</c> link.
+        /// </summary>
+        /// <value>Null in <see cref="CurlException"/> itself (the page for <see cref="CurlErrorCode"/> is used
+        /// instead, when there is a code). Derived types return the page that explains their error, for example
+        /// the cookie page for <see cref="CurlCookieException"/>.</value>
+        /// <remarks>
+        /// <para>Override this in your own exception types that derive from <see cref="CurlException"/> so that
+        /// <see cref="Message"/> and <see cref="DocumentationUrl"/> always point somewhere useful. It is read
+        /// lazily, the first time <see cref="Message"/> is used, so overrides may use the derived type's
+        /// properties.</para>
+        /// <para>Example: <c>protected override string? DefaultDocumentationUrl =&gt; "https://wiki.example.com/payments-api-errors";</c></para>
+        /// </remarks>
+        /// <seealso cref="DefaultSuggestion"/>
+        /// <seealso cref="DocumentationUrl"/>
+        protected virtual string? DefaultDocumentationUrl => null;
+
+        /// <summary>
+        /// How to fix this kind of error in one sentence, used as <see cref="Suggestions"/> (and as the second
+        /// line of <see cref="Message"/>) when the message itself does not say how to fix it.
+        /// </summary>
+        /// <value>Null in <see cref="CurlException"/> itself (the generic advice for <see cref="CurlErrorCode"/>
+        /// is used instead, when there is a code). Derived types return advice specific to their error.</value>
+        /// <remarks>
+        /// <para>Read lazily, the first time <see cref="Message"/> or <see cref="Suggestions"/> is used, so an
+        /// override can mention the derived type's properties, such as the file path.</para>
+        /// <para>Example: <c>protected override string? DefaultSuggestion =&gt; $"Check that '{FilePath}' exists and is readable.";</c></para>
+        /// </remarks>
+        /// <seealso cref="DefaultDocumentationUrl"/>
+        /// <seealso cref="Suggestions"/>
+        protected virtual string? DefaultSuggestion => null;
+
+        /// <summary>
+        /// The generic fix for a curl exit code, used when a message does not say how to fix the problem.
+        /// </summary>
+        internal static string DefaultFix(int code)
+        {
+            switch (code)
+            {
+                case 1: return "Use an http://, https://, ftp://, ftps:// or file:// URL; other schemes are not implemented by CurlDotNet.";
+                case 2: return "Check the command for an option whose value could not be used (an unreadable file, an invalid certificate path) and correct it.";
+                case 3: return "Check the URL: it needs a scheme such as https://, a host name, and percent-encoding (%20) for spaces; quote it when it contains & or ?.";
+                case 4: return "This curl feature is not part of CurlDotNet; remove the option or use the native curl tool for it.";
+                case 5: return "Check the proxy host in -x/--proxy (or http_proxy/https_proxy/all_proxy) for typos, or use --noproxy to connect directly.";
+                case 6: return "Check the spelling of the host name and your network/DNS settings; --resolve HOST:PORT:ADDRESS pins a name to an address without DNS.";
+                case 7: return "Check that the server is running and listening on that host and port, and that no firewall or proxy blocks the connection.";
+                case 8: return "The server's reply is not valid for the protocol; check that the URL scheme (http vs https) and port match the service.";
+                case 9: return "The server denied access to the resource; check the credentials (-u user:password) and the path.";
+                case 18: return "The connection closed before the whole body arrived; retry, or resume the download with -C -.";
+                case 22: return "The server answered with an HTTP error and -f/--fail was used; check the URL and credentials, or drop -f to get the response as a CurlResult.";
+                case 23: return "Check that the output path (-o, -D, -c, --trace, --etag-save) points to an existing, writable folder, or add --create-dirs.";
+                case 25: return "The server refused the upload; check the target path, permissions and the server's size limit.";
+                case 26: return "Check that the file named after @ (in -d @file, -F name=@file, -T file or -K file) exists and is readable.";
+                case 27: return "The response or request was too large to hold in memory; download to a file with -o instead of reading Body.";
+                case 28: return "Raise -m/--max-time or --connect-timeout (seconds), or check that the server is reachable and responding.";
+                case 33: return "The server ignored the byte range; download the whole file again without -C/--continue-at or -r/--range.";
+                case 35: return "The TLS handshake failed; check that the port speaks TLS, that the server supports TLS 1.2 or later, and any client certificate (--cert).";
+                case 36: return "The resume offset does not match the server's file; delete the partial download and start again without -C.";
+                case 37: return "Check that the file:// path exists and is readable by the current user.";
+                case 42: return "The transfer was cancelled by your CancellationToken or a callback; pass a token that is not cancelled, or a longer timeout.";
+                case 43: return "One option value or combination is not valid for this request; correct the option named in the message.";
+                case 45: return "Check the network interface name or address given with --interface.";
+                case 47: return "Raise --max-redirs, or fix the redirect loop on the server (check the chain with -i -L).";
+                case 48: return "Check the spelling of the option; run curl --help all for the list of options.";
+                case 49: return "Correct the syntax of the option value named in the message.";
+                case 52: return "The server closed the connection without replying; check that the port and scheme are right (http vs https) and look at the server logs.";
+                case 55: return "Sending the request failed; check the network connection and retry (--retry).";
+                case 56: return "Receiving the response failed; check the network connection and retry (--retry).";
+                case 58: return "Check the client certificate and key given with --cert/--key (path, format and password).";
+                case 59: return "Use a cipher list (--ciphers) that the server and this platform both support.";
+                case 60: return "The server certificate is not trusted; install the issuing CA (--cacert), fix the server certificate, or use -k/--insecure for testing only.";
+                case 61: return "The response encoding could not be decoded; drop --compressed or check the server's Content-Encoding header.";
+                case 63: return "Raise --max-filesize, or download a smaller resource.";
+                case 64: return "The server does not support the TLS level required by --ssl-reqd; use a server that supports TLS or drop the option.";
+                case 67: return "The login was rejected; check the user name and password (-u user:password).";
+                case 77: return "Check the CA certificate file or folder given with --cacert/--capath.";
+                case 94: return "The authentication exchange failed; check the credentials and the scheme (--basic, --digest, --ntlm).";
+                case 100: return "The server sent more header data than curl accepts; this is a server problem.";
+                default: return $"See the curl exit code {code} entry in the linked documentation for the cause and the fix.";
+            }
         }
 
         /// <summary>
@@ -217,7 +610,10 @@ namespace CurlDotNet.Exceptions
         /// <returns>This exception for chaining</returns>
         public CurlException WithSuggestion(string suggestion)
         {
-            Suggestions.Add(suggestion);
+            if (!Suggestions.Contains(suggestion))
+            {
+                Suggestions.Add(suggestion);
+            }
             return this;
         }
 
@@ -241,7 +637,9 @@ namespace CurlDotNet.Exceptions
             var sb = new StringBuilder();
             sb.AppendLine($"=== CURL EXCEPTION DETAILS ===");
             sb.AppendLine($"Type: {GetType().Name}");
-            sb.AppendLine($"Message: {Message}");
+            sb.AppendLine($"What happened: {WhatHappened}");
+            if (!string.IsNullOrEmpty(DocumentationUrl))
+                sb.AppendLine($"Documentation: {DocumentationUrl}");
 
             if (!string.IsNullOrEmpty(Command))
                 sb.AppendLine($"Command: {Command}");
@@ -262,7 +660,7 @@ namespace CurlDotNet.Exceptions
 
             if (Suggestions.Count > 0)
             {
-                sb.AppendLine("Suggestions:");
+                sb.AppendLine("How to fix:");
                 foreach (var suggestion in Suggestions)
                 {
                     sb.AppendLine($"  - {suggestion}");
@@ -276,7 +674,7 @@ namespace CurlDotNet.Exceptions
 
             if (InnerException != null)
             {
-                sb.AppendLine($"Inner Exception: {InnerException.Message}");
+                sb.AppendLine($"Inner Exception: {InnerException.GetType().Name}: {InnerException.Message}");
             }
 
             sb.AppendLine($"Stack Trace:\n{StackTrace}");
@@ -295,6 +693,8 @@ namespace CurlDotNet.Exceptions
             {
                 ["type"] = GetType().Name,
                 ["message"] = Message,
+                ["whatHappened"] = WhatHappened,
+                ["documentationUrl"] = DocumentationUrl,
                 ["command"] = Command,
                 ["curlErrorCode"] = CurlErrorCode,
                 ["curlErrorName"] = GetCurlErrorName(),
@@ -424,7 +824,7 @@ namespace CurlDotNet.Exceptions
         public virtual string ToUserFriendlyMessage()
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"Error: {Message}");
+            sb.AppendLine($"Error: {WhatHappened}");
 
             if (Suggestions.Count > 0)
             {
@@ -438,6 +838,11 @@ namespace CurlDotNet.Exceptions
             if (IsRetryable())
             {
                 sb.AppendLine("\nThis error might be temporary. Please try again.");
+            }
+
+            if (!string.IsNullOrEmpty(DocumentationUrl))
+            {
+                sb.AppendLine($"\nMore help: {DocumentationUrl}");
             }
 
             return sb.ToString();

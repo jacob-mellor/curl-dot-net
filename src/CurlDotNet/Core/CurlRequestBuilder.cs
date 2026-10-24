@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -736,13 +737,25 @@ namespace CurlDotNet.Core
         public async Task<CurlResult> ExecuteAsync(CurlSettings settings, CancellationToken cancellationToken = default)
         {
             var engine = new CurlEngine();
+            // The settings apply to this call only: remember what they may change and put it back afterwards
+            var saved = (_options.MaxTime, _options.ConnectTimeout, _options.FollowLocation, _options.Insecure,
+                new Dictionary<string, string>(_options.Headers, StringComparer.OrdinalIgnoreCase), _options.ProgressHandler,
+                _options.Retry, _options.RetryDelay, _options.RetryAllErrors);
             try
             {
                 _options.OriginalCommand = ToCurlCommand();
-                return await engine.ExecuteAsync(_options, cancellationToken);
+                if (settings != null)
+                {
+                    CurlEngine.ApplySettings(_options, settings);
+                }
+                var token = cancellationToken.CanBeCanceled ? cancellationToken : (settings?.CancellationToken ?? CancellationToken.None);
+                return await engine.ExecuteAsync(_options, token);
             }
             finally
             {
+                (_options.MaxTime, _options.ConnectTimeout, _options.FollowLocation, _options.Insecure,
+                    _options.Headers, _options.ProgressHandler,
+                    _options.Retry, _options.RetryDelay, _options.RetryAllErrors) = saved;
                 engine.Dispose();
             }
         }
@@ -783,6 +796,13 @@ namespace CurlDotNet.Core
             if (!string.IsNullOrEmpty(_options.Data))
             {
                 parts.Add("-d " + CommandParser.ShellQuote(_options.Data));
+            }
+
+            // WithBinaryData: only bytes that are plain text can be written on a command line
+            var binaryText = BinaryDataAsText(_options.BinaryData);
+            if (binaryText != null)
+            {
+                parts.Add("--data-binary " + CommandParser.ShellQuote(binaryText));
             }
 
             // Form data
@@ -832,8 +852,16 @@ namespace CurlDotNet.Core
             if (_options.MaxRedirects > 0 && _options.MaxRedirects != 50)
                 parts.Add($"--max-redirs {_options.MaxRedirects}");
 
+            var httpVersionFlag = HttpVersionFlag(_options.HttpVersion);
+            if (httpVersionFlag != null)
+                parts.Add(httpVersionFlag);
+            if (!string.IsNullOrEmpty(_options.Range))
+                parts.Add("-r " + CommandParser.ShellQuoteIfNeeded(_options.Range));
+
             if (!string.IsNullOrEmpty(_options.Proxy))
                 parts.Add("-x " + CommandParser.ShellQuoteIfNeeded(_options.Proxy));
+            if (_options.ProxyCredentials != null)
+                parts.Add("--proxy-user " + CommandParser.ShellQuote($"{_options.ProxyCredentials.UserName}:{_options.ProxyCredentials.Password}"));
 
             if (!string.IsNullOrEmpty(_options.Cookie))
                 parts.Add("-b " + CommandParser.ShellQuote(_options.Cookie));
@@ -845,10 +873,53 @@ namespace CurlDotNet.Core
             if (_options.UseRemoteFileName)
                 parts.Add("-O");
 
+            if (!string.IsNullOrEmpty(_options.TraceFile))
+                parts.Add("--trace " + CommandParser.ShellQuoteIfNeeded(_options.TraceFile));
+            if (!string.IsNullOrEmpty(_options.TraceAsciiFile))
+                parts.Add("--trace-ascii " + CommandParser.ShellQuoteIfNeeded(_options.TraceAsciiFile));
+            if (_options.TraceTime)
+                parts.Add("--trace-time");
+
             // URL goes last
             parts.Add(CommandParser.ShellQuoteIfNeeded(_options.Url));
 
             return string.Join(" ", parts);
+        }
+
+        /// <summary>The curl flag for a <see cref="WithHttpVersion"/> value, or null for an unknown value.</summary>
+        private static string? HttpVersionFlag(string? version)
+        {
+            switch (version?.Trim())
+            {
+                case "1.0": return "--http1.0";
+                case "1.1": return "--http1.1";
+                case "2":
+                case "2.0": return "--http2";
+                case "3":
+                case "3.0": return "--http3";
+                default: return null;
+            }
+        }
+
+        /// <summary>
+        /// The bytes of <see cref="WithBinaryData"/> as text when they are valid UTF-8 without control
+        /// characters (other than tab, CR and LF); null for real binary data or no data.
+        /// </summary>
+        private static string? BinaryDataAsText(byte[]? data)
+        {
+            if (data == null || data.Length == 0)
+            {
+                return null;
+            }
+            try
+            {
+                var text = new System.Text.UTF8Encoding(false, true).GetString(data);
+                return text.Any(c => char.IsControl(c) && c != '\t' && c != '\r' && c != '\n') ? null : text;
+            }
+            catch (System.Text.DecoderFallbackException)
+            {
+                return null;
+            }
         }
 
         /// <summary>

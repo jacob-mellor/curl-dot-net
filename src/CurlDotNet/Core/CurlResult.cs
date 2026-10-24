@@ -365,53 +365,91 @@ namespace CurlDotNet.Core
         public T AsJson<T>() => ParseJson<T>();
 
         /// <summary>
-        /// <para><b>Parse JSON as dynamic object (when you don't have a class).</b></para>
-        ///
-        /// <para>Useful for quick exploration or simple JSON structures. This method returns a dynamic object that allows 
-        /// you to access JSON properties without defining a C# class. However, there's no compile-time checking, so prefer 
-        /// <see cref="ParseJson{T}"/> with typed classes when possible.</para>
-        ///
-        /// <para><b>Example:</b></para>
-        /// <code language="csharp">
-        /// dynamic json = result.AsJsonDynamic();
-        /// Console.WriteLine(json.name);           // Access properties directly
-        /// Console.WriteLine(json.users[0].email); // Navigate arrays
-        ///
-        /// // Iterate dynamic arrays
-        /// foreach (var item in json.items)
-        /// {
-        ///     Console.WriteLine(item.title);
-        /// }
-        /// </code>
+        /// Parses <see cref="Body"/> as JSON and returns it as a <c>dynamic</c> object, so you can read
+        /// <c>json.rate.remaining</c> or <c>json.items[0].title</c> without writing a class first.
         /// </summary>
-        /// <returns>
-        /// <para>A dynamic object representing the JSON. In .NET 6+, this is a <see cref="System.Text.Json.JsonDocument"/>.
-        /// In .NET Standard 2.0, this is a <c>JObject</c> from Newtonsoft.Json.</para>
-        /// <para>Access properties like: <c>dynamicObj.propertyName</c> or <c>dynamicObj["propertyName"]</c></para>
-        /// </returns>
-        /// <exception cref="InvalidOperationException">Thrown when <see cref="Body"/> is null or empty.</exception>
-        /// <exception cref="System.Exception">Thrown when the JSON syntax is invalid.</exception>
         /// <remarks>
-        /// <para><b>⚠️ Warning:</b> No compile-time checking! If a property doesn't exist, you'll get a runtime exception.</para>
-        /// <para>For production code, prefer <see cref="ParseJson{T}"/> with typed classes for better safety and IntelliSense support.</para>
-        /// <para>This method is useful for:</para>
-        /// <list type="bullet">
-        /// <item>Quick prototyping and exploration</item>
-        /// <item>Working with highly dynamic JSON structures</item>
-        /// <item>One-off scripts and tools</item>
-        /// </list>
+        /// <para>What you get back, on .NET 8/9/10 and .NET Framework 4.7.2/4.8 (System.Text.Json builds):
+        /// a JSON object becomes a dynamic object that supports <c>json.name</c>, <c>json["name"]</c>,
+        /// <c>foreach (var property in json)</c> (key/value pairs) and a cast to
+        /// <c>Dictionary&lt;string, object&gt;</c>; a JSON array becomes a <c>List&lt;object&gt;</c> (use
+        /// <c>json.items[0]</c>, <c>json.items.Count</c>, <c>foreach</c>); numbers become <c>int</c> when they fit,
+        /// otherwise <c>long</c>, otherwise <c>double</c>; strings become <c>string</c>, <c>true</c>/<c>false</c>
+        /// become <c>bool</c> and <c>null</c> becomes <c>null</c>.</para>
+        /// <para>A property that does not exist reads as <c>null</c> instead of throwing. Property names are
+        /// matched exactly first; when that fails a single case-insensitive match is used, so <c>json.Name</c>
+        /// also finds <c>"name"</c>. <c>json.ToString()</c> on an object returns its original JSON text.</para>
+        /// <para>On the .NET Standard 2.0 build (Unity, Xamarin, older runtimes) the result is Newtonsoft's
+        /// <c>JObject</c>/<c>JArray</c>, which supports the same <c>json.name</c>, <c>json["name"]</c> and
+        /// <c>foreach</c> syntax; numbers are <c>JValue</c>s that convert implicitly to <c>int</c>, <c>long</c> or
+        /// <c>double</c>.</para>
+        /// <para>Example, reading GitHub's rate limit without a class: <c>var result = await Curl.ExecuteAsync("curl https://api.github.com/rate_limit");</c>
+        /// then <c>dynamic json = result.AsJsonDynamic();</c> and <c>int remaining = json.rate.remaining;</c>
+        /// and <c>Console.WriteLine($"{remaining} of {json.rate.limit} calls left");</c>.</para>
+        /// <para>Example, iterating an array: <c>foreach (var repo in result.AsJsonDynamic()) Console.WriteLine(repo.full_name);</c>
+        /// for a response such as <c>[{"full_name":"a/b"}, ...]</c>.</para>
+        /// <para>There is no compile-time checking with <c>dynamic</c>: a typo in a property name gives
+        /// <c>null</c>, not a compiler error. For code you keep, prefer <see cref="ParseJson{T}"/> with a typed
+        /// class. Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/parse-json-from-curl-in-csharp/README.md</para>
         /// </remarks>
-        /// <seealso cref="ParseJson{T}">Parse JSON into typed classes (recommended)</seealso>
-        /// <seealso cref="AsJson{T}">Alternative method name for typed parsing</seealso>
-        /// <seealso cref="Body">The JSON string being parsed</seealso>
+        /// <returns>The root of the JSON document as described in the remarks: a dynamic object for
+        /// <c>{...}</c>, a <c>List&lt;object&gt;</c> for <c>[...]</c>, or a plain value (string, number, bool)
+        /// for a document that is just a value. Never a <see cref="System.Text.Json.JsonDocument"/>.</returns>
+        /// <exception cref="CurlParsingException">The body is empty (for example a 204 response or a HEAD
+        /// request) or is not valid JSON (for example an HTML error page). The message names the URL, the
+        /// Content-Type and the first characters of the body; the parser's own exception is the
+        /// <see cref="Exception.InnerException"/>. Fix: check <see cref="StatusCode"/> and print
+        /// <see cref="Body"/>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/parse-json-from-curl-in-csharp/README.md</exception>
+        /// <example>
+        /// <code language="csharp">
+        /// var result = await Curl.ExecuteAsync("curl https://api.github.com/rate_limit");
+        /// dynamic json = result.AsJsonDynamic();
+        /// int remaining = json.rate.remaining;
+        /// Console.WriteLine($"{remaining} of {json.rate.limit} calls left");
+        ///
+        /// var repos = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat/repos");
+        /// foreach (var repo in repos.AsJsonDynamic())   // a JSON array
+        ///     Console.WriteLine(repo.full_name);
+        /// </code>
+        /// </example>
+        /// <seealso cref="ParseJson{T}">Parse JSON into a typed class (recommended for code you keep)</seealso>
+        /// <seealso cref="AsJson{T}">Same as ParseJson</seealso>
+        /// <seealso cref="Body">The JSON text being parsed</seealso>
         public dynamic AsJsonDynamic()
         {
+            if (string.IsNullOrWhiteSpace(Body))
+            {
+                throw new CurlParsingException(CurlException.Compose(
+                    $"AsJsonDynamic() found no JSON to parse: the response body of {DescribeRequest()} is empty (HTTP {StatusCode}).",
+                    "Check StatusCode before parsing (204 No Content and HEAD requests have no body), and make sure the request asks for JSON, for example with -H 'Accept: application/json'.",
+                    DocLinks.HowToParseJson),
+                    GetHeader("Content-Type"), typeof(object), Command);
+            }
+
+            try
+            {
 #if NETSTANDARD2_0
-            return Newtonsoft.Json.JsonConvert.DeserializeObject(Body);
+                return Newtonsoft.Json.JsonConvert.DeserializeObject(Body);
 #else
-            return System.Text.Json.JsonDocument.Parse(Body);
+                return DynamicJson.Parse(Body)!;
 #endif
+            }
+#if NETSTANDARD2_0
+            catch (Newtonsoft.Json.JsonException ex)
+#else
+            catch (System.Text.Json.JsonException ex)
+#endif
+            {
+                throw new CurlParsingException(CurlException.Compose(
+                    $"AsJsonDynamic() could not parse the response body of {DescribeRequest()} as JSON: {ex.Message} (Content-Type: {GetHeader("Content-Type") ?? "none"}; body starts with \"{ErrorText.Preview(Body, 60)}\").",
+                    "Print result.Body to see what the server sent; an HTML error page or a login redirect usually means the URL, the method or the credentials are wrong.",
+                    DocLinks.HowToParseJson),
+                    GetHeader("Content-Type"), typeof(object), Command, ex);
+            }
         }
+
+        /// <summary>The request URL for messages (without credentials or query string), or "the request".</summary>
+        private string DescribeRequest() => ErrorText.UrlFromCommand(Command) ?? "the request";
 
         #endregion
 
@@ -1173,25 +1211,97 @@ namespace CurlDotNet.Core
     /// </summary>
     public class CurlTimings
     {
-        /// <summary>DNS resolution time in milliseconds</summary>
+        /// <summary>
+        /// Milliseconds from the start of the transfer until the host name was resolved to an address;
+        /// curl's <c>-w '%{time_namelookup}'</c> (which prints seconds).
+        /// </summary>
+        /// <value>Milliseconds since the transfer started; 0 when the request reused a pooled connection
+        /// (no lookup happened) or on .NET Standard 2.0 / .NET Framework, where the connection is not observable.</value>
+        /// <remarks>
+        /// <para>Recorded by the CurlDotNet transport on .NET 5 and later for every new connection, for
+        /// <c>http://</c> and <c>https://</c> alike. A literal IP address still gets a (near-zero) value.</para>
+        /// <para>Example: <c>if (result.Timings.NameLookup &gt; 500) Console.WriteLine("Slow DNS - try --resolve host:443:1.2.3.4");</c>.</para>
+        /// </remarks>
+        /// <seealso cref="Connect"/>
+        /// <seealso cref="Total"/>
         public double NameLookup { get; set; }
 
-        /// <summary>TCP connection time in milliseconds</summary>
+        /// <summary>
+        /// Milliseconds from the start until the TCP connection to the server (or proxy) was established;
+        /// curl's <c>-w '%{time_connect}'</c>.
+        /// </summary>
+        /// <value>Cumulative milliseconds since the start, so it is always at least <see cref="NameLookup"/>;
+        /// 0 for a reused connection or on .NET Standard 2.0 / .NET Framework.</value>
+        /// <remarks>
+        /// <para>The TCP handshake alone took <c>Connect - NameLookup</c> milliseconds. A large value usually
+        /// means network latency or a firewall dropping packets; see <c>--connect-timeout</c>.</para>
+        /// </remarks>
+        /// <seealso cref="NameLookup"/>
+        /// <seealso cref="AppConnect"/>
         public double Connect { get; set; }
 
-        /// <summary>SSL/TLS handshake time in milliseconds</summary>
+        /// <summary>
+        /// Milliseconds from the start until the TLS handshake finished; curl's <c>-w '%{time_appconnect}'</c>.
+        /// Always 0 for plain <c>http://</c>, exactly like curl.
+        /// </summary>
+        /// <value>Cumulative milliseconds since the start (at least <see cref="Connect"/>) for <c>https://</c>
+        /// on a new connection; 0 for <c>http://</c>, reused connections and .NET Standard 2.0 / .NET Framework.</value>
+        /// <remarks>
+        /// <para>The TLS handshake alone took <c>AppConnect - Connect</c> milliseconds.</para>
+        /// </remarks>
+        /// <seealso cref="Connect"/>
+        /// <seealso cref="PreTransfer"/>
         public double AppConnect { get; set; }
 
-        /// <summary>Time until request was sent in milliseconds</summary>
+        /// <summary>
+        /// Milliseconds from the start until the request was about to be sent; curl's <c>-w '%{time_pretransfer}'</c>.
+        /// </summary>
+        /// <value>Milliseconds since the start of the transfer, measured just before the request is handed
+        /// to the connection.</value>
+        /// <remarks>
+        /// <para>On CurlDotNet the connection is opened while the request is being sent, so this value can be
+        /// smaller than <see cref="Connect"/>; use <see cref="StartTransfer"/> for "time to first byte".</para>
+        /// </remarks>
+        /// <seealso cref="StartTransfer"/>
         public double PreTransfer { get; set; }
 
-        /// <summary>Time spent on redirects in milliseconds</summary>
+        /// <summary>
+        /// Milliseconds from the start until the last redirect was followed (with <c>-L</c>); curl's
+        /// <c>-w '%{time_redirect}'</c>.
+        /// </summary>
+        /// <value>0 when no redirect was followed.</value>
+        /// <remarks>
+        /// <para>Example: <c>curl -L https://bit.ly/x</c> then <c>result.Timings.Redirect</c> tells how long the
+        /// redirect hops took before the final request started.</para>
+        /// </remarks>
+        /// <seealso cref="Total"/>
         public double Redirect { get; set; }
 
-        /// <summary>Time until first byte received in milliseconds</summary>
+        /// <summary>
+        /// Milliseconds from the start until the response headers arrived ("time to first byte");
+        /// curl's <c>-w '%{time_starttransfer}'</c>.
+        /// </summary>
+        /// <value>Milliseconds since the start; includes DNS, connect, TLS, sending the request and the
+        /// server's think time.</value>
+        /// <remarks>
+        /// <para><c>StartTransfer - AppConnect</c> (or <c>- Connect</c> for http) is roughly how long the server
+        /// took to answer. The body download then takes <c>Total - StartTransfer</c>.</para>
+        /// </remarks>
+        /// <seealso cref="Total"/>
+        /// <seealso cref="PreTransfer"/>
         public double StartTransfer { get; set; }
 
-        /// <summary>Total time in milliseconds</summary>
+        /// <summary>
+        /// Milliseconds the whole transfer took, body included; curl's <c>-w '%{time_total}'</c>.
+        /// </summary>
+        /// <value>Milliseconds since the start of the transfer, measured after the body was read.</value>
+        /// <remarks>
+        /// <para>Example: <c>Console.WriteLine($"{result.Timings.Total:F0} ms (DNS {result.Timings.NameLookup:F0}, connect {result.Timings.Connect:F0}, TLS {result.Timings.AppConnect:F0}, first byte {result.Timings.StartTransfer:F0})");</c></para>
+        /// <para>To get curl's seconds instead, divide by 1000 or run the command with
+        /// <c>-w '%{time_total}'</c> and read it from <see cref="CurlResult.Body"/>.</para>
+        /// </remarks>
+        /// <seealso cref="StartTransfer"/>
+        /// <seealso cref="NameLookup"/>
         public double Total { get; set; }
     }
 

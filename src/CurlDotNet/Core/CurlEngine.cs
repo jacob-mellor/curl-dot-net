@@ -675,7 +675,7 @@ namespace CurlDotNet.Core
             return sb.ToString();
         }
 
-        private void ApplySettings(CurlOptions options, CurlSettings settings)
+        internal static void ApplySettings(CurlOptions options, CurlSettings settings)
         {
             if (settings.MaxTimeSeconds.HasValue)
             {

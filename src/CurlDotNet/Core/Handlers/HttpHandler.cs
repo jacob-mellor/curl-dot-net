@@ -272,6 +272,13 @@ namespace CurlDotNet.Core
                     }
                 }
 
+                if (!string.IsNullOrEmpty(options.DumpHeaderFile) && options.DumpHeaderFile != "-")
+                {
+                    // curl opens the -D file before it connects (tool_operate.c), so a path whose folder does
+                    // not exist fails with exit code 23 even when the server never answers
+                    TransferOutput.EnsureDirectory(options.DumpHeaderFile!, options, "-D/--dump-header");
+                }
+
                 var request = transfer.PrepareRequest(options);
                 if (options.ResumeFrom.HasValue && options.ResumeFrom.Value != 0 && request.Content != null)
                 {
@@ -714,7 +721,10 @@ namespace CurlDotNet.Core
 
         private static double GetTimeoutSeconds(CurlOptions options)
         {
-            // Like curl, no --max-time means no transfer timeout (HttpClient's own 100 s cap still applies)
+            // Like curl, no --max-time (and no Curl.DefaultMaxTimeSeconds) means no transfer timeout at all:
+            // every HttpClient CurlDotNet creates (CurlTransport.CreateClient / CreateDefaultHttpClient) has
+            // Timeout = Timeout.InfiniteTimeSpan. Only an HttpClient the caller passes in keeps its own
+            // Timeout (100 s for a plain `new HttpClient()`), which surfaces as exit code 28 below.
             var timeout = options.MaxTime ?? Curl.DefaultMaxTimeSeconds;
             return timeout > 0 ? timeout : 0;
         }
@@ -848,7 +858,7 @@ namespace CurlDotNet.Core
             Exception? bodyError = null;
             if (!isHead && response.Content != null)
             {
-                (rawBody, bodyError) = await ReadBodyAsync(response.Content, cancellationToken, options.MaxFileSize);
+                (rawBody, bodyError) = await ReadBodyAsync(response.Content, cancellationToken, options.MaxFileSize, options, announced);
             }
             timings.Total = (DateTime.UtcNow - transfer.StartTime).TotalMilliseconds;
 
@@ -1328,9 +1338,17 @@ namespace CurlDotNet.Core
         {
         }
 
-        private static async Task<(byte[] Body, Exception? Error)> ReadBodyAsync(HttpContent content, CancellationToken cancellationToken, long? maxFileSize)
+        /// <summary>
+        /// Reads the response body in chunks, enforcing --max-filesize and --max-time, and reporting
+        /// each chunk to <see cref="CurlOptions.ProgressHandler"/> as (percent or -1, bytes received,
+        /// total bytes or -1).
+        /// </summary>
+        private static async Task<(byte[] Body, Exception? Error)> ReadBodyAsync(HttpContent content, CancellationToken cancellationToken, long? maxFileSize,
+            CurlOptions? options = null, long? announcedLength = null)
         {
             var buffer = new MemoryStream();
+            var progress = options?.ProgressHandler;
+            var total = announcedLength.HasValue && announcedLength.Value >= 0 && announcedLength.Value != long.MaxValue ? announcedLength.Value : -1L;
             try
             {
 #if NETSTANDARD2_0 || NET472 || NET48
@@ -1348,6 +1366,10 @@ namespace CurlDotNet.Core
                         break;
                     }
                     buffer.Write(chunk, 0, n);
+                    if (progress != null)
+                    {
+                        ReportProgress(progress, buffer.Length, total, options!);
+                    }
                     if (maxFileSize.HasValue && buffer.Length > maxFileSize.Value)
                     {
                         return (buffer.ToArray(), new FileSizeLimitReached());
@@ -1362,6 +1384,26 @@ namespace CurlDotNet.Core
             catch (Exception ex) when (ex is IOException || ex is HttpRequestException)
             {
                 return (buffer.ToArray(), ex);
+            }
+        }
+
+        /// <summary>
+        /// Calls the progress handler for one chunk. A handler that throws aborts the transfer with
+        /// exit code 42, like a curl progress callback that returns non-zero.
+        /// </summary>
+        private static void ReportProgress(Action<double, long, long> progress, long received, long total, CurlOptions options)
+        {
+            var percent = total > 0 ? Math.Min(100.0, received * 100.0 / total) : (total == 0 ? 100.0 : -1.0);
+            try
+            {
+                progress(percent, received, total);
+            }
+            catch (Exception ex)
+            {
+                throw new CurlAbortedByCallbackException(CurlException.Compose(
+                    $"The progress handler threw {ex.GetType().Name} after {received} bytes of {options.Url} had arrived ({ex.Message}), so the transfer was aborted.",
+                    "Fix the exception inside the handler passed to CurlSettings.WithProgress / CurlOptions.ProgressHandler, or throw on purpose only when you want to stop the download.",
+                    DocLinks.TutorialCancellation), options.OriginalCommand, ex);
             }
         }
 
