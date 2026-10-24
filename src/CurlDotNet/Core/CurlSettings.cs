@@ -32,14 +32,14 @@ namespace CurlDotNet.Core
     /// Values set here override the same option in the command: <see cref="MaxTimeSeconds"/> wins over <c>-m</c>,
     /// <see cref="Headers"/> replace a <c>-H</c> header of the same name, and so on. Settings left at null/0 leave the
     /// command (and the <c>Curl.Default*</c> globals) in charge.</para>
-    /// <para>What is applied today: <see cref="CancellationToken"/>, <see cref="MaxTimeSeconds"/> (<c>-m</c>),
+    /// <para>Every member is applied: <see cref="CancellationToken"/>, <see cref="MaxTimeSeconds"/> (<c>-m</c>),
     /// <see cref="ConnectTimeoutSeconds"/> (<c>--connect-timeout</c>), <see cref="FollowRedirects"/> (<c>-L</c>),
     /// <see cref="Insecure"/> (<c>-k</c>), <see cref="RetryCount"/>/<see cref="RetryDelayMs"/>
-    /// (<c>--retry N --retry-delay S --retry-all-errors</c>), <see cref="OnProgress"/>, <see cref="Headers"/>
-    /// (<c>-H</c>) and <see cref="Flavor"/>. <see cref="OnRedirect"/>, <see cref="Proxy"/>, <see cref="UserAgent"/>,
-    /// <see cref="Cookies"/>, <see cref="AutomaticDecompression"/> and <see cref="BufferSize"/> are stored but not
-    /// yet used by the transfer engine; write the equivalent curl flag (<c>-x</c>, <c>-A</c>, <c>-b</c>/<c>-c</c>,
-    /// <c>--compressed</c>) in the command instead.</para>
+    /// (<c>--retry N --retry-delay S --retry-all-errors</c>), <see cref="OnProgress"/>, <see cref="OnRedirect"/> (called
+    /// for every redirect hop), <see cref="Headers"/> (<c>-H</c>), <see cref="Proxy"/> (<c>-x</c>/<c>-U</c>),
+    /// <see cref="UserAgent"/> (<c>-A</c>), <see cref="Cookies"/> (a .NET cookie container that is sent and updated),
+    /// <see cref="AutomaticDecompression"/> (<c>--compressed</c>, only when you set it), <see cref="BufferSize"/> (the
+    /// body read size, only when you set it) and <see cref="Flavor"/>.</para>
     /// <para>An instance is a plain mutable object and is not thread-safe while you are changing it; once built
     /// it can be shared by concurrent calls because the engine only reads it.</para>
     /// <para>Example: <c>var settings = new CurlSettings().WithTimeout(30).WithRetries(3).WithProgress((pct, got, total) =&gt; Console.Write($"\r{pct:F0}%")).WithCancellation(token);</c>
@@ -170,7 +170,8 @@ namespace CurlDotNet.Core
         /// <value>Milliseconds; default 1000. Converted to seconds for <see cref="CurlOptions.RetryDelay"/>; 0 lets the
         /// engine use curl's exponential back-off (1, 2, 4 ... seconds).</value>
         /// <remarks>
-        /// <para>A <c>Retry-After</c> header from the server takes precedence, like in curl.</para>
+        /// <para>Like curl's <c>--retry-delay</c>, a fixed delay replaces the server's <c>Retry-After</c> header; set it to 0
+        /// to honour <c>Retry-After</c> (and back off 1, 2, 4 ... seconds when the server sends none).</para>
         /// <para>Example: <c>settings.WithRetries(5, delayMs: 500)</c>.</para>
         /// </remarks>
         /// <seealso cref="RetryCount"/>
@@ -199,13 +200,17 @@ namespace CurlDotNet.Core
         public Action<double, long, long> OnProgress { get; set; }
 
         /// <summary>
-        /// Callback meant to receive each redirect URL; stored but not yet called by the transfer engine.
+        /// Called with the absolute target URL of every redirect that is followed (each <c>Location</c> hop with
+        /// <c>-L</c>), before the next request is sent.
         /// </summary>
-        /// <value>Null by default.</value>
+        /// <value>Null by default (no callback).</value>
         /// <remarks>
-        /// <para>To see the redirect chain today, run the command with <c>-L -i</c> (the headers of every hop are in
-        /// <see cref="CurlResult.Body"/>) or with <c>-w '%{url_effective}'</c> for the final URL.</para>
-        /// <para>Example: <c>settings.WithRedirectHandler(url =&gt; log.Add(url));</c> (reserved for a future version).</para>
+        /// <para>Only followed redirects are reported: without <c>-L</c> (or <see cref="FollowRedirects"/>) the 3xx response
+        /// is returned and nothing is called. The URL is resolved against the previous hop, so relative <c>Location</c>
+        /// values arrive as absolute URLs. It runs on the thread performing the transfer; keep it fast. If it throws, the
+        /// transfer stops with <see cref="CurlAbortedByCallbackException"/> (exit code 42) carrying your exception as
+        /// <see cref="Exception.InnerException"/>, which is how to refuse a redirect target.</para>
+        /// <para>Example: <c>var hops = new List&lt;string&gt;(); await Curl.ExecuteAsync("curl -L http://example.com", new CurlSettings().WithRedirectHandler(hops.Add));</c></para>
         /// </remarks>
         /// <seealso cref="WithRedirectHandler(Action{string})"/>
         /// <seealso cref="FollowRedirects"/>
@@ -229,12 +234,19 @@ namespace CurlDotNet.Core
         public Dictionary<string, string> Headers { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
-        /// A .NET proxy object; stored but not yet used by the transfer engine - write <c>-x http://proxy:3128</c>
-        /// in the command (or use <see cref="CurlRequestBuilder.WithProxy(string)"/>) instead.
+        /// A .NET proxy to send the request through, like curl's <c>-x</c>/<c>--proxy</c> (with <c>-U</c> for its
+        /// credentials); it replaces a proxy given in the command.
         /// </summary>
-        /// <value>Null by default; <see cref="WithProxy(string)"/> sets a <see cref="WebProxy"/>.</value>
+        /// <value>Null by default (the command's <c>-x</c> or the <c>http_proxy</c>/<c>https_proxy</c> environment variables
+        /// decide); <see cref="WithProxy(string)"/> sets a <see cref="WebProxy"/>.</value>
         /// <remarks>
-        /// <para>Example of what works today: <c>await Curl.ExecuteAsync("curl -x http://proxy.local:3128 -U user:pass https://example.com")</c>.</para>
+        /// <para>When the transfer starts, the proxy is asked for the request URL (<see cref="IWebProxy.GetProxy(Uri)"/>):
+        /// its answer becomes <see cref="CurlOptions.Proxy"/>, and <see cref="NetworkCredential"/>s from
+        /// <see cref="IWebProxy.Credentials"/> become <see cref="CurlOptions.ProxyCredentials"/> (sent as Basic, like
+        /// <c>-U</c>). A URL the proxy bypasses (<see cref="IWebProxy.IsBypassed(Uri)"/>) is fetched directly. The URL is
+        /// resolved once per call, so a <c>-L</c> redirect to another host uses the same proxy.</para>
+        /// <para>Example: <c>new CurlSettings().WithProxy("http://proxy.local:3128", "user", secret)</c> is
+        /// <c>curl -x http://proxy.local:3128 -U user:SECRET</c>.</para>
         /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-proxy-csharp/README.md</para>
         /// </remarks>
         /// <seealso cref="WithProxy(string)"/>
@@ -242,25 +254,36 @@ namespace CurlDotNet.Core
         public IWebProxy Proxy { get; set; }
 
         /// <summary>
-        /// A User-Agent string; stored but not yet applied - use <c>-A "MyApp/1.0"</c> in the command, or set
-        /// <c>Headers["User-Agent"]</c>, which is applied.
+        /// The <c>User-Agent</c> header to send, like curl's <c>-A</c>/<c>--user-agent</c>; it replaces the command's
+        /// <c>-A</c> and any <c>-H "User-Agent: ..."</c>.
         /// </summary>
-        /// <value>Null by default (curl sends <c>curl/VERSION</c>, see <see cref="Curl.DefaultUserAgent"/>).</value>
+        /// <value>Null by default (the command decides; without one curl sends <c>curl/VERSION</c>, see
+        /// <see cref="Curl.DefaultUserAgent"/>). An empty string sends no User-Agent at all.</value>
         /// <remarks>
-        /// <para>Example that works today: <c>settings.WithHeader("User-Agent", "MyApp/1.0")</c>.</para>
+        /// <para>Copied to <see cref="CurlOptions.UserAgent"/>. A <see cref="Headers"/> entry named <c>User-Agent</c> is
+        /// applied after it and wins.</para>
+        /// <para>Example: <c>settings.WithUserAgent("MyApp/1.0 (+https://myapp.example)")</c>.</para>
         /// </remarks>
         /// <seealso cref="WithUserAgent(string)"/>
         /// <seealso cref="CurlOptions.UserAgent"/>
         public string UserAgent { get; set; }
 
         /// <summary>
-        /// A .NET cookie container; stored but not yet used - use curl's <c>-b cookies.txt -c cookies.txt</c> to
-        /// keep a session across calls.
+        /// A .NET cookie container that supplies the <c>Cookie</c> header of every request and receives every
+        /// <c>Set-Cookie</c> of the responses, so a session carries over from one call to the next.
         /// </summary>
-        /// <value>Null by default; <see cref="WithCookies(CookieContainer)"/> creates one.</value>
+        /// <value>Null by default (only the command's <c>-b</c>/<c>-c</c> cookies are used); <see cref="WithCookies(CookieContainer)"/>
+        /// creates one.</value>
         /// <remarks>
-        /// <para>Example that works today: <c>await Curl.ExecuteAsync("curl -b jar.txt -c jar.txt https://example.com/login -d user=me")</c>,
-        /// then the next call with the same <c>-b jar.txt</c> sends the session cookie.</para>
+        /// <para>For each request (redirect hops and auth rounds included) the container's cookies for that URL
+        /// (<see cref="CookieContainer.GetCookieHeader(Uri)"/>) are added to any <c>Cookie</c> header the command sends
+        /// (<c>-b name=value</c>, <c>-b FILE</c>, <c>-H "Cookie: ..."</c>), joined with <c>"; "</c>. Each <c>Set-Cookie</c>
+        /// header of each response is stored with <see cref="CookieContainer.SetCookies(Uri, string)"/>; one that .NET cannot
+        /// parse is skipped, as curl skips cookies it rejects. Pass the same container to the next call to stay logged in.
+        /// <see cref="CookieContainer"/> is thread-safe, so concurrent calls may share it.</para>
+        /// <para>Example: <c>var jar = new CookieContainer(); var s = new CurlSettings().WithCookies(jar);</c> then
+        /// <c>await Curl.ExecuteAsync("curl -d user=me https://example.com/login", s);</c> and
+        /// <c>await Curl.ExecuteAsync("curl https://example.com/account", s);</c> sends the session cookie.</para>
         /// <para>Cookbook: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/cookbook/cookies.md</para>
         /// </remarks>
         /// <seealso cref="WithCookies(CookieContainer)"/>
@@ -268,31 +291,62 @@ namespace CurlDotNet.Core
         public CookieContainer Cookies { get; set; }
 
         /// <summary>
-        /// Intended to switch automatic response decompression; stored but not yet used - add <c>--compressed</c>
-        /// to the command to request and decode gzip/deflate/brotli bodies.
+        /// Requests and decodes compressed responses (true) or turns that off (false), like curl's <c>--compressed</c>
+        /// and <c>--no-compressed</c>; applied only when you set it.
         /// </summary>
-        /// <value>Default true; currently has no effect.</value>
+        /// <value>Reads true by default, but until you assign it (or call <see cref="WithAutoDecompression(bool)"/>) the
+        /// command decides, so an untouched value never adds <c>--compressed</c> to a command that does not have it.</value>
         /// <remarks>
-        /// <para>Like curl, CurlDotNet only decompresses when the command says <c>--compressed</c> (see
-        /// <see cref="CurlOptions.Compressed"/>).</para>
-        /// <para>Example: <c>curl --compressed https://api.example.com/large.json</c>.</para>
+        /// <para>Once set, it is copied to <see cref="CurlOptions.Compressed"/>: true sends
+        /// <c>Accept-Encoding: gzip, deflate, br</c> (gzip and deflate on .NET Standard 2.0/.NET Framework) and decodes
+        /// the body; false sends the request without it and returns the bytes as received.</para>
+        /// <para>Example: <c>new CurlSettings().WithAutoDecompression()</c> is <c>curl --compressed</c>.</para>
         /// </remarks>
         /// <seealso cref="WithAutoDecompression(bool)"/>
         /// <seealso cref="CurlOptions.Compressed"/>
-        public bool AutomaticDecompression { get; set; } = true;
+        public bool AutomaticDecompression
+        {
+            get => _automaticDecompression;
+            set
+            {
+                _automaticDecompression = value;
+                AutomaticDecompressionSet = true;
+            }
+        }
+
+        private bool _automaticDecompression = true;
+
+        /// <summary>True once <see cref="AutomaticDecompression"/> was assigned, so the engine applies it.</summary>
+        internal bool AutomaticDecompressionSet { get; private set; }
 
         /// <summary>
-        /// Intended read buffer size for downloads; stored but not used - the HTTP engine reads in 80 KB chunks
-        /// regardless.
+        /// The size, in bytes, of each read of an http/https response body (and so of each <see cref="OnProgress"/>
+        /// report); applied only when you set it.
         /// </summary>
-        /// <value>Bytes; default 8192; currently has no effect.</value>
+        /// <value>Reads 8192 by default, but until you assign it (or call <see cref="WithBufferSize(int)"/>) the engine reads
+        /// in 80 KB chunks. Values of 0 or less are ignored.</value>
         /// <remarks>
-        /// <para>Kept for source compatibility. To bound memory for very large downloads, write to a file with
-        /// <c>-o file</c> and use <see cref="CurlOptions.MaxFileSize"/> (<c>--max-filesize</c>) as a guard.</para>
-        /// <para>Example: <c>settings.WithBufferSize(65536)</c> compiles but does not change the transfer.</para>
+        /// <para>A smaller buffer gives finer-grained progress reports and <c>--limit-rate</c> pacing; a larger one fewer
+        /// reads for big downloads. The body is still collected in memory: to bound memory for very large downloads, write
+        /// to a file with <c>-o file</c> and use <see cref="CurlOptions.MaxFileSize"/> (<c>--max-filesize</c>) as a guard.</para>
+        /// <para>Example: <c>settings.WithBufferSize(16 * 1024).WithProgress(...)</c> reports every 16 KB.</para>
         /// </remarks>
         /// <seealso cref="WithBufferSize(int)"/>
-        public int BufferSize { get; set; } = 8192;
+        /// <seealso cref="OnProgress"/>
+        public int BufferSize
+        {
+            get => _bufferSize;
+            set
+            {
+                _bufferSize = value;
+                BufferSizeSet = true;
+            }
+        }
+
+        private int _bufferSize = 8192;
+
+        /// <summary>True once <see cref="BufferSize"/> was assigned, so the engine applies it.</summary>
+        internal bool BufferSizeSet { get; private set; }
 
         /// <summary>
         /// The shell the command string was written for, which decides how its quotes, escapes, line
@@ -461,13 +515,13 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Stores a callback for redirect URLs (see <see cref="OnRedirect"/>; not yet called by the engine) and returns
+        /// Sets <see cref="OnRedirect"/>, called with the absolute URL of every redirect that is followed, and returns
         /// these settings for chaining.
         /// </summary>
         /// <remarks>
-        /// <para>To inspect redirects today, run with <c>-L -i</c> and read the headers of each hop from
-        /// <see cref="CurlResult.Body"/>, or use <c>-w '%{url_effective}'</c>.</para>
-        /// <para>Example: <c>settings.WithRedirectHandler(url =&gt; Console.WriteLine("-&gt; " + url));</c></para>
+        /// <para>Redirects are only followed with <c>-L</c> or <see cref="WithFollowRedirects(bool)"/>; throwing from the
+        /// callback stops the transfer with exit code 42.</para>
+        /// <para>Example: <c>settings.WithFollowRedirects().WithRedirectHandler(url =&gt; Console.WriteLine("-&gt; " + url));</c></para>
         /// </remarks>
         /// <param name="callback">Receives each redirect target URL; null removes it.</param>
         /// <returns>This same <see cref="CurlSettings"/> instance.</returns>
@@ -538,12 +592,11 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Stores a <see cref="WebProxy"/> for <paramref name="proxyUrl"/> in <see cref="Proxy"/> (not yet used by the
-        /// engine - write <c>-x URL</c> in the command) and returns these settings for chaining.
+        /// Sends the request through the proxy at <paramref name="proxyUrl"/> (sets <see cref="Proxy"/> to a
+        /// <see cref="WebProxy"/>), like curl's <c>-x URL</c>, and returns these settings for chaining.
         /// </summary>
         /// <remarks>
-        /// <para>The URL is validated immediately. For a proxy that is actually used today, put
-        /// <c>-x http://proxy.local:3128</c> in the command or call <see cref="CurlRequestBuilder.WithProxy(string)"/>.</para>
+        /// <para>The URL is validated immediately and replaces a <c>-x</c> in the command.</para>
         /// <para>Example: <c>settings.WithProxy("http://proxy.local:3128")</c>.</para>
         /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-proxy-csharp/README.md</para>
         /// </remarks>
@@ -561,12 +614,12 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Stores a <see cref="WebProxy"/> with user name and password in <see cref="Proxy"/> (not yet used by the
-        /// engine - write <c>-x URL -U user:pass</c> in the command) and returns these settings for chaining.
+        /// Sends the request through the proxy at <paramref name="proxyUrl"/> with Basic proxy credentials, like curl's
+        /// <c>-x URL -U user:pass</c>, and returns these settings for chaining.
         /// </summary>
         /// <remarks>
-        /// <para>For proxy authentication that is actually sent today use <c>curl -x http://proxy:3128 -U user:pass URL</c>
-        /// or <see cref="CurlRequestBuilder.WithProxy(string, string, string)"/>.</para>
+        /// <para>The credentials are sent preemptively as <c>Proxy-Authorization: Basic ...</c> (never logged or put into
+        /// exception messages).</para>
         /// <para>Example: <c>settings.WithProxy("http://proxy.corp:8080", "alice", secret)</c>.</para>
         /// </remarks>
         /// <param name="proxyUrl">An absolute proxy URL such as <c>http://proxy.corp:8080</c>.</param>
@@ -601,11 +654,11 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Stores a User-Agent in <see cref="UserAgent"/> (not yet applied - use <c>-A</c> or
-        /// <c>WithHeader("User-Agent", ...)</c>) and returns these settings for chaining.
+        /// Sets the <c>User-Agent</c> header (see <see cref="UserAgent"/>), like curl's <c>-A</c>, and returns these
+        /// settings for chaining.
         /// </summary>
         /// <remarks>
-        /// <para>Example that changes the request today: <c>settings.WithHeader("User-Agent", "MyApp/2.1 (+https://myapp.example)")</c>.</para>
+        /// <para>Example: <c>settings.WithUserAgent("MyApp/2.1 (+https://myapp.example)")</c>.</para>
         /// </remarks>
         /// <param name="userAgent">The product token string, such as <c>MyApp/1.0</c>.</param>
         /// <returns>This same <see cref="CurlSettings"/> instance.</returns>
@@ -618,11 +671,12 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Stores a cookie container in <see cref="Cookies"/> (not yet used - use <c>-b jar.txt -c jar.txt</c>) and returns
-        /// these settings for chaining.
+        /// Uses <paramref name="container"/> (see <see cref="Cookies"/>) to send and collect cookies, and returns these
+        /// settings for chaining.
         /// </summary>
         /// <remarks>
-        /// <para>Example that keeps a session today: run every call with <c>-b session.txt -c session.txt</c>.</para>
+        /// <para>Keep a reference to the container (or to these settings) and pass it to the next call to keep the session.
+        /// Example: <c>var jar = new CookieContainer(); settings.WithCookies(jar);</c>.</para>
         /// <para>Cookbook: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/cookbook/cookies.md</para>
         /// </remarks>
         /// <param name="container">The container to use; null (default) creates a new empty <see cref="CookieContainer"/>.</param>
@@ -636,13 +690,15 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Sets <see cref="AutomaticDecompression"/> (currently no effect - add <c>--compressed</c> to the command to
-        /// decompress) and returns these settings for chaining.
+        /// Requests and decodes compressed responses (<paramref name="enable"/> true, like <c>--compressed</c>) or turns
+        /// that off (false, like <c>--no-compressed</c>), and returns these settings for chaining.
         /// </summary>
         /// <remarks>
-        /// <para>Example that works today: <c>curl --compressed https://api.example.com/data</c>.</para>
+        /// <para>Example: <c>await Curl.ExecuteAsync("curl https://api.example.com/data", new CurlSettings().WithAutoDecompression());</c>
+        /// receives a gzip or brotli body and returns it decoded.</para>
         /// </remarks>
-        /// <param name="enable">true (default) or false; stored only.</param>
+        /// <param name="enable">true (default) to ask for and decode gzip/deflate/brotli; false to send no
+        /// <c>Accept-Encoding</c> and keep the body as received.</param>
         /// <returns>This same <see cref="CurlSettings"/> instance.</returns>
         /// <seealso cref="AutomaticDecompression"/>
         /// <seealso cref="CurlOptions.Compressed"/>
@@ -653,13 +709,12 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Sets <see cref="BufferSize"/> (currently no effect - bodies are read in 80 KB chunks) and returns these
-        /// settings for chaining.
+        /// Sets <see cref="BufferSize"/>, the size of each response-body read, and returns these settings for chaining.
         /// </summary>
         /// <remarks>
-        /// <para>Kept for source compatibility. Example: <c>settings.WithBufferSize(64 * 1024)</c>.</para>
+        /// <para>Example: <c>settings.WithBufferSize(64 * 1024)</c> reads (and reports progress) every 64 KB.</para>
         /// </remarks>
-        /// <param name="size">Buffer size in bytes; stored only.</param>
+        /// <param name="size">Bytes per read; 0 or less keeps the 80 KB default.</param>
         /// <returns>This same <see cref="CurlSettings"/> instance.</returns>
         /// <seealso cref="BufferSize"/>
         public CurlSettings WithBufferSize(int size)

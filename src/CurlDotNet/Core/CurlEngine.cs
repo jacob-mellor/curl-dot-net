@@ -770,11 +770,21 @@ namespace CurlDotNet.Core
                 options.Insecure = settings.Insecure.Value;
             }
 
+            if (settings.UserAgent != null)
+            {
+                // -A: replaces the command's -A and -H "User-Agent: ..." (the handler sends UserAgent when it is set)
+                options.UserAgent = settings.UserAgent;
+            }
+
             if (settings.Headers != null)
             {
                 foreach (var header in settings.Headers)
                 {
                     options.Headers[header.Key] = header.Value;
+                    if (string.Equals(header.Key, "User-Agent", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.UserAgent = header.Value ?? string.Empty; // a Headers entry wins over UserAgent
+                    }
                 }
             }
 
@@ -788,6 +798,75 @@ namespace CurlDotNet.Core
                 options.Retry = settings.RetryCount;
                 options.RetryDelay = settings.RetryDelayMs / 1000.0;
                 options.RetryAllErrors = true;
+            }
+
+            if (settings.OnRedirect != null)
+            {
+                options.RedirectCallback = settings.OnRedirect;
+            }
+
+            if (settings.Cookies != null)
+            {
+                options.CookieContainer = settings.Cookies;
+            }
+
+            if (settings.AutomaticDecompressionSet)
+            {
+                options.Compressed = settings.AutomaticDecompression; // --compressed / --no-compressed
+            }
+
+            if (settings.BufferSizeSet && settings.BufferSize > 0)
+            {
+                options.ReadBufferSize = settings.BufferSize;
+            }
+
+            if (settings.Proxy != null)
+            {
+                ApplyProxy(options, settings.Proxy);
+            }
+        }
+
+        /// <summary>
+        /// <see cref="CurlSettings.Proxy"/>: asks the .NET proxy which proxy serves the request URL and turns the answer
+        /// into curl's <c>-x</c> (and its <see cref="NetworkCredential"/> into <c>-U</c>); a bypassed URL goes direct.
+        /// </summary>
+        private static void ApplyProxy(CurlOptions options, IWebProxy proxy)
+        {
+            Uri? destination = null;
+            if (!string.IsNullOrEmpty(options.Url))
+            {
+                Uri.TryCreate(CommandParser.NormalizeUrl(options.Url), UriKind.Absolute, out destination);
+            }
+
+            Uri? proxyUri;
+            if (destination == null)
+            {
+                proxyUri = (proxy as WebProxy)?.Address; // no usable URL yet: the proxy's own address, if it has one
+            }
+            else if (proxy.IsBypassed(destination))
+            {
+                options.Proxy = string.Empty; // like -x "": a direct connection, ignoring the environment's proxies
+                return;
+            }
+            else
+            {
+                proxyUri = proxy.GetProxy(destination);
+                if (proxyUri != null && Uri.Compare(proxyUri, destination, UriComponents.HttpRequestUrl, UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase) == 0)
+                {
+                    proxyUri = null; // IWebProxy's way of saying "no proxy"
+                }
+            }
+
+            if (proxyUri == null)
+            {
+                return;
+            }
+
+            options.Proxy = proxyUri.GetLeftPart(UriPartial.Authority);
+            var credential = proxy.Credentials?.GetCredential(proxyUri, "Basic");
+            if (credential != null && !string.IsNullOrEmpty(credential.UserName))
+            {
+                options.ProxyCredentials = credential;
             }
         }
 

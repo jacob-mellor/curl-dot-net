@@ -9,6 +9,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 
 namespace CurlDotNet.Core
@@ -97,7 +98,7 @@ namespace CurlDotNet.Core
         /// </remarks>
         /// <seealso cref="UnsupportedOptions"/>
         /// <seealso cref="Curl.Validate(string)"/>
-        public List<string> UnknownOptions { get; } = new List<string>();
+        public List<string> UnknownOptions { get; private set; } = new List<string>();
 
         /// <summary>
         /// The HTTP method sent on the request line (<c>GET</c>, <c>POST</c>, <c>PUT</c>, <c>DELETE</c>, <c>PATCH</c>,
@@ -1337,101 +1338,58 @@ namespace CurlDotNet.Core
         /// Returns a new options object with the same request settings, so you can derive several similar requests
         /// from one template without the requests affecting each other.
         /// </summary>
-        /// <returns>A new <see cref="CurlOptions"/>. Dictionaries and lists (<see cref="Headers"/>, <see cref="FormData"/>,
-        /// <see cref="Files"/>, <see cref="Resolve"/>, <see cref="Quote"/>, <see cref="EmptyHeaders"/>, the content-type
-        /// lists) are copied; <see cref="BinaryData"/>, <see cref="Credentials"/>, <see cref="ProxyCredentials"/>,
-        /// <see cref="ProgressHandler"/> and <see cref="AwsSigV4"/> are shared references.</returns>
+        /// <returns>A new <see cref="CurlOptions"/> with every property copied. Dictionaries, lists and sets
+        /// (<see cref="Headers"/>, <see cref="FormData"/>, <see cref="Files"/>, <see cref="Resolve"/>, <see cref="Quote"/>,
+        /// <see cref="EmptyHeaders"/>, <see cref="FormParts"/>, the content-type lists, <see cref="UnknownOptions"/>,
+        /// <see cref="UnsupportedOptions"/>, <see cref="GlobMatches"/>) are new collections with the same entries and the same
+        /// key comparer; <see cref="BinaryData"/> is a copy of the array; each of <see cref="AdditionalTransfers"/> is itself
+        /// cloned. <see cref="Credentials"/>, <see cref="ProxyCredentials"/>, <see cref="ProgressHandler"/>,
+        /// <see cref="AwsSigV4"/> and the <see cref="CurlFormPart"/> objects inside <see cref="FormParts"/> are shared
+        /// references (change them by assigning new ones).</returns>
         /// <remarks>
-        /// <para>Not every property is copied. These keep their defaults on the clone and must be set again if you use them:
-        /// <see cref="RetryAllErrors"/>, <see cref="RetryConnRefused"/>, <see cref="AdditionalTransfers"/>, and every
-        /// transport setting declared in CurlOptions.Transport: <see cref="NoProxy"/>, <see cref="ProxyAuthScheme"/>,
-        /// <see cref="ProxyTunnel"/>, <see cref="Post301"/>, <see cref="Post302"/>, <see cref="Post303"/>,
-        /// <see cref="FollowObeysMethod"/>, <see cref="FailWithBody"/>, <see cref="FailEarly"/>, <see cref="DumpHeaderFile"/>,
-        /// <see cref="RemoteHeaderName"/>, <see cref="OutputDir"/>, <see cref="RemoteTime"/>, <see cref="NoClobber"/>,
-        /// <see cref="RemoveOnError"/>, <see cref="StderrFile"/>, <see cref="JunkSessionCookies"/>, <see cref="FormParts"/>,
-        /// <see cref="FormEscape"/>, <see cref="Expect100TimeoutSeconds"/>, <see cref="EtagSave"/>, <see cref="EtagCompare"/>,
-        /// <see cref="IgnoreContentLength"/>, <see cref="SkipExisting"/>, <see cref="AllowHttp09"/>,
-        /// <see cref="TransferEncoding"/> and <see cref="Raw"/> (<see cref="ProxyHttp10"/> is copied).</para>
-        /// <para>The copied <see cref="Headers"/> dictionary compares names case-sensitively, unlike the original; use the
-        /// exact casing when you look a header up on the clone.</para>
+        /// <para>The clone does not belong to a running command line: the state CurlDotNet attaches while a command runs
+        /// (the cookie store shared by its transfers) is not carried over.</para>
         /// <para>Example: <c>var template = new CurlOptions { Url = "https://api.example.com", MaxTime = 10 };</c> then
         /// <c>var a = template.Clone(); a.Url += "/users";</c> and <c>var b = template.Clone(); b.Url += "/orders";</c>.</para>
         /// </remarks>
         /// <seealso cref="CurlRequestBuilder.GetOptions"/>
         public CurlOptions Clone()
         {
-            var clone = new CurlOptions
-            {
-                Url = Url,
-                Method = Method,
-                Headers = Headers == null ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) : new Dictionary<string, string>(Headers),
-                Data = Data,
-                DataUrlEncode = DataUrlEncode,
-                DataRaw = DataRaw,
-                BinaryData = BinaryData,
-                FormData = new Dictionary<string, string>(FormData ?? new Dictionary<string, string>()),
-                Files = new Dictionary<string, string>(Files ?? new Dictionary<string, string>()),
-                OutputFile = OutputFile,
-                UseRemoteFileName = UseRemoteFileName,
-                IncludeHeaders = IncludeHeaders,
-                HeadOnly = HeadOnly,
-                FollowLocation = FollowLocation,
-                MaxRedirects = MaxRedirects,
-                Insecure = Insecure,
-                Verbose = Verbose,
-                TraceFile = TraceFile,
-                TraceAsciiFile = TraceAsciiFile,
-                TraceTime = TraceTime,
-                Silent = Silent,
-                ShowError = ShowError,
-                FailOnError = FailOnError,
-                UserAgent = UserAgent,
-                Referer = Referer,
-                Cookie = Cookie,
-                CookieJar = CookieJar,
-                Credentials = Credentials,
-                AuthScheme = AuthScheme,
-                Proxy = Proxy,
-                ProxyCredentials = ProxyCredentials,
-                MaxTime = MaxTime,
-                ConnectTimeout = ConnectTimeout,
-                SpeedLimit = SpeedLimit,
-                SpeedTime = SpeedTime,
-                ResumeFrom = ResumeFrom,
-                Range = Range,
-                Compressed = Compressed,
-                CertFile = CertFile,
-                KeyFile = KeyFile,
-                CaCertFile = CaCertFile,
-                Interface = Interface,
-                HttpVersion = HttpVersion,
-                CustomMethod = CustomMethod,
-                WriteOut = WriteOut,
-                ProgressHandler = ProgressHandler,
-                OriginalCommand = OriginalCommand,
-                Flavor = Flavor,
-                ProgressBar = ProgressBar,
-                KeepAliveTime = KeepAliveTime,
-                DnsServers = DnsServers,
-                Resolve = new Dictionary<string, string>(Resolve),
-                Quote = new List<string>(Quote),
-                CreateDirs = CreateDirs,
-                FtpPassive = FtpPassive,
-                FtpSsl = FtpSsl,
-                Socks5Proxy = Socks5Proxy,
-                Retry = Retry,
-                RetryDelay = RetryDelay,
-                RetryMaxTime = RetryMaxTime,
-                LocationTrusted = LocationTrusted,
-                DisableEpsv = DisableEpsv,
-                DisableEprt = DisableEprt,
-                ForceBinary = ForceBinary,
-                BinaryContentTypes = new List<string>(BinaryContentTypes),
-                TextContentTypes = new List<string>(TextContentTypes),
-                AwsSigV4 = AwsSigV4
-            };
-
-            CopyRequestShapingTo(clone);
+            // Every property, public and internal, is copied by MemberwiseClone; then each mutable collection is
+            // replaced by a copy so the clone and the original never share one (ReleaseFixesTests checks both).
+            var clone = (CurlOptions)MemberwiseClone();
+            clone.Headers = Headers == null
+                ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, string>(Headers, Headers.Comparer);
+            clone.FormData = FormData == null ? new Dictionary<string, string>() : new Dictionary<string, string>(FormData, FormData.Comparer);
+            clone.Files = Files == null ? new Dictionary<string, string>() : new Dictionary<string, string>(Files, Files.Comparer);
+            clone.BinaryData = BinaryData == null ? null : (byte[])BinaryData.Clone();
+            clone.Resolve = Resolve == null ? new Dictionary<string, string>() : new Dictionary<string, string>(Resolve, Resolve.Comparer);
+            clone.Quote = Quote == null ? new List<string>() : new List<string>(Quote);
+            clone.BinaryContentTypes = BinaryContentTypes == null ? new List<string>() : new List<string>(BinaryContentTypes);
+            clone.TextContentTypes = TextContentTypes == null ? new List<string>() : new List<string>(TextContentTypes);
+            clone.FormParts = FormParts == null ? new List<CurlFormPart>() : new List<CurlFormPart>(FormParts);
+            clone.EmptyHeaders = EmptyHeaders == null
+                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                : new HashSet<string>(EmptyHeaders, EmptyHeaders.Comparer);
+            clone.UnknownOptions = new List<string>(UnknownOptions);
+            clone.UnsupportedOptions = new List<string>(UnsupportedOptions);
+            clone.AdditionalTransfers = AdditionalTransfers.Select(t => t.Clone()).ToList();
+            clone.GlobMatches = new List<string>(GlobMatches);
+            clone.DataParts = new List<RequestDataPart>(DataParts);
+            clone.ImplicitHeaders = new HashSet<string>(ImplicitHeaders, ImplicitHeaders.Comparer);
+            clone.ProxyHeaderLines = new List<string>(ProxyHeaderLines);
+            clone.CookieFiles = CookieFiles == null ? new List<string>() : new List<string>(CookieFiles);
+            clone.RawHeaderLines = RawHeaderLines == null
+                ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, string>(RawHeaderLines, RawHeaderLines.Comparer);
+            clone.ConnectTo = ConnectTo == null ? new List<string>() : new List<string>(ConnectTo);
+            clone.UrlQueryParts = new List<string>(UrlQueryParts);
+            clone.RequestKinds = new List<KeyValuePair<RequestKind, string>>(RequestKinds);
+            clone.ParsedDataBytes = ParsedDataBytes == null ? null : (byte[])ParsedDataBytes.Clone();
+            clone.Session = null; // the cookie store of the command line the original ran in
+            clone.RetryNumber = 0;
+            clone.DeferWriteOut = false;
             return clone;
         }
 
@@ -1455,7 +1413,7 @@ namespace CurlDotNet.Core
         /// </remarks>
         /// <seealso cref="UnknownOptions"/>
         /// <seealso cref="Curl.Validate(string)"/>
-        public List<string> UnsupportedOptions { get; } = new List<string>();
+        public List<string> UnsupportedOptions { get; private set; } = new List<string>();
 
         /// <summary>
         /// Sends the <c>-d</c>/<c>--data*</c> data as a query string on a GET request instead of a POST body, like
@@ -1650,7 +1608,7 @@ namespace CurlDotNet.Core
         /// <seealso cref="GlobOff"/>
         /// <seealso cref="FailEarly"/>
         /// <seealso cref="Curl.ExecuteAsync(CurlOptions)"/>
-        public List<CurlOptions> AdditionalTransfers { get; } = new List<CurlOptions>();
+        public List<CurlOptions> AdditionalTransfers { get; private set; } = new List<CurlOptions>();
 
         /// <summary>
         /// The text each URL glob matched for this transfer, which curl's <c>#1</c>, <c>#2</c>... placeholders in <c>-o</c>
@@ -1663,15 +1621,15 @@ namespace CurlDotNet.Core
         /// </remarks>
         /// <seealso cref="AdditionalTransfers"/>
         /// <seealso cref="OutputFile"/>
-        public List<string> GlobMatches { get; } = new List<string>();
+        public List<string> GlobMatches { get; private set; } = new List<string>();
 
         /// <summary>
         /// Raw <c>-d</c> family items gathered while parsing, before they are joined into <see cref="Data"/>.
         /// </summary>
-        internal List<RequestDataPart> DataParts { get; } = new List<RequestDataPart>();
+        internal List<RequestDataPart> DataParts { get; private set; } = new List<RequestDataPart>();
 
         /// <summary>Header names in <see cref="Headers"/> that an option such as <c>--json</c> added, which a later <c>-H</c> replaces.</summary>
-        internal HashSet<string> ImplicitHeaders { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        internal HashSet<string> ImplicitHeaders { get; private set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary><c>-p</c> / <c>--proxytunnel</c>: requests go through a CONNECT tunnel, so no proxy headers are added to them.</summary>
         internal bool ProxyTunnelRequested { get; set; }
@@ -1680,7 +1638,7 @@ namespace CurlDotNet.Core
         internal string? NoProxyHosts { get; set; }
 
         /// <summary><c>--proxy-header</c> lines, sent on requests that go through a plain HTTP proxy.</summary>
-        internal List<string> ProxyHeaderLines { get; } = new List<string>();
+        internal List<string> ProxyHeaderLines { get; private set; } = new List<string>();
 
         /// <summary>The proxy authentication method (<c>--proxy-basic</c>, <c>--proxy-digest</c>...); null means Basic.</summary>
         internal string? ProxyAuthMethod { get; set; }
@@ -1741,7 +1699,7 @@ namespace CurlDotNet.Core
         internal bool CrossOriginHop { get; set; }
 
         /// <summary><c>--url-query</c> arguments, applied to <see cref="Url"/> when the transfer is finished.</summary>
-        internal List<string> UrlQueryParts { get; } = new List<string>();
+        internal List<string> UrlQueryParts { get; private set; } = new List<string>();
 
         /// <summary>
         /// True when <see cref="Credentials"/> came from <c>user:password@</c> in the URL rather than from
@@ -1753,7 +1711,7 @@ namespace CurlDotNet.Core
         /// The kinds of request the options asked for (POST, multipart, PUT, HEAD) with the option that asked,
         /// checked for conflicts when the transfer is finished.
         /// </summary>
-        internal List<KeyValuePair<RequestKind, string>> RequestKinds { get; } = new List<KeyValuePair<RequestKind, string>>();
+        internal List<KeyValuePair<RequestKind, string>> RequestKinds { get; private set; } = new List<KeyValuePair<RequestKind, string>>();
 
         /// <summary>
         /// Exact body bytes the parser assembled from <see cref="DataParts"/>; only used while <see cref="Data"/>
@@ -1763,6 +1721,12 @@ namespace CurlDotNet.Core
 
         /// <summary>The value <see cref="Data"/> had when <see cref="ParsedDataBytes"/> was assembled.</summary>
         internal string? ParsedDataText { get; set; }
+
+        /// <summary><see cref="CurlSettings.OnRedirect"/>: called with the absolute URL of each redirect that is followed.</summary>
+        internal Action<string>? RedirectCallback { get; set; }
+
+        /// <summary><see cref="CurlSettings.Cookies"/>: a .NET cookie container that supplies and receives cookies on every hop.</summary>
+        internal CookieContainer? CookieContainer { get; set; }
 
         /// <summary>Chunk size, in bytes, for reading response bodies (from <see cref="CurlSettings.BufferSize"/>); 0 means 80 KB.</summary>
         internal int ReadBufferSize { get; set; }
@@ -1785,44 +1749,6 @@ namespace CurlDotNet.Core
             return ParsedDataBytes != null && string.Equals(Data, ParsedDataText, StringComparison.Ordinal)
                 ? ParsedDataBytes
                 : null;
-        }
-
-        private void CopyRequestShapingTo(CurlOptions clone)
-        {
-            clone.UnsupportedOptions.AddRange(UnsupportedOptions);
-            clone.UnknownOptions.AddRange(UnknownOptions);
-            clone.UseGet = UseGet;
-            clone.UploadFile = UploadFile;
-            clone.OAuth2Bearer = OAuth2Bearer;
-            clone.AutoReferer = AutoReferer;
-            clone.TimeCondition = TimeCondition;
-            clone.TimeConditionType = TimeConditionType;
-            clone.MaxFileSize = MaxFileSize;
-            clone.HttpVersionExact = HttpVersionExact;
-            clone.PathAsIs = PathAsIs;
-            clone.GlobOff = GlobOff;
-            clone.EmptyHeaders = new HashSet<string>(EmptyHeaders, StringComparer.OrdinalIgnoreCase);
-            clone.GlobMatches.AddRange(GlobMatches);
-            clone.DataParts.AddRange(DataParts);
-            clone.UrlQueryParts.AddRange(UrlQueryParts);
-            clone.DefaultProtocol = DefaultProtocol;
-            clone.CookieFiles = new List<string>(CookieFiles);
-            clone.DiscardOutput = DiscardOutput;
-            clone.NetrcMode = NetrcMode;
-            clone.RequestTarget = RequestTarget;
-            clone.RawHeaderLines = new Dictionary<string, string>(RawHeaderLines, StringComparer.OrdinalIgnoreCase);
-            clone.ConnectTo = new List<string>(ConnectTo);
-            clone.NetrcFile = NetrcFile;
-            clone.ProxyTunnelRequested = ProxyTunnelRequested;
-            clone.NoProxyHosts = NoProxyHosts;
-            clone.ProxyHeaderLines.AddRange(ProxyHeaderLines);
-            clone.ProxyAuthMethod = ProxyAuthMethod;
-            clone.ProxyHttp10 = ProxyHttp10;
-            clone.ImplicitHeaders.UnionWith(ImplicitHeaders);
-            clone.CredentialsFromUrl = CredentialsFromUrl;
-            clone.RequestKinds.AddRange(RequestKinds);
-            clone.ParsedDataBytes = ParsedDataBytes;
-            clone.ParsedDataText = ParsedDataText;
         }
 
         #endregion

@@ -328,6 +328,237 @@ namespace CurlDotNet.Tests
             clock.Elapsed.Should().BeGreaterOrEqualTo(TimeSpan.FromMilliseconds(1300), "3000 bytes at 2000 bytes/s take about 1.5 s");
         }
 
+        // ------------------------------------------------------------------ E. CurlSettings members are applied
+
+        [Fact]
+        public async Task Settings_Proxy_SendsThroughTheProxyWithBasicCredentials()
+        {
+            using var proxy = new RawReplyServer(Ok);
+            var settings = new CurlSettings().WithProxy(proxy.Url(), "alice", "pr0xyPw");
+
+            var result = await Curl.ExecuteAsync("curl http://origin.example/path", settings);
+
+            result.Body.Should().Be("ok\n");
+            var request = proxy.Requests.Single();
+            request.Should().StartWith("GET http://origin.example/path HTTP/1.1");
+            Header(request, "Proxy-Authorization").Should().Be("Proxy-Authorization: Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes("alice:pr0xyPw")));
+        }
+
+        [Fact]
+        public async Task Settings_Proxy_BypassedUrl_GoesDirect()
+        {
+            using var origin = new RawReplyServer(Ok);
+            var bypassing = new System.Net.WebProxy("http://127.0.0.1:9") { BypassProxyOnLocal = false };
+            bypassing.BypassList = new[] { "127\\.0\\.0\\.1" };
+
+            var result = await Curl.ExecuteAsync($"curl {origin.Url("/direct")}", new CurlSettings { Proxy = bypassing });
+
+            result.Body.Should().Be("ok\n");
+            origin.Requests.Single().Should().StartWith("GET /direct HTTP/1.1");
+        }
+
+        [Fact]
+        public async Task Settings_UserAgent_ReplacesTheCommandsUserAgent()
+        {
+            using var server = new RawReplyServer(Ok);
+
+            await Curl.ExecuteAsync($"curl -A old/1 {server.Url("/")}", new CurlSettings().WithUserAgent("MyApp/2.0"));
+            await Curl.ExecuteAsync($"curl -H \"User-Agent: old/1\" {server.Url("/")}", new CurlSettings().WithUserAgent("MyApp/2.0"));
+
+            Header(server.Requests[0], "User-Agent").Should().Be("User-Agent: MyApp/2.0");
+            Header(server.Requests[1], "User-Agent").Should().Be("User-Agent: MyApp/2.0");
+        }
+
+        [Fact]
+        public async Task Settings_Cookies_AreStoredAndSentOnTheNextCall()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 200 OK\r\nSet-Cookie: sid=abc123; Path=/\r\nContent-Length: 3\r\n\r\nin\n",
+                Ok);
+            var jar = new System.Net.CookieContainer();
+            var settings = new CurlSettings().WithCookies(jar);
+
+            await Curl.ExecuteAsync($"curl {server.Url("/login")}", settings);
+            await Curl.ExecuteAsync($"curl -b theme=dark {server.Url("/account")}", settings);
+
+            jar.GetCookieHeader(new Uri(server.Url("/"))).Should().Be("sid=abc123");
+            Header(server.Requests[0], "Cookie").Should().BeNull();
+            Header(server.Requests[1], "Cookie").Should().Be("Cookie: theme=dark; sid=abc123");
+        }
+
+        [Fact]
+        public async Task Settings_OnRedirect_IsCalledForEveryFollowedHop()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 302 Found\r\nLocation: /two\r\nContent-Length: 0\r\n\r\n",
+                "HTTP/1.1 301 Moved\r\nLocation: three\r\nContent-Length: 0\r\n\r\n",
+                Ok);
+            var hops = new System.Collections.Generic.List<string>();
+
+            var result = await Curl.ExecuteAsync($"curl -L {server.Url("/one")}", new CurlSettings().WithRedirectHandler(hops.Add));
+
+            result.Body.Should().Be("ok\n");
+            hops.Should().Equal(server.Url("/two"), server.Url("/three"));
+        }
+
+        [Fact]
+        public async Task Settings_OnRedirect_NotCalledWithoutL_AndAThrowAbortsWith42()
+        {
+            using var server = new RawReplyServer("HTTP/1.1 302 Found\r\nLocation: /two\r\nContent-Length: 0\r\n\r\n", Ok);
+            var hops = new System.Collections.Generic.List<string>();
+
+            await Curl.ExecuteAsync($"curl {server.Url("/one")}", new CurlSettings().WithRedirectHandler(hops.Add));
+            hops.Should().BeEmpty("without -L nothing is followed");
+
+            using var again = new RawReplyServer("HTTP/1.1 302 Found\r\nLocation: /two\r\nContent-Length: 0\r\n\r\n", Ok);
+            Func<Task> act = () => Curl.ExecuteAsync($"curl -L {again.Url("/one")}",
+                new CurlSettings().WithRedirectHandler(_ => throw new InvalidOperationException("no thanks")));
+            var ex = (await act.Should().ThrowAsync<CurlAbortedByCallbackException>()).Which;
+            ex.CurlErrorCode.Should().Be(42);
+            ex.InnerException.Should().BeOfType<InvalidOperationException>();
+            ExceptionMessageTests.AssertWhatFixLink(ex);
+        }
+
+        [Fact]
+        public async Task Settings_AutomaticDecompression_AppliesOnlyWhenSet()
+        {
+            using var server = new RawReplyServer(Ok);
+
+            await Curl.ExecuteAsync($"curl {server.Url("/")}", new CurlSettings());
+            await Curl.ExecuteAsync($"curl {server.Url("/")}", new CurlSettings().WithAutoDecompression());
+            await Curl.ExecuteAsync($"curl --compressed {server.Url("/")}", new CurlSettings { AutomaticDecompression = false });
+
+            Header(server.Requests[0], "Accept-Encoding").Should().BeNull("an untouched setting leaves the command in charge");
+            Header(server.Requests[1], "Accept-Encoding").Should().StartWith("Accept-Encoding: gzip, deflate");
+            Header(server.Requests[2], "Accept-Encoding").Should().BeNull("false turns --compressed off");
+        }
+
+        [Fact]
+        public async Task Settings_BufferSize_SetsTheReadChunk()
+        {
+            var body = new string('b', 3000);
+            using var server = new RawReplyServer($"HTTP/1.1 200 OK\r\nContent-Length: {body.Length}\r\n\r\n{body}");
+            var reports = 0;
+
+            var result = await Curl.ExecuteAsync($"curl {server.Url("/")}",
+                new CurlSettings().WithBufferSize(1000).WithProgress((a, b, c) => reports++));
+
+            result.Body.Should().Be(body);
+            reports.Should().BeGreaterOrEqualTo(3, "each read is at most 1000 bytes");
+        }
+
+        [Fact]
+        public async Task Builder_WithSettings_DoesNotChangeTheBuilder()
+        {
+            using var server = new RawReplyServer(Ok);
+            var builder = CurlRequestBuilder.Get(server.Url("/"));
+
+            await builder.ExecuteAsync(new CurlSettings().WithHeader("X-Once", "1").WithUserAgent("Once/1").WithTimeout(5));
+            await builder.ExecuteAsync();
+
+            Header(server.Requests[0], "X-Once").Should().Be("X-Once: 1");
+            Header(server.Requests[1], "X-Once").Should().BeNull();
+            builder.GetOptions().MaxTime.Should().BeNull();
+            builder.GetOptions().UserAgent.Should().BeNull();
+        }
+
+        // ------------------------------------------------------------------ E. Clone copies every property
+
+        [Fact]
+        public void Clone_CopiesEveryPublicProperty_AndNeverSharesACollection()
+        {
+            var original = new CurlOptions();
+            var properties = typeof(CurlOptions).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+                .Where(p => p.GetIndexParameters().Length == 0)
+                .ToList();
+            var skipped = new System.Collections.Generic.List<string>();
+            foreach (var property in properties)
+            {
+                if (!SetDistinctValue(original, property))
+                {
+                    skipped.Add(property.Name);
+                }
+            }
+            skipped.Should().BeEmpty("the test must know how to give every property a non-default value; extend SetDistinctValue for new types");
+
+            var clone = original.Clone();
+
+            foreach (var property in properties)
+            {
+                var before = property.GetValue(original);
+                var after = property.GetValue(clone);
+                if (before is System.Collections.IEnumerable list && !(before is string))
+                {
+                    after.Should().NotBeNull(property.Name);
+                    ReferenceEquals(before, after).Should().BeFalse($"{property.Name} must be a copy, not the same collection");
+                    if (property.Name == nameof(CurlOptions.AdditionalTransfers))
+                    {
+                        ((System.Collections.Generic.List<CurlOptions>)after!).Select(o => o.Url)
+                            .Should().Equal(((System.Collections.Generic.List<CurlOptions>)before!).Select(o => o.Url));
+                    }
+                    else
+                    {
+                        ((System.Collections.IEnumerable)after!).Cast<object>().Should().Equal(list.Cast<object>(), $"{property.Name} must keep its entries");
+                    }
+                }
+                else
+                {
+                    after.Should().BeEquivalentTo(before, $"Clone() must copy {property.Name}");
+                }
+            }
+
+            clone.Headers.ContainsKey("x-release").Should().BeTrue("the header dictionary keeps its case-insensitive comparer");
+        }
+
+        /// <summary>Gives <paramref name="property"/> a value that differs from a new CurlOptions' default.</summary>
+        private static bool SetDistinctValue(CurlOptions options, System.Reflection.PropertyInfo property)
+        {
+            var type = property.PropertyType;
+            var name = property.Name;
+            var current = property.GetValue(options);
+            switch (current)
+            {
+                case System.Collections.Generic.Dictionary<string, string> dictionary:
+                    dictionary["X-Release"] = name;
+                    return true;
+                case System.Collections.Generic.List<string> strings:
+                    strings.Add(name);
+                    return true;
+                case System.Collections.Generic.HashSet<string> set:
+                    set.Add(name);
+                    return true;
+                case System.Collections.Generic.List<CurlFormPart> parts:
+                    parts.Add(new CurlFormPart { Name = name, Value = "v" });
+                    return true;
+                case System.Collections.Generic.List<CurlOptions> transfers:
+                    transfers.Add(new CurlOptions { Url = "https://next.example/" + name });
+                    return true;
+            }
+
+            if (!property.CanWrite || property.SetMethod == null || !property.SetMethod.IsPublic)
+            {
+                return false;
+            }
+
+            object? value;
+            var underlying = Nullable.GetUnderlyingType(type) ?? type;
+            if (underlying == typeof(string)) value = "value-" + name;
+            else if (underlying == typeof(bool)) value = !(current as bool? ?? false);
+            else if (underlying == typeof(int)) value = 7;
+            else if (underlying == typeof(long)) value = 7L;
+            else if (underlying == typeof(double)) value = 7.5;
+            else if (underlying == typeof(DateTimeOffset)) value = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
+            else if (underlying.IsEnum) value = Enum.GetValues(underlying).Cast<object>().Last();
+            else if (underlying == typeof(byte[])) value = new byte[] { 1, 2, 3 };
+            else if (underlying == typeof(System.Net.NetworkCredential)) value = new System.Net.NetworkCredential("u-" + name, "p");
+            else if (underlying == typeof(AwsSigV4Config)) value = AwsSigV4Config.Parse("aws:amz:eu-west-1:s3");
+            else if (underlying == typeof(Action<double, long, long>)) value = new Action<double, long, long>((a, b, c) => { });
+            else return false;
+
+            property.SetValue(options, value);
+            return true;
+        }
+
         // ------------------------------------------------------------------ G. content types and generated code
 
         private static string? Header(string request, string name) =>
