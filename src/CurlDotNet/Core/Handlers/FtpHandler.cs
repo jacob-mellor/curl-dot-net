@@ -41,15 +41,9 @@ namespace CurlDotNet.Core
                 {
                     request = (FtpWebRequest)WebRequest.Create(options.Url);
                 }
-                catch (NotSupportedException ex)
+                catch (NotSupportedException)
                 {
-                    Console.WriteLine($"[FtpHandler] Caught NotSupportedException: {ex.Message}");
-                    throw new CurlException("FTP protocol not supported on this platform", 1);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[FtpHandler] Caught unexpected exception: {ex.GetType().Name} - {ex.Message}");
-                    throw;
+                    throw new CurlException(NotSupportedMessage, 1, options.OriginalCommand);
                 }
 
                 // Set method
@@ -86,10 +80,11 @@ namespace CurlDotNet.Core
                     }
                 }
 
-                // Handle upload
-                if (request.Method == WebRequestMethods.Ftp.UploadFile && !string.IsNullOrEmpty(options.Data))
+                // Handle upload: -T FILE puts the file's exact bytes (options.BinaryData); a hand-built
+                // request may carry text in options.Data instead. An empty file is uploaded as an empty file.
+                if (request.Method == WebRequestMethods.Ftp.UploadFile)
                 {
-                    byte[] fileContents = Encoding.UTF8.GetBytes(options.Data);
+                    var fileContents = UploadPayload(options);
                     request.ContentLength = fileContents.Length;
 
                     using (Stream requestStream = await Task.Factory.FromAsync(
@@ -161,23 +156,42 @@ namespace CurlDotNet.Core
             }
             catch (NotSupportedException)
             {
-                throw new CurlException("FTP protocol not supported on this platform", 1); // CURLE_UNSUPPORTED_PROTOCOL
+                throw new CurlException(NotSupportedMessage, 1, options.OriginalCommand); // CURLE_UNSUPPORTED_PROTOCOL
             }
             catch (WebException ex)
             {
                 if (ex.Response is FtpWebResponse ftpResponse)
                 {
-                    throw new CurlFtpException($"FTP error: {ftpResponse.StatusDescription}",
+                    throw new CurlFtpException(
+                        $"The FTP server answered {(int)ftpResponse.StatusCode} ({ftpResponse.StatusDescription?.Trim()}) for {options.Url}. " +
+                        "Check the path, the user name and password (-u user:password; anonymous is used without -u) and that the server allows " +
+                        "this operation. See " + FtpDocs,
                         (int)ftpResponse.StatusCode);
                 }
 
                 var uri = new Uri(options.Url);
-                throw new CurlCouldntConnectException(uri.Host, uri.Port);
+                throw new CurlCouldntConnectException(uri.Host, uri.Port > 0 ? uri.Port : 21, options.OriginalCommand);
             }
             catch (UriFormatException)
             {
                 throw new CurlMalformedUrlException(options.Url);
             }
+        }
+
+        private const string FtpDocs = "https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md";
+
+        private const string NotSupportedMessage =
+            "FTP is not supported by the .NET runtime on this platform (FtpWebRequest is unavailable). " +
+            "Use an http:// or https:// URL, or run on a platform whose .NET runtime includes FtpWebRequest. See " + FtpDocs;
+
+        /// <summary>The bytes an FTP upload sends: the <c>-T</c> file, else <see cref="CurlOptions.Data"/> as UTF-8, else nothing.</summary>
+        internal static byte[] UploadPayload(CurlOptions options)
+        {
+            if (options.BinaryData != null)
+            {
+                return options.BinaryData;
+            }
+            return options.Data != null ? Encoding.UTF8.GetBytes(options.Data) : Array.Empty<byte>();
         }
 
         public bool SupportsProtocol(string protocol)

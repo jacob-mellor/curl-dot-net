@@ -480,6 +480,100 @@ namespace CurlDotNet.Tests
             cookie.Should().EndWith("name1=v1");
         }
 
+        // ------------------------------------------------------------------ FTP upload
+
+        [Fact]
+        public async Task FtpUpload_SendsTheUploadFilesExactBytes()
+        {
+            var file = P("upload.bin");
+            var bytes = new byte[] { 0, 1, 2, 0xFF, (byte)'\n', 0x80, 0x7F };
+            File.WriteAllBytes(file, bytes);
+            using var ftp = new MiniFtpServer();
+
+            await Curl.ExecuteAsync($"curl -T {Q(file)} ftp://127.0.0.1:{ftp.Port}/incoming/");
+
+            ftp.StoredPath.Should().Contain("upload.bin");
+            ftp.Stored.Should().Equal(bytes);
+        }
+
+        [Fact]
+        public void FtpUploadPayload_PrefersTheUploadFile_ThenData_ThenNothing()
+        {
+            FtpHandler.UploadPayload(new CurlOptions { BinaryData = new byte[] { 9 }, Data = "text" }).Should().Equal(new byte[] { 9 });
+            FtpHandler.UploadPayload(new CurlOptions { Data = "text" }).Should().Equal(Encoding.UTF8.GetBytes("text"));
+            FtpHandler.UploadPayload(new CurlOptions()).Should().BeEmpty();
+        }
+
+        /// <summary>Just enough of an FTP server for FtpWebRequest to STOR one file in passive mode.</summary>
+        private sealed class MiniFtpServer : IDisposable
+        {
+            private readonly System.Net.Sockets.TcpListener _control = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+
+            public MiniFtpServer()
+            {
+                _control.Start();
+                Port = ((System.Net.IPEndPoint)_control.LocalEndpoint).Port;
+                _ = Task.Run(ServeAsync);
+            }
+
+            public int Port { get; }
+
+            public string StoredPath { get; private set; } = string.Empty;
+
+            public byte[] Stored { get; private set; } = Array.Empty<byte>();
+
+            private async Task ServeAsync()
+            {
+                try
+                {
+                    using var client = await _control.AcceptTcpClientAsync();
+                    using var stream = client.GetStream();
+                    using var reader = new StreamReader(stream, Encoding.ASCII);
+                    using var writer = new StreamWriter(stream, Encoding.ASCII) { NewLine = "\r\n", AutoFlush = true };
+                    System.Net.Sockets.TcpListener? data = null;
+                    await writer.WriteLineAsync("220 mini ftp");
+                    string? line;
+                    while ((line = await reader.ReadLineAsync()) != null)
+                    {
+                        var verb = line.Split(' ')[0].ToUpperInvariant();
+                        switch (verb)
+                        {
+                            case "USER": await writer.WriteLineAsync("331 password please"); break;
+                            case "PASS": await writer.WriteLineAsync("230 logged in"); break;
+                            case "PWD": await writer.WriteLineAsync("257 \"/\" is current"); break;
+                            case "CWD": await writer.WriteLineAsync("250 ok"); break;
+                            case "TYPE": await writer.WriteLineAsync("200 type set"); break;
+                            case "PASV":
+                                data = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+                                data.Start();
+                                var port = ((System.Net.IPEndPoint)data.LocalEndpoint).Port;
+                                await writer.WriteLineAsync($"227 Entering Passive Mode (127,0,0,1,{port / 256},{port % 256})");
+                                break;
+                            case "STOR":
+                                StoredPath = line.Substring(5);
+                                await writer.WriteLineAsync("150 send it");
+                                using (var dataClient = await data!.AcceptTcpClientAsync())
+                                using (var ms = new MemoryStream())
+                                {
+                                    await dataClient.GetStream().CopyToAsync(ms);
+                                    Stored = ms.ToArray();
+                                }
+                                data.Stop();
+                                await writer.WriteLineAsync("226 stored");
+                                break;
+                            case "QUIT": await writer.WriteLineAsync("221 bye"); return;
+                            default: await writer.WriteLineAsync("200 ok"); break;
+                        }
+                    }
+                }
+                catch (Exception ex) when (ex is IOException || ex is ObjectDisposedException || ex is System.Net.Sockets.SocketException)
+                {
+                }
+            }
+
+            public void Dispose() => _control.Stop();
+        }
+
         // ------------------------------------------------------------------ crypto primitives
 
         private static string Hex(byte[] bytes) => string.Concat(bytes.Select(b => b.ToString("x2")));
