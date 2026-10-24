@@ -77,8 +77,6 @@ namespace CurlDotNet.Core.Auth
     /// </summary>
     internal sealed class HttpAuth
     {
-        private const string DocsUrl = "https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/index.md";
-
         private readonly AuthSide? _host;
         private readonly AuthSide? _proxy;
         private readonly NetworkCredential? _proxyCredentials;
@@ -211,9 +209,10 @@ namespace CurlDotNet.Core.Auth
                     {
                         case NtlmStage.Type2:
                             value = "NTLM " + (side.Ntlm.Type3(credentials.UserName ?? string.Empty, credentials.Password ?? string.Empty)
-                                ?? throw new CurlException(
-                                    $"The NTLM {(side.IsProxy ? "proxy " : string.Empty)}user name \"{Shorten(credentials.UserName)}\" is too long: the NTLM type-3 message would exceed {NtlmState.BufferSize} bytes. " +
-                                    "Use a shorter user (and domain) name. See " + DocsUrl,
+                                ?? throw new CurlException(CurlException.Compose(
+                                    $"The NTLM {(side.IsProxy ? "proxy " : string.Empty)}user name \"{Shorten(credentials.UserName)}\" is too long: the NTLM type-3 message would exceed {NtlmState.BufferSize} bytes",
+                                    $"Use a shorter user (and domain) name in {(side.IsProxy ? "-U/--proxy-user" : "-u/--user")}, or a different scheme such as --basic over https:// if the server offers it.",
+                                    DocLinks.Auth),
                                     100));
                             side.Ntlm.Stage = NtlmStage.Type3;
                             side.Done = true;

@@ -383,21 +383,39 @@ namespace CurlDotNet.Core
                 return sb.ToString();
             }
 
+            string? dir;
             try
             {
-                var dir = Path.GetDirectoryName(Path.GetFullPath(_jarPath));
-                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-                {
-                    throw new DirectoryNotFoundException($"directory '{dir}' does not exist");
-                }
+                dir = Path.GetDirectoryName(Path.GetFullPath(_jarPath));
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is PathTooLongException)
+            {
+                throw new CurlWriteErrorException(_jarPath!, CurlException.Compose(
+                    $"could not save the cookie jar: \"{_jarPath}\" given with -c/--cookie-jar is not a valid file name ({ex.Message.TrimEnd('.')}).",
+                    "Use a plain file name such as -c cookies.txt, without characters like < > | or a stray quote.",
+                    DocLinks.CookbookCookies), command, ex);
+            }
+
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                throw new CurlWriteErrorException(_jarPath!, CurlException.Compose(
+                    $"could not save the cookie jar \"{_jarPath}\" given with -c/--cookie-jar: the folder \"{dir}\" does not exist.",
+                    "Create the folder first, or point -c at a file in an existing folder (for example -c cookies.txt in the current directory).",
+                    DocLinks.CookbookCookies), command);
+            }
+
+            try
+            {
                 File.WriteAllText(_jarPath, sb.ToString(), WireText.Latin1);
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
-                throw new CurlWriteErrorException(_jarPath!,
-                    $"could not save the cookie jar given with -c/--cookie-jar: {ex.Message}. Point -c at a writable file in an existing directory." +
-                    "\nFor cookie handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/cookie-errors.md",
-                    command);
+                var fix = ex is UnauthorizedAccessException
+                    ? "Give the current user write permission on the file and its folder, or remove the read-only flag; naming a folder instead of a file also gives this error."
+                    : "Check that no other program has the file open and that the disk is not full, then run the command again.";
+                throw new CurlWriteErrorException(_jarPath!, CurlException.Compose(
+                    $"could not save the cookie jar \"{_jarPath}\" given with -c/--cookie-jar: {ex.Message.TrimEnd('.')}.",
+                    fix, DocLinks.CookbookCookies), command, ex);
             }
             return null;
         }

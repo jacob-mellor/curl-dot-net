@@ -857,8 +857,11 @@ namespace CurlDotNet.Core
 
         private static CurlInvalidCommandException Error(string problem, string fix, string part, string command)
         {
+            var near = string.IsNullOrEmpty(part) || problem.IndexOf(part, StringComparison.Ordinal) >= 0
+                ? string.Empty
+                : $", near \"{ErrorText.Preview(part, 40)}\"";
             return new CurlInvalidCommandException(
-                $"{problem} (reading the command as Invoke-WebRequest syntax). {fix} See {CommandParser.FlavorDocs}",
+                CurlException.Compose($"{problem} (reading the command as Invoke-WebRequest syntax{near}).", fix, DocLinks.HowToFlavors),
                 part, command);
         }
 

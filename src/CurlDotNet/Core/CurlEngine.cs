@@ -65,7 +65,10 @@ namespace CurlDotNet.Core
 
         private CurlEngine(HttpClient httpClient, bool ownsHttpClient)
         {
-            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient), CurlException.Compose(
+                "The HttpClient passed to CurlDotNet is null.",
+                "Pass an HttpClient instance (for example from IHttpClientFactory), or use the overload without an HttpClient so CurlDotNet creates and pools its own.",
+                DocLinks.HowToAspNetCore));
             _parser = new CommandParser();
             // A caller-supplied HttpClient is used as-is (its handler decides TLS/proxy policy); only
             // the engine's own default client is swapped for a configured one when -k/-x/--digest need it.
@@ -98,7 +101,7 @@ namespace CurlDotNet.Core
             // Validate command
             if (string.IsNullOrWhiteSpace(command))
             {
-                throw new ArgumentException("Command cannot be null or empty", nameof(command));
+                throw new ArgumentException(EmptyCommandMessage(command), nameof(command));
             }
 
             var options = _parser.Parse(command);
@@ -115,12 +118,18 @@ namespace CurlDotNet.Core
         {
             if (string.IsNullOrWhiteSpace(command))
             {
-                throw new ArgumentException("Command cannot be null or empty", nameof(command));
+                throw new ArgumentException(EmptyCommandMessage(command), nameof(command));
             }
 
             var options = _parser.Parse(command, flavor);
             return await ExecuteAsync(options, cancellationToken);
         }
+
+        /// <summary>The message for a null, empty or whitespace-only command string.</summary>
+        private static string EmptyCommandMessage(string? command) => CurlException.Compose(
+            $"The curl command to execute is {(command == null ? "null" : command.Length == 0 ? "an empty string" : "only whitespace")}, so there is nothing to run.",
+            "Pass a command such as \"curl https://api.example.com/users\" (the leading 'curl' is optional); when it is built from variables, check that they are set.",
+            DocLinks.HowToRunCommand);
 
         /// <summary>
         /// Execute a curl command with custom settings. The command is read with
@@ -153,12 +162,23 @@ namespace CurlDotNet.Core
         public async Task<CurlResult> ExecuteAsync(CurlOptions options, CancellationToken cancellationToken)
         {
             if (options == null)
-                throw new ArgumentNullException(nameof(options));
+                throw new ArgumentNullException(nameof(options), CurlException.Compose(
+                    "The CurlOptions passed to ExecuteAsync is null.",
+                    "Create the options with new CurlOptions { Url = \"https://...\" }, CurlRequestBuilder.Get(url).GetOptions(), or pass a command string instead.",
+                    DocLinks.HowToRunCommand));
 
             if (_disposed)
-                throw new ObjectDisposedException(nameof(CurlEngine));
+                throw new ObjectDisposedException(nameof(CurlEngine), CurlException.Compose(
+                    "This CurlEngine (or the DotNetCurl/LibCurl instance that owns it) was disposed and cannot run more transfers.",
+                    "Create a new instance, or keep the instance alive (for example as a singleton) for as long as you send requests.",
+                    DocLinks.HowItWorks));
 
-            if (options.AdditionalTransfers.Count == 0)
+            // hand-built options may null out the collections; treat that as "none" instead of a NullReferenceException
+            options.Headers ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            options.FormData ??= new Dictionary<string, string>();
+            options.Files ??= new Dictionary<string, string>();
+
+            if (options.AdditionalTransfers == null || options.AdditionalTransfers.Count == 0)
             {
                 return await ExecuteTransferAsync(options, cancellationToken);
             }
@@ -262,7 +282,10 @@ namespace CurlDotNet.Core
         private async Task<CurlResult> RunHandlerAsync(CurlOptions options, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(options.Url))
-                throw new CurlException("No URL specified", 3);
+                throw new CurlException(CurlException.Compose(
+                    "No URL specified: the request has no URL to fetch.",
+                    "Add the URL to the command (\"curl https://api.example.com/items\") or set CurlOptions.Url; when the URL comes from a variable, check that it is not empty.",
+                    DocLinks.Url), 3, options.OriginalCommand);
 
             options.Url = CommandParser.NormalizeUrl(options.Url);
 
@@ -279,7 +302,10 @@ namespace CurlDotNet.Core
 
                 if (!_handlers.TryGetValue(protocol, out var handler))
                 {
-                    throw new CurlUnsupportedProtocolException($"Unsupported protocol: {protocol}");
+                    throw new CurlUnsupportedProtocolException(protocol, CurlException.Compose(
+                        $"Protocol \"{protocol}\" not supported: {ErrorText.SafeUrl(options.Url)} uses a scheme CurlDotNet does not implement",
+                        "Use an http://, https://, ftp://, ftps:// or file:// URL; check for a typo in the scheme (for example htps://).",
+                        DocLinks.SupportedProtocols), options.OriginalCommand);
                 }
 
                 // Execute with appropriate handler
@@ -288,32 +314,70 @@ namespace CurlDotNet.Core
 
                 return result;
             }
-            catch (UriFormatException)
+            catch (UriFormatException ex)
             {
-                throw new CurlMalformedUrlException($"Invalid URL: {options.Url}");
+                // the parser adds http:// to a URL without a scheme (like curl); name the text the user typed
+                var typed = options.Url ?? string.Empty;
+                var added = typed.StartsWith("http://", StringComparison.Ordinal)
+                            && !string.IsNullOrEmpty(options.OriginalCommand)
+                            && options.OriginalCommand!.IndexOf(typed, StringComparison.Ordinal) < 0
+                            && options.OriginalCommand.IndexOf(typed.Substring(7), StringComparison.Ordinal) >= 0;
+                var shown = added
+                    ? $"'{ErrorText.SafeUrl(typed.Substring(7))}' (read as '{ErrorText.SafeUrl(typed)}' after adding http://, because it has no scheme curl recognises)"
+                    : $"'{ErrorText.SafeUrl(typed)}'";
+                throw new CurlMalformedUrlException(options.Url, CurlException.Compose(
+                    $"{shown} could not be parsed as a URL ({ex.Message})",
+                    "Write it as scheme://host[:port]/path, percent-encode spaces (%20) and other special characters, and quote the URL in the command when it contains & ? or spaces.",
+                    DocLinks.Url), options.OriginalCommand);
             }
             catch (CurlAbortedByCallbackException ex) when (cancellationToken.IsCancellationRequested)
             {
                 // Standard .NET cancellation contract at the public boundary: catch (OperationCanceledException) just works
-                throw new OperationCanceledException("The curl request was cancelled.", ex, cancellationToken);
+                throw new OperationCanceledException(CancelledMessage(options), ex, cancellationToken);
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException ex)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    throw new OperationCanceledException("The curl request was cancelled.", cancellationToken);
+                    throw new OperationCanceledException(CancelledMessage(options), ex, cancellationToken);
                 }
                 var timeoutSeconds = GetTimeoutSeconds(options);
-                throw new CurlTimeoutException(
-                    $"Operation timed out after {timeoutSeconds} seconds",
+                throw new CurlTimeoutException(CurlException.Compose(
+                    $"Operation timed out after {timeoutSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture)} seconds while fetching {ErrorText.SafeUrl(options.Url)}",
+                    "Raise -m/--max-time (or CurlSettings.WithTimeout) for slow servers or large downloads; if you passed your own HttpClient, its Timeout also applies.",
+                    DocLinks.Timeout),
                     options.OriginalCommand,
                     TimeSpan.FromSeconds(timeoutSeconds));
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
                 var uri = new Uri(options.Url);
-                throw new CurlCouldntConnectException(uri.Host, uri.Port > 0 ? uri.Port : (uri.Scheme == "https" ? 443 : 80), options.OriginalCommand);
+                var port = uri.Port > 0 ? uri.Port : (uri.Scheme == "https" ? 443 : 80);
+                throw new CurlCouldntConnectException(uri.Host, port, InnermostMessage(ex), viaProxy: false, options.OriginalCommand);
             }
+            catch (IOException ex)
+            {
+                // last line of defence: no raw I/O exception leaves the engine
+                throw new CurlReceiveErrorException(CurlException.Compose(
+                    $"The transfer of {ErrorText.SafeUrl(options.Url)} failed with an I/O error: {ex.GetType().Name}: {ex.Message}",
+                    "The connection or a local file broke during the transfer; retry with --retry 3, and run with --trace-ascii - to see where it stopped.",
+                    DocLinks.ErrorReference), options.OriginalCommand, ex);
+            }
+        }
+
+        private static string CancelledMessage(CurlOptions options) => CurlException.Compose(
+            $"The curl request to {ErrorText.SafeUrl(options.Url)} was cancelled by the CancellationToken passed to the call.",
+            "This is expected when you cancel on purpose: catch OperationCanceledException. Otherwise check what cancels the token (CancelAfter, an ASP.NET Core RequestAborted token).",
+            DocLinks.TutorialCancellation);
+
+        private static string InnermostMessage(Exception ex)
+        {
+            var e = ex;
+            while (e.InnerException != null)
+            {
+                e = e.InnerException;
+            }
+            return e.Message.TrimEnd('.');
         }
 
         /// <summary>
@@ -338,7 +402,9 @@ namespace CurlDotNet.Core
                     return new ValidationResult
                     {
                         IsValid = false,
-                        Error = "No URL specified"
+                        Error = CurlException.Compose("No URL specified: the command has options but nothing that looks like a URL.",
+                            "Add the URL, for example curl -H 'Accept: application/json' https://api.example.com/items, and quote it when it contains & or ?.",
+                            DocLinks.Url)
                     };
                 }
 
@@ -348,7 +414,9 @@ namespace CurlDotNet.Core
                     return new ValidationResult
                     {
                         IsValid = false,
-                        Error = $"Unknown option: {string.Join(", ", options.UnknownOptions)}",
+                        Error = CurlException.Compose($"Unknown option: {string.Join(", ", options.UnknownOptions)} (the curl tool would stop with exit code 2; Execute ignores it).",
+                            "Check the spelling against 'curl --help all' (options are case-sensitive: -o and -O differ), or remove the option if it belongs to a newer curl.",
+                            DocLinks.CliCompatibility),
                         ParsedOptions = options
                     };
                 }
@@ -361,7 +429,9 @@ namespace CurlDotNet.Core
                         return new ValidationResult
                         {
                             IsValid = false,
-                            Error = $"Unsupported protocol: {uri.Scheme}"
+                            Error = CurlException.Compose($"Unsupported protocol: {uri.Scheme} (in {ErrorText.SafeUrl(options.Url)}).",
+                                "Use an http://, https://, ftp://, ftps:// or file:// URL; other schemes are not implemented by CurlDotNet.",
+                                DocLinks.SupportedProtocols)
                         };
                     }
                 }
@@ -370,7 +440,9 @@ namespace CurlDotNet.Core
                     return new ValidationResult
                     {
                         IsValid = false,
-                        Error = $"Invalid URL: {options.Url}"
+                        Error = CurlException.Compose($"Invalid URL: {ErrorText.SafeUrl(options.Url)} is not a valid URL.",
+                            "Write it as scheme://host/path (for example https://example.com/a%20b), percent-encode spaces and quote the URL in the command.",
+                            DocLinks.Url)
                     };
                 }
 
@@ -675,7 +747,7 @@ namespace CurlDotNet.Core
             return sb.ToString();
         }
 
-        private void ApplySettings(CurlOptions options, CurlSettings settings)
+        internal static void ApplySettings(CurlOptions options, CurlSettings settings)
         {
             if (settings.MaxTimeSeconds.HasValue)
             {
@@ -740,7 +812,7 @@ namespace CurlDotNet.Core
 
         private static double GetTimeoutSeconds(CurlOptions options)
         {
-            // Like curl, no --max-time means no transfer timeout (HttpClient's own 100 s cap still applies)
+            // Like curl, no --max-time means no transfer timeout: the HttpClients CurlDotNet creates use Timeout.InfiniteTimeSpan
             var timeout = options.MaxTime ?? Curl.DefaultMaxTimeSeconds;
             return timeout > 0 ? timeout : 0;
         }
@@ -786,23 +858,61 @@ namespace CurlDotNet.Core
     }
 
     /// <summary>
-    /// Result of command validation.
+    /// What <see cref="Curl.Validate(string)"/> found when it parsed a curl command without sending it:
+    /// whether it would run (<see cref="IsValid"/>), why not (<see cref="Error"/>) and the parsed options.
     /// </summary>
+    /// <remarks>
+    /// <para>Validation parses the command exactly as <see cref="Curl.ExecuteAsync(string)"/> would (same shell
+    /// flavor rules), then checks that there is a URL, that every option is known and that the URL's scheme is
+    /// one CurlDotNet implements (http, https, ftp, ftps, file). Nothing is sent over the network, so a
+    /// valid command can still fail at run time (unknown host, refused connection, HTTP errors).</para>
+    /// <para>Example: <c>var check = Curl.Validate(userInput); if (!check.IsValid) { ShowError(check.Error); return; }</c>
+    /// then <c>var result = await Curl.ExecuteAsync(userInput);</c>.</para>
+    /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/run-curl-command-in-csharp/README.md</para>
+    /// </remarks>
+    /// <seealso cref="Curl.Validate(string)"/>
+    /// <seealso cref="Curl.Validate(string, CurlFlavor)"/>
+    /// <seealso cref="CurlOptions"/>
     public class ValidationResult
     {
         /// <summary>
-        /// Whether the validation succeeded.
+        /// True when the command parsed, has a URL, uses only known options and a supported scheme, so
+        /// executing it would at least start a transfer.
         /// </summary>
+        /// <value><c>true</c> for a runnable command; <c>false</c> with <see cref="Error"/> set otherwise.</value>
+        /// <remarks>
+        /// <para>Example: <c>Curl.Validate("curl https://example.com").IsValid</c> is <c>true</c>;
+        /// <c>Curl.Validate("curl --no-such-flag https://example.com").IsValid</c> is <c>false</c>.</para>
+        /// </remarks>
+        /// <seealso cref="Error"/>
         public bool IsValid { get; set; }
 
         /// <summary>
-        /// Error message if validation failed, null if valid.
+        /// Why the command is not valid, worded for the person who wrote it; null when <see cref="IsValid"/> is true.
         /// </summary>
+        /// <value>One of: <c>No URL specified</c>; <c>Unknown option: --a, --b</c> (every unknown option, comma
+        /// separated); <c>Unsupported protocol: gopher</c>; <c>Invalid URL: ...</c>; or, when parsing itself
+        /// failed (an unbalanced quote, an option without its value), the parser's exception message, which
+        /// spans several lines: what is wrong, how to fix it and a <c>See https://...</c> documentation link.</value>
+        /// <remarks>
+        /// <para>Show it as-is to the user, or take the first line for a short status bar.</para>
+        /// <para>Example: <c>Curl.Validate("curl -H").Error</c> explains that <c>-H</c> needs a header value.</para>
+        /// </remarks>
+        /// <seealso cref="IsValid"/>
         public string? Error { get; set; }
 
         /// <summary>
-        /// Parsed options if validation succeeded, null if invalid.
+        /// The options the command parsed into (URL, method, headers, data, flags), for inspection or for
+        /// running later with <see cref="Curl.ExecuteAsync(CurlOptions)"/>.
         /// </summary>
+        /// <value>Set when the command is valid and also when its only problem is unknown options; null when
+        /// there is no URL, the scheme is unsupported, the URL is malformed or parsing failed.</value>
+        /// <remarks>
+        /// <para>Example: <c>var opts = Curl.Validate("curl -X POST -d a=1 https://example.com").ParsedOptions;</c>
+        /// gives <c>opts.Method == "POST"</c> and <c>opts.Data == "a=1"</c>.</para>
+        /// </remarks>
+        /// <seealso cref="CurlOptions"/>
+        /// <seealso cref="Curl.ExecuteAsync(CurlOptions)"/>
         public CurlOptions? ParsedOptions { get; set; }
     }
 }

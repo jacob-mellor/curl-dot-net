@@ -22,4 +22,3 @@
 436   # same as 433 (CURL_HOME)
 
 # Small library gaps
-419   # --dump-header to a path that cannot be created should be exit 23 (write error); the transfer error 52 wins today

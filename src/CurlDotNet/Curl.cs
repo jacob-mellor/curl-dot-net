@@ -24,21 +24,54 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CurlDotNet.Core;
+using CurlDotNet.Exceptions;
 using CurlRequestBuilder = CurlDotNet.Core.CurlRequestBuilder;
 
 namespace CurlDotNet
 {
     /// <summary>
-    /// <para><b>🚀 THE MAIN CURLDOTNET CLASS - Start here!</b></para>
-    ///
-    /// <para>This class lets you run ANY curl command in C# by just copying and pasting it as a string.
-    /// No translation needed. No learning curve. If it works in curl, it works here.</para>
-    ///
+    /// Runs curl commands from C#: pass the command text you would type in a terminal (for example
+    /// <c>curl -H 'Accept: application/json' https://api.example.com</c>) and get a <see cref="CurlResult"/> back.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Start here.</b> <see cref="ExecuteAsync(string)"/> is the main method: copy a command from API
+    /// documentation, Stack Overflow, Postman ("Code &gt; cURL") or a browser's "Copy as cURL" and pass it as a string.
+    /// The leading <c>curl</c> is optional. Shell quoting, line continuations (<c>\</c>, <c>^</c>, backtick) and
+    /// environment variables are read the way the shell it came from would read them (see <see cref="CurlFlavor"/>).</para>
+    /// <para><b>Four ways to make a request</b>, all producing the same <see cref="CurlResult"/>:
+    /// a command string with <see cref="ExecuteAsync(string)"/>; a typed <see cref="CurlOptions"/> object with
+    /// <see cref="ExecuteAsync(CurlOptions)"/> (nothing is parsed, so data needs no quoting); the fluent
+    /// <see cref="CurlRequestBuilder"/> (<c>CurlRequestBuilder.Get(url).WithHeader(...).ExecuteAsync()</c>); and the
+    /// libcurl-style <see cref="Lib.LibCurl"/> instance API with default headers and timeouts. The quick helpers
+    /// <see cref="GetAsync"/>, <see cref="PostAsync"/>, <see cref="PostJsonAsync"/> and <see cref="DownloadAsync"/>
+    /// cover one-line cases.</para>
+    /// <para><b>What counts as a failure.</b> Like the curl tool, an HTTP error status (404, 500...) is not an
+    /// exception: you get a result with <see cref="CurlResult.StatusCode"/> set, and can call
+    /// <see cref="CurlResult.EnsureSuccess"/>. Add <c>-f</c>/<c>--fail</c> to the command to turn HTTP errors into a
+    /// <see cref="CurlHttpReturnedErrorException"/> (exit code 22). Everything curl reports with a non-zero exit code
+    /// (DNS failure 6, connection refused 7, timeout 28, TLS problem 35/60, write error 23...) throws a
+    /// <see cref="CurlException"/> subtype whose <see cref="CurlException.CurlErrorCode"/> is curl's exit code and whose
+    /// message says what happened, how to fix it and where to read more.</para>
+    /// <para><b>Sync and async.</b> Every <c>...Async</c> method has a blocking twin without the suffix
+    /// (<see cref="Execute(string)"/>, <see cref="Get"/>, <see cref="Post"/>, <see cref="PostJson"/>,
+    /// <see cref="Download"/>). Use the async ones in UI, ASP.NET and any code that is already async.</para>
+    /// <para><b>Thread safety.</b> All static methods are safe to call from many threads at once; they share one
+    /// pooled connection engine. The <c>Default*</c> properties are process-wide settings read at the start of every
+    /// request, so set them once at start-up.</para>
+    /// <para><b>Memory.</b> The response body is read into memory (<see cref="CurlResult.Body"/> or
+    /// <see cref="CurlResult.BinaryData"/>) even when <c>-o</c> also writes it to a file, so for multi-gigabyte
+    /// downloads use a streaming <c>HttpClient</c> instead.</para>
+    /// <para>Example: <c>var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");</c> then
+    /// <c>Console.WriteLine($"{result.StatusCode}: {result.Body}");</c>.</para>
+    /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/run-curl-command-in-csharp/README.md
+    /// - error handling: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</para>
+    /// <para>Sponsored by <see href="https://ironsoftware.com">IronSoftware</see> - creators of IronPDF, IronOCR, IronXL, and IronBarcode.</para>
+    /// </remarks>
     /// <example>
     /// <code language="csharp">
     /// // Just paste any curl command as a string:
     /// var response = await Curl.ExecuteAsync("curl https://api.github.com");
-    /// Console.WriteLine(response.Body);  // That's it! You're done!
+    /// Console.WriteLine(response.Body);
     ///
     /// // Apply CurlSettings for retries/timeouts
     /// var settings = new CurlSettings()
@@ -46,46 +79,18 @@ namespace CurlDotNet
     ///     .WithRetries(count: 2, delayMs: 500);
     /// var json = await Curl.ExecuteAsync("curl https://httpbin.org/json", settings);
     /// json.EnsureSuccess();
+    ///
+    /// // Or build the request in code
+    /// var result = await CurlRequestBuilder.Post("https://api.example.com/data")
+    ///     .WithJson(new { key = "value" })
+    ///     .ExecuteAsync();
     /// </code>
     /// </example>
-    ///
-    /// <para><b>What is curl?</b> curl is the universal tool for making HTTP requests from the command line.
-    /// Every API documentation uses it. Now you can use those exact same commands in your C# code.</para>
-    ///
-    /// <para><b>Learn more:</b></para>
-    /// <list type="bullet">
-    /// <item>📖 curl documentation: <see href="https://curl.se/docs/"/></item>
-    /// <item>📚 curl tutorial: <see href="https://curl.se/docs/tutorial.html"/></item>
-    /// <item>⌨️ curl command generator: <see href="https://curlbuilder.com/"/></item>
-    /// </list>
-    /// </summary>
-    /// <remarks>
-    /// <para><b>Why use CurlDotNet instead of HttpClient?</b></para>
-    /// <list type="number">
-    /// <item>✂️ <b>Copy &amp; Paste</b> - Use commands directly from API docs without translation</item>
-    /// <item>🎓 <b>No Learning Curve</b> - If you know curl (everyone does), you know this</item>
-    /// <item>🔄 <b>Easy Migration</b> - Move from bash scripts to C# without rewriting</item>
-    /// <item>📦 <b>All Features</b> - Supports all 300+ curl options out of the box</item>
-    /// </list>
-    ///
-    /// <para><b>Thread Safety:</b> All methods are thread-safe. You can call them from multiple threads simultaneously.</para>
-    ///
-    /// <para><b>Memory Efficiency:</b> Responses are streamed, not loaded into memory all at once. Perfect for large files.</para>
-    ///
-    /// <para><b>Sponsored by</b> <see href="https://ironsoftware.com">IronSoftware</see> - creators of IronPDF, IronOCR, IronXL, and IronBarcode.</para>
-    ///
-    /// <para><b>Two Ways to Use CurlDotNet:</b></para>
-    /// <list type="number">
-    /// <item>
-    /// <b>Paste curl commands:</b> Just copy/paste any curl command string - it works!
-    /// <code>var result = await Curl.ExecuteAsync("curl -X POST https://api.example.com/data -H 'Content-Type: application/json' -d '{\"key\":\"value\"}'");</code>
-    /// </item>
-    /// <item>
-    /// <b>Use fluent builder:</b> For programmatic API with IntelliSense
-    /// <code>var result = await CurlRequestBuilder.Post("https://api.example.com/data").WithHeader("Content-Type", "application/json").WithJson(new { key = "value" }).ExecuteAsync();</code>
-    /// </item>
-    /// </list>
-    /// </remarks>
+    /// <seealso cref="DotNetCurl"/>
+    /// <seealso cref="CurlRequestBuilder"/>
+    /// <seealso cref="Lib.LibCurl"/>
+    /// <seealso cref="CurlResult"/>
+    /// <seealso cref="CurlException"/>
     public static partial class Curl
     {
         private static readonly CurlEngine _engine = new CurlEngine();
@@ -94,28 +99,46 @@ namespace CurlDotNet
         private static volatile int _defaultMaxTimeSeconds = 0; // 0 = no timeout
 
         /// <summary>
-        /// The curl release whose command-line behaviour CurlDotNet reproduces. Used for the default
-        /// <c>User-Agent</c> header (<c>curl/8.7.1</c>) and reported by <c>curl --version</c> style output.
+        /// The curl release (<c>8.7.1</c>) whose command-line behaviour CurlDotNet reproduces; it is also the
+        /// version in the default <c>User-Agent: curl/8.7.1</c> header.
         /// </summary>
+        /// <remarks>
+        /// <para>Option parsing, exit codes, <c>-w</c> variables and wire behaviour follow this curl version. When a
+        /// newer curl behaves differently, CurlDotNet behaves like this one.</para>
+        /// <para>Example: <c>Console.WriteLine($"Compatible with curl {Curl.CurlCompatVersion}");</c>. To change the
+        /// User-Agent use <see cref="DefaultUserAgent"/> or <c>-A</c>; this constant does not change.</para>
+        /// </remarks>
+        /// <seealso cref="DefaultUserAgent"/>
         public const string CurlCompatVersion = "8.7.1";
 
         /// <summary>
-        /// <para><b>The User-Agent sent when a command does not set one.</b></para>
-        /// <para>Real curl always identifies itself as <c>curl/&lt;version&gt;</c>, and many APIs
-        /// (GitHub's, for example) reject requests with no User-Agent at all, so CurlDotNet sends
-        /// <c>curl/8.7.1</c> by default. Override per request with <c>-A</c> / <c>--user-agent</c> or
-        /// <c>-H "User-Agent: ..."</c>, suppress it with <c>-H "User-Agent:"</c>, or change the default
-        /// for the whole process here.</para>
-        /// <code language="csharp">
-        /// Curl.DefaultUserAgent = "MyApp/2.0 (+https://example.com)";
-        /// </code>
+        /// The <c>User-Agent</c> header sent when a command does not set one; <c>curl/8.7.1</c> unless you change it.
+        /// Set it to null or an empty string to send no User-Agent at all.
         /// </summary>
+        /// <remarks>
+        /// <para>Real curl always identifies itself as <c>curl/&lt;version&gt;</c>, and many APIs (GitHub's, for
+        /// example) reject requests with no User-Agent, so CurlDotNet sends one by default. Per request, <c>-A</c> /
+        /// <c>--user-agent "MyApp/1.0"</c> or <c>-H "User-Agent: MyApp/1.0"</c> wins over this default, and
+        /// <c>-H "User-Agent:"</c> (empty value) suppresses the header for that request.</para>
+        /// <para>Process-wide: read at the start of every HTTP request (and for the CONNECT request of a proxy
+        /// tunnel). Set it once at start-up; it is safe to read from many threads.</para>
+        /// <para>Example: <c>Curl.DefaultUserAgent = "MyApp/2.0 (+https://example.com)";</c> then every
+        /// <c>Curl.ExecuteAsync("curl https://api.github.com")</c> sends <c>User-Agent: MyApp/2.0 (+https://example.com)</c>.</para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-custom-headers-user-agent-csharp/README.md</para>
+        /// </remarks>
+        /// <value>Any header value; default <c>"curl/" + CurlCompatVersion</c>. Null or empty sends no header.</value>
+        /// <seealso cref="CurlCompatVersion"/>
+        /// <seealso cref="CurlRequestBuilder.WithUserAgent(string)"/>
+        /// <seealso cref="CurlOptions.UserAgent"/>
         public static string DefaultUserAgent { get; set; } = "curl/" + CurlCompatVersion;
 
         private static volatile CurlFlavor _defaultFlavor = CurlFlavor.Auto;
 
         /// <summary>
-        /// <para><b>The shell flavor used to read command strings when a call does not name one.</b></para>
+        /// The shell (bash, cmd.exe, PowerShell, Invoke-WebRequest) whose quoting rules are used to read command strings
+        /// when a call does not name one; <see cref="CurlFlavor.Auto"/> by default, which detects it.
+        /// </summary>
+        /// <remarks>
         /// <para>A pasted curl command is shell text: bash, Windows cmd.exe and PowerShell quote, escape,
         /// continue lines and expand variables differently, so the same text can mean different bytes (see
         /// <see cref="CurlFlavor"/> for every rule). The default, <see cref="CurlFlavor.Auto"/>, recognises the
@@ -127,13 +150,18 @@ namespace CurlDotNet
         /// <para>Applies to <see cref="ExecuteAsync(string)"/>, <see cref="Execute(string)"/>,
         /// <see cref="Validate(string)"/>, the code converters and every other method that takes a command string
         /// without a flavor. A flavor passed to <see cref="ExecuteAsync(string, CurlFlavor)"/> or set with
-        /// <see cref="Core.CurlSettings.WithFlavor(CurlFlavor)"/> wins over it. It is process-wide and read at the
+        /// <see cref="CurlSettings.WithFlavor(CurlFlavor)"/> wins over it. It is process-wide and read at the
         /// start of each call; reads and writes are thread-safe.</para>
-        /// </summary>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</para>
+        /// </remarks>
         /// <value>One of the <see cref="CurlFlavor"/> values. Default is <see cref="CurlFlavor.Auto"/>.</value>
-        /// <exception cref="ArgumentOutOfRangeException">The value is not a defined <see cref="CurlFlavor"/>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">The value is not a defined <see cref="CurlFlavor"/> (for
+        /// example a number cast to the enum). Fix: assign <c>CurlFlavor.Auto</c>, <c>Posix</c>, <c>WindowsCmd</c>,
+        /// <c>PowerShell</c> or <c>InvokeWebRequest</c>. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</exception>
         /// <seealso cref="DetectFlavor(string)"/>
-        /// <seealso cref="Core.CurlOptions.Flavor"/>
+        /// <seealso cref="CurlOptions.Flavor"/>
+        /// <seealso cref="CurlSettings.WithFlavor(CurlFlavor)"/>
         /// <seealso href="https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md">curl flavors guide</seealso>
         public static CurlFlavor DefaultFlavor
         {
@@ -142,9 +170,10 @@ namespace CurlDotNet
             {
                 if (value < CurlFlavor.Auto || value > CurlFlavor.InvokeWebRequest)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value,
-                        "Curl.DefaultFlavor must be CurlFlavor.Auto, Posix, WindowsCmd, PowerShell or InvokeWebRequest. " +
-                        "See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md");
+                    throw new ArgumentOutOfRangeException(nameof(value), value, CurlException.Compose(
+                        $"Curl.DefaultFlavor was set to {(int)value}, which is not a CurlFlavor value.",
+                        "Assign CurlFlavor.Auto (detect the shell), Posix (bash/zsh), WindowsCmd (cmd.exe), PowerShell (curl.exe in PowerShell) or InvokeWebRequest (Invoke-WebRequest/Invoke-RestMethod syntax).",
+                        DocLinks.HowToFlavors));
                 }
 
                 _defaultFlavor = value;
@@ -156,26 +185,36 @@ namespace CurlDotNet
         private static volatile bool _defaultInsecure = false;
 
         /// <summary>
-        /// <para><b>Sets a global timeout for all curl operations (in seconds).</b></para>
-        ///
-        /// <para>This is like adding <c>--max-time</c> to every curl command automatically.
-        /// Set to 0 (default) for no timeout. Individual commands can still override this.</para>
-        ///
-        /// <para><b>Example:</b></para>
-        /// <code>
-        /// // Set 30 second timeout for all operations
-        /// Curl.DefaultMaxTimeSeconds = 30;
-        ///
-        /// // Now all commands timeout after 30 seconds
-        /// await Curl.Execute("curl https://slow-api.example.com");  // Times out after 30s
-        ///
-        /// // Override for specific command
-        /// await Curl.Execute("curl --max-time 60 https://very-slow-api.example.com");  // 60s timeout
-        /// </code>
-        ///
-        /// <para><b>Learn more:</b> <see href="https://curl.se/docs/manpage.html#-m">curl --max-time documentation</see></para>
+        /// A process-wide limit, in whole seconds, on how long any HTTP transfer may take, as if <c>-m</c>/<c>--max-time</c>
+        /// were added to every command that does not set its own. 0 (the default) means no limit.
         /// </summary>
-        /// <value>Timeout in seconds. 0 = no timeout (wait forever). Default is 0.</value>
+        /// <remarks>
+        /// <para>Values: 0 or a negative number means no limit (like curl without <c>--max-time</c>); any positive
+        /// number is the total time allowed for connect, request, response headers and body together. A command's own
+        /// <c>-m 60</c> / <c>--max-time 60</c> (decimals allowed there, such as <c>-m 2.5</c>), or
+        /// <see cref="CurlSettings.WithTimeout(int)"/>, wins over this default.</para>
+        /// <para>When the limit expires the call throws <see cref="CurlOperationTimeoutException"/> (a
+        /// <see cref="CurlTimeoutException"/>, exit code 28) whose message says how many bytes had arrived. Your
+        /// own <see cref="CancellationToken"/> is separate: cancelling it throws <see cref="OperationCanceledException"/>.</para>
+        /// <para>Process-wide and thread-safe; read at the start of every transfer. Applies to http:// and https://.</para>
+        /// <para>Example: <c>Curl.DefaultMaxTimeSeconds = 30;</c> then <c>await Curl.ExecuteAsync("curl https://slow.example.com")</c>
+        /// fails after 30 seconds, while <c>await Curl.ExecuteAsync("curl -m 120 https://slow.example.com/big.zip -o big.zip")</c>
+        /// gets 120.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-timeout-csharp/README.md</para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// Curl.DefaultMaxTimeSeconds = 30;
+        /// await Curl.ExecuteAsync("curl https://slow-api.example.com");                 // times out after 30 s
+        /// await Curl.ExecuteAsync("curl --max-time 60 https://very-slow-api.example.com"); // 60 s for this one
+        /// </code>
+        /// </example>
+        /// <value>Seconds; 0 (default) or less means no limit.</value>
+        /// <seealso cref="DefaultConnectTimeoutSeconds"/>
+        /// <seealso cref="CurlOptions.MaxTime"/>
+        /// <seealso cref="CurlSettings.WithTimeout(int)"/>
+        /// <seealso cref="CurlRequestBuilder.WithTimeout(TimeSpan)"/>
+        /// <seealso cref="DotNetCurl.DefaultMaxTimeSeconds"/>
         public static int DefaultMaxTimeSeconds
         {
             get => _defaultMaxTimeSeconds;
@@ -183,24 +222,28 @@ namespace CurlDotNet
         }
 
         /// <summary>
-        /// <para><b>Sets how long to wait for a connection to be established (in seconds).</b></para>
-        ///
-        /// <para>This is different from the total timeout - it only applies to making the initial connection.
-        /// Like adding <c>--connect-timeout</c> to every curl command.</para>
-        ///
-        /// <para><b>Example:</b></para>
-        /// <code>
-        /// // Give servers 10 seconds to accept connection
-        /// Curl.DefaultConnectTimeoutSeconds = 10;
-        ///
-        /// // If server doesn't respond in 10 seconds, fails fast
-        /// await Curl.Execute("curl https://overloaded-server.example.com");
-        /// </code>
-        ///
-        /// <para><b>Tip:</b> Set this lower than DefaultMaxTimeSeconds to fail fast on dead servers.</para>
-        /// <para><b>Learn more:</b> <see href="https://curl.se/docs/manpage.html#--connect-timeout">curl --connect-timeout documentation</see></para>
+        /// A process-wide limit, in whole seconds, on how long establishing a connection may take, as if
+        /// <c>--connect-timeout</c> were added to every command that does not set its own. 0 (the default) means no limit.
         /// </summary>
-        /// <value>Connection timeout in seconds. 0 = no timeout. Default is 0.</value>
+        /// <remarks>
+        /// <para>This covers the DNS lookup, the TCP connect and the TLS handshake only, not the response. Values: 0 or
+        /// less means no connect limit; a positive number is seconds. A command's own <c>--connect-timeout 5</c>
+        /// (decimals allowed, such as <c>--connect-timeout 2.5</c>) or <see cref="CurlSettings.WithConnectTimeout(int)"/>
+        /// wins over this default.</para>
+        /// <para>When it expires the call throws <see cref="CurlOperationTimeoutException"/> (exit code 28) with a
+        /// message such as <c>Connection timed out after 5000 milliseconds</c>.</para>
+        /// <para>Tip: set it well below <see cref="DefaultMaxTimeSeconds"/> so that dead servers fail fast while slow
+        /// downloads still get time. Process-wide and thread-safe; applies to every protocol.</para>
+        /// <para>Example: <c>Curl.DefaultConnectTimeoutSeconds = 10;</c> then a request to a server that never accepts
+        /// the connection fails after 10 seconds instead of the operating system's default (often over a minute).</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-timeout-csharp/README.md</para>
+        /// </remarks>
+        /// <value>Seconds; 0 (default) or less means no connect limit.</value>
+        /// <seealso cref="DefaultMaxTimeSeconds"/>
+        /// <seealso cref="CurlOptions.ConnectTimeout"/>
+        /// <seealso cref="CurlSettings.WithConnectTimeout(int)"/>
+        /// <seealso cref="CurlRequestBuilder.WithConnectTimeout(TimeSpan)"/>
+        /// <seealso cref="DotNetCurl.DefaultConnectTimeoutSeconds"/>
         public static int DefaultConnectTimeoutSeconds
         {
             get => _defaultConnectTimeoutSeconds;
@@ -208,27 +251,25 @@ namespace CurlDotNet
         }
 
         /// <summary>
-        /// <para><b>Controls whether curl automatically follows HTTP redirects (301, 302, etc).</b></para>
-        ///
-        /// <para>When true, acts like adding <c>-L</c> or <c>--location</c> to every command.
-        /// Many APIs use redirects, so you often want this enabled.</para>
-        ///
-        /// <para><b>Example:</b></para>
-        /// <code>
-        /// // Enable redirect following globally
-        /// Curl.DefaultFollowRedirects = true;
-        ///
-        /// // Now shortened URLs work automatically
-        /// var response = await Curl.Execute("curl https://bit.ly/example");  // Follows to final destination
-        ///
-        /// // Or use -L flag per command
-        /// var response = await Curl.Execute("curl -L https://bit.ly/example");
-        /// </code>
-        ///
-        /// <para><b>Security note:</b> Be careful following redirects to untrusted sources.</para>
-        /// <para><b>Learn more:</b> <see href="https://curl.se/docs/manpage.html#-L">curl -L documentation</see></para>
+        /// When true, every request follows HTTP redirects (301, 302, 303, 307, 308) as if <c>-L</c>/<c>--location</c>
+        /// were in every command. False (the default) returns the redirect response itself, like curl.
         /// </summary>
-        /// <value>true to follow redirects, false to stop at first response. Default is false.</value>
+        /// <remarks>
+        /// <para>While this is true it cannot be switched off for a single command; leave it false and add <c>-L</c>
+        /// to the commands that need it if only some should follow redirects. The redirect limit is
+        /// <c>--max-redirs</c> (curl's default is 50); exceeding it throws <see cref="CurlTooManyRedirectsException"/>
+        /// (exit code 47). As in curl, credentials given with <c>-u</c> are not sent to a different host after a
+        /// redirect unless the command has <c>--location-trusted</c>.</para>
+        /// <para>Process-wide and thread-safe; read at the start of every transfer.</para>
+        /// <para>Example: <c>Curl.DefaultFollowRedirects = true;</c> then <c>(await Curl.ExecuteAsync("curl https://bit.ly/example")).StatusCode</c>
+        /// is the status of the final page instead of 301.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-follow-redirects-csharp/README.md</para>
+        /// </remarks>
+        /// <value>true to follow redirects everywhere; false (default) to follow only with <c>-L</c>.</value>
+        /// <seealso cref="CurlOptions.FollowLocation"/>
+        /// <seealso cref="CurlSettings.WithFollowRedirects(bool)"/>
+        /// <seealso cref="CurlRequestBuilder.FollowRedirects(bool)"/>
+        /// <seealso cref="DotNetCurl.DefaultFollowRedirects"/>
         public static bool DefaultFollowRedirects
         {
             get => _defaultFollowRedirects;
@@ -236,26 +277,26 @@ namespace CurlDotNet
         }
 
         /// <summary>
-        /// <para><b>⚠️ WARNING: Disables SSL certificate validation - ONLY use for development/testing!</b></para>
-        ///
-        /// <para>When true, acts like adding <c>-k</c> or <c>--insecure</c> to every command.
-        /// This accepts any SSL certificate, even self-signed or expired ones.</para>
-        ///
-        /// <para><b>Example (DEVELOPMENT ONLY):</b></para>
-        /// <code>
-        /// #if DEBUG
-        /// // Only in debug builds for local testing
-        /// Curl.DefaultInsecure = true;
-        ///
-        /// // Now works with self-signed certificates
-        /// await Curl.Execute("curl https://localhost:5001");  // Works even with invalid cert
-        /// #endif
-        /// </code>
-        ///
-        /// <para><b>🔴 NEVER use this in production!</b> It makes you vulnerable to man-in-the-middle attacks.</para>
-        /// <para><b>Learn more:</b> <see href="https://curl.se/docs/manpage.html#-k">curl -k documentation</see></para>
+        /// When true, TLS certificates are not verified for any request, as if <c>-k</c>/<c>--insecure</c> were in every
+        /// command. Development and testing only: it accepts self-signed, expired and wrong-host certificates.
         /// </summary>
-        /// <value>true to skip SSL validation (DANGEROUS), false to validate (safe). Default is false.</value>
+        /// <remarks>
+        /// <para>Turning certificate checks off makes every https:// request open to man-in-the-middle attacks. Prefer
+        /// trusting the specific certificate with <c>--cacert ca.pem</c>, or add <c>-k</c> only to the commands that talk
+        /// to a local development server. While this is true it cannot be switched off for a single command.</para>
+        /// <para>Without it, a certificate problem throws <see cref="CurlPeerFailedVerificationException"/> (exit code 60)
+        /// or another <see cref="CurlSslException"/>.</para>
+        /// <para>Process-wide and thread-safe; read at the start of every transfer.</para>
+        /// <para>Example: <c>#if DEBUG Curl.DefaultInsecure = true; #endif</c> lets
+        /// <c>await Curl.ExecuteAsync("curl https://localhost:5001/api")</c> reach a dev server with a self-signed
+        /// certificate, while release builds keep checking.</para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-ignore-ssl-certificate-csharp/README.md</para>
+        /// </remarks>
+        /// <value>true to skip certificate verification (dangerous); false (default) to verify.</value>
+        /// <seealso cref="CurlOptions.Insecure"/>
+        /// <seealso cref="CurlSettings.WithInsecure(bool)"/>
+        /// <seealso cref="CurlRequestBuilder.Insecure(bool)"/>
+        /// <seealso cref="DotNetCurl.DefaultInsecure"/>
         public static bool DefaultInsecure
         {
             get => _defaultInsecure;
@@ -263,259 +304,149 @@ namespace CurlDotNet
         }
 
         /// <summary>
-        /// <para><b>🎯 THE MAIN METHOD - Executes any curl command and returns the response.</b></para>
-        ///
-        /// <para>Just paste ANY curl command as a string. It works exactly like running curl from the command line,
-        /// but returns the result as a nice C# object you can work with.</para>
-        ///
+        /// Runs a curl command (the same text you would type in a terminal) and returns the response; this is the main
+        /// method of CurlDotNet.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>The command.</b> Any curl command line, with or without the leading <c>curl</c> / <c>curl.exe</c>:
+        /// <c>curl -X POST -H 'Content-Type: application/json' -d '{"a":1}' https://api.example.com</c>. Multi-line
+        /// commands with <c>\</c>, <c>^</c> or backtick continuations work. It is read with <see cref="DefaultFlavor"/>
+        /// (auto-detected shell by default); pass a <see cref="CurlFlavor"/> to
+        /// <see cref="ExecuteAsync(string, CurlFlavor)"/> when you know where it came from. Several URLs, URL globs
+        /// (<c>https://x/[1-3].json</c>) and <c>--next</c> run one after another like curl's transfer loop; the result
+        /// describes the last transfer and <see cref="CurlResult.Body"/> holds the output of all of them.</para>
+        /// <para><b>What you get back.</b> HTTP error statuses are not exceptions: a 404 returns a result with
+        /// <see cref="CurlResult.StatusCode"/> 404 (add <c>-f</c> to throw instead). <see cref="CurlResult.Body"/> holds
+        /// what curl would print on standard output (the body, plus headers with <c>-i</c>, plus <c>-w</c> text);
+        /// binary responses are in <see cref="CurlResult.BinaryData"/>; files written with <c>-o</c>/<c>-O</c> are listed
+        /// in <see cref="CurlResult.OutputFiles"/>.</para>
+        /// <para><b>Unknown options</b> are ignored, as a lenient curl would; call <see cref="Validate(string)"/> first
+        /// when the command comes from users and you want typos reported.</para>
+        /// <para><b>Defaults</b> that apply when the command does not say otherwise: <see cref="DefaultMaxTimeSeconds"/>
+        /// (<c>-m</c>), <see cref="DefaultConnectTimeoutSeconds"/> (<c>--connect-timeout</c>),
+        /// <see cref="DefaultFollowRedirects"/> (<c>-L</c>), <see cref="DefaultInsecure"/> (<c>-k</c>) and
+        /// <see cref="DefaultUserAgent"/> (<c>-A</c>).</para>
+        /// <para>Thread-safe; many calls may run at once and share pooled connections.</para>
+        /// <para>Example: <c>var result = await Curl.ExecuteAsync("curl -u alice:secret https://api.example.com/me");</c>
+        /// then <c>if (result.IsSuccess) Console.WriteLine(result.Body); else Console.WriteLine($"HTTP {result.StatusCode}");</c>.</para>
+        /// <para>Example with error handling: <c>try { await Curl.ExecuteAsync("curl -f https://api.example.com/x"); }
+        /// catch (CurlHttpReturnedErrorException ex) { /* ex.StatusCode is 404 */ } catch (CurlException ex) { Console.WriteLine(ex.Message); /* what, fix, link */ }</c></para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/run-curl-command-in-csharp/README.md
+        /// - errors: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</para>
+        /// </remarks>
         /// <example>
         /// <code language="csharp">
         /// // Copy any curl command from documentation and paste it here:
         /// var response = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
-        ///
-        /// // Work with the response:
         /// Console.WriteLine($"Status: {response.StatusCode}");  // 200
-        /// Console.WriteLine($"Body: {response.Body}");          // JSON data
-        /// var user = response.ParseJson&lt;GitHubUser&gt;();        // Parse to object
+        /// var user = response.ParseJson&lt;GitHubUser&gt;();
         ///
-        /// // Use CurlSettings for retries/timeouts:
-        /// var settings = new CurlSettings()
-        ///     .WithTimeout(seconds: 10)
-        ///     .WithRetries(count: 2, delayMs: 250);
-        /// var resilient = await Curl.ExecuteAsync("curl --max-time 5 https://httpbin.org/json", settings);
-        /// resilient.EnsureSuccess();
-        /// </code>
-        /// </example>
-        ///
-        /// <para><b>Real-World Example from Stripe Docs:</b></para>
-        /// <code language="csharp">
-        /// // Paste the exact command from Stripe's documentation:
-        /// var response = await Curl.Execute(@"
+        /// // The exact command from Stripe's documentation:
+        /// var charge = await Curl.ExecuteAsync(@"
         ///     curl https://api.stripe.com/v1/charges \
         ///       -u sk_test_4eC39HqLyjWDarjtT1zdp7dc: \
         ///       -d amount=2000 \
         ///       -d currency=usd \
-        ///       -d source=tok_mastercard \
-        ///       -d description='My First Test Charge'
-        /// ");
+        ///       -d source=tok_mastercard");
         ///
-        /// if (response.IsSuccess)
-        /// {
-        ///     var charge = response.ParseJson&lt;StripeCharge&gt;();
-        ///     Console.WriteLine($"Payment successful! ID: {charge.Id}");
-        /// }
+        /// // Common options
+        /// await Curl.ExecuteAsync("curl -H 'Authorization: Bearer token123' https://api.example.com");
+        /// await Curl.ExecuteAsync("curl -o download.pdf https://example.com/file.pdf");
+        /// await Curl.ExecuteAsync("curl -L --max-time 30 https://short.link/abc");
         /// </code>
-        ///
-        /// <para><b>All HTTP Methods Supported:</b></para>
-        /// <code language="csharp">
-        /// await Curl.Execute("curl -X GET https://api.example.com/users");     // GET (default)
-        /// await Curl.Execute("curl -X POST https://api.example.com/users");    // POST
-        /// await Curl.Execute("curl -X PUT https://api.example.com/users/123"); // PUT
-        /// await Curl.Execute("curl -X DELETE https://api.example.com/users/123"); // DELETE
-        /// await Curl.Execute("curl -X PATCH https://api.example.com/users/123"); // PATCH
-        /// </code>
-        ///
-        /// <para><b>Common Options:</b></para>
-        /// <code language="csharp">
-        /// // Headers
-        /// await Curl.Execute("curl -H 'Authorization: Bearer token123' https://api.example.com");
-        ///
-        /// // POST data
-        /// await Curl.Execute("curl -d '{\"name\":\"John\"}' https://api.example.com");
-        ///
-        /// // Save to file
-        /// await Curl.Execute("curl -o download.pdf https://example.com/file.pdf");
-        ///
-        /// // Follow redirects
-        /// await Curl.Execute("curl -L https://short.link/abc");
-        ///
-        /// // Basic auth
-        /// await Curl.Execute("curl -u username:password https://api.example.com");
-        ///
-        /// // Timeout
-        /// await Curl.Execute("curl --max-time 30 https://slow-api.example.com");
-        /// </code>
-        /// </summary>
-        /// <param name="command">
-        /// <para>Any valid curl command as a string. You can literally copy and paste from:</para>
-        /// <list type="bullet">
-        /// <item>📖 API documentation (Stripe, Twilio, GitHub, etc.)</item>
-        /// <item>💬 Stack Overflow answers</item>
-        /// <item>📝 Blog posts and tutorials</item>
-        /// <item>🖥️ Your terminal history</item>
-        /// <item>🔧 Postman's "Code" export feature</item>
-        /// <item>🌐 Browser DevTools "Copy as cURL"</item>
-        /// </list>
-        /// <para>The "curl" prefix is optional - both work:</para>
-        /// <code>
-        /// await Curl.Execute("curl https://api.example.com");  // With "curl"
-        /// await Curl.Execute("https://api.example.com");       // Without "curl"
-        /// </code>
-        /// </param>
-        /// <returns>
-        /// <para>A <see cref="CurlResult"/> object containing everything from the HTTP response:</para>
-        /// <list type="bullet">
-        /// <item><b>StatusCode</b> - HTTP status (200, 404, 500, etc.)</item>
-        /// <item><b>Body</b> - Response body as string</item>
-        /// <item><b>Headers</b> - All response headers as dictionary</item>
-        /// <item><b>IsSuccess</b> - True if status is 200-299</item>
-        /// <item><b>ParseJson&lt;T&gt;()</b> - Parse JSON response to your class</item>
-        /// <item><b>SaveToFile()</b> - Save response to disk</item>
-        /// </list>
-        /// <para>See <see cref="CurlResult"/> for all available properties and methods.</para>
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// <para>Thrown when command is null or empty.</para>
-        /// <code>
-        /// // ❌ These will throw:
-        /// await Curl.Execute(null);
-        /// await Curl.Execute("");
-        /// await Curl.Execute("   ");
-        /// </code>
-        /// </exception>
-        /// <exception cref="Exceptions.CurlParsingException">
-        /// <para>Thrown when the curl command can't be understood. Usually means typo or unsupported option.</para>
-        /// <code>
-        /// // ❌ This will throw CurlParsingException:
-        /// await Curl.Execute("curl --invalid-option https://example.com");
-        /// </code>
-        /// <para>Error codes: CURLE_URL_MALFORMAT (3), CURLE_UNSUPPORTED_PROTOCOL (1)</para>
-        /// <para>See: <see href="https://curl.se/libcurl/c/libcurl-errors.html">curl error codes</see></para>
-        /// </exception>
-        /// <exception cref="Exceptions.CurlCouldntResolveHostException">
-        /// <para>Thrown when the hostname cannot be resolved (DNS failure).</para>
-        /// <code>
-        /// try
-        /// {
-        ///     await Curl.Execute("curl https://this-domain-does-not-exist.com");
-        /// }
-        /// catch (Exceptions.CurlCouldntResolveHostException ex)
-        /// {
-        ///     Console.WriteLine($"Could not find server: {ex.Hostname}");
-        /// }
-        /// </code>
-        /// <para>Error code: CURLE_COULDNT_RESOLVE_HOST (6)</para>
-        /// </exception>
-        /// <exception cref="Exceptions.CurlTimeoutException">
-        /// <para>Thrown when the operation takes longer than the timeout specified by <paramref name="command"/> (via <c>--max-time</c>) 
-        /// or <see cref="DefaultMaxTimeSeconds"/>.</para>
-        /// <code language="csharp">
-        /// try
-        /// {
-        ///     await Curl.ExecuteAsync("curl --max-time 5 https://very-slow-api.com");
-        /// }
-        /// catch (Exceptions.CurlTimeoutException ex)
-        /// {
-        ///     Console.WriteLine($"Timed out after {ex.Timeout} seconds");
-        /// }
-        /// </code>
-        /// <para>Error code: <c>CURLE_OPERATION_TIMEDOUT</c> (28)</para>
-        /// <para>To cancel operations without waiting for timeout, use the <see cref="M:CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)">overload with <see cref="CancellationToken"/></see>.</para>
-        /// </exception>
-        /// <exception cref="Exceptions.CurlSslException">
-        /// <para>Thrown for SSL/TLS certificate problems. This can occur when certificates are self-signed, expired,
-        /// or don't match the domain. Check <see cref="Exceptions.CurlSslException.CertificateError"/> for details.</para>
-        /// <code language="csharp">
-        /// try
-        /// {
-        ///     await Curl.ExecuteAsync("curl https://self-signed-cert.example.com");
-        /// }
-        /// catch (Exceptions.CurlSslException ex)
-        /// {
-        ///     Console.WriteLine($"SSL problem: {ex.Message}");
-        ///     if (ex.CertificateError != null)
-        ///         Console.WriteLine($"Certificate error: {ex.CertificateError}");
-        ///     // In development only, you could use: curl -k (insecure)
-        /// }
-        /// </code>
-        /// <para>Error codes: <c>CURLE_SSL_CONNECT_ERROR</c> (35), <c>CURLE_PEER_FAILED_VERIFICATION</c> (60)</para>
-        /// <para><b>⚠️ WARNING:</b> Using <c>-k</c> or <c>--insecure</c> disables certificate validation and makes you vulnerable to man-in-the-middle attacks. Only use in development!</para>
-        /// </exception>
-        /// <exception cref="Exceptions.CurlException">
-        /// <para>Base exception for all curl-related errors. All specific exceptions inherit from this.
-        /// See <see cref="Exceptions.CurlException.CurlErrorCode"/> for the specific curl error code.</para>
-        /// <para>Common error codes:</para>
-        /// <list type="table">
-        /// <listheader>
-        /// <term>Error Code</term>
-        /// <description>Meaning</description>
-        /// </listheader>
-        /// <item>
-        /// <term>1 - CURLE_UNSUPPORTED_PROTOCOL</term>
-        /// <description>The URL uses an unsupported protocol (not http, https, ftp, or file)</description>
-        /// </item>
-        /// <item>
-        /// <term>3 - CURLE_URL_MALFORMAT</term>
-        /// <description>The URL is malformed (missing protocol, invalid characters, etc.)</description>
-        /// </item>
-        /// <item>
-        /// <term>6 - CURLE_COULDNT_RESOLVE_HOST</term>
-        /// <description>DNS lookup failed - hostname doesn't exist</description>
-        /// </item>
-        /// <item>
-        /// <term>28 - CURLE_OPERATION_TIMEDOUT</term>
-        /// <description>Operation timed out (see <see cref="Exceptions.CurlTimeoutException"/>)</description>
-        /// </item>
-        /// <item>
-        /// <term>60 - CURLE_PEER_FAILED_VERIFICATION</term>
-        /// <description>SSL certificate verification failed (see <see cref="Exceptions.CurlSslException"/>)</description>
-        /// </item>
-        /// </list>
-        /// <para>For a complete list of all curl error codes, see <see href="https://curl.se/libcurl/c/libcurl-errors.html">curl error codes</see>.</para>
-        /// </exception>
-        /// <seealso cref="M:CurlDotNet.Curl.ExecuteAsync(System.String,System.Threading.CancellationToken)">Execute with cancellation support</seealso>
-        /// <seealso cref="M:CurlDotNet.Curl.ExecuteAsync(System.String[])">Execute multiple commands in parallel</seealso>
-        /// <seealso cref="CurlResult">The response object returned containing <see cref="CurlResult.StatusCode"/>, <see cref="CurlResult.Body"/>, <see cref="CurlResult.Headers"/>, etc.</seealso>
-        /// <seealso cref="CurlRequestBuilder">Fluent API alternative for building requests programmatically</seealso>
-        /// <seealso cref="DefaultMaxTimeSeconds">Set a default timeout for all operations</seealso>
-        /// <seealso cref="DefaultFollowRedirects">Enable redirect following globally</seealso>
-        /// <seealso href="https://curl.se/docs/manpage.html">Complete curl documentation</seealso>
-        /// <seealso href="https://curl.se/docs/manpage.html#OPTIONS">All curl options</seealso>
+        /// </example>
+        /// <param name="command">The curl command line as text, for example <c>curl -s https://api.example.com/users?page=2</c>
+        /// or just <c>https://api.example.com</c>. Must contain a URL. Quote values with spaces as the source shell
+        /// would (<c>-H 'Accept: application/json'</c>).</param>
+        /// <returns>A <see cref="CurlResult"/>: <see cref="CurlResult.StatusCode"/> (the HTTP status; for <c>file://</c> 200, or
+        /// 404 when the file does not exist; 0 for a transfer skipped by <c>--skip-existing</c>), <see cref="CurlResult.Body"/> (standard output text), <see cref="CurlResult.Headers"/>
+        /// (response headers, case-insensitive), <see cref="CurlResult.BinaryData"/> (for non-text responses),
+        /// <see cref="CurlResult.OutputFiles"/>, <see cref="CurlResult.Timings"/> and <see cref="CurlResult.Command"/>.</returns>
+        /// <exception cref="ArgumentException"><paramref name="command"/> is null, empty or only whitespace. Fix: pass a command
+        /// that contains a URL. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/run-curl-command-in-csharp/README.md</exception>
+        /// <exception cref="CurlInvalidCommandException">A <c>--resolve</c> or <c>--connect-to</c> value curl cannot parse
+        /// (<see cref="CurlOptionSyntaxException"/>, exit code 49), a command with several URL groups but no URL, or shell
+        /// syntax the chosen <see cref="CurlFlavor"/> cannot read. The message names the option. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <exception cref="CurlException">Thrown as the base type with exit code 2 for an option missing its value
+        /// (<c>-H</c> at the end) or a value that is not a number (<c>--max-filesize abc</c>), and with exit code 3 for a
+        /// command without any URL. The message names the option and shows a valid value. (Invalid numbers for
+        /// <c>-m</c>, <c>--connect-timeout</c>, <c>--max-redirs</c> and <c>--retry</c> are currently ignored rather than
+        /// reported.) See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <exception cref="CurlMalformedUrlException">A URL that cannot be parsed (exit code 3). Fix: check the
+        /// scheme and host, percent-encode spaces. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/url-errors.md</exception>
+        /// <exception cref="CurlUnsupportedProtocolException">A scheme CurlDotNet does not implement, such as
+        /// <c>gopher://</c> (exit code 1). See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/supported-protocols.md</exception>
+        /// <exception cref="CurlCouldntResolveHostException">DNS could not resolve the host (exit code 6). Fix: check the
+        /// host name; <c>--resolve host:443:1.2.3.4</c> skips DNS. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md</exception>
+        /// <exception cref="CurlCouldntConnectException">Nothing accepted the connection on that host and port, or the
+        /// proxy was unreachable (exit code 7). See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md</exception>
+        /// <exception cref="CurlTimeoutException"><c>-m</c>/<c>--max-time</c>, <c>--connect-timeout</c> or
+        /// <see cref="DefaultMaxTimeSeconds"/> expired (exit code 28; thrown as <see cref="CurlOperationTimeoutException"/>).
+        /// Fix: raise the limit. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/timeout-errors.md</exception>
+        /// <exception cref="CurlSslException">The TLS handshake failed (exit code 35) or the certificate is not trusted
+        /// (exit code 60, <see cref="CurlPeerFailedVerificationException"/>). Fix: trust the CA with <c>--cacert</c>; use
+        /// <c>-k</c> for testing only. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md</exception>
+        /// <exception cref="CurlHttpReturnedErrorException">Only with <c>-f</c>/<c>--fail</c> or <c>--fail-with-body</c>:
+        /// the server answered 400 or above (exit code 22). <see cref="Exceptions.CurlHttpException.StatusCode"/> has the status.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md</exception>
+        /// <exception cref="CurlTooManyRedirectsException">With <c>-L</c>, more redirects than <c>--max-redirs</c> allows
+        /// (exit code 47). See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/redirect-errors.md</exception>
+        /// <exception cref="CurlWriteErrorException">An output file (<c>-o</c>, <c>-O</c>, <c>-D</c>, <c>-c</c>) could
+        /// not be written, for example because its folder does not exist (exit code 23). (<c>--trace</c> creates its
+        /// folder itself; an <c>--etag-save</c> folder that does not exist skips the transfer with a warning on standard error.) Fix: create the folder or add
+        /// <c>--create-dirs</c>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <exception cref="CurlReadErrorException">A file named with <c>@</c> (<c>-d @body.json</c>, <c>-F file=@a.png</c>,
+        /// <c>-T</c>) could not be read (exit code 26); a <c>-d @file</c> that does not exist at all is
+        /// <see cref="CurlFileCouldntReadException"/> (exit code 37). See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <exception cref="CurlException">Any other curl failure; <see cref="CurlException.CurlErrorCode"/> is curl's exit
+        /// code and the message says what happened, how to fix it, and links the page for that code. Full table:
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <seealso cref="Execute(string)">Blocking version</seealso>
+        /// <seealso cref="ExecuteAsync(string, CancellationToken)">With cancellation</seealso>
+        /// <seealso cref="ExecuteAsync(string, CurlFlavor)">Command from a specific shell</seealso>
+        /// <seealso cref="ExecuteAsync(string, CurlSettings)">With timeouts, retries and progress set in code</seealso>
+        /// <seealso cref="ExecuteAsync(CurlOptions)">Typed options, no command string</seealso>
+        /// <seealso cref="ExecuteManyAsync(string[])">Several commands in parallel</seealso>
+        /// <seealso cref="Validate(string)">Check a command without sending it</seealso>
+        /// <seealso cref="CurlRequestBuilder">Fluent builder equivalent</seealso>
+        /// <seealso cref="Lib.LibCurl.PerformAsync(CurlOptions, CancellationToken)">libcurl-style equivalent</seealso>
+        /// <seealso cref="DotNetCurl.CurlAsync(string)">Same method under the DotNetCurl name</seealso>
+        /// <seealso href="https://curl.se/docs/manpage.html">curl manual</seealso>
         public static async Task<CurlResult> ExecuteAsync(string command)
         {
+            RequireCommand(command, "Curl.ExecuteAsync(command)");
             return await _engine.ExecuteAsync(command);
         }
 
         /// <summary>
-        /// <para><b>Execute a curl command with cancellation support - perfect for long-running operations.</b></para>
-        ///
-        /// <para>This lets you cancel the HTTP request if it's taking too long or if the user cancels.
-        /// Essential for good user experience in desktop and mobile apps.</para>
-        ///
-        /// <para><b>Basic Example:</b></para>
-        /// <code language="csharp">
-        /// // Create a cancellation token that times out after 30 seconds
-        /// using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        ///
-        /// try
-        /// {
-        ///     var response = await Curl.Execute(
-        ///         "curl https://slow-api.example.com/large-file",
-        ///         cts.Token
-        ///     );
-        ///     Console.WriteLine("Download complete!");
-        /// }
-        /// catch (OperationCanceledException)
-        /// {
-        ///     Console.WriteLine("Download cancelled or timed out after 30 seconds");
-        /// }
-        /// </code>
-        ///
-        /// <para><b>User-Cancellable Download:</b></para>
+        /// Runs a curl command like <see cref="ExecuteAsync(string)"/> and stops it when <paramref name="cancellationToken"/>
+        /// is cancelled, for user "Cancel" buttons, request aborts in ASP.NET Core and your own deadlines.
+        /// </summary>
+        /// <remarks>
+        /// <para>Cancelling the token stops the transfer at once (during connect, while waiting for headers or while
+        /// reading the body) and throws <see cref="OperationCanceledException"/> - the standard .NET contract, so
+        /// <c>catch (OperationCanceledException)</c> works. A limit in the command itself (<c>-m 30</c>) or
+        /// <see cref="DefaultMaxTimeSeconds"/> is different: it throws <see cref="CurlOperationTimeoutException"/> (exit
+        /// code 28). Files already written by <c>-o</c> before cancellation may be incomplete.</para>
+        /// <para>Everything else (the command format, the result, the other exceptions) is the same as
+        /// <see cref="ExecuteAsync(string)"/>.</para>
+        /// <para>Example: <c>using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));</c> then
+        /// <c>var result = await Curl.ExecuteAsync("curl -o big.zip https://example.com/big.zip", cts.Token);</c> - after
+        /// 30 seconds it throws <see cref="OperationCanceledException"/>.</para>
+        /// <para>Example in ASP.NET Core: <c>public async Task&lt;IActionResult&gt; Proxy(CancellationToken ct) =&gt; Ok((await Curl.ExecuteAsync("curl https://upstream.example.com/data", ct)).Body);</c>
+        /// stops the upstream call when the browser disconnects.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/12-cancellation-tokens.md</para>
+        /// </remarks>
+        /// <example>
         /// <code language="csharp">
         /// private CancellationTokenSource _downloadCts;
         ///
-        /// // Start download
         /// async Task StartDownload()
         /// {
         ///     _downloadCts = new CancellationTokenSource();
-        ///
         ///     try
         ///     {
-        ///         var result = await Curl.Execute(
-        ///             "curl -o large-file.zip https://example.com/huge-file.zip",
-        ///             _downloadCts.Token
-        ///         );
+        ///         await Curl.ExecuteAsync("curl -o large-file.zip https://example.com/huge-file.zip", _downloadCts.Token);
         ///         MessageBox.Show("Download complete!");
         ///     }
         ///     catch (OperationCanceledException)
@@ -524,79 +455,35 @@ namespace CurlDotNet
         ///     }
         /// }
         ///
-        /// // Cancel button click
-        /// void CancelButton_Click()
-        /// {
-        ///     _downloadCts?.Cancel();  // This stops the download
-        /// }
+        /// void CancelButton_Click() =&gt; _downloadCts?.Cancel();
         /// </code>
-        ///
-        /// <para><b>Web API with Request Timeout:</b></para>
-        /// <code language="csharp">
-        /// [HttpGet]
-        /// public async Task&lt;IActionResult&gt; ProxyRequest(CancellationToken cancellationToken)
-        /// {
-        ///     // ASP.NET Core passes cancellation token that triggers when:
-        ///     // - Client disconnects
-        ///     // - Request timeout is reached
-        ///     // - Server is shutting down
-        ///
-        ///     var result = await Curl.Execute(
-        ///         "curl https://external-api.example.com/data",
-        ///         cancellationToken  // Pass it through!
-        ///     );
-        ///
-        ///     return Ok(result.Body);
-        /// }
-        /// </code>
-        /// </summary>
-        /// <param name="command">
-        /// Any curl command string. See <see cref="Execute(string)"/> for full documentation.
-        /// </param>
-        /// <param name="cancellationToken">
-        /// <para>Token to cancel the operation. Get this from:</para>
-        /// <list type="bullet">
-        /// <item>⏱️ <c>new CancellationTokenSource(TimeSpan.FromSeconds(30))</c> - Timeout</item>
-        /// <item>🔘 <c>CancellationTokenSource</c> linked to Cancel button - User cancellation</item>
-        /// <item>🌐 ASP.NET Core action parameter - Web request cancellation</item>
-        /// <item>🔗 <c>CancellationTokenSource.CreateLinkedTokenSource()</c> - Multiple conditions</item>
-        /// </list>
-        /// <para>Learn more: <see href="https://docs.microsoft.com/en-us/dotnet/standard/threading/cancellation-in-managed-threads">Cancellation in .NET</see></para>
-        /// </param>
-        /// <returns>
-        /// Same as <see cref="Execute(string)"/> - a <see cref="CurlResult"/> with the response.
-        /// </returns>
-        /// <exception cref="OperationCanceledException">
-        /// <para>Thrown when the operation is cancelled via the token.</para>
-        /// <code>
-        /// try
-        /// {
-        ///     await Curl.Execute("curl https://api.example.com", cancelToken);
-        /// }
-        /// catch (OperationCanceledException)
-        /// {
-        ///     // Handle cancellation gracefully
-        ///     Console.WriteLine("Request was cancelled");
-        /// }
-        /// </code>
-        /// </exception>
-        /// <remarks>
-        /// <para><b>Best Practices:</b></para>
-        /// <list type="number">
-        /// <item>Always dispose CancellationTokenSource when done: <c>using var cts = new...</c></item>
-        /// <item>Check <c>token.IsCancellationRequested</c> before starting expensive operations</item>
-        /// <item>Pass tokens through your entire async call chain</item>
-        /// <item>Combine multiple tokens with CreateLinkedTokenSource for complex scenarios</item>
-        /// </list>
-        /// </remarks>
+        /// </example>
+        /// <param name="command">The curl command line as text, exactly as for <see cref="ExecuteAsync(string)"/>,
+        /// for example <c>curl -L https://example.com/file.zip -o file.zip</c>.</param>
+        /// <param name="cancellationToken">Cancels the request when signalled: from a
+        /// <c>CancellationTokenSource</c> (optionally with a timeout, <c>new CancellationTokenSource(TimeSpan.FromSeconds(30))</c>),
+        /// an ASP.NET Core action parameter, or <c>CancellationToken.None</c> for no cancellation.</param>
+        /// <returns>The same <see cref="CurlResult"/> as <see cref="ExecuteAsync(string)"/>.</returns>
+        /// <exception cref="OperationCanceledException">The token was cancelled before the transfer finished. Fix: nothing
+        /// to fix if you cancelled on purpose; otherwise use a later deadline. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/12-cancellation-tokens.md</exception>
+        /// <exception cref="ArgumentException"><paramref name="command"/> is null, empty or whitespace.</exception>
+        /// <exception cref="CurlException">The transfer failed; the subtypes and exit codes are listed on
+        /// <see cref="ExecuteAsync(string)"/>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <seealso cref="Execute(string, CancellationToken)">Blocking version</seealso>
+        /// <seealso cref="ExecuteAsync(string)"/>
+        /// <seealso cref="ExecuteAsync(CurlOptions, CancellationToken)"/>
+        /// <seealso cref="CurlRequestBuilder.ExecuteAsync(CancellationToken)"/>
+        /// <seealso cref="DotNetCurl.CurlAsync(string, CancellationToken)"/>
         public static async Task<CurlResult> ExecuteAsync(string command, CancellationToken cancellationToken)
         {
+            RequireCommand(command, "Curl.ExecuteAsync(command, cancellationToken)");
             return await _engine.ExecuteAsync(command, cancellationToken);
         }
 
         /// <summary>
-        /// Executes a curl command that was copied from a specific shell, reading its quotes, escapes, line
-        /// continuations and variables the way that shell would.
+        /// Runs a curl command that was copied from a specific shell (bash, cmd.exe, PowerShell or
+        /// Invoke-WebRequest), reading its quotes, escapes, line continuations and variables the way that shell would.
         /// </summary>
         /// <param name="command">The command exactly as it was pasted, with or without the leading <c>curl</c>,
         /// <c>curl.exe</c> or (for <see cref="CurlFlavor.InvokeWebRequest"/>) <c>Invoke-WebRequest</c>.</param>
@@ -608,15 +495,17 @@ namespace CurlDotNet
         /// syntax (also the <c>curl</c>, <c>iwr</c> and <c>irm</c> aliases); <see cref="CurlFlavor.Auto"/> to detect it.
         /// Overrides <see cref="DefaultFlavor"/> for this call.
         /// </param>
-        /// <returns>The <see cref="CurlResult"/> of the request. To see which flavor and which parsed values a command
-        /// produces before sending it, use <see cref="Validate(string, CurlFlavor)"/> and read
-        /// <see cref="Core.CurlOptions.Flavor"/> on its <c>ParsedOptions</c>.</returns>
-        /// <exception cref="ArgumentException">The command is null or empty.</exception>
+        /// <returns>The <see cref="CurlResult"/> of the request, as described on <see cref="ExecuteAsync(string)"/>. To see
+        /// which flavor and which parsed values a command produces before sending it, use
+        /// <see cref="Validate(string, CurlFlavor)"/> and read <see cref="CurlOptions.Flavor"/> on its <c>ParsedOptions</c>.</returns>
+        /// <exception cref="ArgumentException">The command is null, empty or only whitespace. Fix: pass the pasted text.</exception>
         /// <exception cref="ArgumentOutOfRangeException">The flavor is not a defined <see cref="CurlFlavor"/>.</exception>
-        /// <exception cref="Exceptions.CurlInvalidCommandException">The text breaks the flavor's rules (for example an
+        /// <exception cref="CurlInvalidCommandException">The text breaks the flavor's rules (for example an
         /// unterminated quote), or uses an <c>Invoke-WebRequest</c> parameter that cannot be translated, such as
-        /// <c>-Credential</c>. The message says how to rewrite it.</exception>
-        /// <exception cref="Exceptions.CurlException">The request itself fails, exactly as for <see cref="ExecuteAsync(string)"/>.</exception>
+        /// <c>-Credential</c>. The message says how to rewrite it. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</exception>
+        /// <exception cref="CurlException">The request itself fails, exactly as for <see cref="ExecuteAsync(string)"/>.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
         /// <remarks>
         /// <para>The same characters mean different bytes in different shells. With
         /// <c>-d '{\"a\":1}'</c>, <see cref="CurlFlavor.PowerShell"/> sends <c>{"a":1}</c> (the Windows C runtime turns
@@ -627,36 +516,49 @@ namespace CurlDotNet
         /// <para>Example: <c>var result = await Curl.ExecuteAsync("Invoke-RestMethod -Uri https://api.example.com -Method Post -Body '{\"a\":1}' -ContentType 'application/json'", CurlFlavor.InvokeWebRequest);</c></para>
         /// <para>Use <see cref="DetectFlavor(string)"/> to see what <see cref="CurlFlavor.Auto"/> would choose, and
         /// <see cref="Validate(string, CurlFlavor)"/> to check a command without sending it.</para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</para>
         /// </remarks>
         /// <seealso cref="Execute(string, CurlFlavor)">Blocking version</seealso>
         /// <seealso cref="ExecuteAsync(string, CurlFlavor, CancellationToken)">With cancellation</seealso>
         /// <seealso cref="DefaultFlavor"/>
-        /// <seealso cref="Core.CurlSettings.WithFlavor(CurlFlavor)"/>
+        /// <seealso cref="CurlSettings.WithFlavor(CurlFlavor)"/>
         /// <seealso href="https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md">curl flavors guide</seealso>
         public static async Task<CurlResult> ExecuteAsync(string command, CurlFlavor flavor)
         {
+            RequireCommand(command, "Curl.ExecuteAsync(command, flavor)");
             return await _engine.ExecuteAsync(command, flavor, CancellationToken.None);
         }
 
         /// <summary>
-        /// Executes a curl command copied from a specific shell, with cancellation support.
+        /// Runs a curl command copied from a specific shell, like <see cref="ExecuteAsync(string, CurlFlavor)"/>, and
+        /// stops it when <paramref name="cancellationToken"/> is cancelled.
         /// </summary>
-        /// <param name="command">The command exactly as it was pasted.</param>
-        /// <param name="flavor">The shell it was written for; see <see cref="ExecuteAsync(string, CurlFlavor)"/> for
-        /// the choices. Overrides <see cref="DefaultFlavor"/> for this call.</param>
-        /// <param name="cancellationToken">Cancels the request; an <see cref="OperationCanceledException"/> is thrown.</param>
-        /// <returns>The <see cref="CurlResult"/>.</returns>
-        /// <exception cref="OperationCanceledException">The token was cancelled.</exception>
-        /// <exception cref="Exceptions.CurlInvalidCommandException">The text breaks the flavor's rules or uses an
-        /// untranslatable <c>Invoke-WebRequest</c> parameter.</exception>
+        /// <param name="command">The command exactly as it was pasted, for example
+        /// <c>curl.exe -H "Accept: application/json" https://api.example.com</c>.</param>
+        /// <param name="flavor">The shell it was written for: <see cref="CurlFlavor.Posix"/>, <see cref="CurlFlavor.WindowsCmd"/>,
+        /// <see cref="CurlFlavor.PowerShell"/>, <see cref="CurlFlavor.InvokeWebRequest"/> or <see cref="CurlFlavor.Auto"/>
+        /// (see <see cref="ExecuteAsync(string, CurlFlavor)"/>). Overrides <see cref="DefaultFlavor"/> for this call.</param>
+        /// <param name="cancellationToken">Cancels the request when signalled; <c>CancellationToken.None</c> for no
+        /// cancellation.</param>
+        /// <returns>The <see cref="CurlResult"/>, as described on <see cref="ExecuteAsync(string)"/>.</returns>
+        /// <exception cref="OperationCanceledException">The token was cancelled before the transfer finished. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/12-cancellation-tokens.md</exception>
+        /// <exception cref="ArgumentException"><paramref name="command"/> is null, empty or whitespace.</exception>
+        /// <exception cref="CurlInvalidCommandException">The text breaks the flavor's rules or uses an
+        /// untranslatable <c>Invoke-WebRequest</c> parameter; the message says how to rewrite it. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</exception>
+        /// <exception cref="CurlException">The transfer failed, as for <see cref="ExecuteAsync(string)"/>.</exception>
         /// <remarks>
-        /// <para>Example: <c>using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        /// var result = await Curl.ExecuteAsync(pasted, CurlFlavor.WindowsCmd, cts.Token);</c></para>
+        /// <para>Example: <c>using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));</c> then
+        /// <c>var result = await Curl.ExecuteAsync(pasted, CurlFlavor.WindowsCmd, cts.Token);</c>.</para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</para>
         /// </remarks>
         /// <seealso cref="ExecuteAsync(string, CurlFlavor)"/>
         /// <seealso cref="Execute(string, CurlFlavor)"/>
+        /// <seealso cref="ExecuteAsync(string, CancellationToken)"/>
         public static async Task<CurlResult> ExecuteAsync(string command, CurlFlavor flavor, CancellationToken cancellationToken)
         {
+            RequireCommand(command, "Curl.ExecuteAsync(command, flavor, cancellationToken)");
             return await _engine.ExecuteAsync(command, flavor, cancellationToken);
         }
 
@@ -675,77 +577,97 @@ namespace CurlDotNet
         /// Never returns <see cref="CurlFlavor.Auto"/>.
         /// </returns>
         /// <remarks>
-        /// <para>Use it in diagnostics, for example
+        /// <para>Never throws. Use it in diagnostics, for example
         /// <c>logger.LogDebug("Running {Flavor} command {Command}", Curl.DetectFlavor(pasted), pasted);</c>, or to
         /// show users which shell rules their command will be read with before running it. When the guess is wrong,
         /// pass the right flavor to <see cref="ExecuteAsync(string, CurlFlavor)"/>.</para>
+        /// <para>Example: <c>Curl.DetectFlavor("curl -H ^\"Accept: */*^\" https://x.example")</c> returns
+        /// <see cref="CurlFlavor.WindowsCmd"/>.</para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</para>
         /// </remarks>
         /// <seealso cref="DefaultFlavor"/>
-        /// <seealso cref="Core.CurlOptions.Flavor"/>
+        /// <seealso cref="CurlOptions.Flavor"/>
+        /// <seealso cref="Validate(string, CurlFlavor)"/>
         public static CurlFlavor DetectFlavor(string command)
         {
             return string.IsNullOrWhiteSpace(command) ? CurlFlavor.Posix : CommandParser.DetectFlavor(command);
         }
 
         /// <summary>
-        /// <para><b>Execute with advanced settings - for when you need more control.</b></para>
-        ///
-        /// <para>Use this overload when you need features beyond what curl command strings provide,
-        /// like progress callbacks, custom HTTP handlers, or retry policies.</para>
-        ///
-        /// <para><b>Example with Progress Reporting:</b></para>
-        /// <code language="csharp">
-        /// var settings = new CurlSettings
-        /// {
-        ///     OnProgress = (bytes, total) =>
-        ///     {
-        ///         var percent = (bytes * 100.0) / total;
-        ///         Console.WriteLine($"Downloaded: {percent:F1}%");
-        ///     }
-        /// };
-        ///
-        /// await Curl.Execute("curl -O https://example.com/large-file.zip", settings);
-        /// </code>
-        ///
-        /// <para><b>Example with Custom Retry Policy:</b></para>
-        /// <code language="csharp">
-        /// var settings = new CurlSettings
-        /// {
-        ///     RetryCount = 3,
-        ///     RetryDelay = TimeSpan.FromSeconds(2),
-        ///     RetryOn = new[] { 500, 502, 503, 504 }  // Retry on server errors
-        /// };
-        ///
-        /// await Curl.Execute("curl https://unstable-api.example.com", settings);
-        /// </code>
+        /// Runs a curl command with timeouts, retries, extra headers, a progress callback or a cancellation token set
+        /// in code through a <see cref="CurlSettings"/> object instead of in the command text.
         /// </summary>
-        /// <param name="command">Any curl command string.</param>
-        /// <param name="settings">
-        /// <para>Advanced settings including:</para>
-        /// <list type="bullet">
-        /// <item><b>OnProgress</b> - Callback for download/upload progress</item>
-        /// <item><b>RetryCount</b> - Number of retry attempts</item>
-        /// <item><b>RetryDelay</b> - Delay between retries</item>
-        /// <item><b>CustomHttpMessageHandler</b> - Use your own HttpMessageHandler</item>
-        /// <item><b>Middleware</b> - Add custom processing pipeline</item>
-        /// </list>
-        /// <para>See <see cref="CurlSettings"/> for all options.</para>
-        /// </param>
-        /// <returns>A <see cref="CurlResult"/> with the response.</returns>
+        /// <remarks>
+        /// <para><b>Settings that this method applies</b> (each overrides the same option in the command):
+        /// <see cref="CurlSettings.MaxTimeSeconds"/> (<c>-m</c>), <see cref="CurlSettings.ConnectTimeoutSeconds"/>
+        /// (<c>--connect-timeout</c>), <see cref="CurlSettings.FollowRedirects"/> (<c>-L</c>),
+        /// <see cref="CurlSettings.Insecure"/> (<c>-k</c>), <see cref="CurlSettings.Headers"/> (one <c>-H</c> each;
+        /// replaces a header of the same name), <see cref="CurlSettings.OnProgress"/> (called for every chunk of the
+        /// response body with the percentage or -1 when the size is unknown, the bytes received so far, and the total
+        /// size or -1), <see cref="CurlSettings.RetryCount"/> with <see cref="CurlSettings.RetryDelayMs"/> (retries any
+        /// failure, like <c>--retry N --retry-delay S --retry-all-errors</c>), <see cref="CurlSettings.Flavor"/> (how the
+        /// command text is read; default <see cref="DefaultFlavor"/>) and <see cref="CurlSettings.CancellationToken"/>.</para>
+        /// <para>The other <see cref="CurlSettings"/> properties (<c>Proxy</c>, <c>UserAgent</c>, <c>Cookies</c>,
+        /// <c>OnRedirect</c>, <c>BufferSize</c>, <c>AutomaticDecompression</c>) are not used by this method; put
+        /// <c>-x</c>, <c>-A</c>, <c>-b</c>/<c>-c</c> or <c>--compressed</c> in the command instead.</para>
+        /// <para>A progress callback that throws aborts the transfer with <see cref="CurlAbortedByCallbackException"/>
+        /// (exit code 42). Cancelling the settings' token throws <see cref="OperationCanceledException"/>.</para>
+        /// <para>Example: <c>var settings = new CurlSettings().WithTimeout(10).WithRetries(3, 500).WithProgress((pct, got, total) =&gt; Console.Write($"\r{pct:F0}%"));</c>
+        /// then <c>var result = await Curl.ExecuteAsync("curl -o big.zip https://example.com/big.zip", settings);</c>.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-timeout-csharp/README.md</para>
+        /// </remarks>
+        /// <example>
+        /// <code language="csharp">
+        /// var settings = new CurlSettings()
+        ///     .WithTimeout(30)
+        ///     .WithRetries(count: 3, delayMs: 2000)
+        ///     .WithHeader("X-Request-Id", Guid.NewGuid().ToString())
+        ///     .WithProgress((percent, received, total) =&gt;
+        ///         Console.WriteLine(total &gt; 0 ? $"{percent:F1}%" : $"{received} bytes"));
+        ///
+        /// var result = await Curl.ExecuteAsync("curl -O https://example.com/large-file.zip", settings);
+        /// </code>
+        /// </example>
+        /// <param name="command">The curl command line as text, as for <see cref="ExecuteAsync(string)"/>.</param>
+        /// <param name="settings">The settings to apply on top of the command, built with <c>new CurlSettings().With...()</c>
+        /// or <see cref="CurlSettings.FromDefaults"/>. Null runs the command unchanged (no cancellation).</param>
+        /// <returns>The <see cref="CurlResult"/>, as described on <see cref="ExecuteAsync(string)"/>.</returns>
+        /// <exception cref="ArgumentException"><paramref name="command"/> is null, empty or whitespace.</exception>
+        /// <exception cref="OperationCanceledException"><see cref="CurlSettings.CancellationToken"/> was cancelled. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/12-cancellation-tokens.md</exception>
+        /// <exception cref="CurlAbortedByCallbackException">The <see cref="CurlSettings.OnProgress"/> callback threw (exit
+        /// code 42); the callback's exception is the <see cref="Exception.InnerException"/>.</exception>
+        /// <exception cref="CurlTimeoutException">The settings' (or the command's) time limit expired (exit code 28). See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/timeout-errors.md</exception>
+        /// <exception cref="CurlException">The transfer failed after all retries, as for <see cref="ExecuteAsync(string)"/>.</exception>
+        /// <seealso cref="Execute(string, CurlSettings)">Blocking version</seealso>
+        /// <seealso cref="CurlSettings"/>
+        /// <seealso cref="CurlRequestBuilder.ExecuteAsync(CurlSettings, CancellationToken)">Builder equivalent</seealso>
+        /// <seealso cref="DotNetCurl.CurlAsync(string, CurlSettings)"/>
         public static async Task<CurlResult> ExecuteAsync(string command, CurlSettings settings)
         {
+            RequireCommand(command, "Curl.ExecuteAsync(command, settings)");
             return await _engine.ExecuteAsync(command, settings);
         }
 
         /// <summary>
-        /// <para><b>Execute a request described by a <see cref="CurlOptions"/> object - no command string, no quoting.</b></para>
-        ///
-        /// <para>Use this when the values come from variables and you do not want to think about shell
-        /// quoting at all. Nothing is parsed: data containing quotes, spaces or backslashes is sent
-        /// exactly as given. The convenience helpers (<see cref="PostAsync"/>, <see cref="PostJsonAsync"/>,
-        /// <see cref="DownloadAsync"/>) are built on this method.</para>
-        ///
-        /// <para><b>Example:</b></para>
+        /// Sends a request described by a <see cref="CurlOptions"/> object instead of a command string, so values from
+        /// variables are sent exactly as given with no shell quoting to get wrong.
+        /// </summary>
+        /// <remarks>
+        /// <para>Nothing is parsed: <see cref="CurlOptions.Data"/> containing quotes, spaces or backslashes is sent
+        /// byte for byte. Set at least <see cref="CurlOptions.Url"/>; every other property mirrors a curl option
+        /// (<see cref="CurlOptions.Method"/> is <c>-X</c>, <see cref="CurlOptions.Headers"/> is <c>-H</c>,
+        /// <see cref="CurlOptions.FollowLocation"/> is <c>-L</c>, <see cref="CurlOptions.MaxTime"/> is <c>-m</c>...).
+        /// The quick helpers <see cref="PostAsync"/>, <see cref="PostJsonAsync"/> and <see cref="DownloadAsync"/> are
+        /// built on this method. The <c>Default*</c> properties of this class still apply when the options leave them
+        /// unset.</para>
+        /// <para>To start from a command and adjust it, parse it with <see cref="Validate(string)"/> and use
+        /// <c>ParsedOptions</c>.</para>
+        /// <para>Example: <c>var result = await Curl.ExecuteAsync(new CurlOptions { Url = "https://api.example.com/users", Method = "POST", Data = "{\"name\":\"O'Brien\"}", Headers = { ["Content-Type"] = "application/json" } });</c></para>
+        /// <para>Mapping of every option to libcurl: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/reference/libcurl-mapping.md</para>
+        /// </remarks>
+        /// <example>
         /// <code language="csharp">
         /// var options = new CurlOptions
         /// {
@@ -758,26 +680,84 @@ namespace CurlDotNet
         ///
         /// var result = await Curl.ExecuteAsync(options);
         /// </code>
-        /// </summary>
-        /// <param name="options">The fully populated request options. <see cref="CurlOptions.Url"/> is required.</param>
-        /// <returns>A <see cref="CurlResult"/> with the response.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> is null.</exception>
-        /// <exception cref="Exceptions.CurlException">Thrown when no URL is set or the request fails.</exception>
+        /// </example>
+        /// <param name="options">The request to send; <see cref="CurlOptions.Url"/> must be set to an absolute URL such
+        /// as <c>https://api.example.com/v1/items</c>. The object may be modified while the request runs (URL
+        /// normalisation, defaults), so do not share one instance between concurrent calls.</param>
+        /// <returns>The <see cref="CurlResult"/>, as described on <see cref="ExecuteAsync(string)"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="options"/> is null. Fix: pass a <c>new CurlOptions { Url = ... }</c>.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/run-curl-command-in-csharp/README.md</exception>
+        /// <exception cref="CurlException"><see cref="CurlOptions.Url"/> is empty (exit code 3), or the transfer failed;
+        /// the subtypes are listed on <see cref="ExecuteAsync(string)"/>. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <seealso cref="Execute(CurlOptions)">Blocking version</seealso>
+        /// <seealso cref="ExecuteAsync(CurlOptions, CancellationToken)">With cancellation</seealso>
+        /// <seealso cref="Lib.LibCurl.PerformAsync(CurlOptions, CancellationToken)">libcurl-style equivalent</seealso>
+        /// <seealso cref="CurlRequestBuilder.GetOptions"/>
         public static async Task<CurlResult> ExecuteAsync(CurlOptions options)
         {
+            RequireOptions(options, "Curl.ExecuteAsync(options)");
             return await _engine.ExecuteAsync(options);
         }
 
         /// <summary>
-        /// <para><b>Execute a <see cref="CurlOptions"/> request with cancellation support.</b></para>
-        /// <para>See <see cref="ExecuteAsync(CurlOptions)"/> for details.</para>
+        /// Sends a request described by a <see cref="CurlOptions"/> object, like <see cref="ExecuteAsync(CurlOptions)"/>,
+        /// and stops it when <paramref name="cancellationToken"/> is cancelled.
         /// </summary>
-        /// <param name="options">The fully populated request options. <see cref="CurlOptions.Url"/> is required.</param>
-        /// <param name="cancellationToken">Token used to cancel the request.</param>
-        /// <returns>A <see cref="CurlResult"/> with the response.</returns>
+        /// <remarks>
+        /// <para>Cancelling throws <see cref="OperationCanceledException"/>; a <see cref="CurlOptions.MaxTime"/> limit
+        /// throws <see cref="CurlOperationTimeoutException"/> (exit code 28) instead.</para>
+        /// <para>Example: <c>using var cts = new CancellationTokenSource(5000);</c> then
+        /// <c>var result = await Curl.ExecuteAsync(new CurlOptions { Url = "https://api.example.com/health" }, cts.Token);</c>.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/12-cancellation-tokens.md</para>
+        /// </remarks>
+        /// <param name="options">The request to send; <see cref="CurlOptions.Url"/> must be set. Do not share one instance
+        /// between concurrent calls.</param>
+        /// <param name="cancellationToken">Cancels the request when signalled; <c>CancellationToken.None</c> for no
+        /// cancellation.</param>
+        /// <returns>The <see cref="CurlResult"/>, as described on <see cref="ExecuteAsync(string)"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="options"/> is null.</exception>
+        /// <exception cref="OperationCanceledException">The token was cancelled before the transfer finished.</exception>
+        /// <exception cref="CurlException">No URL (exit code 3) or the transfer failed; see <see cref="ExecuteAsync(string)"/>.</exception>
+        /// <seealso cref="ExecuteAsync(CurlOptions)"/>
+        /// <seealso cref="Execute(CurlOptions)"/>
+        /// <seealso cref="Lib.LibCurl.PerformAsync(CurlOptions, CancellationToken)"/>
         public static async Task<CurlResult> ExecuteAsync(CurlOptions options, CancellationToken cancellationToken)
         {
+            RequireOptions(options, "Curl.ExecuteAsync(options, cancellationToken)");
             return await _engine.ExecuteAsync(options, cancellationToken);
+        }
+
+        /// <summary>Throws a helpful ArgumentException (the type these methods have always thrown) for a missing command string.</summary>
+        private static void RequireCommand(string command, string method)
+        {
+            if (command == null)
+            {
+                throw new ArgumentException(CurlException.Compose(
+                    $"{method} was called with a null command.",
+                    "Pass the curl command line as text, for example \"curl https://api.example.com\" (the leading \"curl\" is optional).",
+                    DocLinks.HowToRunCommand), nameof(command));
+            }
+
+            if (string.IsNullOrWhiteSpace(command))
+            {
+                throw new ArgumentException(CurlException.Compose(
+                    $"{method} was called with an empty command (\"{command}\").",
+                    "Pass a curl command that contains at least a URL, for example \"curl https://api.example.com\"; check that the variable holding the command was filled in.",
+                    DocLinks.HowToRunCommand), nameof(command));
+            }
+        }
+
+        /// <summary>Throws a helpful ArgumentNullException for missing CurlOptions.</summary>
+        private static void RequireOptions(CurlOptions options, string method)
+        {
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options), CurlException.Compose(
+                    $"{method} was called with null options.",
+                    "Pass a CurlOptions object with at least Url set, for example new CurlOptions { Url = \"https://api.example.com\" }, or use the command-string overload.",
+                    DocLinks.HowToRunCommand));
+            }
         }
 
         /// <summary>
@@ -785,11 +765,22 @@ namespace CurlDotNet
         /// command parser so user data never has to be shell-quoted. <see cref="CurlOptions.OriginalCommand"/>
         /// is still populated with an equivalent, correctly quoted command for diagnostics.
         /// </summary>
-        private static CurlOptions BuildQuickOptions(string url, string? method, string? data, string? contentType, string? outputFile)
+        private static CurlOptions BuildQuickOptions(string url, string? method, string? data, string? contentType, string? outputFile, string helper)
         {
+            if (url == null)
+            {
+                throw new ArgumentException(CurlException.Compose(
+                    $"Curl.{helper} was called with a null URL.",
+                    "Pass an absolute URL such as \"https://api.example.com/items\"; check that the variable holding it was set.",
+                    DocLinks.Url), nameof(url));
+            }
+
             if (string.IsNullOrWhiteSpace(url))
             {
-                throw new ArgumentException("URL cannot be null or empty", nameof(url));
+                throw new ArgumentException(CurlException.Compose(
+                    $"Curl.{helper} was called with an empty URL (\"{url}\").",
+                    "Pass an absolute URL such as \"https://api.example.com/items\", including the scheme (https://) and host.",
+                    DocLinks.Url), nameof(url));
             }
 
             var options = new CurlOptions
@@ -828,338 +819,316 @@ namespace CurlDotNet
         }
 
         /// <summary>
-        /// <para><b>Quick GET request - simpler syntax for basic GET operations.</b></para>
-        ///
-        /// <para>When you just need to GET a URL without any options, use this shortcut method.</para>
-        ///
-        /// <para><b>Example:</b></para>
+        /// Sends a plain GET request to <paramref name="url"/> (like <c>curl URL</c>) and returns the response; use it
+        /// when you need no headers, auth or other options.
+        /// </summary>
+        /// <remarks>
+        /// <para>The URL is sent as given; nothing is parsed or shell-quoted, so <c>&amp;</c>, <c>?</c> and quotes in it
+        /// need no escaping. The <c>Default*</c> properties (timeouts, <see cref="DefaultFollowRedirects"/>,
+        /// <see cref="DefaultUserAgent"/>) apply. HTTP errors are returned, not thrown: check
+        /// <see cref="CurlResult.IsSuccess"/> or call <see cref="CurlResult.EnsureSuccess"/>.</para>
+        /// <para>For headers or authentication use <see cref="ExecuteAsync(string)"/>
+        /// (<c>curl -H 'Authorization: Bearer TOKEN' URL</c>) or <see cref="CurlRequestBuilder.Get(string)"/>.</para>
+        /// <para>Example: <c>var user = (await Curl.GetAsync("https://api.github.com/users/octocat")).ParseJson&lt;GitHubUser&gt;();</c></para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/run-curl-command-in-csharp/README.md</para>
+        /// </remarks>
+        /// <example>
         /// <code language="csharp">
-        /// // Instead of:
-        /// await Curl.Execute("curl https://api.github.com/users/octocat");
-        ///
-        /// // You can use:
-        /// var response = await Curl.Get("https://api.github.com/users/octocat");
-        ///
-        /// // Work with response
+        /// var response = await Curl.GetAsync("https://api.github.com/users/octocat");
         /// var user = response.ParseJson&lt;GitHubUser&gt;();
         /// Console.WriteLine($"Followers: {user.Followers}");
         /// </code>
-        /// </summary>
-        /// <param name="url">
-        /// The URL to GET. Can be HTTP or HTTPS. Query parameters can be included.
-        /// <code>
-        /// await Curl.Get("https://api.example.com/users?page=1&amp;limit=10");
-        /// </code>
-        /// </param>
-        /// <returns>A <see cref="CurlResult"/> with the response.</returns>
-        /// <remarks>
-        /// <para>Equivalent to <c>curl &lt;url&gt;</c>.</para>
-        /// <para>For GET requests with headers or auth, use the full <see cref="Execute(string)"/> method.</para>
-        /// </remarks>
+        /// </example>
+        /// <param name="url">An absolute URL including the scheme, for example
+        /// <c>https://api.example.com/users?page=1&amp;limit=10</c>; http, https, ftp, ftps and file URLs are supported.</param>
+        /// <returns>The <see cref="CurlResult"/>: <see cref="CurlResult.StatusCode"/>, <see cref="CurlResult.Body"/>
+        /// (the response text), <see cref="CurlResult.Headers"/> and, for binary content, <see cref="CurlResult.BinaryData"/>.</returns>
+        /// <exception cref="ArgumentException"><paramref name="url"/> is null, empty or whitespace. Fix: pass an absolute URL.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/url-errors.md</exception>
+        /// <exception cref="CurlMalformedUrlException">The URL cannot be parsed (exit code 3).</exception>
+        /// <exception cref="CurlException">The transfer failed (DNS, connect, timeout, TLS...); see
+        /// <see cref="ExecuteAsync(string)"/> for the subtypes.</exception>
+        /// <seealso cref="Get(string)">Blocking version</seealso>
+        /// <seealso cref="CurlRequestBuilder.Get(string)">Builder equivalent</seealso>
+        /// <seealso cref="Lib.LibCurl.GetAsync(string, Action{CurlOptions}, CancellationToken)">libcurl-style equivalent</seealso>
+        /// <seealso cref="DotNetCurl.GetAsync(string)"/>
         public static async Task<CurlResult> GetAsync(string url)
         {
-            return await ExecuteAsync(BuildQuickOptions(url, null, null, null, null));
+            return await ExecuteAsync(BuildQuickOptions(url, null, null, null, null, "GetAsync(url)"));
         }
 
         /// <summary>
-        /// <para><b>Quick POST request - simpler syntax for posting data.</b></para>
-        ///
-        /// <para>Convenient method for simple POST requests with string data.</para>
-        ///
-        /// <para><b>Example:</b></para>
-        /// <code language="csharp">
-        /// // Post form data
-        /// var response = await Curl.Post(
-        ///     "https://api.example.com/login",
-        ///     "username=john&amp;password=secret123"
-        /// );
-        ///
-        /// // Post JSON data
-        /// var json = "{\"name\":\"John\",\"age\":30}";
-        /// var result = await Curl.Post("https://api.example.com/users", json);
-        /// </code>
+        /// Sends a POST request with <paramref name="data"/> as the body (like <c>curl -d DATA URL</c>), with no quoting or
+        /// escaping needed for the data.
         /// </summary>
-        /// <param name="url">The URL to POST to.</param>
-        /// <param name="data">
-        /// The data to send in the POST body. Can be:
-        /// <list type="bullet">
-        /// <item>JSON string: <c>"{\"key\":\"value\"}"</c></item>
-        /// <item>Form data: <c>"key1=value1&amp;key2=value2"</c></item>
-        /// <item>XML or any other string content</item>
-        /// </list>
-        /// </param>
-        /// <returns>A <see cref="CurlResult"/> with the response.</returns>
         /// <remarks>
-        /// <para>Equivalent to <c>curl -X POST -d &lt;data&gt; &lt;url&gt;</c>, but the data is passed straight to the
-        /// engine, so quotes, apostrophes and spaces in <paramref name="data"/> need no escaping.</para>
-        /// <para>For POST with headers, use <see cref="PostJson"/> or the full <see cref="Execute(string)"/> method.</para>
+        /// <para>The body is sent exactly as given; quotes, apostrophes, spaces and newlines need no escaping. As with
+        /// <c>curl -d</c>, the request has <c>Content-Type: application/x-www-form-urlencoded</c> unless you send
+        /// something else; for JSON use <see cref="PostJsonAsync"/>, which sets <c>Content-Type: application/json</c>.
+        /// The data is not URL-encoded for you: for form fields write <c>name=value&amp;other=2</c> and encode values
+        /// with <c>Uri.EscapeDataString</c>.</para>
+        /// <para>HTTP errors are returned, not thrown; check <see cref="CurlResult.IsSuccess"/>.</para>
+        /// <para>Example: <c>var result = await Curl.PostAsync("https://api.example.com/login", "username=john&amp;password=" + Uri.EscapeDataString(pw));</c></para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md</para>
         /// </remarks>
+        /// <example>
+        /// <code language="csharp">
+        /// var response = await Curl.PostAsync("https://api.example.com/login", "username=john&amp;password=secret123");
+        /// var created = await Curl.PostAsync("https://api.example.com/notes", "It's \"quoted\" and that's fine");
+        /// </code>
+        /// </example>
+        /// <param name="url">An absolute URL to post to, for example <c>https://api.example.com/users</c>.</param>
+        /// <param name="data">The request body as text: form fields (<c>key1=value1&amp;key2=value2</c>), JSON
+        /// (<c>{"key":"value"}</c>), XML or anything else. Null sends an empty body.</param>
+        /// <returns>The <see cref="CurlResult"/> with the server's status, headers and body.</returns>
+        /// <exception cref="ArgumentException"><paramref name="url"/> is null, empty or whitespace. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/url-errors.md</exception>
+        /// <exception cref="CurlException">The transfer failed; see <see cref="ExecuteAsync(string)"/>.</exception>
+        /// <seealso cref="Post(string, string)">Blocking version</seealso>
+        /// <seealso cref="PostJsonAsync(string, object)">Post an object as JSON</seealso>
+        /// <seealso cref="CurlRequestBuilder.Post(string)">Builder equivalent</seealso>
+        /// <seealso cref="Lib.LibCurl.PostAsync(string, object, Action{CurlOptions}, CancellationToken)">libcurl-style equivalent</seealso>
+        /// <seealso cref="DotNetCurl.PostAsync(string, string)"/>
         public static async Task<CurlResult> PostAsync(string url, string data)
         {
-            return await ExecuteAsync(BuildQuickOptions(url, "POST", data ?? string.Empty, null, null));
+            return await ExecuteAsync(BuildQuickOptions(url, "POST", data ?? string.Empty, null, null, "PostAsync(url, data)"));
         }
 
         /// <summary>
-        /// <para><b>POST with JSON data - automatically serializes objects to JSON.</b></para>
-        ///
-        /// <para>The easiest way to POST JSON data. Pass any object and it's automatically
-        /// serialized to JSON with the correct Content-Type header.</para>
-        ///
-        /// <para><b>Example:</b></para>
+        /// Serializes <paramref name="data"/> to JSON and POSTs it with <c>Content-Type: application/json</c>
+        /// (like <c>curl -H 'Content-Type: application/json' -d '{...}' URL</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>Serialization: System.Text.Json on .NET 8/9/10 and .NET Framework (property names as declared,
+        /// apostrophes and non-ASCII characters kept literal rather than <c>\u0027</c>-escaped), Newtonsoft.Json on the
+        /// .NET Standard 2.0 build. Anonymous objects, your classes, arrays, lists and dictionaries all work. To control
+        /// naming (camelCase) serialize yourself and call <see cref="PostAsync"/> with the string.</para>
+        /// <para>HTTP errors are returned, not thrown; check <see cref="CurlResult.IsSuccess"/> and parse the answer
+        /// with <see cref="CurlResult.ParseJson{T}"/>.</para>
+        /// <para>Example: <c>var result = await Curl.PostJsonAsync("https://api.example.com/users", new { name = "John", age = 30 });</c>
+        /// sends the body <c>{"name":"John","age":30}</c>; then <c>var created = result.ParseJson&lt;User&gt;();</c>.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md</para>
+        /// </remarks>
+        /// <example>
         /// <code language="csharp">
-        /// // Create your data object
-        /// var newUser = new
-        /// {
-        ///     name = "John Smith",
-        ///     email = "john@example.com",
-        ///     age = 30
-        /// };
+        /// var response = await Curl.PostJsonAsync("https://api.example.com/users",
+        ///     new { name = "John Smith", email = "john@example.com", age = 30 });
         ///
-        /// // Post it as JSON automatically
-        /// var response = await Curl.PostJson("https://api.example.com/users", newUser);
-        ///
-        /// // Check if successful
         /// if (response.IsSuccess)
         /// {
         ///     var created = response.ParseJson&lt;User&gt;();
         ///     Console.WriteLine($"User created with ID: {created.Id}");
         /// }
+        ///
+        /// await Curl.PostJsonAsync(url, new Dictionary&lt;string, object&gt; { ["key"] = "value" });
         /// </code>
-        ///
-        /// <para><b>Works with any object:</b></para>
-        /// <code language="csharp">
-        /// // Anonymous objects
-        /// await Curl.PostJson(url, new { key = "value" });
-        ///
-        /// // Your classes
-        /// await Curl.PostJson(url, myUserObject);
-        ///
-        /// // Collections
-        /// await Curl.PostJson(url, new[] { item1, item2, item3 });
-        ///
-        /// // Dictionaries
-        /// await Curl.PostJson(url, new Dictionary&lt;string, object&gt; { ["key"] = "value" });
-        /// </code>
-        /// </summary>
-        /// <param name="url">The URL to POST to.</param>
-        /// <param name="data">
-        /// Any object to serialize as JSON. Can be:
-        /// <list type="bullet">
-        /// <item>Anonymous objects: <c>new { name = "John" }</c></item>
-        /// <item>Your classes: <c>new User { Name = "John" }</c></item>
-        /// <item>Collections: <c>new[] { 1, 2, 3 }</c></item>
-        /// <item>Dictionaries: <c>Dictionary&lt;string, object&gt;</c></item>
-        /// </list>
-        /// </param>
-        /// <returns>A <see cref="CurlResult"/> with the response.</returns>
-        /// <remarks>
-        /// <para>Automatically adds: <c>Content-Type: application/json</c> header</para>
-        /// <para>Uses System.Text.Json on .NET 6+ or Newtonsoft.Json on older frameworks</para>
-        /// </remarks>
+        /// </example>
+        /// <param name="url">An absolute URL to post to, for example <c>https://api.example.com/users</c>.</param>
+        /// <param name="data">The object to send as JSON: an anonymous object (<c>new { name = "John" }</c>), an instance
+        /// of your class, an array/list or a <c>Dictionary&lt;string, object&gt;</c>. Null sends the JSON literal <c>null</c>.</param>
+        /// <returns>The <see cref="CurlResult"/> with the server's status, headers and body.</returns>
+        /// <exception cref="ArgumentException"><paramref name="url"/> is null, empty or whitespace.</exception>
+        /// <exception cref="CurlParsingException"><paramref name="data"/> cannot be serialized to JSON (for example it
+        /// contains a reference cycle or a type the serializer does not support); the serializer's exception is the
+        /// <see cref="Exception.InnerException"/>. Fix: send a simpler object (a DTO) or serialize it yourself. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md</exception>
+        /// <exception cref="CurlException">The transfer failed; see <see cref="ExecuteAsync(string)"/>.</exception>
+        /// <seealso cref="PostJson(string, object)">Blocking version</seealso>
+        /// <seealso cref="PostAsync(string, string)">Post a string body</seealso>
+        /// <seealso cref="CurlRequestBuilder.WithJson(object)">Builder equivalent</seealso>
+        /// <seealso cref="CurlResult.ParseJson{T}">Parse the JSON answer</seealso>
+        /// <seealso cref="DotNetCurl.PostJsonAsync(string, object)"/>
         public static async Task<CurlResult> PostJsonAsync(string url, object data)
         {
-            var json = SerializeJson(data);
-            return await ExecuteAsync(BuildQuickOptions(url, "POST", json, "application/json", null));
+            var json = SerializeJsonForPost(data, url);
+            return await ExecuteAsync(BuildQuickOptions(url, "POST", json, "application/json", null, "PostJsonAsync(url, data)"));
+        }
+
+        /// <summary>Serializes the PostJson payload, turning serializer failures into a CurlParsingException.</summary>
+        private static string SerializeJsonForPost(object data, string url) =>
+            SerializeJsonOrThrow(data, "Curl.PostJsonAsync", url, "or serialize it yourself and call Curl.PostAsync(url, json)");
+
+        /// <summary>
+        /// Serializes a request body to JSON (System.Text.Json, or Newtonsoft.Json on .NET Standard 2.0), turning a
+        /// serializer failure (reference cycle, unsupported member type) into a <see cref="CurlParsingException"/> that
+        /// names the API, the object type and the URL.
+        /// </summary>
+        internal static string SerializeJsonOrThrow(object data, string api, string? url, string alternative)
+        {
+            try
+            {
+                return SerializeJson(data);
+            }
+            catch (Exception ex) when (!(ex is OutOfMemoryException))
+            {
+                throw new CurlParsingException(CurlException.Compose(
+                    $"{api} could not serialize the {data?.GetType().Name ?? "null"} object to JSON for {ErrorText.SafeUrl(url)}: {ex.Message}",
+                    $"Send a plain data object (a DTO without reference cycles, delegates or streams), {alternative}.",
+                    DocLinks.HowToPostJson),
+                    "application/json", data?.GetType() ?? typeof(object), null, ex);
+            }
         }
 
         /// <summary>
-        /// <para><b>Download a file from a URL and save it to disk.</b></para>
-        ///
-        /// <para>Downloads any file and saves it to the specified path. Shows progress if the file is large.</para>
-        ///
-        /// <para><b>Example:</b></para>
-        /// <code language="csharp">
-        /// // Download a PDF
-        /// await Curl.Download(
-        ///     "https://example.com/manual.pdf",
-        ///     @"C:\Downloads\manual.pdf"
-        /// );
-        ///
-        /// // Download with original filename
-        /// await Curl.Download(
-        ///     "https://example.com/installer.exe",
-        ///     @"C:\Downloads\installer.exe"
-        /// );
-        ///
-        /// Console.WriteLine("Download complete!");
-        /// </code>
-        ///
-        /// <para><b>With Error Handling:</b></para>
+        /// Downloads <paramref name="url"/> and saves the response body to <paramref name="outputPath"/> (like
+        /// <c>curl -o PATH URL</c>); paths with spaces or quotes need no escaping.
+        /// </summary>
+        /// <remarks>
+        /// <para>The folder of <paramref name="outputPath"/> must exist (curl's <c>--create-dirs</c> is not added); an
+        /// existing file is overwritten. The file is written even for an HTTP error status, exactly like
+        /// <c>curl -o</c> without <c>-f</c>, so check <see cref="CurlResult.IsSuccess"/> afterwards (and delete the file
+        /// if it holds an error page). Redirects are followed only when <see cref="DefaultFollowRedirects"/> is true; for
+        /// download links that redirect, use <c>await Curl.ExecuteAsync("curl -L -f -o file.zip URL")</c>.</para>
+        /// <para>The whole body is also kept in memory (<see cref="CurlResult.BinaryData"/> or <see cref="CurlResult.Body"/>).
+        /// For a progress bar use <see cref="ExecuteAsync(string, CurlSettings)"/> with
+        /// <see cref="CurlSettings.WithProgress"/>.</para>
+        /// <para>Example: <c>var result = await Curl.DownloadAsync("https://example.com/manual.pdf", @"C:\Downloads\manual.pdf");</c>
+        /// then <c>result.OutputFiles[0]</c> is the path written.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</para>
+        /// </remarks>
+        /// <example>
         /// <code language="csharp">
         /// try
         /// {
-        ///     await Curl.Download(url, "output.zip");
-        ///     Console.WriteLine("✅ Download successful");
+        ///     var result = await Curl.DownloadAsync("https://example.com/manual.pdf", "downloads/manual.pdf");
+        ///     if (!result.IsSuccess) Console.WriteLine($"Server answered {result.StatusCode}");
         /// }
-        /// catch (CurlHttpException ex) when (ex.StatusCode == 404)
+        /// catch (CurlWriteErrorException ex)
         /// {
-        ///     Console.WriteLine("❌ File not found");
-        /// }
-        /// catch (Exception ex)
-        /// {
-        ///     Console.WriteLine($"❌ Download failed: {ex.Message}");
+        ///     Console.WriteLine(ex.Message); // folder missing or not writable, and how to fix it
         /// }
         /// </code>
-        /// </summary>
-        /// <param name="url">The URL of the file to download.</param>
-        /// <param name="outputPath">
-        /// Where to save the file. Can be:
-        /// <list type="bullet">
-        /// <item>Full path: <c>@"C:\Downloads\file.pdf"</c></item>
-        /// <item>Relative path: <c>"downloads/file.pdf"</c></item>
-        /// <item>Just filename: <c>"file.pdf"</c> (saves to current directory)</item>
-        /// </list>
-        /// </param>
-        /// <returns>A <see cref="CurlResult"/> with download information.</returns>
-        /// <remarks>
-        /// <para>Equivalent to <c>curl -o &lt;outputPath&gt; &lt;url&gt;</c>; paths with spaces or quotes need no escaping.</para>
-        /// <para>For large files with progress, use <see cref="Execute(string, CurlSettings)"/> with OnProgress callback.</para>
-        /// </remarks>
+        /// </example>
+        /// <param name="url">An absolute URL of the file, for example <c>https://example.com/files/report.pdf</c>.</param>
+        /// <param name="outputPath">Where to save it: an absolute path (<c>@"C:\Downloads\file.pdf"</c>,
+        /// <c>/tmp/file.pdf</c>), a relative path (<c>downloads/file.pdf</c>, relative to the current directory) or just a
+        /// file name. Its folder must already exist.</param>
+        /// <returns>The <see cref="CurlResult"/>: <see cref="CurlResult.StatusCode"/>, <see cref="CurlResult.Headers"/>,
+        /// <see cref="CurlResult.OutputFiles"/> (contains <paramref name="outputPath"/>). The body is in the file, not in
+        /// <see cref="CurlResult.Body"/> (empty); <see cref="CurlResult.BinaryData"/> also holds it for binary downloads.</returns>
+        /// <exception cref="ArgumentException"><paramref name="url"/> or <paramref name="outputPath"/> is null, empty or whitespace.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</exception>
+        /// <exception cref="CurlWriteErrorException">The file could not be written: its folder does not exist, the path is
+        /// invalid, or the disk is full or read-only (exit code 23). Fix: create the folder first. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <exception cref="CurlException">The transfer failed (DNS, connect, timeout, TLS...); see <see cref="ExecuteAsync(string)"/>.</exception>
+        /// <seealso cref="Download(string, string)">Blocking version</seealso>
+        /// <seealso cref="CurlRequestBuilder.WithOutput(string)">Builder equivalent</seealso>
+        /// <seealso cref="Lib.LibCurl.WithOutputFile(string)">libcurl-style equivalent</seealso>
+        /// <seealso cref="CurlResult.SaveToFile(string)">Save a response you already have</seealso>
+        /// <seealso cref="DotNetCurl.DownloadAsync(string, string)"/>
         public static async Task<CurlResult> DownloadAsync(string url, string outputPath)
         {
-            if (string.IsNullOrWhiteSpace(outputPath))
+            if (outputPath == null)
             {
-                throw new ArgumentException("Output path cannot be null or empty", nameof(outputPath));
+                throw new ArgumentException(CurlException.Compose(
+                    $"Curl.DownloadAsync(url, outputPath) was called with a null output path for {ErrorText.SafeUrl(url)}.",
+                    "Pass the file to save to, for example \"downloads/report.pdf\" or an absolute path; its folder must exist.",
+                    DocLinks.HowToDownload), nameof(outputPath));
             }
 
-            return await ExecuteAsync(BuildQuickOptions(url, null, null, null, outputPath));
+            if (string.IsNullOrWhiteSpace(outputPath))
+            {
+                throw new ArgumentException(CurlException.Compose(
+                    $"Curl.DownloadAsync(url, outputPath) was called with an empty output path (\"{outputPath}\") for {ErrorText.SafeUrl(url)}.",
+                    "Pass the file to save to, for example \"downloads/report.pdf\"; to keep the body in memory only, use Curl.GetAsync(url) instead.",
+                    DocLinks.HowToDownload), nameof(outputPath));
+            }
+
+            return await ExecuteAsync(BuildQuickOptions(url, null, null, null, outputPath, "DownloadAsync(url, outputPath)"));
         }
 
         /// <summary>
-        /// <para><b>Execute multiple curl commands in parallel - great for performance!</b></para>
-        ///
-        /// <para>Runs multiple HTTP requests at the same time, which is much faster than running them one by one.
-        /// Perfect for fetching data from multiple APIs or endpoints simultaneously.</para>
-        ///
-        /// <para><b>Example - Fetch Multiple APIs:</b></para>
+        /// Runs several curl commands at the same time and returns their results in the same order, so N requests take
+        /// about as long as the slowest one instead of the sum.
+        /// </summary>
+        /// <remarks>
+        /// <para>All commands start immediately (there is no concurrency limit), share the connection pool, and run in
+        /// parallel. The returned array has one <see cref="CurlResult"/> per command, in the order given.</para>
+        /// <para><b>Failures:</b> an HTTP error status is not a failure (that result just has its status code). If any
+        /// command throws (DNS failure, timeout, <c>-f</c> with a 404...), this method throws that exception after all
+        /// commands have finished, and the results of the successful ones are not returned. To keep every outcome, run
+        /// the tasks yourself: <c>var tasks = commands.Select(c =&gt; Curl.ExecuteAsync(c)).ToList(); try { await Task.WhenAll(tasks); } catch { }</c>
+        /// and then inspect each task's <c>Status</c>, <c>Result</c> or <c>Exception</c>.</para>
+        /// <para>Be considerate to servers: hundreds of simultaneous requests to one API can trigger rate limits
+        /// (HTTP 429); batch them with <c>Chunk</c> or a <c>SemaphoreSlim</c>.</para>
+        /// <para>Example: <c>var results = await Curl.ExecuteManyAsync("curl https://api.github.com/users/microsoft", "curl https://api.github.com/users/dotnet");</c>
+        /// then <c>results[1].Body</c> is the dotnet user.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/13-parallel-requests.md</para>
+        /// </remarks>
+        /// <example>
         /// <code language="csharp">
-        /// // These all run at the same time (parallel), not one after another
-        /// var results = await Curl.ExecuteMany(
+        /// var results = await Curl.ExecuteManyAsync(
         ///     "curl https://api.github.com/users/microsoft",
         ///     "curl https://api.github.com/users/dotnet",
-        ///     "curl https://api.github.com/users/azure"
-        /// );
-        ///
-        /// // Process results - array order matches command order
-        /// Console.WriteLine($"Microsoft: {results[0].Body}");
-        /// Console.WriteLine($"DotNet: {results[1].Body}");
-        /// Console.WriteLine($"Azure: {results[2].Body}");
-        /// </code>
-        ///
-        /// <para><b>Example - Aggregate Data:</b></para>
-        /// <code language="csharp">
-        /// // Fetch from multiple services simultaneously
-        /// var results = await Curl.ExecuteMany(
-        ///     "curl https://api.weather.com/temperature",
-        ///     "curl https://api.weather.com/humidity",
-        ///     "curl https://api.weather.com/forecast"
-        /// );
-        ///
-        /// // Check if all succeeded
-        /// if (results.All(r => r.IsSuccess))
-        /// {
-        ///     var temp = results[0].ParseJson&lt;Temperature&gt;();
-        ///     var humidity = results[1].ParseJson&lt;Humidity&gt;();
-        ///     var forecast = results[2].ParseJson&lt;Forecast&gt;();
-        ///
-        ///     DisplayWeatherDashboard(temp, humidity, forecast);
-        /// }
-        /// </code>
-        ///
-        /// <para><b>Error Handling - Some May Fail:</b></para>
-        /// <code language="csharp">
-        /// var results = await Curl.ExecuteMany(commands);
+        ///     "curl https://api.github.com/users/azure");
         ///
         /// for (int i = 0; i &lt; results.Length; i++)
-        /// {
-        ///     if (results[i].IsSuccess)
-        ///     {
-        ///         Console.WriteLine($"✅ Command {i} succeeded");
-        ///     }
-        ///     else
-        ///     {
-        ///         Console.WriteLine($"❌ Command {i} failed: {results[i].StatusCode}");
-        ///     }
-        /// }
+        ///     Console.WriteLine($"{i}: HTTP {results[i].StatusCode}");
         /// </code>
-        /// </summary>
-        /// <param name="commands">
-        /// Array of curl command strings to execute. Can pass as:
-        /// <list type="bullet">
-        /// <item>Multiple parameters: <c>ExecuteMany(cmd1, cmd2, cmd3)</c></item>
-        /// <item>Array: <c>ExecuteMany(commandArray)</c></item>
-        /// <item>List: <c>ExecuteMany(commandList.ToArray())</c></item>
-        /// </list>
-        /// </param>
-        /// <returns>
-        /// Array of <see cref="CurlResult"/> objects in the same order as the commands.
-        /// Even if some fail, you still get results for all commands.
-        /// </returns>
-        /// <remarks>
-        /// <para><b>Performance Note:</b> If you have 10 commands that each take 1 second,
-        /// running them in parallel takes ~1 second total instead of 10 seconds sequentially!</para>
-        /// <para><b>Limit:</b> Be respectful of APIs - don't send hundreds of parallel requests.</para>
-        /// </remarks>
+        /// </example>
+        /// <param name="commands">The curl command lines to run, each as for <see cref="ExecuteAsync(string)"/>; pass them
+        /// as separate arguments (<c>ExecuteManyAsync(cmd1, cmd2)</c>) or as an array. An empty array returns an empty
+        /// array.</param>
+        /// <returns>One <see cref="CurlResult"/> per command, in the same order as <paramref name="commands"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="commands"/> is null.</exception>
+        /// <exception cref="ArgumentException">One of the commands is null, empty or whitespace (the message gives its index).
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/13-parallel-requests.md</exception>
+        /// <exception cref="CurlException">At least one command failed; the exception of the first failed command (in
+        /// array order) is thrown. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <seealso cref="ExecuteAsync(string)"/>
+        /// <seealso cref="DotNetCurl.CurlManyAsync(string[])"/>
+        /// <seealso cref="DotNetCurl.CurlMany(string[])">Blocking version</seealso>
         public static async Task<CurlResult[]> ExecuteManyAsync(params string[] commands)
         {
-            var tasks = commands.Select(cmd => ExecuteAsync(cmd));
+            if (commands == null)
+            {
+                throw new ArgumentNullException(nameof(commands), CurlException.Compose(
+                    "Curl.ExecuteManyAsync(commands) was called with a null array.",
+                    "Pass the commands as separate arguments (Curl.ExecuteManyAsync(cmd1, cmd2)) or as a string array; an empty array is allowed and returns no results.",
+                    DocLinks.Base + "tutorials/13-parallel-requests.md"));
+            }
+
+            var tasks = commands.Select((cmd, i) => ExecuteAsync(cmd ?? throw new ArgumentException(CurlException.Compose(
+                $"Curl.ExecuteManyAsync(commands): the command at index {i} of {commands.Length} is null.",
+                "Remove the null entry or fill it with a curl command such as \"curl https://api.example.com\".",
+                DocLinks.Base + "tutorials/13-parallel-requests.md"), nameof(commands))));
             return await Task.WhenAll(tasks);
         }
 
         /// <summary>
-        /// <para><b>Check if a curl command is valid without executing it.</b></para>
-        ///
-        /// <para>Useful for validating user input or checking commands before running them.
-        /// This only checks syntax, not whether the URL actually exists.</para>
-        ///
-        /// <para><b>Example:</b></para>
-        /// <code language="csharp">
-        /// // Check if command is valid
-        /// var validation = Curl.Validate("curl -X POST https://api.example.com");
-        ///
-        /// if (validation.IsValid)
-        /// {
-        ///     Console.WriteLine("✅ Command is valid!");
-        ///     // Safe to execute
-        ///     var result = await Curl.Execute(command);
-        /// }
-        /// else
-        /// {
-        ///     Console.WriteLine($"❌ Invalid command: {validation.ErrorMessage}");
-        ///     Console.WriteLine($"Problem at position {validation.ErrorPosition}");
-        /// }
-        /// </code>
-        ///
-        /// <para><b>Validate User Input:</b></para>
-        /// <code language="csharp">
-        /// Console.Write("Enter curl command: ");
-        /// var userCommand = Console.ReadLine();
-        ///
-        /// var validation = Curl.Validate(userCommand);
-        /// if (!validation.IsValid)
-        /// {
-        ///     Console.WriteLine($"Error: {validation.ErrorMessage}");
-        ///     if (validation.Suggestions.Any())
-        ///     {
-        ///         Console.WriteLine("Did you mean:");
-        ///         foreach (var suggestion in validation.Suggestions)
-        ///         {
-        ///             Console.WriteLine($"  - {suggestion}");
-        ///         }
-        ///     }
-        /// }
-        /// </code>
+        /// Checks a curl command without sending anything and reports whether it can run, what is wrong with it, and
+        /// exactly which URL, method, headers and body it would send.
         /// </summary>
-        /// <param name="command">The curl command string to validate.</param>
-        /// <returns>
-        /// A <see cref="ValidationResult"/> containing:
-        /// <list type="bullet">
-        /// <item><b>IsValid</b> - true if command is valid</item>
-        /// <item><b>ErrorMessage</b> - Description of what's wrong (if invalid)</item>
-        /// <item><b>ErrorPosition</b> - Character position of error</item>
-        /// <item><b>Suggestions</b> - Possible fixes for common mistakes</item>
-        /// </list>
-        /// </returns>
+        /// <remarks>
+        /// <para>Validation parses the command with <see cref="DefaultFlavor"/> and checks that it has a URL, that every
+        /// option is known (typos such as <c>--heder</c> are reported here, while <see cref="ExecuteAsync(string)"/>
+        /// ignores them), that the URL parses and that its scheme is supported. It does not contact the server, so a URL
+        /// that does not exist is still "valid".</para>
+        /// <para>Never throws for bad input: null or empty text gives <c>IsValid == false</c> with the reason in
+        /// <c>Error</c>.</para>
+        /// <para>Example: <c>var v = Curl.Validate(userInput);</c> then
+        /// <c>if (!v.IsValid) ShowError(v.Error); else Console.WriteLine($"{v.ParsedOptions.Method ?? "GET"} {v.ParsedOptions.Url}");</c>.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/14-debugging-requests.md</para>
+        /// </remarks>
+        /// <example>
+        /// <code language="csharp">
+        /// var validation = Curl.Validate("curl -X POST --heder 'A: b' https://api.example.com");
+        /// if (!validation.IsValid)
+        ///     Console.WriteLine($"Invalid command: {validation.Error}");   // Unknown option: --heder
+        /// else
+        ///     Console.WriteLine(validation.ParsedOptions.Url);
+        /// </code>
+        /// </example>
+        /// <param name="command">The curl command line to check, as for <see cref="ExecuteAsync(string)"/>. Null or empty
+        /// text is reported as invalid.</param>
+        /// <returns>A <see cref="ValidationResult"/>: <c>IsValid</c> (true when the command can run), <c>Error</c> (null
+        /// when valid; otherwise the reason, such as <c>No URL specified</c>, <c>Unknown option: --heder</c>,
+        /// <c>Unsupported protocol: gopher</c> or the parser's message with its fix) and <c>ParsedOptions</c> (the
+        /// <see cref="CurlOptions"/> the command produced; set when valid and for unknown options, null otherwise).</returns>
+        /// <seealso cref="Validate(string, CurlFlavor)"/>
+        /// <seealso cref="ExecuteAsync(string)"/>
+        /// <seealso cref="DotNetCurl.Validate(string)"/>
         public static ValidationResult Validate(string command)
         {
             return _engine.Validate(command);
@@ -1169,13 +1138,13 @@ namespace CurlDotNet
         /// Checks a curl command copied from a specific shell without executing it, reading it with that shell's
         /// quoting, escaping, line-continuation and variable rules.
         /// </summary>
-        /// <param name="command">The command exactly as pasted.</param>
+        /// <param name="command">The command exactly as pasted. Null or empty text is reported as invalid.</param>
         /// <param name="flavor">The shell it was written for (<see cref="CurlFlavor.Auto"/> detects it); overrides
         /// <see cref="DefaultFlavor"/> for this call.</param>
         /// <returns>
         /// A <see cref="ValidationResult"/>: <c>IsValid</c>, <c>Error</c> (for example an unterminated quote, an unknown
         /// option or an untranslatable <c>Invoke-WebRequest</c> parameter, with the fix in the text) and
-        /// <c>ParsedOptions</c>, whose <see cref="Core.CurlOptions.Flavor"/> is the flavor that was used and whose
+        /// <c>ParsedOptions</c>, whose <see cref="CurlOptions.Flavor"/> is the flavor that was used and whose
         /// <c>Data</c>, <c>Headers</c> and <c>Url</c> show exactly what would be sent. Never throws for bad input.
         /// </returns>
         /// <remarks>
@@ -1183,6 +1152,7 @@ namespace CurlDotNet
         /// gives <c>v.ParsedOptions.Data == "{\\\"a\\\":1}"</c> (backslashes kept), while the same text with
         /// <see cref="CurlFlavor.PowerShell"/> gives <c>{"a":1}</c>. Comparing the two is the quickest way to explain
         /// why a command behaves differently on another machine.</para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</para>
         /// </remarks>
         /// <seealso cref="Validate(string)"/>
         /// <seealso cref="ExecuteAsync(string, CurlFlavor)"/>
@@ -1193,127 +1163,115 @@ namespace CurlDotNet
         }
 
         /// <summary>
-        /// <para><b>Convert curl command to C# HttpClient code - great for learning!</b></para>
-        ///
-        /// <para>Shows you exactly how to write the same request using HttpClient.
-        /// Perfect for understanding what curl is doing or migrating to pure HttpClient.</para>
-        ///
-        /// <para><b>Example:</b></para>
-        /// <code language="csharp">
-        /// var curlCommand = @"
-        ///     curl -X POST https://api.example.com/users \
-        ///       -H 'Content-Type: application/json' \
-        ///       -H 'Authorization: Bearer token123' \
-        ///       -d '{""name"":""John"",""age"":30}'
-        /// ";
-        ///
-        /// string code = Curl.ToHttpClient(curlCommand);
-        /// Console.WriteLine(code);
-        ///
-        /// // Output:
-        /// // using var client = new HttpClient();
-        /// // var request = new HttpRequestMessage(HttpMethod.Post, "https://api.example.com/users");
-        /// // request.Headers.Add("Authorization", "Bearer token123");
-        /// // request.Content = new StringContent("{\"name\":\"John\",\"age\":30}",
-        /// //     Encoding.UTF8, "application/json");
-        /// // var response = await client.SendAsync(request);
-        /// </code>
+        /// Translates a curl command into equivalent C# <c>HttpClient</c> code, for learning what the command does or
+        /// for moving a request to plain <c>HttpClient</c>.
         /// </summary>
-        /// <param name="command">The curl command to convert.</param>
-        /// <returns>C# code using HttpClient that does the same thing.</returns>
         /// <remarks>
-        /// <para>Great for:</para>
-        /// <list type="bullet">
-        /// <item>Learning how HttpClient works</item>
-        /// <item>Migrating from CurlDotNet to pure HttpClient</item>
-        /// <item>Understanding what curl commands actually do</item>
-        /// <item>Code generation for your projects</item>
-        /// </list>
+        /// <para>The generated code covers the method, URL, headers, body, basic credentials (<c>-u</c>), proxy
+        /// (<c>-x</c>), <c>-k</c> and <c>-L</c>; options with no <c>HttpClient</c> equivalent are left out. Nothing is
+        /// sent. The output contains any password or token from the command in clear text, so do not log it.</para>
+        /// <para>Example: <c>string code = Curl.ToHttpClient("curl -X POST -H 'Content-Type: application/json' -d '{\"a\":1}' https://api.example.com");</c>
+        /// returns code that builds an <c>HttpRequestMessage(HttpMethod.Post, ...)</c> with a <c>StringContent</c> body.</para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/convert-curl-to-csharp/README.md</para>
         /// </remarks>
+        /// <example>
+        /// <code language="csharp">
+        /// string code = Curl.ToHttpClient(@"curl -X POST https://api.example.com/users \
+        ///     -H 'Authorization: Bearer token123' -d '{""name"":""John""}'");
+        /// Console.WriteLine(code);
+        /// </code>
+        /// </example>
+        /// <param name="command">The curl command line to translate, read with <see cref="DefaultFlavor"/>, for example
+        /// <c>curl -H 'Accept: application/json' https://api.example.com</c>.</param>
+        /// <returns>C# source text (several lines, starting with a <c>// Generated by CurlDotNet from: ...</c> comment) that
+        /// sends the same request with <c>HttpClient</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="command"/> is null, empty or whitespace. Fix: pass a
+        /// command with a URL. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/convert-curl-to-csharp/README.md</exception>
+        /// <exception cref="CurlInvalidCommandException">The command text cannot be read (unterminated quote, option
+        /// without its value); the message names the problem.</exception>
+        /// <exception cref="CurlException">Another parse error, such as a file named with <c>-d @file</c> that cannot be read.</exception>
+        /// <seealso cref="ToFetch(string)"/>
+        /// <seealso cref="ToPythonRequests(string)"/>
+        /// <seealso cref="ToPowershellCode(string)"/>
+        /// <seealso cref="DotNetCurl.ToHttpClient(string)"/>
         public static string ToHttpClient(string command)
         {
             return _engine.ToHttpClientCode(command);
         }
 
         /// <summary>
-        /// <para><b>Convert curl command to JavaScript fetch() code.</b></para>
-        ///
-        /// <para>Generates JavaScript code that does the same thing as your curl command.
-        /// Useful for web developers who need the same request in JavaScript.</para>
-        ///
-        /// <para><b>Example:</b></para>
-        /// <code language="javascript">
-        /// var curlCommand = "curl -X GET https://api.example.com/data -H 'Authorization: Bearer token'";
-        ///
-        /// string jsCode = Curl.ToFetch(curlCommand);
-        /// Console.WriteLine(jsCode);
-        ///
-        /// // Output:
-        /// // fetch('https://api.example.com/data', {
-        /// //     method: 'GET',
-        /// //     headers: {
-        /// //         'Authorization': 'Bearer token'
-        /// //     }
-        /// // })
-        /// // .then(response => response.json())
-        /// // .then(data => console.log(data));
-        /// </code>
+        /// Translates a curl command into JavaScript <c>fetch()</c> code that sends the same request, for web front ends
+        /// and Node.js.
         /// </summary>
-        /// <param name="command">The curl command to convert.</param>
-        /// <returns>JavaScript fetch() code that does the same thing.</returns>
+        /// <remarks>
+        /// <para>The generated code covers the URL, method, headers and body. Nothing is sent. Credentials from the
+        /// command appear in the output.</para>
+        /// <para>Example: <c>string js = Curl.ToFetch("curl -H 'Authorization: Bearer token' https://api.example.com/data");</c>
+        /// returns <c>const response = await fetch('https://api.example.com/data', { ... headers: { 'Authorization': 'Bearer token' } ... });</c>.</para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/convert-curl-to-csharp/README.md</para>
+        /// </remarks>
+        /// <example>
+        /// <code language="csharp">
+        /// string jsCode = Curl.ToFetch("curl -X GET https://api.example.com/data -H 'Authorization: Bearer token'");
+        /// Console.WriteLine(jsCode);
+        /// </code>
+        /// </example>
+        /// <param name="command">The curl command line to translate, read with <see cref="DefaultFlavor"/>.</param>
+        /// <returns>JavaScript source text using <c>fetch()</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="command"/> is null, empty or whitespace.</exception>
+        /// <exception cref="CurlInvalidCommandException">The command text cannot be read; the message names the problem.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <seealso cref="ToHttpClient(string)"/>
+        /// <seealso cref="ToPythonRequests(string)"/>
+        /// <seealso cref="DotNetCurl.ToFetch(string)"/>
         public static string ToFetch(string command)
         {
             return _engine.ToFetchCode(command);
         }
 
         /// <summary>
-        /// <para><b>Convert curl command to Python requests code.</b></para>
-        ///
-        /// <para>Generates Python code using the popular 'requests' library.
-        /// Great for Python developers or data scientists.</para>
-        ///
-        /// <para><b>Example:</b></para>
-        /// <code language="python">
-        /// var curlCommand = "curl -u user:pass https://api.example.com/data";
-        ///
-        /// string pythonCode = Curl.ToPythonRequests(curlCommand);
-        /// Console.WriteLine(pythonCode);
-        ///
-        /// // Output:
-        /// // import requests
-        /// //
-        /// // response = requests.get(
-        /// //     'https://api.example.com/data',
-        /// //     auth=('user', 'pass')
-        /// // )
-        /// // print(response.json())
-        /// </code>
+        /// Translates a curl command into Python code using the <c>requests</c> library, for sharing a request with
+        /// Python scripts and notebooks.
         /// </summary>
-        /// <param name="command">The curl command to convert.</param>
-        /// <returns>Python code using requests library.</returns>
+        /// <remarks>
+        /// <para>The generated code covers the method, URL, headers, body and <c>-u</c> credentials (as
+        /// <c>auth=('user', 'pass')</c>). Nothing is sent. Credentials appear in the output.</para>
+        /// <para>Example: <c>string py = Curl.ToPythonRequests("curl -u user:pass https://api.example.com/data");</c>
+        /// returns code starting with <c>import requests</c> that calls <c>requests.get(...)</c>.</para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/convert-curl-to-csharp/README.md</para>
+        /// </remarks>
+        /// <param name="command">The curl command line to translate, read with <see cref="DefaultFlavor"/>.</param>
+        /// <returns>Python source text using <c>requests</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="command"/> is null, empty or whitespace.</exception>
+        /// <exception cref="CurlInvalidCommandException">The command text cannot be read; the message names the problem.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <seealso cref="ToHttpClient(string)"/>
+        /// <seealso cref="ToFetch(string)"/>
+        /// <seealso cref="DotNetCurl.ToPython(string)"/>
         public static string ToPythonRequests(string command)
         {
             return _engine.ToPythonCode(command);
         }
 
         /// <summary>
-        /// <para><b>Convert a curl command to PowerShell code.</b></para>
-        ///
-        /// <para>Generates PowerShell code using Invoke-RestMethod that performs the same request.</para>
-        ///
-        /// <para><b>Example:</b></para>
-        /// <code language="powershell">
-        /// var curlCommand = "curl -X POST https://api.example.com/data -d '{\"key\":\"value\"}'";
-        ///
-        /// string psCode = Curl.ToPowershellCode(curlCommand);
-        /// Console.WriteLine(psCode);
-        ///
-        /// // Output:
-        /// // Invoke-RestMethod -Uri "https://api.example.com/data" -Method POST -Body "{\"key\":\"value\"}" -ContentType "application/json"
-        /// </code>
+        /// Translates a curl command into a PowerShell <c>Invoke-RestMethod</c> call that sends the same request, for
+        /// Windows admins and build scripts.
         /// </summary>
-        /// <param name="command">The curl command to convert.</param>
-        /// <returns>PowerShell code using Invoke-RestMethod.</returns>
+        /// <remarks>
+        /// <para>The generated command covers <c>-Uri</c>, <c>-Method</c>, headers and <c>-Body</c>. Nothing is sent.
+        /// To go the other way (run an <c>Invoke-WebRequest</c> command), use
+        /// <see cref="ExecuteAsync(string, CurlFlavor)"/> with <see cref="CurlFlavor.InvokeWebRequest"/>.</para>
+        /// <para>Example: <c>Curl.ToPowershellCode("curl -X POST https://api.example.com/data -d '{\"key\":\"value\"}'")</c>
+        /// returns <c>Invoke-RestMethod -Uri "https://api.example.com/data" -Method POST ...</c>.</para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</para>
+        /// </remarks>
+        /// <param name="command">The curl command line to translate, read with <see cref="DefaultFlavor"/>.</param>
+        /// <returns>One PowerShell command line using <c>Invoke-RestMethod</c>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="command"/> is null, empty or whitespace.</exception>
+        /// <exception cref="CurlInvalidCommandException">The command text cannot be read; the message names the problem.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <seealso cref="ToHttpClient(string)"/>
+        /// <seealso cref="ExecuteAsync(string, CurlFlavor)"/>
         public static string ToPowershellCode(string command)
         {
             return _engine.ToPowershellCode(command);

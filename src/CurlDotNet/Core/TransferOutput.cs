@@ -15,7 +15,11 @@ namespace CurlDotNet.Core
 {
     internal static class TransferOutput
     {
-        private const string FileDocs = "\nFor file errors, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md";
+        /// <summary>The page that explains the option a file belongs to (-o/-O downloads, -c cookies, everything else).</summary>
+        private static string DocFor(string what) =>
+            what.StartsWith("-o", StringComparison.Ordinal) || what.StartsWith("-O", StringComparison.Ordinal) ? DocLinks.HowToDownload
+            : what.StartsWith("-c", StringComparison.Ordinal) ? DocLinks.CookbookCookies
+            : DocLinks.ErrorReference;
 
         /// <summary>
         /// The file the body goes to, or null for standard output (no -o/-O, or -o -).
@@ -143,17 +147,18 @@ namespace CurlDotNet.Core
                         return candidate;
                     }
                 }
-                throw new CurlWriteErrorException(path,
-                    $"--no-clobber found '{path}' and the numbered names '{path}.1' to '{path}.100' all taken; delete old downloads or pick another -o name." + FileDocs,
-                    options.OriginalCommand);
+                throw new CurlWriteErrorException(path, CurlException.Compose(
+                    $"--no-clobber found '{path}' and all 100 numbered alternatives (such as '{(dot > 0 ? stem + "-1" + extension : path + ".1")}') already taken",
+                    "Delete or move the old downloads, or choose another name with -o FILE (or another folder with --output-dir).",
+                    DocLinks.HowToDownload), options.OriginalCommand);
             }
 
             if (fromHeaderName && File.Exists(path))
             {
-                throw new CurlWriteErrorException(path,
-                    $"Refusing to overwrite '{path}': with -O -J/--remote-header-name the file name is chosen from the response (Content-Disposition, else the URL), and curl never replaces an existing file that way. " +
-                    "Remove the file, or use -o to choose the name yourself." + FileDocs,
-                    options.OriginalCommand);
+                throw new CurlWriteErrorException(path, CurlException.Compose(
+                    $"Refusing to overwrite '{path}': with -O -J/--remote-header-name the file name comes from the response (Content-Disposition, else the URL) and curl never replaces an existing file that way",
+                    "Delete or move the existing file, or choose the name yourself with -o FILE.",
+                    DocLinks.HowToDownload), options.OriginalCommand);
             }
 
             return path;
@@ -169,7 +174,10 @@ namespace CurlDotNet.Core
             }
             catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is PathTooLongException)
             {
-                throw new CurlWriteErrorException(path, $"'{path}' given with {what} is not a valid file name ({ex.Message})." + FileDocs, options.OriginalCommand);
+                throw new CurlWriteErrorException(path, CurlException.Compose(
+                    $"'{path}' given with {what} is not a valid file name ({ex.GetType().Name}: {ex.Message})",
+                    "Use a path without characters the file system rejects (such as : * ? \" < > | on Windows) and within the length limit; quote paths that contain spaces.",
+                    DocFor(what)), options.OriginalCommand, ex);
             }
 
             if (string.IsNullOrEmpty(dir) || Directory.Exists(dir))
@@ -186,13 +194,17 @@ namespace CurlDotNet.Core
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
-                    throw new CurlWriteErrorException(path, $"--create-dirs could not create '{dir}': {ex.Message}." + FileDocs, options.OriginalCommand);
+                    throw new CurlWriteErrorException(path, CurlException.Compose(
+                        $"--create-dirs could not create the folder '{dir}' for '{path}' given with {what} ({ex.GetType().Name}: {ex.Message})",
+                        "Check that this process may create folders there (permissions, read-only drive) and that no file has the same name as a folder in the path.",
+                        DocFor(what)), options.OriginalCommand, ex);
                 }
             }
 
-            throw new CurlWriteErrorException(path,
-                $"Failed to open '{path}' given with {what}: the directory '{dir}' does not exist. Create it first, or add --create-dirs so curl creates it." + FileDocs,
-                options.OriginalCommand);
+            throw new CurlWriteErrorException(path, CurlException.Compose(
+                $"Failed to open '{path}' given with {what}: the directory '{dir}' does not exist",
+                "Create the directory first, or add --create-dirs so curl creates it.",
+                DocFor(what)), options.OriginalCommand);
         }
 
         /// <summary>Writes bytes to a file, turning I/O failures into exit code 23.</summary>
@@ -212,15 +224,25 @@ namespace CurlDotNet.Core
             }
             catch (DirectoryNotFoundException)
             {
-                throw new CurlWriteErrorException(path,
-                    $"Failed to open '{path}' given with {what}: its directory does not exist. Create it first, or add --create-dirs." + FileDocs,
-                    options.OriginalCommand);
+                throw new CurlWriteErrorException(path, CurlException.Compose(
+                    $"Failed to open '{path}' given with {what}: its directory does not exist (it was removed while the transfer ran, or the path is on a drive that is gone)",
+                    "Create the directory first, or add --create-dirs so curl creates it.",
+                    DocFor(what)), options.OriginalCommand);
             }
-            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
-                throw new CurlWriteErrorException(path,
-                    $"Failed writing '{path}' given with {what}: {ex.Message}. Check that the path is writable and the disk is not full." + FileDocs,
-                    options.OriginalCommand);
+                throw new CurlWriteErrorException(path, CurlException.Compose(
+                    $"Failed writing '{path}' given with {what}: access denied ({ex.Message})",
+                    "Write somewhere this process may write (for example Path.GetTempPath()), clear the file's read-only flag, or run with the needed permissions; " +
+                    "on Windows a file open in another program cannot be replaced either.",
+                    DocFor(what)), options.OriginalCommand, ex);
+            }
+            catch (IOException ex)
+            {
+                throw new CurlWriteErrorException(path, CurlException.Compose(
+                    $"Failed writing '{path}' given with {what}: {ex.Message}",
+                    "Check that the disk is not full, that no other program holds the file open, and that the path points at a file rather than a folder.",
+                    DocFor(what)), options.OriginalCommand, ex);
             }
         }
 

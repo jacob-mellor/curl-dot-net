@@ -90,18 +90,21 @@ namespace CurlDotNet.Core
 
             if (fields - 1 > maxFields)
             {
-                return new CurlTooLargeException($"the response has more than {maxFields} header fields", command);
+                return new CurlTooLargeException($"the response from {HostOf(transfer)} has more than {maxFields} header fields", command);
             }
             if (longest > maxLine)
             {
-                return new CurlTooLargeException($"a response header line is {longest} bytes, over curl's {maxLine}-byte limit", command);
+                return new CurlTooLargeException($"a response header line from {HostOf(transfer)} is {longest} bytes, over curl's {maxLine}-byte limit", command);
             }
             var total = previousTotal + headText.Length;
             if (total > maxTotal)
             {
                 var uri = transfer.CurrentRequest?.RequestUri ?? transfer.FirstUri;
-                return new CurlReceiveErrorException(ReceiveMessage($"Too large response headers: {total} > {maxTotal} bytes for this transfer " +
-                    "(redirect hops count too)", uri), command);
+                return new CurlReceiveErrorException(CurlException.Compose(
+                    $"Too large response headers: {total} > {maxTotal} bytes for this transfer from {uri.Host} (the header blocks of every redirect hop count together)",
+                    "curl caps the response headers of one transfer at 300 KB to protect against hostile servers; follow fewer redirects (--max-redirs), " +
+                    "or ask the server owner why the headers are so large (often a cookie that keeps growing).",
+                    DocLinks.Http), command);
             }
             return null;
         }
@@ -171,9 +174,12 @@ namespace CurlDotNet.Core
         private static string WeirdMessage(string what, HttpTransfer transfer)
         {
             var host = transfer.CurrentRequest?.RequestUri?.Host ?? transfer.FirstUri.Host;
-            return $"Weird server reply from {host}: {what}. curl rejects responses that break HTTP/1.1 framing rules because " +
-                   "they can be used to smuggle responses; fix the server, there is no client option to accept it." +
-                   "\nFor HTTP error handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md";
+            return CurlException.Compose(
+                $"Weird server reply from {host}: {what}",
+                "curl rejects responses that break the HTTP/1.1 framing rules, because such replies can be used to smuggle responses; " +
+                "the server (or a proxy in between) has to be fixed, no client option accepts it. Inspect the raw reply with --trace-ascii - " +
+                "and check that the URL's port really serves HTTP.",
+                DocLinks.Http);
         }
 
         /// <summary>Returns the first rule <paramref name="head"/> breaks, or null.</summary>
@@ -185,13 +191,24 @@ namespace CurlDotNet.Core
             {
                 if (status.StartsWith("HTTP/1.", StringComparison.Ordinal) && !Regex.IsMatch(status, @"^HTTP/1\.\d "))
                 {
-                    return (1, $"Unsupported HTTP version in response: \"{Shorten(status)}\". curl speaks HTTP/1.0 and HTTP/1.1 here; the server sent something else");
+                    return (1, CurlException.Compose(
+                        $"Unsupported HTTP version in response: \"{Shorten(status)}\"",
+                        "curl speaks HTTP/1.0 and HTTP/1.1 on this connection and the server announced another version; fix the server's status line, " +
+                        "or check that the URL points at an HTTP server.",
+                        DocLinks.Http));
                 }
                 if (status.StartsWith("HTTP/", StringComparison.Ordinal))
                 {
-                    return (1, $"Unsupported HTTP version or invalid status line in response: \"{Shorten(status)}\". A status line must look like \"HTTP/1.1 200 OK\" with a three-digit code");
+                    return (1, CurlException.Compose(
+                        $"Unsupported HTTP version or invalid status line in response: \"{Shorten(status)}\"",
+                        "A status line must look like \"HTTP/1.1 200 OK\" with a three-digit status code; fix the server, or check that the URL's port serves HTTP.",
+                        DocLinks.Http));
                 }
-                return (1, $"Received HTTP/0.9 when not allowed: the reply does not start with an HTTP status line (\"{Shorten(status)}\"). Add --http0.9 if this server really speaks HTTP/0.9");
+                return (1, CurlException.Compose(
+                    $"Received HTTP/0.9 when not allowed: the reply does not start with an HTTP status line (\"{Shorten(status)}\")",
+                    "Add --http0.9 if this server really speaks HTTP/0.9; otherwise check the port and scheme of the URL (a TLS port needs https://, " +
+                    "and a non-HTTP service such as SSH or SMTP answers this way).",
+                    DocLinks.Http));
             }
 
             string? location = null;
@@ -266,6 +283,12 @@ namespace CurlDotNet.Core
             var uri = transfer.CurrentRequest?.RequestUri ?? transfer.FirstUri;
             var viaProxy = transfer.CurrentViaProxy;
 
+            var clientSide = ClientSideFailure(ex, transfer);
+            if (clientSide != null)
+            {
+                return clientSide;
+            }
+
             for (var e = ex; e != null; e = e.InnerException)
             {
                 if (e is CurlException curl)
@@ -285,9 +308,18 @@ namespace CurlDotNet.Core
                             return new CurlCouldntConnectException(failure.Host, failure.Port, failure.Message, viaProxy, command);
                         case ConnectFailureKind.Timeout:
                             var seconds = transfer.HopOptions.ConnectTimeout ?? 0;
-                            return new CurlOperationTimeoutException(seconds,
-                                $"Connection timed out after {(long)(seconds * 1000)} milliseconds while connecting to {failure.Host} port {failure.Port}" +
-                                $"{(viaProxy ? " (the proxy)" : string.Empty)}. Raise --connect-timeout, or check that the host is reachable from this machine.",
+                            var target = $"{failure.Host} port {failure.Port}{(viaProxy ? " (the proxy)" : string.Empty)}";
+                            var resolving = failure.Message.StartsWith("Resolving", StringComparison.Ordinal);
+                            return new CurlOperationTimeoutException(seconds, CurlException.Compose(
+                                seconds > 0
+                                    ? $"{(resolving ? "Resolving" : "Connection")} timed out after {(long)(seconds * 1000)} milliseconds while {(resolving ? "looking up" : "connecting to")} {target} " +
+                                      $"(--connect-timeout {seconds.ToString(System.Globalization.CultureInfo.InvariantCulture)})"
+                                    : $"Connection timed out while connecting to {target}: the operating system gave up waiting for an answer",
+                                resolving
+                                    ? "Raise --connect-timeout (seconds, decimals allowed), check this machine's DNS servers, or pin the name with --resolve HOST:PORT:ADDRESS."
+                                    : "Raise --connect-timeout (seconds, decimals allowed), or check that the host is reachable from this machine: " +
+                                      "a firewall, VPN or wrong port usually drops the connection attempt silently.",
+                                DocLinks.Timeout),
                                 command);
                         case ConnectFailureKind.GotNothing:
                             return new CurlGotNothingException(viaProxy ? ProxyHost(transfer, uri) : uri.Host, command, string.Empty);
@@ -321,11 +353,16 @@ namespace CurlDotNet.Core
                 var host = uri.Host;
                 var certificate = tls.Message.IndexOf("certificate", StringComparison.OrdinalIgnoreCase) >= 0;
                 return certificate
-                    ? (CurlException)new CurlPeerFailedVerificationException(
-                        $"{host}'s TLS certificate was rejected ({InnermostMessage(ex)}). If the server uses a private CA, trust it with --cacert; " +
-                        "for local testing only, -k/--insecure skips the check.", command)
-                    : new CurlSslConnectErrorException(
-                        $"the TLS handshake with {host} failed ({InnermostMessage(ex)}). Check that the port speaks TLS and that the server supports a modern TLS version.", command);
+                    ? (CurlException)new CurlPeerFailedVerificationException(CurlException.Compose(
+                        $"the TLS certificate of {host} port {uri.Port} was rejected ({InnermostMessage(ex)})",
+                        "If the server uses a private or self-signed CA, trust it with --cacert ca.pem; check that the URL's host matches the name in the " +
+                        "certificate and that this machine's clock is right. For local testing only, -k/--insecure skips the check.",
+                        DocLinks.Ssl), command)
+                    : new CurlSslConnectErrorException(CurlException.Compose(
+                        $"the TLS handshake with {host} port {uri.Port} failed ({InnermostMessage(ex)})",
+                        "Check that the port speaks TLS (an https:// URL on a plain-HTTP port fails this way), that the server supports TLS 1.2 or later, " +
+                        "and that any client certificate given with --cert/--key is valid.",
+                        DocLinks.Ssl), command);
             }
 
             var exchange = transfer.LastExchange;
@@ -377,7 +414,7 @@ namespace CurlDotNet.Core
 
             if (ex is IOException)
             {
-                return new CurlReceiveErrorException(ReceiveMessage(InnermostMessage(ex), uri), command);
+                return new CurlReceiveErrorException(ReceiveMessage(InnermostMessage(ex), uri), command, ex);
             }
 
             return null;
@@ -421,9 +458,10 @@ namespace CurlDotNet.Core
                     }
                     if (!text.StartsWith("HTTP/", StringComparison.Ordinal))
                     {
-                        return new CurlUnsupportedProtocolException("HTTP/0.9",
-                            $"Received HTTP/0.9 when not allowed: the reply from {uri.Host} does not start with an HTTP status line. " +
-                            "Add --http0.9 if this server really speaks HTTP/0.9.", command);
+                        return new CurlUnsupportedProtocolException("HTTP/0.9", CurlException.Compose(
+                            $"Received HTTP/0.9 when not allowed: the reply from {uri.Host} port {uri.Port} does not start with an HTTP status line (\"{Shorten(StatusLineOf(text))}\")",
+                            "Add --http0.9 if this server really speaks HTTP/0.9; otherwise check the port and scheme of the URL (a TLS port needs https://).",
+                            DocLinks.Http), command);
                     }
 
                     var probe = RawResponseHead.Parse(text + "\r\n", 0);
@@ -494,11 +532,11 @@ namespace CurlDotNet.Core
 
                 if (final.Chunked)
                 {
-                    return new CurlReceiveErrorException(ReceiveMessage("the chunked body is malformed (" + InnermostMessage(ex) + ")", uri), command);
+                    return new CurlReceiveErrorException(ReceiveMessage("the chunked body is malformed (" + InnermostMessage(ex) + ")", uri), command, ex);
                 }
             }
 
-            return new CurlReceiveErrorException(ReceiveMessage(InnermostMessage(ex), uri), command);
+            return new CurlReceiveErrorException(ReceiveMessage(InnermostMessage(ex), uri), command, ex);
         }
 
         /// <summary>
@@ -510,6 +548,12 @@ namespace CurlDotNet.Core
         {
             var options = transfer.Options;
             var uri = transfer.CurrentRequest?.RequestUri ?? transfer.FirstUri;
+
+            var clientSide = ClientSideFailure(ex, transfer);
+            if (clientSide != null)
+            {
+                return clientSide;
+            }
 
             // HttpClient sometimes reports malformed responses (bad trailers, bad header values) with
             // framework exceptions; the recorded bytes say what curl would have reported
@@ -534,7 +578,47 @@ namespace CurlDotNet.Core
                     $"{ex.GetType().Name}: {ex.Message}", options.OriginalCommand);
             }
 
-            return new CurlReceiveErrorException(ReceiveMessage($"the response could not be processed ({ex.GetType().Name}: {ex.Message})", uri), options.OriginalCommand);
+            return new CurlReceiveErrorException(ReceiveMessage($"the response could not be processed ({ex.GetType().Name}: {ex.Message})", uri), options.OriginalCommand, ex);
+        }
+
+        /// <summary>
+        /// Failures HttpClient reports for something wrong in the request itself (nothing was received), which must
+        /// not be reported as a receive or connection error: an unsupported proxy scheme, an invalid -X method token,
+        /// or a -H Content-Length that does not match the body.
+        /// </summary>
+        private static CurlException? ClientSideFailure(Exception ex, HttpTransfer transfer)
+        {
+            var options = transfer.Options;
+            var command = options.OriginalCommand;
+            for (var e = ex; e != null; e = e.InnerException)
+            {
+                if (e is NotSupportedException && e.Message.IndexOf("prox", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    var proxy = string.IsNullOrEmpty(options.Proxy) ? "(the proxy from http_proxy/https_proxy/all_proxy)" : ErrorText.SafeUrl(options.Proxy);
+                    // curl: "Unsupported proxy scheme for 'bad://proxy'" with CURLE_COULDNT_CONNECT
+                    return new CurlException(CurlException.Compose(
+                        $"Unsupported proxy scheme for '{proxy}': {e.Message.TrimEnd('.')}",
+                        "Write the proxy as http://host:port, https://host:port, socks4://, socks4a:// or socks5://host:port in -x/--proxy (or in the http_proxy/https_proxy/all_proxy variables).",
+                        DocLinks.HowToProxy), 7, command, e);
+                }
+                if (e is FormatException && e.Message.IndexOf("method", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    var method = options.CustomMethod ?? options.Method ?? "(none)";
+                    return new CurlBadFunctionArgumentException("-X", CurlException.Compose(
+                        $"The request method \"{method}\" given with -X/--request is not a valid HTTP method token ({e.Message.TrimEnd('.')})",
+                        "Use a single word without spaces or separators, such as -X PUT, -X DELETE or -X PROPFIND.",
+                        DocLinks.HowToPutDeletePatch), command);
+                }
+                if (e.Message.IndexOf("Content-Length promised", StringComparison.OrdinalIgnoreCase) >= 0
+                    || (e.Message.IndexOf("Content-Length", StringComparison.OrdinalIgnoreCase) >= 0 && e.Message.IndexOf("request content bytes", StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    return new CurlSendErrorException(CurlException.Compose(
+                        $"the request body does not match the Content-Length header ({e.Message.TrimEnd('.')})",
+                        "Remove the -H 'Content-Length: ...' header and let curl compute it from -d/--data-binary/-F, or make the body exactly that many bytes.",
+                        DocLinks.HowToHeaders), command);
+                }
+            }
+            return null;
         }
 
         private static Exception? FindTlsFailure(Exception ex)
@@ -569,10 +653,14 @@ namespace CurlDotNet.Core
 
         private static string ReceiveMessage(string detail, Uri uri)
         {
-            return $"Failure when receiving data from {uri.Host}: {detail}. The connection broke or the server sent data that " +
-                   "is not valid HTTP; retry with --retry, or inspect the exchange with -v or --trace-ascii -." +
-                   "\nFor HTTP error handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md";
+            return CurlException.Compose(
+                $"Failure when receiving data from {uri.Host} port {uri.Port}: {detail}",
+                "The connection broke or the server sent data that is not valid HTTP; retry with --retry 3, " +
+                "or inspect the exchange with -v or --trace-ascii - to see where it stopped.",
+                DocLinks.Http);
         }
+
+        private static string HostOf(HttpTransfer transfer) => (transfer.CurrentRequest?.RequestUri ?? transfer.FirstUri).Host;
 
         private static string InnermostMessage(Exception ex)
         {

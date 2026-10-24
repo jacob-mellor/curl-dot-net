@@ -11,6 +11,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using CurlDotNet.Exceptions;
 
@@ -111,7 +112,8 @@ namespace CurlDotNet.Core
                 total *= pattern.Values.Count;
                 if (total > MaxUrls)
                 {
-                    throw GlobError(text, "the glob expands to more than 100 million URLs", command);
+                    throw GlobError(text, $"the glob expands to more than {MaxUrls.ToString("N0", CultureInfo.InvariantCulture)} URLs ({string.Join(" x ", patterns.Select(p => p.Values.Count))})",
+                        "Split the job into several commands with smaller ranges (for example [1-1000] and [1001-2000]), or use a step such as [1-100000:100].", command);
                 }
             }
 
@@ -186,9 +188,11 @@ namespace CurlDotNet.Core
                             if (!named.TryGetValue(name, out var value))
                             {
                                 throw new CurlException(
-                                    $"The output name \"{pattern}\" uses #<{name}>, but the URL has no glob named \"{name}\". " +
-                                    "Name a glob in the URL, as in \"https://example.com/{<" + name + ">a,b}\", or remove the placeholder. " +
-                                    "See " + RequestShaping.DocsBase + "url-errors.md",
+                                    CurlException.Compose(
+                                        $"The output name \"{pattern}\" uses #<{name}>, but the URL has no glob named \"{name}\"" +
+                                        (named.Count == 0 ? " (it has no named globs at all)." : $" (its named globs are {string.Join(", ", named.Keys.Select(k => "<" + k + ">"))})."),
+                                        "Name a glob in the URL, as in \"https://example.com/{<" + name + ">a,b}\" or \"https://example.com/[<" + name + ">1-9]\", or use #1, #2... for globs by position.",
+                                        DocLinks.Url),
                                     43,
                                     command);
                             }
@@ -277,7 +281,8 @@ namespace CurlDotNet.Core
 
                 if (c == '}' || c == ']')
                 {
-                    throw GlobError(text, $"unmatched '{c}' at position {i + 1}", command);
+                    throw GlobError(text, $"unmatched close {(c == '}' ? "brace" : "bracket")} '{c}' in URL position {i + 1}",
+                        $"Remove the stray '{c}', escape it as \\{c} to send it literally, or turn globbing off with -g/--globoff.", command);
                 }
 
                 literal.Append(c);
@@ -334,13 +339,15 @@ namespace CurlDotNet.Core
 
                 if (c == '{' || c == '[')
                 {
-                    throw GlobError(text, $"nested '{c}' inside a {{}} set at position {i + 1}", command);
+                    throw GlobError(text, $"nested brace in URL position {i + 1}: '{c}' inside a {{}} set",
+                        "A {a,b} set cannot contain another { or [; list every combination instead, for example {a1,a2,b1,b2}, or escape the character as \\" + c + ".", command);
                 }
 
                 current.Append(c);
             }
 
-            throw GlobError(text, $"unmatched '{{' at position {open + 1}", command);
+            throw GlobError(text, $"unmatched brace in URL position {open + 1}: the {{ set is never closed",
+                "Close the set with }, as in {one,two}, or escape a literal { as \\{ (or use -g/--globoff to turn globbing off).", command);
         }
 
         private static int ParseRange(string text, int open, List<Pattern> patterns, string? command)
@@ -348,7 +355,8 @@ namespace CurlDotNet.Core
             var close = text.IndexOf(']', open + 1);
             if (close < 0)
             {
-                throw GlobError(text, $"unmatched '[' at position {open + 1}", command);
+                throw GlobError(text, $"unmatched bracket in URL position {open + 1}: the [ range is never closed",
+                    "Close the range with ], as in [1-10], or escape a literal [ as \\[ (IPv6 addresses such as http://[::1]/ also need -g/--globoff).", command);
             }
 
             var i = open + 1;
@@ -361,7 +369,8 @@ namespace CurlDotNet.Core
             {
                 if (!long.TryParse(body.Substring(colon + 1), NumberStyles.None, CultureInfo.InvariantCulture, out step) || step < 1)
                 {
-                    throw GlobError(text, $"bad step in range [{body}]", command);
+                    throw GlobError(text, $"bad range in URL position {open + 1}: the step in [{body}] is not a whole number of 1 or more",
+                        "Write the step after a colon, for example [1-100:10] for every tenth number.", command);
                 }
 
                 body = body.Substring(0, colon);
@@ -370,7 +379,8 @@ namespace CurlDotNet.Core
             var dash = body.IndexOf('-', 1);
             if (dash <= 0 || dash == body.Length - 1)
             {
-                throw GlobError(text, $"bad range [{body}]: expected [start-end] such as [1-10] or [a-z]", command);
+                throw GlobError(text, $"bad range in URL position {open + 1}: [{body}] is not a start-end range",
+                    "Write [start-end], such as [1-10], [001-100] (zero-padded) or [a-z]; for a list of words use {one,two} instead.", command);
             }
 
             var from = body.Substring(0, dash);
@@ -381,7 +391,8 @@ namespace CurlDotNet.Core
             {
                 if (to[0] < from[0] || char.IsUpper(from[0]) != char.IsUpper(to[0]))
                 {
-                    throw GlobError(text, $"bad letter range [{body}]", command);
+                    throw GlobError(text, $"bad range in URL position {open + 1}: the letter range [{body}] runs backwards or mixes upper and lower case",
+                        "Use a range in one case that counts up, such as [a-z] or [A-F].", command);
                 }
 
                 for (long ch = from[0]; ch <= to[0]; ch += step)
@@ -395,12 +406,14 @@ namespace CurlDotNet.Core
                     !long.TryParse(to, NumberStyles.None, CultureInfo.InvariantCulture, out var max) ||
                     max < min || max == long.MaxValue)
                 {
-                    throw GlobError(text, $"bad numeric range [{body}]", command);
+                    throw GlobError(text, $"bad range in URL position {open + 1}: [{body}] is not a range of whole numbers counting up",
+                        "Both ends must be non-negative whole numbers with start <= end, for example [1-10] or [0-255].", command);
                 }
 
                 if ((max - min) / step >= MaxUrls)
                 {
-                    throw GlobError(text, $"the range [{body}] expands to more than 100 million URLs", command);
+                    throw GlobError(text, $"the range [{body}] in URL position {open + 1} expands to more than {MaxUrls.ToString("N0", CultureInfo.InvariantCulture)} URLs",
+                        "Split the job into several commands with smaller ranges, or use a step such as [1-100000000:1000].", command);
                 }
 
                 // A leading zero asks for zero padding to the width of the start value: [001-100]
@@ -443,12 +456,10 @@ namespace CurlDotNet.Core
             return open == 0 || before.EndsWith("://", StringComparison.Ordinal) || before.EndsWith("@", StringComparison.Ordinal);
         }
 
-        private static CurlException GlobError(string text, string problem, string? command)
+        private static CurlException GlobError(string text, string problem, string fix, string? command)
         {
             return new CurlException(
-                $"Bad URL glob in \"{text}\": {problem}. " +
-                "Fix the {a,b} or [1-10] expression, escape literal braces and brackets with a backslash (\\{ \\[), " +
-                "or turn globbing off with -g/--globoff. See " + RequestShaping.DocsBase + "url-errors.md",
+                CurlException.Compose($"{problem} (URL glob \"{ErrorText.Preview(text, 200)}\").", fix, DocLinks.Url),
                 3,
                 command);
         }

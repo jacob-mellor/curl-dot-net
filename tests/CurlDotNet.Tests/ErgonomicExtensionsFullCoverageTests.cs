@@ -59,8 +59,8 @@ namespace CurlDotNet.Tests
             };
 
             // Act & Assert
-            // malformed JSON is reported as InvalidOperationException with the JsonException as InnerException
-            var ex = Assert.Throws<InvalidOperationException>(() => result.ParseJson<TestData>());
+            // malformed JSON is reported as CurlParsingException with the JsonException as InnerException
+            var ex = Assert.Throws<CurlDotNet.Exceptions.CurlParsingException>(() => result.ParseJson<TestData>());
             ex.InnerException.Should().BeOfType<JsonException>();
         }
 
@@ -75,7 +75,7 @@ namespace CurlDotNet.Tests
             };
 
             // Act & Assert
-            Assert.Throws<InvalidOperationException>(() => result.ParseJson<TestData>());
+            Assert.Throws<CurlDotNet.Exceptions.CurlParsingException>(() => result.ParseJson<TestData>());
         }
 
         [Fact]

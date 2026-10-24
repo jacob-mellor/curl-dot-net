@@ -522,7 +522,10 @@ namespace CurlDotNet.Core
         private CurlOptions ParsePermissive(string command)
         {
             if (string.IsNullOrWhiteSpace(command))
-                throw new ArgumentNullException(nameof(command));
+                throw new ArgumentNullException(nameof(command), CurlException.Compose(
+                    $"The curl command is {(command == null ? "null" : "empty or only whitespace")}: there is nothing to run (null, \"\" and blanks are not commands).",
+                    "Pass a command such as \"curl https://example.com\" (the leading word curl is optional), or check the variable that should hold it.",
+                    DocLinks.HowToRunCommand));
 
             var originalCommand = command;
 
@@ -588,8 +591,10 @@ namespace CurlDotNet.Core
             if (rest.Length == 0)
             {
                 throw new CurlException(
-                    "No URL specified: the command is only the program name. Add the URL to fetch, for example " +
-                    "\"curl https://example.com\". See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/url-errors.md",
+                    CurlException.Compose(
+                        $"No URL specified: the command \"{first}\" is only the program name.",
+                        "Add the URL to fetch after it, for example \"curl https://example.com\".",
+                        DocLinks.Url),
                     3);
             }
 
@@ -1174,11 +1179,37 @@ namespace CurlDotNet.Core
         private static CurlException MissingOptionValue(string option, string? command)
         {
             return new CurlException(
-                $"Option {option} requires a value, but it is the last word of the command. " +
-                $"Put its argument right after it (for example \"{option} VALUE\"), and quote the value if it contains spaces. " +
-                "See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/index.md",
+                CurlException.Compose(
+                    $"option {option}: requires parameter (it is the last word of the command, so nothing follows it).",
+                    $"Put its value right after it, for example \"{option} {ExampleValue(option)}\", and quote the value if it contains spaces.",
+                    DocLinks.CliCompatibility),
                 2,
                 command);
+        }
+
+        /// <summary>A typical value for an option, used in "requires parameter" messages.</summary>
+        private static string ExampleValue(string option)
+        {
+            switch (option)
+            {
+                case "-H": case "--header": return "'Accept: application/json'";
+                case "-d": case "--data": case "--data-raw": case "--data-binary": case "--data-urlencode": return "'name=value'";
+                case "--json": return "'{\"name\":\"value\"}'";
+                case "-o": case "--output": return "out.json";
+                case "-u": case "--user": return "user:password";
+                case "-X": case "--request": return "POST";
+                case "-A": case "--user-agent": return "'MyApp/1.0'";
+                case "-e": case "--referer": return "https://example.com/";
+                case "-b": case "--cookie": return "'name=value'";
+                case "-c": case "--cookie-jar": return "cookies.txt";
+                case "-x": case "--proxy": return "http://proxy.example.com:8080";
+                case "-m": case "--max-time": case "--connect-timeout": return "30";
+                case "-F": case "--form": return "'file=@photo.jpg'";
+                case "-T": case "--upload-file": return "file.bin";
+                case "-w": case "--write-out": return "'%{http_code}'";
+                case "-K": case "--config": return "settings.curlrc";
+                default: return "VALUE";
+            }
         }
 
         /// <summary>
@@ -1807,10 +1838,11 @@ namespace CurlDotNet.Core
                 }
 
                 throw new CurlException(
-                    $"You can only select one HTTP request method, but the command asks for both {first.Value.Value} and {kind.Value}. " +
-                    "Remove one of the two options: -d/--data* and --json send a POST body, -F a multipart form, -T uploads a file with PUT, -I sends HEAD " +
-                    "and -G turns the data into a query string; use -X to change only the method name. " +
-                    "See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/index.md",
+                    CurlException.Compose(
+                        $"You can only select one HTTP request method! You asked for both {first.Value.Value} and {kind.Value}.",
+                        "Remove one of the two options: -d/--data* and --json send a POST body, -F a multipart form, -T uploads a file with PUT, -I sends HEAD " +
+                        "and -G turns the data into a query string; use -X to change only the method name (for example -X PATCH -d '...').",
+                        DocLinks.HowToPutDeletePatch),
                     2,
                     options.OriginalCommand);
             }
@@ -1975,8 +2007,6 @@ namespace CurlDotNet.Core
                 : new NetworkCredential(userPass.Substring(0, colon), userPass.Substring(colon + 1));
         }
 
-        private const string NameResolutionDocs = "https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md";
-
         private void ParseResolve(string resolve, CurlOptions options)
         {
             // [+]host:port:address[,address]... adds an entry; -host:port removes one (ignored here).
@@ -1988,8 +2018,12 @@ namespace CurlDotNet.Core
             if (parts.Length < 3 || !IsPort(parts[1]))
             {
                 throw new CurlOptionSyntaxException("--resolve",
-                    $"Couldn't parse the --resolve entry \"{resolve}\": it must be HOST:PORT:ADDRESS[,ADDRESS] with a numeric port, " +
-                    "for example --resolve example.com:443:127.0.0.1. See " + NameResolutionDocs,
+                    CurlException.Compose(
+                        parts.Length < 3
+                            ? $"Couldn't parse --resolve \"{resolve}\": it has {parts.Length} part(s), but HOST:PORT:ADDRESS needs three."
+                            : $"Couldn't parse --resolve \"{resolve}\": the port \"{parts[1]}\" is not a number from 0 to 65535.",
+                        "Write it as HOST:PORT:ADDRESS[,ADDRESS], for example --resolve example.com:443:127.0.0.1 (IPv6 addresses in brackets: example.com:443:[::1]).",
+                        DocLinks.Dns),
                     options.OriginalCommand);
             }
 
@@ -2008,8 +2042,10 @@ namespace CurlDotNet.Core
                 || (port1.Length > 0 && !IsPort(port1)) || (port2.Length > 0 && !IsPort(port2)))
             {
                 throw new CurlOptionSyntaxException("--connect-to",
-                    $"Couldn't parse the --connect-to entry \"{value}\": it must be HOST1:PORT1:HOST2:PORT2 with numeric (or empty) ports, " +
-                    "for example --connect-to example.com:443:127.0.0.1:8443 or --connect-to ::127.0.0.1:8080. See " + NameResolutionDocs,
+                    CurlException.Compose(
+                        $"Couldn't parse --connect-to \"{value}\": it must be four colon-separated parts, HOST1:PORT1:HOST2:PORT2, with numeric (or empty) ports.",
+                        "Write it as, for example, --connect-to example.com:443:127.0.0.1:8443, or --connect-to ::127.0.0.1:8080 to send every host and port to 127.0.0.1:8080.",
+                        DocLinks.Dns),
                     options.OriginalCommand);
             }
             options.ConnectTo.Add(value);
@@ -2293,8 +2329,10 @@ namespace CurlDotNet.Core
             }
 
             throw new CurlException(
-                $"--max-filesize expects a size in bytes, optionally with a k, M, G, T or P suffix (for example 500k or 10M), but got \"{value}\". " +
-                "Fix the value and run the command again. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/index.md",
+                CurlException.Compose(
+                    $"--max-filesize \"{value}\" is not a size: it expects a whole number of bytes, optionally with a k, M, G, T or P suffix.",
+                    "Write it as, for example, --max-filesize 500k or --max-filesize 10M (10 megabytes).",
+                    DocLinks.CliCompatibility),
                 2,
                 command);
         }

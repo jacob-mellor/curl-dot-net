@@ -265,8 +265,10 @@ namespace CurlDotNet.Core.Handlers
             {
                 if (schemeMatch.Groups[2].Value.Length > 3)
                 {
-                    throw new CurlMalformedUrlException(location,
-                        $"The redirect target \"{location}\" is not a valid URL: it has {schemeMatch.Groups[2].Value.Length} slashes after the scheme. Fix the server's Location header (scheme://host/path), or fetch the intended URL directly.", command);
+                    throw new CurlMalformedUrlException(location, CurlException.Compose(
+                        $"The redirect target \"{ErrorText.Preview(location, 200)}\" from {baseUri.Host} is not a valid URL: it has {schemeMatch.Groups[2].Value.Length} slashes after the scheme",
+                        "The server's Location header must look like scheme://host/path; ask the server owner to fix it, or fetch the intended URL directly without -L.",
+                        DocLinks.HowToRedirects), command);
                 }
                 encoded = schemeMatch.Groups[1].Value + "://" + encoded.Substring(schemeMatch.Length);
             }

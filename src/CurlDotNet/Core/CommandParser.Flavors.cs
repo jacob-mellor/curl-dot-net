@@ -22,7 +22,6 @@ namespace CurlDotNet.Core
     internal partial class CommandParser
     {
         /// <summary>The guide that explains every flavor rule; linked from each flavor error message.</summary>
-        internal const string FlavorDocs = "https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md";
 
         /// <summary>
         /// Parses a curl command written for the given shell <paramref name="flavor"/> into a
@@ -41,12 +40,17 @@ namespace CurlDotNet.Core
         public CurlOptions Parse(string command, CurlFlavor flavor)
         {
             if (string.IsNullOrWhiteSpace(command))
-                throw new ArgumentNullException(nameof(command));
+                throw new ArgumentNullException(nameof(command), CurlException.Compose(
+                    $"The curl command is {(command == null ? "null" : "empty or only whitespace")}: there is nothing to run (null, \"\" and blanks are not commands).",
+                    "Pass a command such as \"curl https://example.com\" (the leading word curl is optional), or check the variable that should hold it.",
+                    DocLinks.HowToRunCommand));
 
             if (flavor < CurlFlavor.Auto || flavor > CurlFlavor.InvokeWebRequest)
             {
-                throw new ArgumentOutOfRangeException(nameof(flavor), flavor,
-                    "Unknown CurlFlavor value. Use CurlFlavor.Auto, Posix, WindowsCmd, PowerShell or InvokeWebRequest. See " + FlavorDocs);
+                throw new ArgumentOutOfRangeException(nameof(flavor), flavor, CurlException.Compose(
+                    $"(CurlFlavor){(int)flavor} is not a defined CurlFlavor value.",
+                    "Use CurlFlavor.Auto (detect the shell), Posix (bash/zsh), WindowsCmd, PowerShell or InvokeWebRequest; do not cast other numbers to CurlFlavor.",
+                    DocLinks.HowToFlavors));
             }
 
             var used = flavor;
@@ -162,8 +166,10 @@ namespace CurlDotNet.Core
                 if (args.Count == 0)
                 {
                     throw new CurlException(
-                        "No URL specified: the command is only the program name. Add the URL to fetch, for example " +
-                        "\"curl https://example.com\". See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/url-errors.md",
+                        CurlException.Compose(
+                            $"No URL specified: the command \"{first}\" is only the program name.",
+                            "Add the URL to fetch after it, for example \"curl https://example.com\".",
+                            DocLinks.Url),
                         3, command);
                 }
             }
@@ -175,8 +181,10 @@ namespace CurlDotNet.Core
         private static CurlInvalidCommandException FlavorSyntaxError(CurlFlavor flavor, string problem, string fix, string part, string command)
         {
             return new CurlInvalidCommandException(
-                $"{problem} (reading the command as {flavor}). {fix} " +
-                "If the command was copied from a different shell, pass that CurlFlavor instead, or CurlFlavor.Auto. See " + FlavorDocs,
+                CurlException.Compose(
+                    $"{problem} (reading the command as {flavor}, CurlFlavor.{flavor}, near \"{ErrorText.Preview(part, 40)}\").",
+                    fix + " If the command was copied from a different shell, pass that CurlFlavor instead (for example Curl.ExecuteAsync(command, CurlFlavor.WindowsCmd)), or CurlFlavor.Auto.",
+                    DocLinks.HowToFlavors),
                 part, command);
         }
 
@@ -489,9 +497,9 @@ namespace CurlDotNet.Core
             }
 
             var code = int.Parse(text.Substring(index, end - index), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-            if (code > 0x10FFFF)
+            if (code > 0x10FFFF || code < 0)
             {
-                code = 0xFFFD;
+                code = 0xFFFD; // \U80000000..\UFFFFFFFF parse as negative ints; never a valid code point
             }
 
             current.Append(char.ConvertFromUtf32(code >= 0xD800 && code <= 0xDFFF ? 0xFFFD : code));

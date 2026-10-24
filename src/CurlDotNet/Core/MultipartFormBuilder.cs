@@ -353,11 +353,13 @@ namespace CurlDotNet.Core
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
             {
                 var how = part.IsFileUpload ? $"-F \"{part.Name}=@{path}\"" : $"-F \"{part.Name}=<{path}\"";
+                var (reason, fix) = RequestShaping.DescribeReadFailure(ex);
                 throw new CurlReadErrorException(path,
-                    $"Failed to open/read local data from file/application: {how} names a file that cannot be read ({ex.Message}). " +
-                    "Check the path (it is relative to the current directory) and its permissions; use --form-string to send a value that starts with @ or < literally." +
-                    "\nFor file errors, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md",
-                    options.OriginalCommand);
+                    CurlException.Compose(
+                        $"Failed to open/read local data from file/application: {how} names a file that cannot be read: {reason}.",
+                        fix + " To send a value that starts with @ or < literally, use --form-string instead of -F.",
+                        DocLinks.HowToUpload),
+                    options.OriginalCommand, ex);
             }
         }
 

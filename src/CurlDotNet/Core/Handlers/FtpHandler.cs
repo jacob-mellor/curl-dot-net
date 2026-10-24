@@ -43,7 +43,7 @@ namespace CurlDotNet.Core
                 }
                 catch (NotSupportedException)
                 {
-                    throw new CurlException(NotSupportedMessage, 1, options.OriginalCommand);
+                    throw new CurlException(NotSupportedMessage(options), 1, options.OriginalCommand);
                 }
 
                 // Set method
@@ -140,15 +140,12 @@ namespace CurlDotNet.Core
                     }
 
                     // Save to output file if specified - always write the wire bytes
-                    // verbatim, like curl does.
-                    if (!string.IsNullOrEmpty(options.OutputFile))
+                    // verbatim, like curl does (I/O failures become exit code 23 naming the file).
+                    if (!string.IsNullOrEmpty(options.OutputFile) && options.OutputFile != "-")
                     {
-#if NETSTANDARD2_0 || NET472 || NET48
-                        await Task.Run(() => File.WriteAllBytes(options.OutputFile, contentBytes), cancellationToken);
-#else
-                        await File.WriteAllBytesAsync(options.OutputFile, contentBytes, cancellationToken);
-#endif
-                        result.OutputFiles.Add(options.OutputFile);
+                        TransferOutput.EnsureDirectory(options.OutputFile!, options, "-o/--output");
+                        TransferOutput.WriteFile(options.OutputFile!, contentBytes, append: false, options, "-o/--output");
+                        result.OutputFiles.Add(options.OutputFile!);
                     }
                 }
 
@@ -156,33 +153,75 @@ namespace CurlDotNet.Core
             }
             catch (NotSupportedException)
             {
-                throw new CurlException(NotSupportedMessage, 1, options.OriginalCommand); // CURLE_UNSUPPORTED_PROTOCOL
+                throw new CurlException(NotSupportedMessage(options), 1, options.OriginalCommand); // CURLE_UNSUPPORTED_PROTOCOL
             }
             catch (WebException ex)
             {
                 if (ex.Response is FtpWebResponse ftpResponse)
                 {
-                    throw new CurlFtpException(
-                        $"The FTP server answered {(int)ftpResponse.StatusCode} ({ftpResponse.StatusDescription?.Trim()}) for {options.Url}. " +
-                        "Check the path, the user name and password (-u user:password; anonymous is used without -u) and that the server allows " +
-                        "this operation. See " + FtpDocs,
-                        (int)ftpResponse.StatusCode);
+                    throw new CurlFtpException(FtpReplyMessage((int)ftpResponse.StatusCode, ftpResponse.StatusDescription, options),
+                        (int)ftpResponse.StatusCode, options.OriginalCommand);
                 }
 
-                var uri = new Uri(options.Url);
-                throw new CurlCouldntConnectException(uri.Host, uri.Port > 0 ? uri.Port : 21, options.OriginalCommand);
+                var host = Uri.TryCreate(options.Url, UriKind.Absolute, out var uri) ? uri.Host : ErrorText.SafeUrl(options.Url);
+                var port = uri != null && uri.Port > 0 ? uri.Port : 21;
+                // the subtype stays "could not connect" (exit 7); the detail says what WebRequest reported
+                throw new CurlCouldntConnectException(host, port, $"{ex.Status}: {ex.Message.TrimEnd('.')}", viaProxy: !string.IsNullOrEmpty(options.Proxy),
+                    options.OriginalCommand);
             }
-            catch (UriFormatException)
+            catch (IOException ex)
             {
-                throw new CurlMalformedUrlException(options.Url);
+                // the control or data connection broke while sending or receiving
+                throw new CurlReceiveErrorException(CurlException.Compose(
+                    $"Failure when receiving data from the FTP server of {ErrorText.SafeUrl(options.Url)}: {ex.GetType().Name}: {ex.Message}",
+                    "The FTP connection broke during the transfer; retry, and check that a firewall or NAT between you and the server allows the passive-mode data connection CurlDotNet uses.",
+                    DocLinks.ErrorReference), options.OriginalCommand, ex);
+            }
+            catch (UriFormatException ex)
+            {
+                throw new CurlMalformedUrlException(options.Url, CurlException.Compose(
+                    $"'{ErrorText.SafeUrl(options.Url)}' is not a valid FTP URL ({ex.Message})",
+                    "Write it as ftp://host[:port]/path/file (ftps:// for TLS), percent-encode spaces as %20, and pass credentials with -u user:password.",
+                    DocLinks.Url), options.OriginalCommand);
             }
         }
 
-        private const string FtpDocs = "https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md";
+        private static string NotSupportedMessage(CurlOptions options) => CurlException.Compose(
+            $"FTP is not supported by the .NET runtime on this platform, so {ErrorText.SafeUrl(options.Url)} cannot be fetched (FtpWebRequest is unavailable)",
+            "Use an http:// or https:// URL, or run the FTP transfer on a desktop or server runtime (.NET Framework or .NET on Windows, Linux or macOS); " +
+            "browser WebAssembly and some trimmed or mobile runtimes do not include FtpWebRequest.",
+            DocLinks.SupportedProtocols);
 
-        private const string NotSupportedMessage =
-            "FTP is not supported by the .NET runtime on this platform (FtpWebRequest is unavailable). " +
-            "Use an http:// or https:// URL, or run on a platform whose .NET runtime includes FtpWebRequest. See " + FtpDocs;
+        /// <summary>A different message for each class of FTP reply: login refused, file unavailable, server busy, other.</summary>
+        private static string FtpReplyMessage(int code, string? description, CurlOptions options)
+        {
+            var url = ErrorText.SafeUrl(options.Url);
+            var what = $"The FTP server answered {code} ({description?.Trim()}) for {url}";
+            string fix;
+            if (code == 530 || code == 331 || code == 332)
+            {
+                fix = options.Credentials == null
+                    ? "The server refused the anonymous login; pass a user name and password with -u user:password."
+                    : "The server refused the user name or password given with -u; check them (and the account's FTP access).";
+            }
+            else if (code == 550 || code == 553)
+            {
+                fix = "The file or folder is missing or this user may not access it; check the path in the URL (it is relative to the login folder; use %2F for an absolute path) and the user's permissions.";
+            }
+            else if (code == 421 || code == 425 || code == 426)
+            {
+                fix = "The server closed or could not open the data connection; retry later, and check that a firewall or NAT allows the passive-mode data connection (CurlDotNet always uses passive mode).";
+            }
+            else if (code == 552)
+            {
+                fix = "The server's storage limit for this user is exceeded; free space on the server or upload a smaller file.";
+            }
+            else
+            {
+                fix = "Check the path, the user name and password (-u user:password; anonymous is used without -u) and that the server allows this operation.";
+            }
+            return CurlException.Compose(what, fix, DocLinks.ErrorReference);
+        }
 
         /// <summary>The bytes an FTP upload sends: the <c>-T</c> file, else <see cref="CurlOptions.Data"/> as UTF-8, else nothing.</summary>
         internal static byte[] UploadPayload(CurlOptions options)
@@ -246,22 +285,77 @@ namespace CurlDotNet.Core
     }
 
     /// <summary>
-    /// FTP-specific exception.
+    /// Thrown when an FTP server answers an <c>ftp://</c> or <c>ftps://</c> transfer with an error reply
+    /// (4xx/5xx), such as 530 "Not logged in" or 550 "File unavailable"; <see cref="FtpStatusCode"/> holds the reply code.
     /// </summary>
+    /// <remarks>
+    /// <para>The message names the reply code, the server's text and the URL (without credentials), and
+    /// says how to fix that class of reply: 530/331/332 mean the login was refused (pass or correct
+    /// <c>-u user:password</c>; without <c>-u</c> CurlDotNet logs in as <c>anonymous</c>), 550/553 mean the
+    /// path is missing or not permitted (FTP paths are relative to the login folder; write <c>%2F</c> for an
+    /// absolute path), 421/425/426 mean the data connection failed (CurlDotNet uses passive mode; check that firewalls allow the
+    /// passive data ports), 552 means the server's storage limit was hit.</para>
+    /// <para><see cref="CurlException.CurlErrorCode"/> is 9 (<c>CURLE_REMOTE_ACCESS_DENIED</c>) for every reply code.
+    /// A server that cannot be reached at all is a <see cref="CurlCouldntConnectException"/> (exit 7) instead.</para>
+    /// <para>FTP uses <c>FtpWebRequest</c>, which .NET Framework and .NET on Windows, Linux and macOS include;
+    /// where it is missing (browser WebAssembly, some trimmed runtimes) the transfer fails with exit code 1
+    /// before any reply.</para>
+    /// <para>Example: <c>try { await Curl.ExecuteAsync("curl -u alice:secret ftp://files.example.com/reports/q3.csv -o q3.csv"); }
+    /// catch (CurlFtpException ex) when (ex.FtpStatusCode == 550) { Console.WriteLine("No such report yet"); }</c></para>
+    /// <para>Reply codes and fixes: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlException"/>
+    /// <seealso cref="CurlCouldntConnectException"/>
+    /// <seealso cref="CurlDotNet.Exceptions.CurlLoginDeniedException"/>
     public class CurlFtpException : CurlException
     {
         /// <summary>
-        /// Gets the FTP status code.
+        /// The FTP reply code the server sent, for example 530 (not logged in), 550 (file unavailable)
+        /// or 552 (storage allocation exceeded).
         /// </summary>
+        /// <value>A three-digit FTP reply code from RFC 959; 4xx codes are temporary, 5xx permanent.</value>
+        /// <remarks>
+        /// <para>Use it to decide what to do: retry later on 4xx, fix credentials on 530, fix the path on 550.</para>
+        /// <para>Example: <c>catch (CurlFtpException ex) when (ex.FtpStatusCode / 100 == 4) { await Task.Delay(5000); /* retry */ }</c></para>
+        /// </remarks>
+        /// <seealso cref="CurlException.CurlErrorCode"/>
         public int FtpStatusCode { get; }
 
         /// <summary>
-        /// Initializes a new instance of the CurlFtpException class.
+        /// Creates the exception for an FTP error reply; the message should say what failed and how to fix it.
         /// </summary>
-        /// <param name="message">The error message.</param>
-        /// <param name="ftpStatusCode">The FTP status code.</param>
+        /// <remarks>
+        /// <para>The exit code (<see cref="CurlException.CurlErrorCode"/>) is always 9. When
+        /// <paramref name="message"/> has no fix line or link, the generic advice and documentation page for
+        /// exit code 9 are added, so <see cref="CurlException.Suggestions"/> is never empty.</para>
+        /// <para>Example: <c>throw new CurlFtpException("The FTP server answered 550 for ftp://example.com/x.csv\nCheck the path.", 550);</c></para>
+        /// </remarks>
+        /// <param name="message">What happened, then (optionally, on new lines) how to fix it and a
+        /// <c>See https://...</c> link.</param>
+        /// <param name="ftpStatusCode">The FTP reply code from the server, such as 530 or 550.</param>
+        /// <seealso cref="CurlFtpException(string, int, string)"/>
         public CurlFtpException(string message, int ftpStatusCode)
-            : base(message, 9) // CURLE_FTP_WEIRD_SERVER_REPLY
+            : base(message, 9) // CURLE_REMOTE_ACCESS_DENIED
+        {
+            FtpStatusCode = ftpStatusCode;
+        }
+
+        /// <summary>
+        /// Creates the exception for an FTP error reply and records the curl command that was running,
+        /// so <see cref="CurlException.Command"/> shows what to retry.
+        /// </summary>
+        /// <remarks>
+        /// <para>Same as <see cref="CurlFtpException(string, int)"/> plus the command. The command is kept as
+        /// given (it may contain <c>-u user:password</c>), so log <see cref="CurlException.Message"/> rather than
+        /// <see cref="CurlException.Command"/> when credentials must not reach the logs.</para>
+        /// <para>Example: <c>throw new CurlFtpException(message, 530, "curl -u bob:x ftp://example.com/");</c></para>
+        /// </remarks>
+        /// <param name="message">What happened, then how to fix it and a <c>See https://...</c> link, on separate lines.</param>
+        /// <param name="ftpStatusCode">The FTP reply code from the server, such as 530 or 550.</param>
+        /// <param name="command">The curl command that failed, or null.</param>
+        /// <seealso cref="CurlFtpException(string, int)"/>
+        public CurlFtpException(string message, int ftpStatusCode, string? command)
+            : base(message, 9, command)
         {
             FtpStatusCode = ftpStatusCode;
         }

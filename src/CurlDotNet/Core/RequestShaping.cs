@@ -74,9 +74,6 @@ namespace CurlDotNet.Core
     /// </summary>
     internal static class RequestShaping
     {
-        /// <summary>Base URL of the exception documentation pages that error messages link to.</summary>
-        internal const string DocsBase = "https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/";
-
         /// <summary>
         /// Parses a curl size: a byte count with an optional <c>k</c>, <c>M</c>, <c>G</c>, <c>T</c> or
         /// <c>P</c> suffix (case-insensitive, powers of 1024). Decimals such as <c>1.5M</c> are accepted.
@@ -194,9 +191,10 @@ namespace CurlDotNet.Core
             {
                 throw new CurlReadErrorException(
                     path,
-                    $"{option} with \"-\" means \"read standard input\", which CurlDotNet does not support. " +
-                    "Save the content to a file and pass its name instead (for example @body.json), or pass the text inline. " +
-                    "See " + DocsBase + "index.md",
+                    CurlException.Compose(
+                        $"{option} was given \"-\", which in curl means \"read standard input\"; CurlDotNet runs inside your process and has no standard input to read.",
+                        "Save the content to a file and pass its name instead (for example -d @body.json or -T upload.bin), or pass the text inline (-d '{\"name\":\"Ada\"}').",
+                        DocLinks.HowToUpload),
                     command);
             }
 
@@ -206,16 +204,37 @@ namespace CurlDotNet.Core
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
             {
-                var reason = ex is FileNotFoundException || ex is DirectoryNotFoundException
-                    ? "the file does not exist"
-                    : ex.Message;
+                var (reason, fix) = DescribeReadFailure(ex);
                 throw new CurlReadErrorException(
                     path,
-                    $"{option} could not read \"{path}\": {reason}. " +
-                    $"Check the path (relative paths are resolved against {Directory.GetCurrentDirectory()}) and that the file is readable. " +
-                    "See " + DocsBase + "index.md",
-                    command);
+                    CurlException.Compose($"Failed to open/read local data from file/application: {option} could not read \"{path}\": {reason}.", fix, DocLinks.HowToUpload),
+                    command, ex);
             }
+        }
+
+        /// <summary>
+        /// Why reading a file named on the command line failed, and how to fix it, for each kind of I/O failure.
+        /// </summary>
+        internal static (string Reason, string Fix) DescribeReadFailure(Exception ex)
+        {
+            if (ex is FileNotFoundException || ex is DirectoryNotFoundException)
+            {
+                return ("the file does not exist",
+                    $"Check the spelling of the path; a relative path is resolved against the current directory, {Directory.GetCurrentDirectory()}. " +
+                    "Pass a full path (for example @/home/me/body.json or @C:\\data\\body.json) to be sure.");
+            }
+            if (ex is UnauthorizedAccessException)
+            {
+                return ($"access is denied ({ex.Message.TrimEnd('.')})",
+                    "Give the current user read permission on the file, or copy it somewhere readable; naming a folder instead of a file also gives this error.");
+            }
+            if (ex is ArgumentException || ex is NotSupportedException || ex is PathTooLongException)
+            {
+                return ($"it is not a valid file name ({ex.Message.TrimEnd('.')})",
+                    "Remove characters that are not allowed in file names (such as < > | or a stray quote) and check that the path is not too long.");
+            }
+            return ($"the read failed ({ex.GetType().Name}: {ex.Message.TrimEnd('.')})",
+                "Check that no other program has the file locked and that the disk or network share is available, then run the command again.");
         }
 
         /// <summary>
@@ -223,6 +242,21 @@ namespace CurlDotNet.Core
         /// can be created without canonicalisation).
         /// </summary>
         internal static Uri BuildRequestUri(CurlOptions options)
+        {
+            try
+            {
+                return CreateRequestUri(options);
+            }
+            catch (UriFormatException ex)
+            {
+                throw new CurlMalformedUrlException(options.Url, CurlException.Compose(
+                    $"\"{ErrorText.SafeUrl(options.Url)}\" cannot be turned into a request URI ({ex.Message.TrimEnd('.')}).",
+                    "Check the scheme (https://), the host name and the port, and percent-encode spaces and other special characters (a space is %20).",
+                    DocLinks.Url), options.OriginalCommand);
+            }
+        }
+
+        private static Uri CreateRequestUri(CurlOptions options)
         {
 #if NET6_0_OR_GREATER
             if (options.PathAsIs || NeedsVerbatimPath(options.Url))

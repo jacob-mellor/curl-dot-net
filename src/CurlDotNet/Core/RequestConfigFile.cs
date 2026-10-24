@@ -30,8 +30,10 @@ namespace CurlDotNet.Core
             if (context.ConfigDepth >= MaxConfigDepth)
             {
                 throw new CurlException(
-                    $"-K/--config files are nested more than {MaxConfigDepth} levels deep (\"{path}\" was included again). " +
-                    "Check the config files for a -K line that includes itself. See " + RequestShaping.DocsBase + "index.md",
+                    CurlException.Compose(
+                        $"-K/--config files are nested more than {MaxConfigDepth} levels deep: \"{path}\" was included again at level {context.ConfigDepth + 1}.",
+                        "Look for a config file with a config = \"...\" (or -K) line that names itself or a file that includes it back, and remove that line.",
+                        DocLinks.CliCompatibility),
                     2,
                     context.OriginalCommand);
             }
