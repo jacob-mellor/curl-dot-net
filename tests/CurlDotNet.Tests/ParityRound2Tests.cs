@@ -638,6 +638,59 @@ namespace CurlDotNet.Tests
                 .Should().Be("1e\r\nabcdefghijklmnopqrstuvwxyzABCD\r\na\r\nABCDEFGHIJ\r\n0\r\nX-T: AB\r\n\r\n");
         }
 
+        [Fact]
+        public async Task Raw_KeepsTheChunkFraming()
+        {
+            using var server = new RawReplyServer("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n");
+
+            var result = await Curl.ExecuteAsync($"curl --raw {server.Url("/")}");
+
+            result.Body.Should().Be("5\r\nhello\r\n0\r\n\r\n");
+        }
+
+        [Fact]
+        public void FormDataPartWithFileName_GetsTheContentTypeOfTheExtension()
+        {
+            var options = new CommandParser().Parse("curl -F \"name=a;filename=a.pdf\" -F \"other=b;filename=b.unknown\" http://example.invalid/");
+            var parts = MultipartFormBuilder.PartsFor(options);
+            using var content = MultipartFormBuilder.Build(parts, options);
+
+            var text = content.ReadAsStringAsync().GetAwaiter().GetResult();
+            text.Should().Contain("filename=\"a.pdf\"\r\nContent-Type: application/pdf\r\n");
+            text.Should().Contain("filename=\"b.unknown\"\r\n\r\nb");
+        }
+
+        [Theory]
+        [InlineData("--socks4", "socks4://")]
+        [InlineData("--socks4a", "socks4a://")]
+        [InlineData("--socks5-hostname", "socks5h://")]
+        public void SocksOptions_SelectTheSocksFlavour(string option, string scheme)
+        {
+            var options = new CommandParser().Parse($"curl {option} 127.0.0.1:1080 http://example.invalid/");
+
+            options.Socks5Proxy.Should().Be(scheme + "127.0.0.1:1080");
+        }
+
+        [Fact]
+        public async Task Socks4ProxyNotListening_IsCouldntConnect7()
+        {
+            Func<Task> act = () => Curl.ExecuteAsync($"curl --socks4 127.0.0.1:{ClosedPortNumber()} http://127.0.0.1:1/");
+
+            (await act.Should().ThrowAsync<CurlException>()).Which.CurlErrorCode.Should().Be(7);
+        }
+
+        [Fact]
+        public async Task HeaderlessReplyOnAReusedConnection_IsWeirdServerReply8()
+        {
+            using var server = new RawReplyServer("HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nData\n", "Data\r\nData\r\n") { KeepAlive = true };
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl {server.Url("/1")} {server.Url("/2")}");
+
+            var thrown = await act.Should().ThrowAsync<CurlWeirdServerReplyException>();
+            thrown.Which.CurlErrorCode.Should().Be(8);
+            thrown.Which.StandardOutput.Should().Be("Data\n");
+        }
+
         private static int ClosedPortNumber()
         {
             var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);

@@ -1711,6 +1711,14 @@ namespace CurlDotNet.Core
                     options.Socks5Proxy = value;
                     return true;
 
+                case "--socks4":
+                case "--socks4a":
+                case "--socks5-hostname":
+                    // the SOCKS flavour travels as the proxy URL scheme (socks4://, socks4a://, socks5h://)
+                    var socksScheme = option == "--socks4" ? "socks4://" : option == "--socks4a" ? "socks4a://" : "socks5h://";
+                    options.Socks5Proxy = value.Contains("://") ? value : socksScheme + value;
+                    return true;
+
                 case "--retry":
                     if (int.TryParse(value, out var retry))
                         options.Retry = retry;

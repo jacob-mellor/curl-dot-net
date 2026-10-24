@@ -885,6 +885,16 @@ namespace CurlDotNet.Core
                 }
             }
 
+            if (failure == null && options.Raw && finalHead != null && finalHead.Chunked)
+            {
+                // --raw: the body exactly as it travelled, chunk framing included (HttpClient always de-chunks)
+                var wire = RawWireBody(transfer, finalHead);
+                if (wire != null)
+                {
+                    rawBody = wire;
+                }
+            }
+
             var body = rawBody;
             if (failure == null && options.TransferEncoding && finalHead != null)
             {
@@ -1082,6 +1092,43 @@ namespace CurlDotNet.Core
                 default:
                     return document.Value > condition;
             }
+        }
+
+        /// <summary>
+        /// The recorded bytes that followed <paramref name="head"/> on the wire (for <c>--raw</c>), or null
+        /// when they were not recorded in full (no recording layer, or more than the 1 MB that is kept).
+        /// </summary>
+        private static byte[]? RawWireBody(HttpTransfer transfer, RawResponseHead head)
+        {
+            var segment = transfer.LastExchange?.Segments.LastOrDefault(s => s.Parser.Heads.Contains(head));
+            if (segment == null)
+            {
+                return null;
+            }
+
+            var raw = segment.Parser.RawPrefix;
+            if (raw.LongLength != segment.Parser.TotalBytes)
+            {
+                return null; // truncated recording
+            }
+
+            var offset = 0;
+            foreach (var h in segment.Parser.Heads)
+            {
+                offset += h.ByteLength;
+                if (ReferenceEquals(h, head))
+                {
+                    break;
+                }
+            }
+            if (offset > raw.Length)
+            {
+                return null;
+            }
+
+            var body = new byte[raw.Length - offset];
+            Buffer.BlockCopy(raw, offset, body, 0, body.Length);
+            return body;
         }
 
         /// <summary>What a failed transfer printed before its -w text.</summary>

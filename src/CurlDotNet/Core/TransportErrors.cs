@@ -413,6 +413,12 @@ namespace CurlDotNet.Core
                 if (final == null && pending)
                 {
                     var text = parser.PendingHeadText;
+                    if (!text.StartsWith("HTTP/", StringComparison.Ordinal) && !segment.NewConnection)
+                    {
+                        // a reused connection already spoke HTTP/1.x: a header-less reply there is not HTTP/0.9
+                        return new CurlWeirdServerReplyException(WeirdMessage(
+                            "the reply on a reused connection does not start with an HTTP status line (an earlier response probably sent more body bytes than it announced)", transfer), command);
+                    }
                     if (!text.StartsWith("HTTP/", StringComparison.Ordinal))
                     {
                         return new CurlUnsupportedProtocolException("HTTP/0.9",
