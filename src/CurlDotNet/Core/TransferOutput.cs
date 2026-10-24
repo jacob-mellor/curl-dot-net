@@ -177,7 +177,7 @@ namespace CurlDotNet.Core
                 throw new CurlWriteErrorException(path, CurlException.Compose(
                     $"'{path}' given with {what} is not a valid file name ({ex.GetType().Name}: {ex.Message})",
                     "Use a path without characters the file system rejects (such as : * ? \" < > | on Windows) and within the length limit; quote paths that contain spaces.",
-                    DocFor(what)), options.OriginalCommand);
+                    DocFor(what)), options.OriginalCommand, ex);
             }
 
             if (string.IsNullOrEmpty(dir) || Directory.Exists(dir))
@@ -197,7 +197,7 @@ namespace CurlDotNet.Core
                     throw new CurlWriteErrorException(path, CurlException.Compose(
                         $"--create-dirs could not create the folder '{dir}' for '{path}' given with {what} ({ex.GetType().Name}: {ex.Message})",
                         "Check that this process may create folders there (permissions, read-only drive) and that no file has the same name as a folder in the path.",
-                        DocFor(what)), options.OriginalCommand);
+                        DocFor(what)), options.OriginalCommand, ex);
                 }
             }
 
@@ -235,14 +235,14 @@ namespace CurlDotNet.Core
                     $"Failed writing '{path}' given with {what}: access denied ({ex.Message})",
                     "Write somewhere this process may write (for example Path.GetTempPath()), clear the file's read-only flag, or run with the needed permissions; " +
                     "on Windows a file open in another program cannot be replaced either.",
-                    DocFor(what)), options.OriginalCommand);
+                    DocFor(what)), options.OriginalCommand, ex);
             }
             catch (IOException ex)
             {
                 throw new CurlWriteErrorException(path, CurlException.Compose(
                     $"Failed writing '{path}' given with {what}: {ex.Message}",
                     "Check that the disk is not full, that no other program holds the file open, and that the path points at a file rather than a folder.",
-                    DocFor(what)), options.OriginalCommand);
+                    DocFor(what)), options.OriginalCommand, ex);
             }
         }
 

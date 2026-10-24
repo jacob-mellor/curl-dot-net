@@ -175,7 +175,7 @@ namespace CurlDotNet.Core
                 throw new CurlReceiveErrorException(CurlException.Compose(
                     $"Failure when receiving data from the FTP server of {ErrorText.SafeUrl(options.Url)}: {ex.GetType().Name}: {ex.Message}",
                     "The FTP connection broke during the transfer; retry, and check that a firewall or NAT between you and the server allows the passive-mode data connection CurlDotNet uses.",
-                    DocLinks.ErrorReference), options.OriginalCommand);
+                    DocLinks.ErrorReference), options.OriginalCommand, ex);
             }
             catch (UriFormatException ex)
             {

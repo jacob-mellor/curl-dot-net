@@ -393,7 +393,7 @@ namespace CurlDotNet.Core
                 throw new CurlWriteErrorException(_jarPath!, CurlException.Compose(
                     $"could not save the cookie jar: \"{_jarPath}\" given with -c/--cookie-jar is not a valid file name ({ex.Message.TrimEnd('.')}).",
                     "Use a plain file name such as -c cookies.txt, without characters like < > | or a stray quote.",
-                    DocLinks.CookbookCookies), command);
+                    DocLinks.CookbookCookies), command, ex);
             }
 
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
@@ -415,7 +415,7 @@ namespace CurlDotNet.Core
                     : "Check that no other program has the file open and that the disk is not full, then run the command again.";
                 throw new CurlWriteErrorException(_jarPath!, CurlException.Compose(
                     $"could not save the cookie jar \"{_jarPath}\" given with -c/--cookie-jar: {ex.Message.TrimEnd('.')}.",
-                    fix, DocLinks.CookbookCookies), command);
+                    fix, DocLinks.CookbookCookies), command, ex);
             }
             return null;
         }

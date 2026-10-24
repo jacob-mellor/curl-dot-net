@@ -408,7 +408,7 @@ namespace CurlDotNet.Core
 
             if (ex is IOException)
             {
-                return new CurlReceiveErrorException(ReceiveMessage(InnermostMessage(ex), uri), command);
+                return new CurlReceiveErrorException(ReceiveMessage(InnermostMessage(ex), uri), command, ex);
             }
 
             return null;
@@ -526,11 +526,11 @@ namespace CurlDotNet.Core
 
                 if (final.Chunked)
                 {
-                    return new CurlReceiveErrorException(ReceiveMessage("the chunked body is malformed (" + InnermostMessage(ex) + ")", uri), command);
+                    return new CurlReceiveErrorException(ReceiveMessage("the chunked body is malformed (" + InnermostMessage(ex) + ")", uri), command, ex);
                 }
             }
 
-            return new CurlReceiveErrorException(ReceiveMessage(InnermostMessage(ex), uri), command);
+            return new CurlReceiveErrorException(ReceiveMessage(InnermostMessage(ex), uri), command, ex);
         }
 
         /// <summary>
@@ -566,7 +566,7 @@ namespace CurlDotNet.Core
                     $"{ex.GetType().Name}: {ex.Message}", options.OriginalCommand);
             }
 
-            return new CurlReceiveErrorException(ReceiveMessage($"the response could not be processed ({ex.GetType().Name}: {ex.Message})", uri), options.OriginalCommand);
+            return new CurlReceiveErrorException(ReceiveMessage($"the response could not be processed ({ex.GetType().Name}: {ex.Message})", uri), options.OriginalCommand, ex);
         }
 
         private static Exception? FindTlsFailure(Exception ex)

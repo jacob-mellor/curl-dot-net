@@ -222,7 +222,7 @@ namespace CurlDotNet
                     ex is ArgumentException
                         ? "Pass a valid, non-empty file path without characters such as : * ? \" < > | (on Windows)."
                         : "Check that the folder exists and is writable, that the file is not open in another program, and that the disk has space.",
-                    DocLinks.HowToDownload), result.Command);
+                    DocLinks.HowToDownload), result.Command, ex);
             }
 
             throw new InvalidOperationException(CurlException.Compose(

@@ -555,7 +555,7 @@ namespace CurlDotNet.Core
             }
             return new CurlWriteErrorException(filePath, CurlException.Compose(
                 $"{method}() could not write {PayloadSize} bytes of the response of {DescribeRequest()} ({ex.GetType().Name}: {ex.Message}).",
-                fix, DocLinks.HowToDownload), Command);
+                fix, DocLinks.HowToDownload), Command, ex);
         }
 
         /// <summary>

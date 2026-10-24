@@ -208,7 +208,7 @@ namespace CurlDotNet.Core
                 throw new CurlReadErrorException(
                     path,
                     CurlException.Compose($"Failed to open/read local data from file/application: {option} could not read \"{path}\": {reason}.", fix, DocLinks.HowToUpload),
-                    command);
+                    command, ex);
             }
         }
 

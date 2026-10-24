@@ -106,7 +106,7 @@ namespace CurlDotNet.Core
                 throw new CurlReadErrorException(filePath, CurlException.Compose(
                     $"Couldn't read the file '{filePath}' named by {ErrorText.SafeUrl(options.Url)} ({ex.GetType().Name}: {ex.Message})",
                     "Check that no other program holds the file locked and that the disk or network share is still available, then retry.",
-                    DocLinks.ErrorReference), options.OriginalCommand);
+                    DocLinks.ErrorReference), options.OriginalCommand, ex);
             }
         }
 
@@ -140,14 +140,14 @@ namespace CurlDotNet.Core
                 throw new CurlWriteErrorException(destination, CurlException.Compose(
                     $"Failed writing '{destination}' given with {what}: access denied ({ex.Message})",
                     "Write somewhere this process may write (for example Path.GetTempPath()), or clear the file's read-only flag.",
-                    DocLinks.HowToDownload), options.OriginalCommand);
+                    DocLinks.HowToDownload), options.OriginalCommand, ex);
             }
             catch (IOException ex)
             {
                 throw new CurlWriteErrorException(destination, CurlException.Compose(
                     $"Failed writing '{destination}' given with {what}: {ex.Message}",
                     "Check that the disk is not full, that no other program holds the file open, and that the path names a file rather than a folder.",
-                    DocLinks.HowToDownload), options.OriginalCommand);
+                    DocLinks.HowToDownload), options.OriginalCommand, ex);
             }
         }
 

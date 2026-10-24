@@ -347,7 +347,7 @@ namespace CurlDotNet.Core
                 throw new CurlReceiveErrorException(CurlException.Compose(
                     $"The transfer of {ErrorText.SafeUrl(options.Url)} failed with an I/O error: {ex.GetType().Name}: {ex.Message}",
                     "The connection or a local file broke during the transfer; retry with --retry 3, and run with --trace-ascii - to see where it stopped.",
-                    DocLinks.ErrorReference), options.OriginalCommand);
+                    DocLinks.ErrorReference), options.OriginalCommand, ex);
             }
         }
 
@@ -388,7 +388,9 @@ namespace CurlDotNet.Core
                     return new ValidationResult
                     {
                         IsValid = false,
-                        Error = "No URL specified"
+                        Error = CurlException.Compose("No URL specified: the command has options but nothing that looks like a URL.",
+                            "Add the URL, for example curl -H 'Accept: application/json' https://api.example.com/items, and quote it when it contains & or ?.",
+                            DocLinks.Url)
                     };
                 }
 
@@ -398,7 +400,9 @@ namespace CurlDotNet.Core
                     return new ValidationResult
                     {
                         IsValid = false,
-                        Error = $"Unknown option: {string.Join(", ", options.UnknownOptions)}",
+                        Error = CurlException.Compose($"Unknown option: {string.Join(", ", options.UnknownOptions)} (the curl tool would stop with exit code 2; Execute ignores it).",
+                            "Check the spelling against 'curl --help all' (options are case-sensitive: -o and -O differ), or remove the option if it belongs to a newer curl.",
+                            DocLinks.CliCompatibility),
                         ParsedOptions = options
                     };
                 }
@@ -411,7 +415,9 @@ namespace CurlDotNet.Core
                         return new ValidationResult
                         {
                             IsValid = false,
-                            Error = $"Unsupported protocol: {uri.Scheme}"
+                            Error = CurlException.Compose($"Unsupported protocol: {uri.Scheme} (in {ErrorText.SafeUrl(options.Url)}).",
+                                "Use an http://, https://, ftp://, ftps:// or file:// URL; other schemes are not implemented by CurlDotNet.",
+                                DocLinks.SupportedProtocols)
                         };
                     }
                 }
@@ -420,7 +426,9 @@ namespace CurlDotNet.Core
                     return new ValidationResult
                     {
                         IsValid = false,
-                        Error = $"Invalid URL: {options.Url}"
+                        Error = CurlException.Compose($"Invalid URL: {ErrorText.SafeUrl(options.Url)} is not a valid URL.",
+                            "Write it as scheme://host/path (for example https://example.com/a%20b), percent-encode spaces and quote the URL in the command.",
+                            DocLinks.Url)
                     };
                 }
 

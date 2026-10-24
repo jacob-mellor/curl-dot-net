@@ -359,7 +359,7 @@ namespace CurlDotNet.Core
                         $"Failed to open/read local data from file/application: {how} names a file that cannot be read: {reason}.",
                         fix + " To send a value that starts with @ or < literally, use --form-string instead of -F.",
                         DocLinks.HowToUpload),
-                    options.OriginalCommand);
+                    options.OriginalCommand, ex);
             }
         }
 

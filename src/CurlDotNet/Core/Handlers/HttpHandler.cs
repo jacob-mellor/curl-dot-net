@@ -425,7 +425,7 @@ namespace CurlDotNet.Core
                     $"Failure when receiving data from {failedUri?.Host ?? ErrorText.SafeUrl(options.Url)}: {ex.GetType().Name}: {ex.Message}",
                     "The connection broke while the request was sent or the response was read; retry with --retry 3, " +
                     "or inspect the exchange with -v or --trace-ascii - to see where it stopped.",
-                    DocLinks.Http), options.OriginalCommand);
+                    DocLinks.Http), options.OriginalCommand, ex);
             }
             catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException || ex is FormatException
                                        || ex is NotSupportedException || ex is System.ComponentModel.Win32Exception)
@@ -837,7 +837,7 @@ namespace CurlDotNet.Core
                         throw new CurlReadErrorException(filePath, CurlException.Compose(
                             $"Failed to open/read local data from file '{filePath}' given with -d @{filePath} ({ex.GetType().Name}: {ex.Message})",
                             "Check that the file exists, is not locked by another program and is readable by this process; use --data-raw if the @ is meant literally.",
-                            DocLinks.TutorialFormsAndData), options.OriginalCommand);
+                            DocLinks.TutorialFormsAndData), options.OriginalCommand, ex);
                     }
                     var byteContent = new ByteArrayContent(fileBytes);
 

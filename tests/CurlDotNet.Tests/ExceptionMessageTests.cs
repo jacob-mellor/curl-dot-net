@@ -246,7 +246,9 @@ namespace CurlDotNet.Tests
                     .Where(c => !c.GetParameters().Any(p => p.ParameterType == typeof(System.Runtime.Serialization.SerializationInfo)))
                     .Select(c => (Signature: string.Join(",", c.GetParameters().Select(p => p.Name)), Message: Construct(c).Message))
                     .ToList();
-                foreach (var group in messages.GroupBy(m => m.Message).Where(g => g.Count() > 1))
+                // an overload that only adds the command (or the inner exception) is the same situation
+                static string Situation(string signature) => string.Join(",", signature.Split(',').Where(n => n != "command" && n != "innerException"));
+                foreach (var group in messages.GroupBy(m => m.Message).Where(g => g.Select(m => Situation(m.Signature)).Distinct().Count() > 1))
                 {
                     duplicates.Add($"{type.Name}: {string.Join(" | ", group.Select(g => g.Signature))}");
                 }
@@ -376,12 +378,26 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
-        public void RealFailure_UnknownOption_NamesTheOption()
+        public void RealFailure_UnknownOption_ValidateNamesTheOptionWithFixAndLink()
         {
-            Action act = () => Curl.Execute("curl --no-such-option https://example.com");
+            // Execute deliberately ignores unknown options (CommandParser_WithUnknownOptions_DoesNotThrow);
+            // Validate is where the typo is reported
+            var validation = Curl.Validate("curl --no-such-option https://example.com");
+
+            validation.IsValid.Should().BeFalse();
+            var lines = validation.Error.Split('\n');
+            lines[0].Should().Contain("--no-such-option");
+            lines.Length.Should().Be(3, "what, fix, link:\n" + validation.Error);
+            lines[2].Should().StartWith(DocsPrefix);
+        }
+
+        [Fact]
+        public void RealFailure_OptionWithoutItsValue_NamesTheOption()
+        {
+            Action act = () => Curl.Execute("curl https://example.com -H");
 
             var ex = act.Should().Throw<CurlException>().Which;
-            AssertWhatFixLink(ex).Should().Contain("--no-such-option");
+            AssertWhatFixLink(ex).Should().Contain("-H");
         }
     }
 }

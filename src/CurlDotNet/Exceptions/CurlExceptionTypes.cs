@@ -775,6 +775,27 @@ namespace CurlDotNet.Exceptions
             FilePath = filePath;
         }
 
+        /// <summary>
+        /// Creates the write error (exit code 23) for <paramref name="filePath"/> and keeps the .NET exception that
+        /// caused it (an <see cref="System.IO.IOException"/>, <see cref="UnauthorizedAccessException"/> and so on) as
+        /// <see cref="Exception.InnerException"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>The message should still say in words what the inner exception reported; if it does not, the first
+        /// line of the inner message is appended as <c>(caused by IOException: ...)</c>.
+        /// Example: <c>catch (IOException io) { throw new CurlWriteErrorException(path, $"the disk is full ({io.Message}).\nFree space or write elsewhere.", command, io); }</c></para>
+        /// </remarks>
+        /// <param name="filePath">The file that could not be written.</param>
+        /// <param name="message">Why the write failed and how to fix it (newline-separated).</param>
+        /// <param name="command">The curl command that failed, or null.</param>
+        /// <param name="innerException">The .NET exception that caused the failure, or null.</param>
+        /// <seealso cref="CurlWriteErrorException(string, string, string)"/>
+        public CurlWriteErrorException(string filePath, string message, string? command, Exception? innerException)
+            : base($"Write error for {filePath}: {message}", 23, command, innerException)
+        {
+            FilePath = filePath;
+        }
+
         /// <inheritdoc/>
         protected override string? DefaultDocumentationUrl => DocLinks.HowToDownload;
 
@@ -864,6 +885,25 @@ namespace CurlDotNet.Exceptions
         /// <seealso cref="CurlWriteErrorException"/>
         public CurlReadErrorException(string filePath, string message, string? command = null)
             : base($"Read error for {filePath}: {message}", 26, command)
+        {
+            FilePath = filePath;
+        }
+
+        /// <summary>
+        /// Creates the read error (exit code 26) for <paramref name="filePath"/> and keeps the .NET exception that
+        /// caused it (<see cref="System.IO.FileNotFoundException"/>, <see cref="UnauthorizedAccessException"/>...) as
+        /// <see cref="Exception.InnerException"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>Example: <c>catch (UnauthorizedAccessException denied) { throw new CurlReadErrorException(path, $"access is denied ({denied.Message}).\nGrant read permission or copy the file somewhere readable.", command, denied); }</c></para>
+        /// </remarks>
+        /// <param name="filePath">The file that could not be read.</param>
+        /// <param name="message">Why the read failed and how to fix it (newline-separated).</param>
+        /// <param name="command">The curl command that failed, or null.</param>
+        /// <param name="innerException">The .NET exception that caused the failure, or null.</param>
+        /// <seealso cref="CurlReadErrorException(string, string, string)"/>
+        public CurlReadErrorException(string filePath, string message, string? command, Exception? innerException)
+            : base($"Read error for {filePath}: {message}", 26, command, innerException)
         {
             FilePath = filePath;
         }
@@ -1632,6 +1672,20 @@ namespace CurlDotNet.Exceptions
         /// <seealso cref="CurlSendErrorException"/>
         public CurlReceiveErrorException(string message, string? command = null)
             : base($"Receive error: {message}", 56, command) { }
+
+        /// <summary>
+        /// Creates the receive error (exit code 56) and keeps the socket, I/O or <see cref="System.Net.Http.HttpRequestException"/>
+        /// that broke the transfer as <see cref="Exception.InnerException"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>Example: <c>catch (IOException io) { throw new CurlReceiveErrorException($"the connection to api.example.com was reset after 1200 bytes ({io.Message}).\nRetry with --retry 3.", command, io); }</c></para>
+        /// </remarks>
+        /// <param name="message">What broke while receiving, naming the host and the inner cause in words; optionally followed by fix lines.</param>
+        /// <param name="command">The curl command that failed, or null.</param>
+        /// <param name="innerException">The .NET exception that broke the transfer, or null.</param>
+        /// <seealso cref="CurlReceiveErrorException(string, string)"/>
+        public CurlReceiveErrorException(string message, string? command, Exception? innerException)
+            : base($"Receive error: {message}", 56, command, innerException) { }
 
         /// <inheritdoc/>
         protected override string? DefaultDocumentationUrl => DocLinks.Http;
