@@ -124,7 +124,7 @@ With the builder, `CurlRequestBuilder.Get(url).WithProxy("http://proxy.corp.exam
 
 ### Retry Transient Failures
 
-Short DNS outages and server restarts do happen. `--retry` retries timeouts and transient HTTP statuses; add `--retry-connrefused` to retry refused connections (7) too, or `--retry-all-errors` to retry any failure, including a name that did not resolve (6). The retries wait 1, 2, 4 ... seconds, or `--retry-delay` seconds, and `--retry-max-time` caps the total; when it runs out, the last attempt's exception is thrown.
+Short DNS outages and server restarts do happen. Like curl, `--retry` retries timeouts, host and proxy names that did not resolve (6 and 5) and transient HTTP statuses; add `--retry-connrefused` to retry refused connections (7) too, or `--retry-all-errors` to retry any failure. The retries wait 1, 2, 4 ... seconds (or the server's longer `Retry-After`), or a fixed `--retry-delay`, and no new attempt starts once `--retry-max-time` seconds have passed; the last attempt's exception is then thrown.
 
 ```csharp
 var result = await Curl.ExecuteAsync("curl --retry 3 --retry-connrefused --connect-timeout 5 -m 30 https://api.github.com");

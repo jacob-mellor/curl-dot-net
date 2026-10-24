@@ -824,6 +824,15 @@ namespace CurlDotNet.Core
             {
                 ApplyProxy(options, settings.Proxy);
             }
+
+            // every URL of a multi-URL command (globs, --next groups) gets the same settings
+            if (options.AdditionalTransfers != null)
+            {
+                foreach (var transfer in options.AdditionalTransfers)
+                {
+                    ApplySettings(transfer, settings);
+                }
+            }
         }
 
         /// <summary>

@@ -215,7 +215,7 @@ See also [how to ignore SSL certificate errors in C#](../how-to/curl-ignore-ssl-
 | `--tlsv1.x`, `--tls-max` | Applied | Applied |
 | `--cacert`, `--capath` | Applied | Listed in `CurlOptions.UnsupportedOptions`; install the CA in the system store |
 | `--cert`, `--key`, `--cert-type`, `--pass` | Applied | Listed in `UnsupportedOptions`; no client certificate is sent |
-| `--pinnedpubkey` | Applied | Listed in `UnsupportedOptions`; no pinning |
+| `--pinnedpubkey` | Applied | Listed in `UnsupportedOptions`, and an https transfer fails with `CurlNotBuiltInException` (4) rather than skip the check |
 | `--ciphers`, `--tls13-ciphers` | Applied where .NET can choose cipher suites (Linux), with IANA names such as `TLS_AES_256_GCM_SHA384`; otherwise listed in `UnsupportedOptions` | Listed in `UnsupportedOptions` |
 
 Check before sending when the platform matters:
@@ -228,7 +228,7 @@ if (check.ParsedOptions != null && check.ParsedOptions.UnsupportedOptions.Count 
 }
 ```
 
-The TLS options apply to the `HttpClient` CurlDotNet creates. When you pass your own `HttpClient` to `CurlEngine`, its handler decides certificate validation and client certificates.
+Like curl, the TLS files (`--cacert`, `--capath`, `--cert`, `--key`, pins) are only loaded for transfers that can make a TLS connection (an https URL or proxy, or `-L`), so a plain `http://` request is not failed by a missing CA file. The TLS options apply to the `HttpClient` CurlDotNet creates. When you pass your own `HttpClient` to `CurlEngine`, its handler decides certificate validation and client certificates, and `--pinnedpubkey` fails with `CurlNotBuiltInException` (4) instead of being skipped.
 
 ## Related Documentation
 

@@ -89,13 +89,15 @@ namespace CurlDotNet.Core
         {
             if (options.Retry <= 0)
             {
+                options.RetryNumber = 0;
                 return await ExecuteAttemptAsync(options, cancellationToken).ConfigureAwait(false);
             }
 
-            // curl --retry: transient errors are timeouts and HTTP 408/429/500/502/503/504; the wait
-            // doubles from 1 s up to 10 minutes unless --retry-delay fixes it (a server's Retry-After is
-            // honoured only without --retry-delay); --retry-max-time caps it all, and when it runs out the
-            // last attempt's outcome stands. Output that went to stdout cannot be taken back, so each
+            // curl --retry: transient errors are timeouts, unresolved host or proxy names and HTTP
+            // 408/429/500/502/503/504; the wait doubles from 1 s up to 10 minutes unless --retry-delay fixes
+            // it. Without --retry-delay a longer Retry-After from the server wins over the backoff; an explicit
+            // --retry-delay is not overridden by it. --retry-max-time stops retrying once that much time has
+            // passed (or when a Retry-After wait would pass it), and the last attempt's outcome stands. Output that went to stdout cannot be taken back, so each
             // attempt's stdout is kept, like curl; the -w text (and -c -) is written once, for the final attempt.
             var retryStarted = DateTime.UtcNow;
             var earlierStdout = new StringBuilder();
@@ -135,6 +137,10 @@ namespace CurlDotNet.Core
                             {
                                 reason = "timeout";
                             }
+                            else if (ex is CurlCouldntResolveHostException || ex is CurlCouldntResolveProxyException)
+                            {
+                                reason = "name resolution"; // curl treats 6 and 5 as transient, like a timeout
+                            }
                             else if (ex is CurlHttpReturnedErrorException http && (IsTransientStatus(http.StatusCode) || options.RetryAllErrors))
                             {
                                 reason = $"HTTP {http.StatusCode}";
@@ -154,11 +160,14 @@ namespace CurlDotNet.Core
                     double delaySeconds = 0;
                     if (reason != null)
                     {
-                        // curl ignores Retry-After when --retry-delay is given
-                        delaySeconds = options.RetryDelay > 0
-                            ? options.RetryDelay
-                            : retryAfter?.TotalSeconds ?? Math.Min(Math.Pow(2, attempt), 600);
-                        if (options.RetryMaxTime > 0 && (DateTime.UtcNow - retryStarted).TotalSeconds + delaySeconds > options.RetryMaxTime)
+                        // an explicit --retry-delay is kept; otherwise a longer Retry-After replaces the backoff
+                        // (curl takes the larger of the two; Retry-After: 0 means "no hint")
+                        var backoff = options.RetryDelay > 0 ? options.RetryDelay : Math.Min(Math.Pow(2, attempt), 600);
+                        var serverWait = options.RetryDelay > 0 ? 0 : retryAfter?.TotalSeconds ?? 0;
+                        delaySeconds = Math.Max(backoff, serverWait);
+                        var elapsed = (DateTime.UtcNow - retryStarted).TotalSeconds;
+                        if (options.RetryMaxTime > 0
+                            && (elapsed >= options.RetryMaxTime || (serverWait > backoff && elapsed + serverWait > options.RetryMaxTime)))
                         {
                             reason = null; // --retry-max-time ran out: this attempt is the last one
                         }
@@ -279,6 +288,20 @@ namespace CurlDotNet.Core
             // Choose the transport. Most requests share the pooled HttpClient, but when the command
             // asks for a proxy, relaxed TLS, challenge auth or pinned name resolution we build a
             // dedicated client so those settings are honored (and visible in the trace).
+            if (!string.IsNullOrEmpty(options.PinnedPublicKey) && CurlTls.MayUseTls(options)
+                && (!CurlTls.SupportsTrustAndClientCertificates || !_ownsHttpClient))
+            {
+                // a pin that cannot be checked must not be skipped silently (curl: CURLE_NOT_BUILT_IN)
+                throw new CurlNotBuiltInException(CurlException.Compose(
+                    $"--pinnedpubkey cannot be checked for {ErrorText.SafeUrl(options.Url)}: " + (CurlTls.SupportsTrustAndClientCertificates
+                        ? "the request uses an HttpClient you supplied, whose handler decides how certificates are validated"
+                        : "public key pinning needs .NET 5 or later, and this is the .NET Standard 2.0 / .NET Framework build"),
+                    CurlTls.SupportsTrustAndClientCertificates
+                        ? "Let CurlDotNet create the HttpClient (use the CurlEngine constructor without one), or pin the key in your own handler's ServerCertificateCustomValidationCallback."
+                        : "Run on .NET 8 or later, or remove --pinnedpubkey and rely on certificate verification (and --cacert where available).",
+                    DocLinks.Ssl), options.OriginalCommand);
+            }
+
             var proxy = CurlProxy.Resolve(options);
             var client = _httpClient;
             HttpClient? perRequestClient = null;

@@ -55,6 +55,15 @@ namespace CurlDotNet.Core
             || !string.IsNullOrEmpty(options.TlsMinVersion) || !string.IsNullOrEmpty(options.TlsMaxVersion)
             || !string.IsNullOrEmpty(options.Ciphers);
 
+        /// <summary>
+        /// True when the transfer can make a TLS connection (an https URL or proxy, or a redirect that may lead to one), so
+        /// the TLS files are only loaded when curl would load them: a plain http:// request ignores them.
+        /// </summary>
+        public static bool MayUseTls(CurlOptions options) =>
+            (options.Url ?? string.Empty).StartsWith("https:", StringComparison.OrdinalIgnoreCase)
+            || options.FollowLocation || options.LocationTrusted
+            || (options.Proxy ?? string.Empty).StartsWith("https:", StringComparison.OrdinalIgnoreCase);
+
         /// <summary>True when this build can apply <c>--cacert</c>, <c>--capath</c>, <c>--cert</c> and <c>--pinnedpubkey</c>.</summary>
         public static bool SupportsTrustAndClientCertificates
         {
@@ -92,8 +101,9 @@ namespace CurlDotNet.Core
             var high = max == 0 ? 4 : max;
             if (low > high)
             {
+                var minimum = min == 0 ? "1.2 (curl's default minimum)" : options.TlsMinVersion + " (--tlsv" + options.TlsMinVersion + ")";
                 throw new CurlSslConnectErrorException(CurlException.Compose(
-                    $"--tls-max {options.TlsMaxVersion} is lower than the minimum TLS {options.TlsMinVersion} asked for with --tlsv{options.TlsMinVersion}, so no TLS version is left to use for {ErrorText.SafeUrl(options.Url)}",
+                    $"--tls-max {options.TlsMaxVersion} is lower than the minimum TLS {minimum}, so no TLS version is left to use for {ErrorText.SafeUrl(options.Url)}",
                     "Raise --tls-max or lower the --tlsv1.x minimum (for example --tlsv1.2 --tls-max 1.3).",
                     DocLinks.Ssl), options.OriginalCommand);
             }
@@ -208,6 +218,7 @@ namespace CurlDotNet.Core
                     custom.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
                     custom.ChainPolicy.CustomTrustStore.AddRange(trust);
                     custom.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                    custom.ChainPolicy.ApplicationPolicy.Add(new Oid("1.3.6.1.5.5.7.3.1")); // TLS server authentication, like OpenSSL's purpose check
                     if (chain != null)
                     {
                         foreach (var element in chain.ChainElements)
@@ -253,15 +264,40 @@ namespace CurlDotNet.Core
             {
                 return null; // Windows (SChannel) has no per-connection cipher policy
             }
+            // curl keeps --ciphers (TLS 1.2) and --tls13-ciphers (TLS 1.3) apart: a list for one version leaves the
+            // other at its usual suites, so a TLS 1.2-only server still works with --tls13-ciphers alone
+            if (!suites.Any(IsTls13Suite))
+            {
+                suites.AddRange(DefaultTls13Suites);
+            }
+            if (suites.All(IsTls13Suite))
+            {
+                suites.AddRange(DefaultTls12Suites);
+            }
             try
             {
-                return new CipherSuitesPolicy(suites);
+                return new CipherSuitesPolicy(suites.Distinct());
             }
             catch (PlatformNotSupportedException)
             {
                 return null; // the parser already listed the option in UnsupportedOptions
             }
         }
+
+        /// <summary>TLS 1.3 suite names have no key exchange part (<c>TLS_AES_128_GCM_SHA256</c>); TLS 1.2 ones do (<c>..._WITH_...</c>).</summary>
+        private static bool IsTls13Suite(TlsCipherSuite suite) => suite.ToString().IndexOf("_WITH_", StringComparison.Ordinal) < 0;
+
+        private static readonly TlsCipherSuite[] DefaultTls13Suites =
+        {
+            TlsCipherSuite.TLS_AES_256_GCM_SHA384, TlsCipherSuite.TLS_CHACHA20_POLY1305_SHA256, TlsCipherSuite.TLS_AES_128_GCM_SHA256,
+        };
+
+        private static readonly TlsCipherSuite[] DefaultTls12Suites =
+        {
+            TlsCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TlsCipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+            TlsCipherSuite.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256, TlsCipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+            TlsCipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TlsCipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+        };
 
         /// <summary>True when every name in <paramref name="value"/> is a <see cref="TlsCipherSuite"/>.</summary>
         internal static bool TryParseCipherSuites(string value, out List<TlsCipherSuite> suites)

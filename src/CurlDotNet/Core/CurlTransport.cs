@@ -476,7 +476,7 @@ namespace CurlDotNet.Core
                 }
                 // --tlsv1.x / --tls-max; the trust store, client certificates, pins and ciphers need .NET 5+
                 // (the parser lists them in UnsupportedOptions on this build)
-                var protocols = CurlTls.Protocols(options);
+                var protocols = CurlTls.MayUseTls(options) ? CurlTls.Protocols(options) : System.Security.Authentication.SslProtocols.None;
                 if (protocols != System.Security.Authentication.SslProtocols.None)
                 {
                     handler.SslProtocols = protocols;
@@ -507,7 +507,7 @@ namespace CurlDotNet.Core
             {
                 ApplyServerAuth(options, c => handler.Credentials = c);
                 handler.PreAuthenticate = false;
-                if (CurlTls.IsConfigured(options))
+                if (CurlTls.IsConfigured(options) && CurlTls.MayUseTls(options))
                 {
                     // --cacert/--capath, --cert/--key, --pinnedpubkey, --tlsv1.x/--tls-max, --ciphers (and -k)
                     CurlTls.Apply(handler.SslOptions, options);

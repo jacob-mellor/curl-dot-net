@@ -1757,7 +1757,7 @@ namespace CurlDotNet.Core
 
                 case "--speed-limit":
                     options.SpeedLimit = ParseWholeNumberOption(value, "-Y/--speed-limit", 0, options.OriginalCommand,
-                        "a whole number of bytes per second (for example --speed-limit 1000)");
+                        "a whole number of bytes per second (for example --speed-limit 1000)", long.MaxValue);
                     return true;
 
                 case "--speed-time":
@@ -2416,13 +2416,14 @@ namespace CurlDotNet.Core
         internal static double ParseSecondsOption(string value, string option, string? command)
         {
             var text = (value ?? string.Empty).Trim();
-            if (double.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var seconds)
-                && !double.IsInfinity(seconds) && !double.IsNaN(seconds))
+            // strtod-like: decimals, exponents (1e2) and a leading + are fine; negative values are not
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds)
+                && seconds >= 0 && !double.IsInfinity(seconds) && !double.IsNaN(seconds))
             {
                 return seconds;
             }
 
-            var negative = text.StartsWith("-", StringComparison.Ordinal) && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out _);
+            var negative = double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedSeconds) && parsedSeconds < 0;
             throw new CurlException(
                 CurlException.Compose(
                     $"option {option}: expected a {(negative ? "positive" : "proper")} numerical parameter, but got \"{value}\".",
@@ -2436,11 +2437,11 @@ namespace CurlDotNet.Core
         /// curl's str2num/str2unum for a counting option (<c>--retry</c>, <c>--max-redirs</c>, <c>--speed-*</c>):
         /// a whole number not below <paramref name="minimum"/>; anything else fails with exit code 2.
         /// </summary>
-        internal static long ParseWholeNumberOption(string value, string option, long minimum, string? command, string format)
+        internal static long ParseWholeNumberOption(string value, string option, long minimum, string? command, string format, long maximum = int.MaxValue)
         {
             var text = (value ?? string.Empty).Trim();
             if (long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var number) && number >= minimum
-                && number <= int.MaxValue)
+                && number <= maximum)
             {
                 return number;
             }

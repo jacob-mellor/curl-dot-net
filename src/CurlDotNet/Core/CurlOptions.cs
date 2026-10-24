@@ -992,7 +992,10 @@ namespace CurlDotNet.Core
         /// <para>Applied on .NET 5 and later, after certificate verification and also with <see cref="Insecure"/>, like curl.
         /// A server key that matches no pin, or a pin that cannot be read, fails with
         /// <see cref="CurlDotNet.Exceptions.CurlSslPinnedPublicKeyMismatchException"/> (exit 90); the message shows the pin of
-        /// the key that was presented. Recorded in <see cref="UnsupportedOptions"/> on .NET Standard 2.0 and .NET Framework.</para>
+        /// the key that was presented. Where pinning cannot be applied - on .NET Standard 2.0 and .NET Framework (where the
+        /// parser also records the option in <see cref="UnsupportedOptions"/>), or when you passed your own <c>HttpClient</c> to
+        /// the engine - an https transfer fails with <see cref="CurlDotNet.Exceptions.CurlNotBuiltInException"/> (exit 4) instead
+        /// of silently skipping the check, like curl built without pinning support.</para>
         /// <para>Example: <c>curl --pinnedpubkey "sha256//YhKJKSzoTt2b5FP18fvpHo7fJYqQCjAa3HWY3tvRMwE=" https://api.example.com/</c>.</para>
         /// </remarks>
         /// <seealso cref="CaCertFile"/>
@@ -1034,6 +1037,9 @@ namespace CurlDotNet.Core
         /// </summary>
         /// <value>For example <c>TLS_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</c>. Default: null (the system's list).</value>
         /// <remarks>
+        /// <para>Like curl, the two versions are kept apart: a list that names only TLS 1.2 suites (<c>..._WITH_...</c>) keeps
+        /// the usual TLS 1.3 suites, and a list of only TLS 1.3 suites keeps the usual ECDHE AES-GCM/ChaCha20 TLS 1.2 suites, so a
+        /// server that speaks only the other version still connects.</para>
         /// <para>.NET can only restrict cipher suites where <c>CipherSuitesPolicy</c> is supported (Linux with OpenSSL, .NET 5
         /// and later). Elsewhere, or when a name is not an IANA suite name (OpenSSL-style names such as
         /// <c>ECDHE-RSA-AES128-GCM-SHA256</c> are not translated), the parser leaves this null and records the option in
@@ -1295,14 +1301,16 @@ namespace CurlDotNet.Core
 
         /// <summary>
         /// How many times a transfer that failed with a transient error is retried, like curl's <c>--retry N</c>;
-        /// transient means a timeout or an HTTP 408, 429, 500, 502, 503 or 504.
+        /// transient means a timeout, a host or proxy name that did not resolve, or an HTTP 408, 429, 500, 502, 503 or 504.
         /// </summary>
         /// <value>A retry count. Default: 0 (no retries).</value>
         /// <remarks>
-        /// <para>Between attempts CurlDotNet waits <see cref="RetryDelay"/> seconds, or a server's <c>Retry-After</c>, or curl's
-        /// backoff (1, 2, 4... seconds, at most 10 minutes). <see cref="RetryMaxTime"/> bounds the total time.
-        /// <see cref="RetryAllErrors"/> and <see cref="RetryConnRefused"/> widen what counts as transient. If every attempt
-        /// fails, the last error is thrown.</para>
+        /// <para>Between attempts CurlDotNet waits <see cref="RetryDelay"/> seconds when set; otherwise curl's backoff (1, 2, 4...
+        /// seconds, at most 10 minutes), or the server's <c>Retry-After</c> (whole seconds) when that is longer.
+        /// <see cref="RetryMaxTime"/> bounds the total time. <see cref="RetryAllErrors"/> and <see cref="RetryConnRefused"/>
+        /// widen what counts as transient. When the last attempt fails, its error is thrown. Each attempt's output is kept
+        /// in <see cref="CurlResult.Body"/>; the <see cref="WriteOut"/> text is written once, for the last attempt, with
+        /// <c>%{num_retries}</c> set to the number of retries made.</para>
         /// <para>Example: <c>curl --retry 3 --retry-delay 2 URL</c> is <c>new CurlOptions { Url = url, Retry = 3, RetryDelay = 2 }</c>.</para>
         /// </remarks>
         /// <seealso cref="RetryDelay"/>
@@ -1318,8 +1326,9 @@ namespace CurlDotNet.Core
         /// </summary>
         /// <value>Seconds. Default: 0 (use the server's <c>Retry-After</c> or exponential backoff).</value>
         /// <remarks>
-        /// <para>A <c>Retry-After</c> header from the server takes precedence. Example: <c>curl --retry 5 --retry-delay 0.5 URL</c>
-        /// is <c>new CurlOptions { Url = url, Retry = 5, RetryDelay = 0.5 }</c>.</para>
+        /// <para>A fixed delay is not overridden by the server's <c>Retry-After</c> header; leave it at 0 to honour
+        /// <c>Retry-After</c>. A negative or non-numeric value on the command line fails with exit code 2.
+        /// Example: <c>curl --retry 5 --retry-delay 0.5 URL</c> is <c>new CurlOptions { Url = url, Retry = 5, RetryDelay = 0.5 }</c>.</para>
         /// </remarks>
         /// <seealso cref="Retry"/>
         /// <seealso cref="CurlSettings.RetryDelayMs"/>
@@ -1352,8 +1361,9 @@ namespace CurlDotNet.Core
         public bool RetryConnRefused { get; set; }
 
         /// <summary>
-        /// Stops retrying when the next attempt would start after this many seconds of retrying, like curl's
-        /// <c>--retry-max-time</c>; then the last error is thrown (or a timeout, exit 28).
+        /// Stops retrying once this many seconds have passed since the first attempt (or when the server's
+        /// <c>Retry-After</c> wait would pass it), like curl's <c>--retry-max-time</c>; the last attempt's outcome then
+        /// stands: its result is returned, or its error thrown.
         /// </summary>
         /// <value>Whole seconds. Default: 0 (no limit beyond <see cref="Retry"/>).</value>
         /// <remarks>
@@ -1549,6 +1559,7 @@ namespace CurlDotNet.Core
             clone.RequestKinds = new List<KeyValuePair<RequestKind, string>>(RequestKinds);
             clone.ParsedDataBytes = ParsedDataBytes == null ? null : (byte[])ParsedDataBytes.Clone();
             clone.Session = null; // the cookie store of the command line the original ran in
+            clone.TlsVerification = null; // what the original's last certificate check saw
             clone.RetryNumber = 0;
             clone.DeferWriteOut = false;
             return clone;

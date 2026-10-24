@@ -31,7 +31,8 @@ namespace CurlDotNet.Core
     /// <see cref="Curl.Execute(string, CurlSettings)"/> or <see cref="CurlRequestBuilder.ExecuteAsync(CurlSettings, CancellationToken)"/>.
     /// Values set here override the same option in the command: <see cref="MaxTimeSeconds"/> wins over <c>-m</c>,
     /// <see cref="Headers"/> replace a <c>-H</c> header of the same name, and so on. Settings left at null/0 leave the
-    /// command (and the <c>Curl.Default*</c> globals) in charge.</para>
+    /// command (and the <c>Curl.Default*</c> globals) in charge. A command with several URLs (globs, <c>--next</c>) gets the
+    /// settings on every one of its transfers.</para>
     /// <para>Every member is applied: <see cref="CancellationToken"/>, <see cref="MaxTimeSeconds"/> (<c>-m</c>),
     /// <see cref="ConnectTimeoutSeconds"/> (<c>--connect-timeout</c>), <see cref="FollowRedirects"/> (<c>-L</c>),
     /// <see cref="Insecure"/> (<c>-k</c>), <see cref="RetryCount"/>/<see cref="RetryDelayMs"/>

@@ -57,7 +57,7 @@ namespace CurlDotNet.Tests
         {
             using var server = new RawReplyServer(Busy, Busy, Ok);
 
-            var result = await Curl.ExecuteAsync($"curl --retry 2 -w \"[%{{http_code}} %{{num_retries}}]\" {server.Url("/")}");
+            var result = await Curl.ExecuteAsync($"curl --retry 2 --retry-delay 0.1 -w \"[%{{http_code}} %{{num_retries}}]\" {server.Url("/")}");
 
             server.Requests.Should().HaveCount(3);
             result.Body.Should().Be("busy\nbusy\nok\n[200 2]", "each attempt's body is kept, the -w text only once");
@@ -68,7 +68,7 @@ namespace CurlDotNet.Tests
         {
             using var server = new RawReplyServer(Busy);
 
-            var result = await Curl.ExecuteAsync($"curl --retry 1 -w \"<%{{http_code}}:%{{num_retries}}>\" {server.Url("/")}");
+            var result = await Curl.ExecuteAsync($"curl --retry 1 --retry-delay 0.1 -w \"<%{{http_code}}:%{{num_retries}}>\" {server.Url("/")}");
 
             server.Requests.Should().HaveCount(2);
             result.StatusCode.Should().Be(503);
@@ -80,7 +80,7 @@ namespace CurlDotNet.Tests
         {
             using var server = new RawReplyServer(Busy);
 
-            Func<Task> act = () => Curl.ExecuteAsync($"curl -f --retry 2 -w \"(%{{exitcode}} %{{num_retries}})\" {server.Url("/")}");
+            Func<Task> act = () => Curl.ExecuteAsync($"curl -f --retry 2 --retry-delay 0.1 -w \"(%{{exitcode}} %{{num_retries}})\" {server.Url("/")}");
 
             var ex = (await act.Should().ThrowAsync<CurlHttpReturnedErrorException>()).Which;
             server.Requests.Should().HaveCount(3);
@@ -103,12 +103,12 @@ namespace CurlDotNet.Tests
         {
             using var server = new RawReplyServer(Busy);
 
-            Func<Task> act = () => Curl.ExecuteAsync($"curl -f --retry 5 --retry-delay 3 --retry-max-time 1 {server.Url("/")}");
+            Func<Task> act = () => Curl.ExecuteAsync($"curl -f --retry 5 --retry-delay 1 --retry-max-time 1 {server.Url("/")}");
 
             var ex = (await act.Should().ThrowAsync<CurlException>()).Which;
             ex.Should().BeOfType<CurlHttpReturnedErrorException>("the outcome of the last attempt stands, like curl");
             ex.CurlErrorCode.Should().Be(22);
-            server.Requests.Should().HaveCount(1, "the next wait (3 s) would pass --retry-max-time 1");
+            server.Requests.Should().HaveCount(2, "after the 1 s wait, --retry-max-time 1 has passed, so curl stops after the second attempt");
         }
 
         [Fact]
@@ -116,10 +116,32 @@ namespace CurlDotNet.Tests
         {
             using var server = new RawReplyServer(Busy);
 
-            var result = await Curl.ExecuteAsync($"curl --retry 5 --retry-delay 3 --retry-max-time 1 -w \"|%{{http_code}}\" {server.Url("/")}");
+            var result = await Curl.ExecuteAsync($"curl --retry 5 --retry-delay 1 --retry-max-time 1 -w \"|%{{http_code}}\" {server.Url("/")}");
 
-            server.Requests.Should().HaveCount(1);
-            result.Body.Should().Be("busy\n|503");
+            server.Requests.Should().HaveCount(2);
+            result.Body.Should().Be("busy\nbusy\n|503");
+        }
+
+        [Fact]
+        public async Task RetryMaxTime_ARetryAfterBeyondTheLimit_StopsRightAway()
+        {
+            using var server = new RawReplyServer("HTTP/1.1 503 Busy\r\nRetry-After: 30\r\nContent-Length: 0\r\n\r\n", Ok);
+
+            var clock = Stopwatch.StartNew();
+            var result = await Curl.ExecuteAsync($"curl --retry 3 --retry-max-time 5 {server.Url("/")}");
+
+            server.Requests.Should().HaveCount(1, "waiting 30 s would exceed --retry-max-time 5");
+            result.StatusCode.Should().Be(503);
+            clock.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(5));
+        }
+
+        [Fact]
+        public async Task Retry_AHostThatDoesNotResolve_IsTransient_LikeCurl()
+        {
+            Func<Task> act = () => Curl.ExecuteAsync("curl --retry 1 --retry-delay 0.1 -w \"%{num_retries}\" http://no-such-host.invalid/");
+
+            var ex = (await act.Should().ThrowAsync<CurlCouldntResolveHostException>()).Which;
+            ex.Data[CurlException.WriteOutDataKey].Should().Be("1", "curl retries exit 6 without --retry-all-errors");
         }
 
         [Fact]
@@ -132,23 +154,36 @@ namespace CurlDotNet.Tests
             var clock = Stopwatch.StartNew();
             var result = await Curl.ExecuteAsync($"curl --retry 1 --retry-delay 1 {server.Url("/")}");
 
-            clock.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(20), "curl ignores Retry-After when --retry-delay is given");
+            clock.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(20), "an explicit --retry-delay is not overridden by the server's Retry-After");
             clock.Elapsed.Should().BeGreaterOrEqualTo(TimeSpan.FromMilliseconds(900));
             result.StatusCode.Should().Be(200);
         }
 
         [Fact]
-        public async Task RetryAfter_IsHonouredWithoutRetryDelay()
+        public async Task RetryAfter_LongerThanTheBackoff_IsHonouredWithoutRetryDelay()
         {
             using var server = new RawReplyServer(
-                "HTTP/1.1 429 Slow down\r\nRetry-After: 0\r\nContent-Length: 0\r\n\r\n",
+                "HTTP/1.1 429 Slow down\r\nRetry-After: 2\r\nContent-Length: 0\r\n\r\n",
                 Ok);
 
             var clock = Stopwatch.StartNew();
             var result = await Curl.ExecuteAsync($"curl --retry 1 {server.Url("/")}");
 
-            clock.Elapsed.Should().BeLessThan(TimeSpan.FromMilliseconds(900), "Retry-After: 0 replaces the 1 s backoff");
+            clock.Elapsed.Should().BeGreaterOrEqualTo(TimeSpan.FromMilliseconds(1900), "Retry-After: 2 is longer than the 1 s backoff");
             result.StatusCode.Should().Be(200);
+        }
+
+        [Fact]
+        public async Task RetryAfterZero_KeepsTheBackoff()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 503 Busy\r\nRetry-After: 0\r\nContent-Length: 0\r\n\r\n",
+                Ok);
+
+            var clock = Stopwatch.StartNew();
+            await Curl.ExecuteAsync($"curl --retry 1 {server.Url("/")}");
+
+            clock.Elapsed.Should().BeGreaterOrEqualTo(TimeSpan.FromMilliseconds(900), "Retry-After: 0 is no hint, so curl's 1 s backoff applies");
         }
 
         // ------------------------------------------------------------------ B. exit codes
@@ -710,6 +745,13 @@ namespace CurlDotNet.Tests
         [InlineData("curl https://alice:urlPw99@example.com/", "https://alice:***@example.com/")]
         [InlineData("curl -b 'session=cook1eVal' -H 'Cookie: a=cook1eVal' https://example.com/", "Cookie: ***")]
         [InlineData("curl --cert id.p12:p12Pw --cert-type P12 https://example.com/", "--cert id.p12:***")]
+        [InlineData("curl -su alice:s3cretPw https://example.com/", "-su ***")]
+        [InlineData("curl -fsSualice:s3cretPw https://example.com/", "-fsSu***")]
+        [InlineData("curl -sU bob:pr0xyPw -x http://p:3128 https://example.com/", "-sU ***")]
+        [InlineData("curl -Eid.pem:p12Pw https://example.com/", "-Eid.pem:***")]
+        [InlineData("curl -x bob:pr0xyPw@proxy:8080 https://example.com/", "-x bob:***@proxy:8080")]
+        [InlineData("curl -x http://bob:pr0xyPw@proxy:8080 https://example.com/", "http://bob:***@proxy:8080")]
+        [InlineData("curl -bsession=cook1eVal https://example.com/", "-b***")]
         public void RedactCommand_MasksEveryCredential(string command, string expected)
         {
             var redacted = ErrorText.RedactCommand(command);
@@ -937,6 +979,62 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
+        public async Task TlsFiles_AreNotLoaded_ForAPlainHttpRequest()
+        {
+            using var server = new RawReplyServer(Ok);
+
+            var result = await Curl.ExecuteAsync($"curl --cacert {Q(P("missing-ca.pem"))} --cert {Q(P("missing.pem"))} --tlsv1.3 --tls-max 1.2 {server.Url("/")}");
+
+            result.Body.Should().Be("ok\n", "curl only loads TLS files when it makes a TLS connection");
+        }
+
+        [Fact]
+        public async Task TlsMaxAlone_BelowTheDefaultMinimum_NamesTheMinimum()
+        {
+            Func<Task> act = () => Curl.ExecuteAsync("curl --tls-max 1.0 https://127.0.0.1:9/");
+
+            var ex = (await act.Should().ThrowAsync<CurlSslConnectErrorException>()).Which;
+            ex.WhatHappened.Should().Contain("--tls-max 1.0 is lower than the minimum TLS 1.2 (curl's default minimum)");
+        }
+
+        [Fact]
+        public async Task PinnedPubKey_WithACallerSuppliedHttpClient_IsExit4_NotSilentlySkipped()
+        {
+            using var client = new System.Net.Http.HttpClient();
+            using var engine = new CurlEngine(client);
+
+            Func<Task> act = () => engine.ExecuteAsync("curl --pinnedpubkey sha256//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= https://127.0.0.1:9/");
+
+            var ex = (await act.Should().ThrowAsync<CurlNotBuiltInException>()).Which;
+            ex.CurlErrorCode.Should().Be(4);
+            ExceptionMessageTests.AssertWhatFixLink(ex);
+        }
+
+        [Theory]
+        [InlineData("-m 1e1", 10.0)]
+        [InlineData("-m +5", 5.0)]
+        public void SecondsOptions_AcceptStrtodForms(string option, double expected)
+        {
+            new CommandParser().Parse($"curl {option} https://example.com/").MaxTime.Should().Be(expected);
+        }
+
+        [Fact]
+        public void SpeedLimit_AcceptsValuesAboveInt32()
+        {
+            new CommandParser().Parse("curl -Y 5000000000 https://example.com/").SpeedLimit.Should().Be(5000000000L);
+        }
+
+        [Fact]
+        public async Task Settings_ApplyToEveryUrlOfTheCommand()
+        {
+            using var server = new RawReplyServer(Ok);
+
+            await Curl.ExecuteAsync($"curl {server.Url("/a")} {server.Url("/b")}", new CurlSettings().WithUserAgent("Both/1"));
+
+            server.Requests.Select(r => Header(r, "User-Agent")).Should().Equal("User-Agent: Both/1", "User-Agent: Both/1");
+        }
+
+        [Fact]
         public void TlsMax_RejectsAnUnknownVersion_WithExitTwo()
         {
             var ex = Parses<CurlException>("curl --tls-max 2.0 https://example.com/");
@@ -994,6 +1092,17 @@ namespace CurlDotNet.Tests
             var ex = (await act.Should().ThrowAsync<CurlPeerFailedVerificationException>()).Which;
             ex.Message.Should().Contain("--cacert/--capath bundle");
             ExceptionMessageTests.AssertWhatFixLink(ex);
+        }
+
+        [Fact]
+        public async Task CaCert_ACertificateNotIssuedForServers_IsRejected60()
+        {
+            using var pki = new TestPki();
+            using var server = new TlsTestServer(pki.ClientAuthOnlyServerCertificate);
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl --cacert {Q(pki.CaPemPath)} {server.Url}");
+
+            (await act.Should().ThrowAsync<CurlPeerFailedVerificationException>()).Which.CurlErrorCode.Should().Be(60);
         }
 
         [Fact]
@@ -1149,6 +1258,9 @@ namespace CurlDotNet.Tests
             ServerPublicKeyPemPath = Write("server-pub.pem", serverPublicKeyPem);
             serverKey.Dispose();
 
+            ClientAuthOnlyServerCertificate = Issue(ca, "CN=127.0.0.1", serverAuth: false, out var wrongKey, out _, out _, sanWithClientAuthOnly: true);
+            wrongKey.Dispose();
+
             using var client = Issue(ca, "CN=curl client", serverAuth: false, out var clientKey, out _, out var clientP12);
             ClientThumbprint = client.Thumbprint;
             ClientCertPemPath = Write("client.pem", client.ExportCertificatePem());
@@ -1161,6 +1273,7 @@ namespace CurlDotNet.Tests
         public string CaPemPath { get; }
         public System.Security.Cryptography.X509Certificates.X509Certificate2 ServerCertificate { get; }
         public string ServerPin { get; }
+        public System.Security.Cryptography.X509Certificates.X509Certificate2 ClientAuthOnlyServerCertificate { get; }
         public string ServerPublicKeyPemPath { get; }
         public string ClientThumbprint { get; }
         public string ClientCertPemPath { get; }
@@ -1176,7 +1289,7 @@ namespace CurlDotNet.Tests
 
         private static System.Security.Cryptography.X509Certificates.X509Certificate2 Issue(
             System.Security.Cryptography.X509Certificates.X509Certificate2 ca, string subject, bool serverAuth,
-            out System.Security.Cryptography.RSA key, out string publicKeyPem, out byte[] p12WithPassword)
+            out System.Security.Cryptography.RSA key, out string publicKeyPem, out byte[] p12WithPassword, bool sanWithClientAuthOnly = false)
         {
             key = System.Security.Cryptography.RSA.Create(2048);
             var request = new System.Security.Cryptography.X509Certificates.CertificateRequest(subject, key,
@@ -1184,7 +1297,7 @@ namespace CurlDotNet.Tests
             request.CertificateExtensions.Add(new System.Security.Cryptography.X509Certificates.X509BasicConstraintsExtension(false, false, 0, false));
             request.CertificateExtensions.Add(new System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension(
                 new System.Security.Cryptography.OidCollection { new System.Security.Cryptography.Oid(serverAuth ? "1.3.6.1.5.5.7.3.1" : "1.3.6.1.5.5.7.3.2") }, false));
-            if (serverAuth)
+            if (serverAuth || sanWithClientAuthOnly)
             {
                 var san = new System.Security.Cryptography.X509Certificates.SubjectAlternativeNameBuilder();
                 san.AddIpAddress(System.Net.IPAddress.Loopback);
@@ -1206,6 +1319,7 @@ namespace CurlDotNet.Tests
         public void Dispose()
         {
             ServerCertificate.Dispose();
+            ClientAuthOnlyServerCertificate.Dispose();
             try
             {
                 Directory.Delete(_dir, recursive: true);

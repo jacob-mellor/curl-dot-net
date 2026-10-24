@@ -59,19 +59,26 @@ namespace CurlDotNet.Exceptions
         }
 
         private static readonly Regex SecretOption = new Regex(
-            // -u/-U/--oauth2-bearer/--pass/--proxy-pass VALUE (quoted or not), and -uVALUE written without a space
-            @"(?<flag>(?:^|\s)(?:-u|--user|-U|--proxy-user|--oauth2-bearer|--pass|--proxy-pass|--proxy-tlspassword|--tlspassword)(?:\s+|=))(?<value>'[^']*'|""[^""]*""|\S+)" +
-            @"|(?<flag>(?:^|\s)-[uU])(?<value>[^\s-]\S*)" +
+            // --user/--proxy-user/--oauth2-bearer/--pass... VALUE (quoted or not)
+            @"(?<flag>(?:^|\s)(?:--user|--proxy-user|--oauth2-bearer|--pass|--proxy-pass|--proxy-tlspassword|--tlspassword)(?:\s+|=))(?<value>'[^']*'|""[^""]*""|\S+)" +
+            // -u/-U alone or at the end of a cluster of short options (-su, -fsSU), with the value next or attached (-uVALUE)
+            @"|(?<flag>(?:^|\s)-[a-z]*u\s+)(?<value>'[^']*'|""[^""]*""|\S+)" +
+            @"|(?<flag>(?:^|\s)-[a-z]*u)(?<value>[^\s-]\S*)" +
             // secret header values: Authorization, Proxy-Authorization, Cookie, API keys
             @"|(?<flag>(?:Proxy-)?Authorization\s*:\s*|Cookie\s*:\s*|X-Api-Key\s*:\s*|Api-Key\s*:\s*|X-Amz-Security-Token\s*:\s*)(?<value>[^'""\r\n]+)",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex CookieString = new Regex(
             // -b/--cookie NAME=VALUE strings (a value without '=' is a cookie file name, which is kept)
-            @"(?<flag>(?:^|\s)(?:-b|--cookie)\s+)(?<value>'[^']*=[^']*'|""[^""]*=[^""]*""|[^\s'""]*=\S*)", RegexOptions.CultureInvariant);
+            @"(?<flag>(?:^|\s)(?:-[A-Za-z]*b\s*|--cookie\s+))(?<value>'[^']*=[^']*'|""[^""]*=[^""]*""|[^\s'""-][^\s'""]*=\S*)", RegexOptions.CultureInvariant);
+
+        private static readonly Regex ProxyUserInfo = new Regex(
+            // -x/--proxy user:password@host written without a scheme (with a scheme, UrlPassword masks it)
+            @"(?<flag>(?:^|\s)(?:-[A-Za-z]*x\s*|--proxy\s+|--proxy1\.0\s+|--preproxy\s+|--socks4a?\s+|--socks5(?:-hostname)?\s+)['""]?)(?![A-Za-z][A-Za-z0-9+.-]*://)(?<user>[^\s:@'""/]+):[^\s@'""]*@",
+            RegexOptions.CultureInvariant);
 
         private static readonly Regex CertPassword = new Regex(
-            @"(?<flag>(?:^|\s)(?:-E|--cert|--proxy-cert)\s+)(?<value>'[^']*'|""[^""]*""|\S+)", RegexOptions.CultureInvariant);
+            @"(?<flag>(?:^|\s)(?:-[A-Za-z]*E\s*|--cert\s+|--proxy-cert\s+))(?<value>'[^']*'|""[^""]*""|[^\s-]\S*)", RegexOptions.CultureInvariant);
 
         private static readonly Regex UrlPassword = new Regex(
             @"(?<prefix>[A-Za-z][A-Za-z0-9+.-]*://[^/\s'""@:]*):[^/\s'""@]*@", RegexOptions.CultureInvariant);
@@ -92,6 +99,7 @@ namespace CurlDotNet.Exceptions
 
             var text = SecretOption.Replace(command!, m => m.Groups["flag"].Value + "***");
             text = CookieString.Replace(text, m => m.Groups["flag"].Value + "***");
+            text = ProxyUserInfo.Replace(text, "${flag}${user}:***@");
             text = CertPassword.Replace(text, m =>
             {
                 var value = m.Groups["value"].Value;
