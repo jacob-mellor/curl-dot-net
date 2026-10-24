@@ -105,9 +105,9 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
-        public async Task FailureThenSuccess_ThrowsTheFailure_WithAllStandardOutput()
+        public async Task LastTransferFails_ThrowsIt_WithEveryTransfersStandardOutput()
         {
-            using var server = new RawReplyServer(Hello, NotFound, World);
+            using var server = new RawReplyServer(Hello, World, NotFound);
 
             Func<Task> act = () => Curl.ExecuteAsync($"curl -f {server.Url("/1")} {server.Url("/2")} {server.Url("/3")}");
 
@@ -115,6 +115,17 @@ namespace CurlDotNet.Tests
             thrown.Which.CurlErrorCode.Should().Be(22);
             thrown.Which.StandardOutput.Should().Be("hello\nworld\n");
             thrown.Which.Data[CurlException.StandardOutputDataKey].Should().Be("hello\nworld\n");
+        }
+
+        [Fact]
+        public async Task FailureThenSuccess_LikeCurl_TheLastTransferDecides()
+        {
+            // curl test 655 / 1328: the exit code is the one of the last transfer
+            using var server = new RawReplyServer(Hello, NotFound, World);
+
+            var result = await Curl.ExecuteAsync($"curl -f {server.Url("/1")} {server.Url("/2")} {server.Url("/3")}");
+
+            result.Body.Should().Be("hello\nworld\n");
             server.Requests.Should().HaveCount(3, "a failure does not stop the remaining transfers");
         }
 
@@ -390,6 +401,83 @@ namespace CurlDotNet.Tests
             var result = await Curl.ExecuteAsync($"curl --retry 1 --fail-with-body {server.Url("/")}");
 
             result.Body.Should().Be("moo\nhey\n");
+        }
+
+        [Fact]
+        public async Task EmptyReply_IsGotNothing52_AfterOneRequest()
+        {
+            using var server = new RawReplyServer(string.Empty);
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl {server.Url("/want/30")}");
+
+            var thrown = await act.Should().ThrowAsync<CurlException>();
+            thrown.Which.CurlErrorCode.Should().Be(52);
+            server.Requests.Should().ContainSingle("curl sends the request once; nothing is retried behind the caller's back");
+        }
+
+        [Fact]
+        public async Task WriteOut_UrlNumAndUrlParts_ForEveryTransfer_EvenOnesThatFailEarly()
+        {
+            using var server = new RawReplyServer(Hello, World);
+
+            var result = await Curl.ExecuteAsync(
+                $"curl -o {Q(P("o1"))} -o {Q(P("o2"))} -o {Q(P("o3"))} -w \"%{{urlnum}}:%{{url.scheme}}:%{{url.port}}:%{{exitcode}}\\n\" " +
+                $"{server.Url("/1")} h55p://example.invalid:1/x {server.Url("/3")}");
+
+            result.Body.Should().Be($"0:http:{server.Port}:0\n1:h55p:1:1\n2:http:{server.Port}:0\n");
+        }
+
+        [Fact]
+        public async Task Http10Reply_MakesTheNextRequestOfTheTransferHttp10()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.0 401 Auth\r\nWWW-Authenticate: Digest realm=\"r\", nonce=\"n\"\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                "HTTP/1.0 200 OK\r\nContent-Length: 6\r\n\r\nhello\n");
+
+            await Curl.ExecuteAsync($"curl -u u:p --digest {server.Url("/")}");
+
+            FirstLine(server.Requests[0]).Should().Be("GET / HTTP/1.1");
+            FirstLine(server.Requests[1]).Should().Be("GET / HTTP/1.0");
+        }
+
+        [Fact]
+        public async Task TrEncoding_WithBlankedConnection_SendsJustTe()
+        {
+            using var server = new RawReplyServer(Hello);
+
+            await Curl.ExecuteAsync($"curl --tr-encoding -H \"Connection;\" {server.Url("/")}");
+
+            Line(server.Requests.Single(), "TE").Should().Be("TE: gzip");
+            Line(server.Requests.Single(), "Connection").Should().Be("Connection: TE");
+        }
+
+        [Fact]
+        public async Task AutoReferer_FollowsRedirects_WithThePreviousUrl()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 302 Found\r\nLocation: /next\r\nContent-Length: 0\r\n\r\n",
+                Hello);
+
+            await Curl.ExecuteAsync($"curl -L -e \"firstone.html;auto\" {server.Url("/start")}");
+
+            Line(server.Requests[0], "Referer").Should().Be("Referer: firstone.html");
+            Line(server.Requests[1], "Referer").Should().Be("Referer: " + server.Url("/start"));
+        }
+
+        [Fact]
+        public async Task CookieCap_KeepsTheFirst150CookiesOfTheJar_ThenSortsThem()
+        {
+            var jar = P("jar.txt");
+            var lines = Enumerable.Range(1, 151).Select(i => $"127.0.0.1\tFALSE\t/\tFALSE\t0\tname{i}\tv{i}");
+            File.WriteAllText(jar, string.Join("\n", lines) + "\n");
+            using var server = new RawReplyServer(Hello);
+
+            await Curl.ExecuteAsync($"curl -b {Q(jar)} {server.Url("/")}");
+
+            var cookie = Line(server.Requests.Single(), "Cookie")!;
+            cookie.Should().StartWith("Cookie: name150=v150; name149=v149;");
+            cookie.Should().NotContain("name151");
+            cookie.Should().EndWith("name1=v1");
         }
 
         // ------------------------------------------------------------------ crypto primitives

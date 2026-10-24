@@ -1097,7 +1097,7 @@ namespace CurlDotNet.Core
         /// (headers, body), the -w text expanded with <c>%{exitcode}</c>/<c>%{errormsg}</c> (its
         /// <c>%{stderr}</c> part goes to --stderr), and the <c>-c -</c> cookie jar. Runs once per exception.
         /// </summary>
-        private static void AttachFailureOutput(CurlException failure, HttpTransfer? transfer, string? stdoutSoFar,
+        internal static void AttachFailureOutput(CurlException failure, HttpTransfer? transfer, string? stdoutSoFar,
             WriteOutContext? context, string? jarText, CurlOptions? options = null)
         {
             if (FailureOutputAttached.TryGetValue(failure, out _))
@@ -1119,6 +1119,7 @@ namespace CurlDotNet.Core
                 context ??= transfer != null ? BuildFailureWriteOutContext(transfer) : null;
                 context ??= new WriteOutContext
                 {
+                    UrlNum = options.TransferNumber,
                     Url = options.Url,
                     UrlEffective = options.Url,
                     Method = (options.CustomMethod ?? options.Method ?? "GET").ToUpperInvariant(),
@@ -1156,6 +1157,7 @@ namespace CurlDotNet.Core
             var ctx = new WriteOutContext
             {
                 ResponseCode = head?.StatusCode ?? 0,
+                UrlNum = options.TransferNumber,
                 HttpVersion = head == null ? "0" : (head.HttpVersion == "2.0" ? "2" : head.HttpVersion),
                 ContentType = head?.GetHeader("Content-Type"),
                 Url = transfer.OriginalUrl,
@@ -1393,6 +1395,7 @@ namespace CurlDotNet.Core
             var ctx = new WriteOutContext
             {
                 ResponseCode = (int)response.StatusCode,
+                UrlNum = transfer.Options.TransferNumber,
                 HttpVersion = finalHead != null
                     ? (finalHead.HttpVersion == "2.0" ? "2" : finalHead.HttpVersion)
                     : (response.Version.Major >= 2 ? response.Version.Major.ToString(System.Globalization.CultureInfo.InvariantCulture) : $"{response.Version.Major}.{response.Version.Minor}"),

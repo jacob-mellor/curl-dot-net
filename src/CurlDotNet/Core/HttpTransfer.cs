@@ -59,6 +59,12 @@ namespace CurlDotNet.Core
         /// <summary>curl's authentication negotiation for this transfer, or null when no challenge method is involved.</summary>
         public HttpAuth? Auth { get; }
 
+        /// <summary>
+        /// True once a response of this transfer was HTTP/1.0: like curl (use_http_1_1plus), the following
+        /// requests of the transfer (auth rounds, redirects) are sent as HTTP/1.0 too.
+        /// </summary>
+        public bool SeenHttp10 { get; private set; }
+
         /// <summary>True when the current request goes to a plain HTTP proxy (no tunnel).</summary>
         public bool CurrentViaPlainProxy { get; private set; }
 
@@ -157,6 +163,11 @@ namespace CurlDotNet.Core
                 request.Headers.TryAddWithoutValidation("Referer", rawReferer);
             }
             var uri = request.RequestUri!;
+            if (request.Version == System.Net.HttpVersion.Version11
+                && (SeenHttp10 || (Options.Session?.Http10Origins.Contains(Origin(uri)) ?? false)))
+            {
+                request.Version = System.Net.HttpVersion.Version10; // the server spoke HTTP/1.0
+            }
             var proxyUri = Proxy?.ProxyFor(uri);
             var tunnel = proxyUri != null && (Options.ProxyTunnel || !string.Equals(uri.Scheme, "http", StringComparison.OrdinalIgnoreCase));
             var plainProxy = proxyUri != null && !tunnel && !proxyUri.Scheme.StartsWith("socks", StringComparison.OrdinalIgnoreCase);
@@ -370,10 +381,12 @@ namespace CurlDotNet.Core
             try
             {
                 TransportErrors.ValidateHeads(exchange, this);
-                if (Auth != null && ClosesConnection(response))
+                var closes = ClosesConnection(response);
+                if (Auth != null && closes)
                 {
                     Auth.ConnectionClosed();
                 }
+                RememberHttpVersion(request.RequestUri!, response, closes);
 
                 if (Cookies != null)
                 {
@@ -399,6 +412,33 @@ namespace CurlDotNet.Core
             }
 
             return response;
+        }
+
+        /// <summary>scheme://host:port of a request URI.</summary>
+        private static string Origin(Uri uri) => uri.Scheme + "://" + uri.Host + ":" + uri.Port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>Notes an HTTP/1.0 reply for this transfer and, when the connection stays open, for the next transfers.</summary>
+        private void RememberHttpVersion(Uri uri, HttpResponseMessage response, bool closes)
+        {
+            var version = FinalHead?.HttpVersion ?? $"{response.Version.Major}.{response.Version.Minor}";
+            var http10 = version == "1.0";
+            if (http10)
+            {
+                SeenHttp10 = true;
+            }
+
+            var session = Options.Session;
+            if (session != null)
+            {
+                if (http10 && !closes)
+                {
+                    session.Http10Origins.Add(Origin(uri));
+                }
+                else
+                {
+                    session.Http10Origins.Remove(Origin(uri));
+                }
+            }
         }
 
         /// <summary>True when the server ends the connection after this response (Connection: close, or HTTP/1.0 without keep-alive).</summary>

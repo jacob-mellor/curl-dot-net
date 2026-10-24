@@ -289,6 +289,8 @@ namespace CurlDotNet.Core
                                 $"Connection timed out after {(long)(seconds * 1000)} milliseconds while connecting to {failure.Host} port {failure.Port}" +
                                 $"{(viaProxy ? " (the proxy)" : string.Empty)}. Raise --connect-timeout, or check that the host is reachable from this machine.",
                                 command);
+                        case ConnectFailureKind.GotNothing:
+                            return new CurlGotNothingException(viaProxy ? ProxyHost(transfer, uri) : uri.Host, command, string.Empty);
                         case ConnectFailureKind.Tunnel:
                             return new CurlCouldntConnectException(failure.Host, failure.Port, failure.Message +
                                 (failure.TunnelStatus == 407 ? " (proxy authentication required: pass -U user:password or --proxy-anyauth)" : string.Empty),

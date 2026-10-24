@@ -99,6 +99,7 @@ namespace CurlDotNet.Core
             var first = transfers[0];
             for (var i = 1; i < transfers.Count; i++)
             {
+                transfers[i].TransferNumber = i;
                 first.AdditionalTransfers.Add(transfers[i]);
             }
 

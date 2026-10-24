@@ -156,9 +156,10 @@ namespace CurlDotNet.Core
         /// </summary>
         /// <remarks>
         /// A failed transfer does not stop the others (unless <c>--fail-early</c> was given or the error is
-        /// one curl treats as fatal), and a later success does not clear an earlier failure: after all
-        /// transfers ran, the last failure is thrown with the complete standard output in
-        /// <see cref="CurlException.StandardOutputDataKey"/>.
+        /// one curl treats as fatal). As in curl's serial transfer loop, the outcome is the one of the last
+        /// transfer that ran (curl tests 655 and 1328: <c>curl http://failthis/ http://good/</c> exits 0):
+        /// when it failed, its exception is thrown with the complete standard output of every transfer in
+        /// <see cref="CurlException.StandardOutputDataKey"/>; when it succeeded, the combined result is returned.
         /// </remarks>
         private async Task<CurlResult> ExecuteTransfersAsync(CurlOptions first, CancellationToken cancellationToken)
         {
@@ -184,6 +185,7 @@ namespace CurlDotNet.Core
                     stdout.Append(result.Body);
                     outputFiles.AddRange(result.OutputFiles);
                     last = result;
+                    lastError = null; // like curl, the exit code is the one of the last transfer
                 }
                 catch (CurlException ex)
                 {
@@ -218,6 +220,22 @@ namespace CurlDotNet.Core
 
         /// <summary>Runs one transfer through the handler of its URL scheme.</summary>
         private async Task<CurlResult> ExecuteTransferAsync(CurlOptions options, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await RunHandlerAsync(options, cancellationToken);
+            }
+            catch (CurlException ex)
+            {
+                // -w is expanded for transfers that failed before any handler ran (bad URL, unknown
+                // scheme) too; handlers attach their own, richer output first (this call is then a no-op)
+                HttpHandler.AttachFailureOutput(ex, null, null, null, null, options);
+                throw;
+            }
+        }
+
+        /// <summary>Picks the handler for the URL scheme and runs the transfer, translating framework exceptions.</summary>
+        private async Task<CurlResult> RunHandlerAsync(CurlOptions options, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(options.Url))
                 throw new CurlException("No URL specified", 3);

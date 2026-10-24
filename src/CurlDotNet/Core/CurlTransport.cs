@@ -39,7 +39,9 @@ namespace CurlDotNet.Core
         /// <summary>--connect-timeout expired.</summary>
         Timeout,
         /// <summary>The proxy refused the CONNECT tunnel.</summary>
-        Tunnel
+        Tunnel,
+        /// <summary>A fresh connection was closed without any reply; HttpClient's silent re-send is refused (curl: exit 52).</summary>
+        GotNothing
     }
 
     /// <summary>
@@ -538,6 +540,16 @@ namespace CurlDotNet.Core
         private static async ValueTask<Stream> ConnectAsync(SocketsHttpConnectionContext context, CancellationToken cancellationToken)
         {
             context.InitialRequestMessage.Options.TryGetValue(SettingsKey, out var settings);
+
+            // HttpClient re-sends a request up to three times when the server closes the connection
+            // without a byte of reply. curl only does that for a reused connection; after a fresh
+            // connection said nothing it reports "Empty reply from server" (52).
+            var previous = settings?.Transcript?.Exchanges.LastOrDefault()?.Segments.LastOrDefault();
+            if (previous != null && previous.NewConnection && previous.BytesSent > 0 && previous.Parser.TotalBytes == 0)
+            {
+                throw new CurlConnectFailure(ConnectFailureKind.GotNothing, context.DnsEndPoint.Host, context.DnsEndPoint.Port,
+                    "the server closed the connection without sending a reply");
+            }
             var info = new WireConnectionInfo { StartedTimestamp = Stopwatch.GetTimestamp() };
 
             var tunnel = settings?.TunnelProxy;

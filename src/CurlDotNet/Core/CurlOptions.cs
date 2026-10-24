@@ -803,6 +803,9 @@ namespace CurlDotNet.Core
         /// </summary>
         internal TransferSession? Session { get; set; }
 
+        /// <summary>The 0-based position of this transfer among all URLs of the command line (<c>%{urlnum}</c>).</summary>
+        internal int TransferNumber { get; set; }
+
         /// <summary><c>--out-null</c>: the response headers (<c>-i</c>) and body are read and discarded.</summary>
         internal bool DiscardOutput { get; set; }
 

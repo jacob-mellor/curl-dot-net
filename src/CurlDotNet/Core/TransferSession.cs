@@ -22,6 +22,12 @@ namespace CurlDotNet.Core
 
         /// <summary>The <c>-b</c> files already read into <see cref="Cookies"/>.</summary>
         public HashSet<string> LoadedCookieFiles { get; } = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Origins (scheme://host:port) whose last response was HTTP/1.0 on a connection that stays open:
+        /// curl talks HTTP/1.0 on such a reused connection.
+        /// </summary>
+        public HashSet<string> Http10Origins { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>Reads and writes the standard-output text that travels on a failed transfer's exception.</summary>
