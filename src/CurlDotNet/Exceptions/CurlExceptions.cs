@@ -601,12 +601,13 @@ namespace CurlDotNet.Exceptions
                 case 56: return "Receiving the response failed; check the network connection and retry (--retry).";
                 case 58: return "Check the client certificate and key given with --cert/--key (path, format and password).";
                 case 59: return "Use a cipher list (--ciphers) that the server and this platform both support.";
-                case 60: return "The server certificate is not trusted; install the issuing CA (--cacert), fix the server certificate, or use -k/--insecure for testing only.";
+                case 60: return "The server certificate is not trusted; install the issuing CA (or pass it with --cacert on .NET 5+), fix the server certificate, or use -k/--insecure for testing only.";
                 case 61: return "The response encoding could not be decoded; drop --compressed or check the server's Content-Encoding header.";
                 case 63: return "Raise --max-filesize, or download a smaller resource.";
                 case 64: return "The server does not support the TLS level required by --ssl-reqd; use a server that supports TLS or drop the option.";
                 case 67: return "The login was rejected; check the user name and password (-u user:password).";
                 case 77: return "Check the CA certificate file or folder given with --cacert/--capath.";
+                case 90: return "The server's public key matches no --pinnedpubkey pin; pin the current key or check that no proxy intercepts TLS.";
                 case 94: return "The authentication exchange failed; check the credentials and the scheme (--basic, --digest, --ntlm).";
                 case 100: return "The server sent more header data than curl accepts; this is a server problem.";
                 default: return $"See the curl exit code {code} entry in the linked documentation for the cause and the fix.";

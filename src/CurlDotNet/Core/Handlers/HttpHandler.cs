@@ -505,6 +505,7 @@ namespace CurlDotNet.Core
         {
             return CurlProxy.IsConfigured(options)
                 || options.Insecure
+                || CurlTls.IsConfigured(options)
                 || UsesChallengeAuth(options)
                 || options.Resolve.Count > 0
                 || options.ConnectTo.Count > 0

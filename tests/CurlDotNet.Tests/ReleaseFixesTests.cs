@@ -686,5 +686,434 @@ namespace CurlDotNet.Tests
             doc.RootElement.GetProperty("x-count")[0].GetString().Should().Be("2", "header values stay strings, as in curl");
             doc.RootElement.GetProperty("set-cookie").GetArrayLength().Should().Be(2);
         }
+
+        // ------------------------------------------------------------------ D. options that are parsed
+
+        [Theory]
+        [InlineData("--interface eth0", "--interface")]
+        [InlineData("--dns-servers 1.1.1.1", "--dns-servers")]
+        [InlineData("-Q 'DELE x'", "--quote")]
+        [InlineData("--disable-epsv", "--disable-epsv")]
+        [InlineData("--key-type DER --key k.der", "--key-type")]
+        public void NotApplicableOptions_AreRecordedAsUnsupported(string option, string recorded)
+        {
+            var o = new CommandParser().Parse($"curl {option} https://example.com/");
+
+            o.UnsupportedOptions.Should().Contain(recorded);
+        }
+
+        [Fact]
+        public void ProxyHeader_IsAppliedSoNotUnsupported()
+        {
+            var o = new CommandParser().Parse("curl -x http://proxy:3128 --proxy-header 'X-Via: me' --no-proxytunnel http://example.com/");
+
+            o.UnsupportedOptions.Should().NotContain("--proxy-header").And.NotContain("--no-proxytunnel");
+        }
+
+        [Fact]
+        public async Task ProxyHeader_IsSentToThePlainProxy()
+        {
+            using var proxy = new RawReplyServer(Ok);
+
+            await Curl.ExecuteAsync($"curl -x {proxy.Url()} --proxy-header \"X-Via: me\" http://origin.example/");
+
+            Header(proxy.Requests.Single(), "X-Via").Should().Be("X-Via: me");
+        }
+
+        [Theory]
+        [InlineData("client.p12:s3cret", "client.p12", "s3cret")]
+        [InlineData("client.pem", "client.pem", null)]
+        [InlineData("C:\\certs\\id.p12:pw", "C:\\certs\\id.p12", "pw")]
+        [InlineData("odd\\:name.pem:pw", "odd:name.pem", "pw")]
+        public void Cert_SplitsFileAndPassword_LikeCurl(string value, string file, string? password)
+        {
+            CommandParser.SplitCertArgument(value).Should().Be((file, password));
+        }
+
+        [Fact]
+        public void TlsOptions_ParseIntoProperties()
+        {
+            var o = new CommandParser().Parse("curl --cert c.p12:pw --cert-type P12 --key k.pem --pass phrase --cacert ca.pem --capath cas " +
+                                              "--pinnedpubkey sha256//AAAA --tlsv1.2 --tls-max 1.3 https://example.com/");
+
+            o.CertFile.Should().Be("c.p12");
+            o.CertPassword.Should().Be("pw");
+            o.CertType.Should().Be("P12");
+            o.KeyFile.Should().Be("k.pem");
+            o.KeyPassword.Should().Be("phrase");
+            o.CaCertFile.Should().Be("ca.pem");
+            o.CaPath.Should().Be("cas");
+            o.PinnedPublicKey.Should().Be("sha256//AAAA");
+            o.TlsMinVersion.Should().Be("1.2");
+            o.TlsMaxVersion.Should().Be("1.3");
+            o.UnsupportedOptions.Should().BeEmpty("every one of these is applied on .NET 5 and later");
+        }
+
+        [Fact]
+        public void TlsMax_RejectsAnUnknownVersion_WithExitTwo()
+        {
+            var ex = Parses<CurlException>("curl --tls-max 2.0 https://example.com/");
+
+            ex.CurlErrorCode.Should().Be(2);
+            ExceptionMessageTests.AssertWhatFixLink(ex);
+        }
+
+        [Fact]
+        public void Ciphers_OpenSslNames_AreUnsupported_IanaNamesFollowThePlatform()
+        {
+            var openSsl = new CommandParser().Parse("curl --ciphers ECDHE-RSA-AES128-GCM-SHA256 https://example.com/");
+            openSsl.UnsupportedOptions.Should().Contain("--ciphers");
+            openSsl.Ciphers.Should().BeNull();
+
+            var iana = new CommandParser().Parse("curl --tls13-ciphers TLS_AES_256_GCM_SHA384 https://example.com/");
+            if (CurlTls.PlatformSupportsCipherPolicy())
+            {
+                iana.Ciphers.Should().Be("TLS_AES_256_GCM_SHA384");
+                iana.UnsupportedOptions.Should().BeEmpty();
+            }
+            else
+            {
+                iana.Ciphers.Should().BeNull();
+                iana.UnsupportedOptions.Should().Contain("--tls13-ciphers");
+            }
+        }
+
+#if NET8_0_OR_GREATER
+        [Fact]
+        public async Task CaCert_TrustsAPrivateCa_ThatTheSystemDoesNot()
+        {
+            using var pki = new TestPki();
+            using var server = new TlsTestServer(pki.ServerCertificate);
+
+            Func<Task> withoutCa = () => Curl.ExecuteAsync($"curl {server.Url}");
+            var rejected = (await withoutCa.Should().ThrowAsync<CurlPeerFailedVerificationException>()).Which;
+            rejected.CurlErrorCode.Should().Be(60);
+            rejected.Message.Should().Contain("--cacert");
+            ExceptionMessageTests.AssertWhatFixLink(rejected);
+
+            var result = await Curl.ExecuteAsync($"curl --cacert {Q(pki.CaPemPath)} {server.Url}");
+            result.Body.Should().Be("tls ok");
+        }
+
+        [Fact]
+        public async Task CaCert_WithTheWrongCa_IsRejected60()
+        {
+            using var pki = new TestPki();
+            using var other = new TestPki();
+            using var server = new TlsTestServer(pki.ServerCertificate);
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl --cacert {Q(other.CaPemPath)} {server.Url}");
+
+            var ex = (await act.Should().ThrowAsync<CurlPeerFailedVerificationException>()).Which;
+            ex.Message.Should().Contain("--cacert/--capath bundle");
+            ExceptionMessageTests.AssertWhatFixLink(ex);
+        }
+
+        [Fact]
+        public async Task CaPath_TrustsEveryCertificateInTheFolder()
+        {
+            using var pki = new TestPki();
+            using var server = new TlsTestServer(pki.ServerCertificate);
+            var dir = Directory.CreateDirectory(P("cas")).FullName;
+            File.Copy(pki.CaPemPath, Path.Combine(dir, "5ed36f99.0"));
+            File.WriteAllText(Path.Combine(dir, "README"), "not a certificate");
+
+            var result = await Curl.ExecuteAsync($"curl --capath {Q(dir)} {server.Url}");
+
+            result.Body.Should().Be("tls ok");
+        }
+
+        [Fact]
+        public async Task CaCert_MissingFile_IsExit77()
+        {
+            using var pki = new TestPki();
+            using var server = new TlsTestServer(pki.ServerCertificate);
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl --cacert {Q(P("missing-ca.pem"))} {server.Url}");
+
+            var ex = (await act.Should().ThrowAsync<CurlSslCaCertBadFileException>()).Which;
+            ex.CurlErrorCode.Should().Be(77);
+            ex.FilePath.Should().EndWith("missing-ca.pem");
+            ExceptionMessageTests.AssertWhatFixLink(ex);
+        }
+
+        [Fact]
+        public async Task PinnedPubKey_Match_Passes_Mismatch_Is90_EvenWithInsecure()
+        {
+            using var pki = new TestPki();
+            using var server = new TlsTestServer(pki.ServerCertificate);
+
+            var good = await Curl.ExecuteAsync($"curl --cacert {Q(pki.CaPemPath)} --pinnedpubkey \"sha256//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=;{pki.ServerPin}\" {server.Url}");
+            good.Body.Should().Be("tls ok");
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl -k --pinnedpubkey sha256//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= {server.Url}");
+            var ex = (await act.Should().ThrowAsync<CurlSslPinnedPublicKeyMismatchException>()).Which;
+            ex.CurlErrorCode.Should().Be(90);
+            ex.Message.Should().Contain(pki.ServerPin, "the message shows the key that was presented");
+            ExceptionMessageTests.AssertWhatFixLink(ex);
+        }
+
+        [Fact]
+        public async Task PinnedPubKey_FromAPublicKeyFile()
+        {
+            using var pki = new TestPki();
+            using var server = new TlsTestServer(pki.ServerCertificate);
+
+            var result = await Curl.ExecuteAsync($"curl -k --pinnedpubkey {Q(pki.ServerPublicKeyPemPath)} {server.Url}");
+
+            result.Body.Should().Be("tls ok");
+        }
+
+        [Fact]
+        public async Task ClientCertificate_Pem_IsPresented()
+        {
+            using var pki = new TestPki();
+            using var server = new TlsTestServer(pki.ServerCertificate, requireClientCertificate: true);
+
+            var result = await Curl.ExecuteAsync($"curl --cacert {Q(pki.CaPemPath)} --cert {Q(pki.ClientCertPemPath)} --key {Q(pki.ClientKeyPemPath)} {server.Url}");
+
+            result.Body.Should().Be("tls ok");
+            server.ClientCertificateThumbprint.Should().Be(pki.ClientThumbprint);
+        }
+
+        [Fact]
+        public async Task ClientCertificate_P12WithPassword_IsPresented()
+        {
+            using var pki = new TestPki();
+            using var server = new TlsTestServer(pki.ServerCertificate, requireClientCertificate: true);
+
+            var result = await Curl.ExecuteAsync($"curl -k --cert {Q(pki.ClientP12Path + ":p12pass")} --cert-type P12 {server.Url}");
+
+            result.Body.Should().Be("tls ok");
+            server.ClientCertificateThumbprint.Should().Be(pki.ClientThumbprint);
+        }
+
+        [Fact]
+        public async Task ClientCertificate_WrongPassword_IsExit58()
+        {
+            using var pki = new TestPki();
+            using var server = new TlsTestServer(pki.ServerCertificate);
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl -k --cert {Q(pki.ClientP12Path + ":wrong")} --cert-type P12 {server.Url}");
+
+            var ex = (await act.Should().ThrowAsync<CurlSslCertificateProblemException>()).Which;
+            ex.CurlErrorCode.Should().Be(58);
+            ex.Message.Should().NotContain("wrong", "the password is never printed");
+            ExceptionMessageTests.AssertWhatFixLink(ex);
+        }
+
+        [Fact]
+        public async Task TlsMax12_NegotiatesTls12()
+        {
+            using var pki = new TestPki();
+            using var server = new TlsTestServer(pki.ServerCertificate);
+
+            var result = await Curl.ExecuteAsync($"curl -k --tls-max 1.2 {server.Url}");
+
+            result.Body.Should().Be("tls ok");
+            server.NegotiatedProtocol.Should().Be(System.Security.Authentication.SslProtocols.Tls12);
+        }
+
+        [Fact]
+        public async Task TlsV13_AgainstATls12OnlyServer_IsExit35()
+        {
+            using var pki = new TestPki();
+            using var server = new TlsTestServer(pki.ServerCertificate, protocols: System.Security.Authentication.SslProtocols.Tls12);
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl -k --tlsv1.3 {server.Url}");
+
+            var ex = (await act.Should().ThrowAsync<CurlSslException>()).Which;
+            ex.CurlErrorCode.Should().Be(35);
+        }
+
+        [Fact]
+        public async Task TlsMaxBelowMin_IsExit35_BeforeConnecting()
+        {
+            Func<Task> act = () => Curl.ExecuteAsync("curl --tlsv1.3 --tls-max 1.2 https://127.0.0.1:9/");
+
+            var ex = (await act.Should().ThrowAsync<CurlSslConnectErrorException>()).Which;
+            ex.CurlErrorCode.Should().Be(35);
+            ExceptionMessageTests.AssertWhatFixLink(ex);
+        }
+#endif
     }
+
+#if NET8_0_OR_GREATER
+    /// <summary>A throw-away CA with a server certificate for 127.0.0.1 and a client certificate, written as PEM/P12 files.</summary>
+    internal sealed class TestPki : IDisposable
+    {
+        private readonly string _dir = Path.Combine(Path.GetTempPath(), "curldotnet-pki-" + Guid.NewGuid().ToString("N"));
+
+        public TestPki()
+        {
+            Directory.CreateDirectory(_dir);
+            var now = DateTimeOffset.UtcNow;
+            using var caKey = System.Security.Cryptography.RSA.Create(2048);
+            var caRequest = new System.Security.Cryptography.X509Certificates.CertificateRequest("CN=CurlDotNet Test CA " + Guid.NewGuid().ToString("N").Substring(0, 8),
+                caKey, System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.RSASignaturePadding.Pkcs1);
+            caRequest.CertificateExtensions.Add(new System.Security.Cryptography.X509Certificates.X509BasicConstraintsExtension(true, false, 0, true));
+            caRequest.CertificateExtensions.Add(new System.Security.Cryptography.X509Certificates.X509KeyUsageExtension(
+                System.Security.Cryptography.X509Certificates.X509KeyUsageFlags.KeyCertSign | System.Security.Cryptography.X509Certificates.X509KeyUsageFlags.CrlSign, true));
+            using var ca = caRequest.CreateSelfSigned(now.AddDays(-1), now.AddDays(30));
+            CaPemPath = Write("ca.pem", ca.ExportCertificatePem());
+
+            ServerCertificate = Issue(ca, "CN=127.0.0.1", serverAuth: true, out var serverKey, out var serverPublicKeyPem, out _);
+            ServerPin = "sha256//" + Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(ServerCertificate.PublicKey.ExportSubjectPublicKeyInfo()));
+            ServerPublicKeyPemPath = Write("server-pub.pem", serverPublicKeyPem);
+            serverKey.Dispose();
+
+            using var client = Issue(ca, "CN=curl client", serverAuth: false, out var clientKey, out _, out var clientP12);
+            ClientThumbprint = client.Thumbprint;
+            ClientCertPemPath = Write("client.pem", client.ExportCertificatePem());
+            ClientKeyPemPath = Write("client.key", clientKey.ExportPkcs8PrivateKeyPem());
+            ClientP12Path = Path.Combine(_dir, "client.p12");
+            File.WriteAllBytes(ClientP12Path, clientP12);
+            clientKey.Dispose();
+        }
+
+        public string CaPemPath { get; }
+        public System.Security.Cryptography.X509Certificates.X509Certificate2 ServerCertificate { get; }
+        public string ServerPin { get; }
+        public string ServerPublicKeyPemPath { get; }
+        public string ClientThumbprint { get; }
+        public string ClientCertPemPath { get; }
+        public string ClientKeyPemPath { get; }
+        public string ClientP12Path { get; }
+
+        private string Write(string name, string text)
+        {
+            var path = Path.Combine(_dir, name);
+            File.WriteAllText(path, text);
+            return path;
+        }
+
+        private static System.Security.Cryptography.X509Certificates.X509Certificate2 Issue(
+            System.Security.Cryptography.X509Certificates.X509Certificate2 ca, string subject, bool serverAuth,
+            out System.Security.Cryptography.RSA key, out string publicKeyPem, out byte[] p12WithPassword)
+        {
+            key = System.Security.Cryptography.RSA.Create(2048);
+            var request = new System.Security.Cryptography.X509Certificates.CertificateRequest(subject, key,
+                System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.RSASignaturePadding.Pkcs1);
+            request.CertificateExtensions.Add(new System.Security.Cryptography.X509Certificates.X509BasicConstraintsExtension(false, false, 0, false));
+            request.CertificateExtensions.Add(new System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension(
+                new System.Security.Cryptography.OidCollection { new System.Security.Cryptography.Oid(serverAuth ? "1.3.6.1.5.5.7.3.1" : "1.3.6.1.5.5.7.3.2") }, false));
+            if (serverAuth)
+            {
+                var san = new System.Security.Cryptography.X509Certificates.SubjectAlternativeNameBuilder();
+                san.AddIpAddress(System.Net.IPAddress.Loopback);
+                san.AddDnsName("localhost");
+                request.CertificateExtensions.Add(san.Build());
+            }
+            var serial = new byte[8];
+            System.Security.Cryptography.RandomNumberGenerator.Fill(serial);
+            var now = DateTimeOffset.UtcNow;
+            using var issued = request.Create(ca, now.AddHours(-1), now.AddDays(29), serial);
+            using var withKey = System.Security.Cryptography.X509Certificates.RSACertificateExtensions.CopyWithPrivateKey(issued, key);
+            publicKeyPem = key.ExportSubjectPublicKeyInfoPem();
+            p12WithPassword = withKey.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pkcs12, "p12pass");
+            // a PKCS#12 round trip gives SslStream a key it can use on every platform
+            return System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12(
+                withKey.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pkcs12), null);
+        }
+
+        public void Dispose()
+        {
+            ServerCertificate.Dispose();
+            try
+            {
+                Directory.Delete(_dir, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
+    /// <summary>
+    /// A one-request-per-connection HTTPS server on 127.0.0.1: TLS with the given certificate (optionally asking for a client
+    /// certificate), answers every request with "tls ok", and records the negotiated protocol and client certificate.
+    /// </summary>
+    internal sealed class TlsTestServer : IDisposable
+    {
+        private readonly System.Net.Sockets.TcpListener _listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        private readonly System.Security.Cryptography.X509Certificates.X509Certificate2 _certificate;
+        private readonly bool _requireClientCertificate;
+        private readonly System.Security.Authentication.SslProtocols _protocols;
+
+        public TlsTestServer(System.Security.Cryptography.X509Certificates.X509Certificate2 certificate, bool requireClientCertificate = false,
+            System.Security.Authentication.SslProtocols protocols = System.Security.Authentication.SslProtocols.None)
+        {
+            _certificate = certificate;
+            _requireClientCertificate = requireClientCertificate;
+            _protocols = protocols;
+            _listener.Start();
+            Url = $"https://127.0.0.1:{((System.Net.IPEndPoint)_listener.LocalEndpoint).Port}/";
+            _ = Task.Run(AcceptLoopAsync);
+        }
+
+        public string Url { get; }
+
+        public string? ClientCertificateThumbprint { get; private set; }
+
+        public System.Security.Authentication.SslProtocols NegotiatedProtocol { get; private set; }
+
+        private async Task AcceptLoopAsync()
+        {
+            while (true)
+            {
+                System.Net.Sockets.TcpClient client;
+                try
+                {
+                    client = await _listener.AcceptTcpClientAsync();
+                }
+                catch (Exception)
+                {
+                    return;
+                }
+                _ = Task.Run(() => ServeAsync(client));
+            }
+        }
+
+        private async Task ServeAsync(System.Net.Sockets.TcpClient client)
+        {
+            using (client)
+            {
+                try
+                {
+                    using var ssl = new System.Net.Security.SslStream(client.GetStream(), false, (s, c, ch, e) => true);
+                    await ssl.AuthenticateAsServerAsync(new System.Net.Security.SslServerAuthenticationOptions
+                    {
+                        ServerCertificate = _certificate,
+                        ClientCertificateRequired = _requireClientCertificate,
+                        EnabledSslProtocols = _protocols,
+                        CertificateRevocationCheckMode = System.Security.Cryptography.X509Certificates.X509RevocationMode.NoCheck,
+                    });
+                    NegotiatedProtocol = ssl.SslProtocol;
+                    if (ssl.RemoteCertificate != null)
+                    {
+                        ClientCertificateThumbprint = new System.Security.Cryptography.X509Certificates.X509Certificate2(ssl.RemoteCertificate).Thumbprint;
+                    }
+
+                    var buffer = new byte[8192];
+                    var request = new StringBuilder();
+                    while (request.ToString().IndexOf("\r\n\r\n", StringComparison.Ordinal) < 0)
+                    {
+                        var n = await ssl.ReadAsync(buffer, 0, buffer.Length);
+                        if (n <= 0) return;
+                        request.Append(Encoding.ASCII.GetString(buffer, 0, n));
+                    }
+                    var reply = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Length: 6\r\nConnection: close\r\n\r\ntls ok");
+                    await ssl.WriteAsync(reply, 0, reply.Length);
+                    await ssl.FlushAsync();
+                }
+                catch (Exception)
+                {
+                    // handshake refused by the client (untrusted certificate, pin mismatch): nothing to answer
+                }
+            }
+        }
+
+        public void Dispose() => _listener.Stop();
+    }
+#endif
 }

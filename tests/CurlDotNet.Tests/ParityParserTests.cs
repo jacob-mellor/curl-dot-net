@@ -126,7 +126,7 @@ namespace CurlDotNet.Tests
         [InlineData("-a", "--append")]
         [InlineData("-B", "--use-ascii")]
         [InlineData("-Z", "--parallel")]
-        [InlineData("-1", "--tlsv1")]
+        [InlineData("--tls13-ciphers TLS_FAKE_SUITE", "--tls13-ciphers")]
         [InlineData("-2", "--sslv2")]
         [InlineData("-3", "--sslv3")]
         [InlineData("-4", "--ipv4")]

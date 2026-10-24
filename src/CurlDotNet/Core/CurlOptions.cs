@@ -837,47 +837,123 @@ namespace CurlDotNet.Core
         public bool Compressed { get; set; }
 
         /// <summary>
-        /// Client certificate path from curl's <c>-E</c>/<c>--cert</c>; recorded for compatibility but not yet sent, so
-        /// servers that require mutual TLS will reject the connection.
+        /// Client certificate for mutual TLS, from curl's <c>-E</c>/<c>--cert FILE[:PASSWORD]</c>: the certificate (and,
+        /// for PEM, usually its private key) presented to servers that ask for one.
         /// </summary>
-        /// <value>A certificate file path (curl accepts PEM, DER or P12). Default: null. Not acted on.</value>
+        /// <value>A file path. PEM (default), DER or PKCS#12 as chosen by <see cref="CertType"/> (a <c>.p12</c>/<c>.pfx</c>
+        /// file is read as PKCS#12 without it). Default: null (no client certificate).</value>
         /// <remarks>
-        /// <para>To call an mTLS endpoint today, pass your own <c>HttpClient</c> whose handler has the certificate in
-        /// <c>ClientCertificates</c> to the engine. Example: <c>curl --cert client.pem --key client.key URL</c> parses to
-        /// <c>CertFile = "client.pem", KeyFile = "client.key"</c>.</para>
+        /// <para>Applied on .NET 5 and later. PEM: the key is read from <see cref="KeyFile"/>, or from the same file when
+        /// <see cref="KeyFile"/> is not set; an encrypted key needs <see cref="KeyPassword"/> (<c>--pass</c>) or
+        /// <see cref="CertPassword"/>. DER: needs <see cref="KeyFile"/> (a PEM RSA or ECDSA key). P12: the password is
+        /// <see cref="CertPassword"/> (the part after the colon in <c>--cert file.p12:secret</c>). A file that cannot be
+        /// read, a wrong password or a key that does not match fails before connecting with
+        /// <see cref="CurlDotNet.Exceptions.CurlSslCertificateProblemException"/> (exit 58); a server that rejects the
+        /// certificate fails the handshake with <see cref="CurlDotNet.Exceptions.CurlSslConnectErrorException"/> (exit 35).
+        /// On .NET Standard 2.0 and .NET Framework the option is recorded in <see cref="UnsupportedOptions"/> and no
+        /// certificate is sent. It is not applied when you pass your own <c>HttpClient</c> to the engine (its handler decides).</para>
+        /// <para>Example: <c>curl --cert client.pem --key client.key https://mtls.example.com/</c> is
+        /// <c>new CurlOptions { Url = url, CertFile = "client.pem", KeyFile = "client.key" }</c>; with PKCS#12,
+        /// <c>curl --cert client.p12:secret --cert-type P12 URL</c>.</para>
         /// </remarks>
         /// <seealso cref="KeyFile"/>
+        /// <seealso cref="CertType"/>
+        /// <seealso cref="CertPassword"/>
         /// <seealso cref="CaCertFile"/>
         public string? CertFile { get; set; }
 
         /// <summary>
-        /// Private key path for the client certificate, from curl's <c>--key</c>; recorded for compatibility but not
-        /// applied (see <see cref="CertFile"/>).
+        /// Private key file for <see cref="CertFile"/>, from curl's <c>--key FILE</c>; needed when the certificate file does
+        /// not contain the key.
         /// </summary>
-        /// <value>A key file path. Default: null. Not acted on.</value>
+        /// <value>A PEM key file path (<c>-----BEGIN PRIVATE KEY-----</c>, <c>RSA PRIVATE KEY</c>, <c>EC PRIVATE KEY</c> or
+        /// <c>ENCRYPTED PRIVATE KEY</c>). Default: null (the key is in <see cref="CertFile"/>).</value>
         /// <remarks>
+        /// <para>Applied on .NET 5 and later, together with <see cref="CertFile"/>. An encrypted key needs
+        /// <see cref="KeyPassword"/> (<c>--pass</c>).</para>
         /// <para>Example: <c>curl --cert client.pem --key client.key URL</c> parses to <c>KeyFile = "client.key"</c>.</para>
         /// </remarks>
         /// <seealso cref="CertFile"/>
+        /// <seealso cref="KeyPassword"/>
         public string? KeyFile { get; set; }
 
         /// <summary>
-        /// CA bundle path from curl's <c>--cacert</c>; recorded for compatibility but not applied: server certificates
-        /// are verified against the operating system's trust store.
+        /// The format of <see cref="CertFile"/>, from curl's <c>--cert-type</c>: <c>PEM</c>, <c>DER</c> or <c>P12</c>.
         /// </summary>
-        /// <value>A PEM file path. Default: null. Not acted on.</value>
+        /// <value><c>PEM</c>, <c>DER</c>, <c>P12</c> (also <c>PKCS12</c>, <c>PFX</c>), case-insensitive. Default: null, meaning
+        /// PEM, or P12 for a file ending in <c>.p12</c> or <c>.pfx</c>.</value>
         /// <remarks>
-        /// <para>To trust a private CA, install it in the machine or user certificate store. For local testing only,
-        /// <see cref="Insecure"/> skips verification. Example: <c>curl --cacert corp-ca.pem URL</c> parses to
-        /// <c>CaCertFile = "corp-ca.pem"</c>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md</para>
+        /// <para>Another value fails with <see cref="CurlDotNet.Exceptions.CurlSslCertificateProblemException"/> (exit 58)
+        /// when the transfer starts. Example: <c>curl --cert id.p12:pw --cert-type P12 URL</c> parses to <c>CertType = "P12"</c>.</para>
         /// </remarks>
+        /// <seealso cref="CertFile"/>
+        public string? CertType { get; set; }
+
+        /// <summary>
+        /// The format of <see cref="KeyFile"/>, from curl's <c>--key-type</c>; CurlDotNet reads PEM keys.
+        /// </summary>
+        /// <value><c>PEM</c> (the default) or another curl value. Default: null.</value>
+        /// <remarks>
+        /// <para>Only PEM keys are read: <c>--key-type DER</c> or <c>ENG</c> is recorded in <see cref="UnsupportedOptions"/>.
+        /// Example: <c>curl --key k.pem --key-type PEM URL</c> parses to <c>KeyType = "PEM"</c>.</para>
+        /// </remarks>
+        /// <seealso cref="KeyFile"/>
+        public string? KeyType { get; set; }
+
+        /// <summary>
+        /// The password of <see cref="CertFile"/>, from the part after the colon in curl's <c>--cert FILE:PASSWORD</c>; used
+        /// for PKCS#12 files and encrypted PEM keys.
+        /// </summary>
+        /// <value>The password, or null. Default: null.</value>
+        /// <remarks>
+        /// <para>Like curl, a colon inside the file name can be escaped as <c>\:</c>, and a Windows drive letter
+        /// (<c>C:\certs\id.p12</c>) is not mistaken for the separator. The value is a secret: CurlDotNet never prints it in
+        /// messages or logs. Example: <c>curl --cert id.p12:s3cret --cert-type P12 URL</c> parses to
+        /// <c>CertFile = "id.p12", CertPassword = "s3cret"</c>.</para>
+        /// </remarks>
+        /// <seealso cref="CertFile"/>
+        /// <seealso cref="KeyPassword"/>
+        public string? CertPassword { get; set; }
+
+        /// <summary>
+        /// The passphrase of an encrypted private key, from curl's <c>--pass PHRASE</c>.
+        /// </summary>
+        /// <value>The passphrase, or null. Default: null.</value>
+        /// <remarks>
+        /// <para>Used for <see cref="KeyFile"/> (or a PEM <see cref="CertFile"/> holding an encrypted key), and as the
+        /// PKCS#12 password when <see cref="CertPassword"/> is not given. Never printed in messages or logs.
+        /// Example: <c>curl --cert c.pem --key k.pem --pass phrase URL</c> parses to <c>KeyPassword = "phrase"</c>.</para>
+        /// </remarks>
+        /// <seealso cref="KeyFile"/>
+        /// <seealso cref="CertPassword"/>
+        public string? KeyPassword { get; set; }
+
+        /// <summary>
+        /// A PEM bundle of CA certificates to trust instead of the operating system's store, from curl's <c>--cacert FILE</c>;
+        /// the way to call servers whose certificate comes from a private or corporate CA.
+        /// </summary>
+        /// <value>A path to a PEM file with one or more <c>-----BEGIN CERTIFICATE-----</c> blocks (a single DER certificate
+        /// also works). Default: null (the system store decides).</value>
+        /// <remarks>
+        /// <para>Applied on .NET 5 and later: like curl, only the CAs in the bundle (plus <see cref="CaPath"/>) are trusted,
+        /// the server's intermediates are used to build the chain, the host name must still match, and revocation is not
+        /// checked. An untrusted server fails with <see cref="CurlDotNet.Exceptions.CurlPeerFailedVerificationException"/>
+        /// (exit 60); a missing or empty bundle fails before connecting with
+        /// <see cref="CurlDotNet.Exceptions.CurlSslCaCertBadFileException"/> (exit 77). On .NET Standard 2.0 and .NET
+        /// Framework the option is recorded in <see cref="UnsupportedOptions"/> and the system store is used: install the CA
+        /// there instead. <see cref="Insecure"/> skips verification altogether (testing only).</para>
+        /// <para>Example: <c>curl --cacert corp-ca.pem https://intranet.example/</c> is
+        /// <c>new CurlOptions { Url = url, CaCertFile = "corp-ca.pem" }</c>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md</para>
+        /// </remarks>
+        /// <seealso cref="CaPath"/>
+        /// <seealso cref="PinnedPublicKey"/>
         /// <seealso cref="Insecure"/>
         /// <seealso cref="CaCert"/>
         public string? CaCertFile { get; set; }
 
         /// <summary>
         /// Same setting as <see cref="CaCertFile"/> (curl's <c>--cacert</c>) under a shorter name; reading or writing either
-        /// property changes both. Recorded but not applied.
+        /// property changes both.
         /// </summary>
         /// <value>A PEM file path, or null.</value>
         /// <remarks>
@@ -891,14 +967,92 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Network interface or source address from curl's <c>--interface</c>; recorded for compatibility but not applied,
-        /// so connections use the operating system's default route.
+        /// A folder of CA certificates to trust instead of the operating system's store, from curl's <c>--capath DIR</c>.
+        /// </summary>
+        /// <value>A folder path. Every file in it that holds PEM or DER certificates is loaded (OpenSSL's hashed names such as
+        /// <c>5ed36f99.0</c> included); other files are skipped. Default: null.</value>
+        /// <remarks>
+        /// <para>Combined with <see cref="CaCertFile"/> into one trust store, applied on .NET 5 and later exactly like
+        /// <see cref="CaCertFile"/>; a folder that does not exist or holds no certificate fails with
+        /// <see cref="CurlDotNet.Exceptions.CurlSslCaCertBadFileException"/> (exit 77). Recorded in
+        /// <see cref="UnsupportedOptions"/> on .NET Standard 2.0 and .NET Framework.</para>
+        /// <para>Example: <c>curl --capath /etc/ssl/private-cas https://intranet.example/</c>.</para>
+        /// </remarks>
+        /// <seealso cref="CaCertFile"/>
+        public string? CaPath { get; set; }
+
+        /// <summary>
+        /// Public key pins the server must match, from curl's <c>--pinnedpubkey</c>: <c>sha256//BASE64</c> hashes of the
+        /// server's SubjectPublicKeyInfo (several separated by <c>;</c>), or the path of a PEM/DER public key file.
+        /// </summary>
+        /// <value>The pin text or file path. Default: null (no pinning).</value>
+        /// <remarks>
+        /// <para>Applied on .NET 5 and later, after certificate verification and also with <see cref="Insecure"/>, like curl.
+        /// A server key that matches no pin, or a pin that cannot be read, fails with
+        /// <see cref="CurlDotNet.Exceptions.CurlSslPinnedPublicKeyMismatchException"/> (exit 90); the message shows the pin of
+        /// the key that was presented. Recorded in <see cref="UnsupportedOptions"/> on .NET Standard 2.0 and .NET Framework.</para>
+        /// <para>Example: <c>curl --pinnedpubkey "sha256//YhKJKSzoTt2b5FP18fvpHo7fJYqQCjAa3HWY3tvRMwE=" https://api.example.com/</c>.</para>
+        /// </remarks>
+        /// <seealso cref="CaCertFile"/>
+        public string? PinnedPublicKey { get; set; }
+
+        /// <summary>
+        /// The lowest TLS version to use, from curl's <c>-1</c>/<c>--tlsv1</c>, <c>--tlsv1.0</c>, <c>--tlsv1.1</c>,
+        /// <c>--tlsv1.2</c> and <c>--tlsv1.3</c>.
+        /// </summary>
+        /// <value><c>"1.0"</c>, <c>"1.1"</c>, <c>"1.2"</c> or <c>"1.3"</c>. Default: null (the operating system's default,
+        /// TLS 1.2 or later on current systems).</value>
+        /// <remarks>
+        /// <para>With <c>"1.2"</c> or <c>"1.3"</c> only that version and newer ones are offered (up to <see cref="TlsMaxVersion"/>);
+        /// <c>"1.0"</c> and <c>"1.1"</c> leave the system default in place, which already excludes the old versions on most
+        /// systems. A server that cannot meet the range fails the handshake with
+        /// <see cref="CurlDotNet.Exceptions.CurlSslConnectErrorException"/> (exit 35). Whether TLS 1.3 is available depends on
+        /// the operating system.</para>
+        /// <para>Example: <c>curl --tlsv1.3 https://example.com/</c> is <c>new CurlOptions { Url = url, TlsMinVersion = "1.3" }</c>.</para>
+        /// </remarks>
+        /// <seealso cref="TlsMaxVersion"/>
+        public string? TlsMinVersion { get; set; }
+
+        /// <summary>
+        /// The highest TLS version to use, from curl's <c>--tls-max VERSION</c>.
+        /// </summary>
+        /// <value><c>"1.0"</c>, <c>"1.1"</c>, <c>"1.2"</c> or <c>"1.3"</c>; <c>--tls-max default</c> leaves it null.
+        /// Default: null (no maximum).</value>
+        /// <remarks>
+        /// <para>Without <see cref="TlsMinVersion"/> the minimum is TLS 1.2, like curl. A maximum below the minimum fails with
+        /// <see cref="CurlDotNet.Exceptions.CurlSslConnectErrorException"/> (exit 35); another value fails parsing with exit
+        /// code 2. Example: <c>curl --tls-max 1.2 https://example.com/</c> makes the handshake use TLS 1.2.</para>
+        /// </remarks>
+        /// <seealso cref="TlsMinVersion"/>
+        public string? TlsMaxVersion { get; set; }
+
+        /// <summary>
+        /// The TLS cipher suites to offer, from curl's <c>--ciphers</c> and <c>--tls13-ciphers</c>, as IANA names
+        /// separated by <c>:</c>.
+        /// </summary>
+        /// <value>For example <c>TLS_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</c>. Default: null (the system's list).</value>
+        /// <remarks>
+        /// <para>.NET can only restrict cipher suites where <c>CipherSuitesPolicy</c> is supported (Linux with OpenSSL, .NET 5
+        /// and later). Elsewhere, or when a name is not an IANA suite name (OpenSSL-style names such as
+        /// <c>ECDHE-RSA-AES128-GCM-SHA256</c> are not translated), the parser leaves this null and records the option in
+        /// <see cref="UnsupportedOptions"/>. Setting it by hand on such a platform has no effect.</para>
+        /// <para>Example: <c>curl --tls13-ciphers TLS_AES_256_GCM_SHA384 https://example.com/</c>.</para>
+        /// </remarks>
+        /// <seealso cref="TlsMinVersion"/>
+        public string? Ciphers { get; set; }
+
+        /// <summary>
+        /// Network interface or source address from curl's <c>--interface</c>; not applied (connections use the operating
+        /// system's default route), so the parser also records the option in <see cref="UnsupportedOptions"/>.
         /// </summary>
         /// <value>An interface name (<c>eth0</c>) or address. Default: null. Not acted on.</value>
         /// <remarks>
-        /// <para>Example: <c>curl --interface eth1 URL</c> parses to <c>Interface = "eth1"</c>.</para>
+        /// <para>Binding outgoing connections to an interface is not available through HttpClient's connection layer.
+        /// Example: <c>curl --interface eth1 URL</c> parses to <c>Interface = "eth1"</c> and
+        /// <c>UnsupportedOptions</c> containing <c>--interface</c>.</para>
         /// </remarks>
         /// <seealso cref="Resolve"/>
+        /// <seealso cref="UnsupportedOptions"/>
         public string? Interface { get; set; }
 
         /// <summary>
@@ -1040,14 +1194,17 @@ namespace CurlDotNet.Core
         public int? KeepAliveTime { get; set; }
 
         /// <summary>
-        /// DNS server list from curl's <c>--dns-servers</c>; recorded for compatibility but not applied: names are resolved
-        /// by the operating system (use <see cref="Resolve"/> to pin a name to an address).
+        /// DNS server list from curl's <c>--dns-servers</c>; not applied (names are resolved by the operating system), so
+        /// the parser also records the option in <see cref="UnsupportedOptions"/>. Use <see cref="Resolve"/> to pin a name
+        /// to an address.
         /// </summary>
         /// <value>A comma-separated list such as <c>8.8.8.8,1.1.1.1</c>. Default: null. Not acted on.</value>
         /// <remarks>
-        /// <para>Example: <c>curl --dns-servers 1.1.1.1 URL</c> parses to <c>DnsServers = "1.1.1.1"</c>.</para>
+        /// <para>Example: <c>curl --dns-servers 1.1.1.1 URL</c> parses to <c>DnsServers = "1.1.1.1"</c> and
+        /// <c>UnsupportedOptions</c> containing <c>--dns-servers</c>.</para>
         /// </remarks>
         /// <seealso cref="Resolve"/>
+        /// <seealso cref="UnsupportedOptions"/>
         public string? DnsServers { get; set; }
 
         /// <summary>
@@ -1068,14 +1225,16 @@ namespace CurlDotNet.Core
         public Dictionary<string, string> Resolve { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
-        /// FTP commands from curl's <c>-Q</c>/<c>--quote</c> (such as <c>DELE file</c>); recorded for compatibility but not
-        /// sent to the server.
+        /// FTP commands from curl's <c>-Q</c>/<c>--quote</c> (such as <c>DELE file</c>); not sent to the server, so the
+        /// parser also records the option in <see cref="UnsupportedOptions"/>.
         /// </summary>
         /// <value>The commands in command-line order. Default: empty. Not acted on.</value>
         /// <remarks>
-        /// <para>Example: <c>curl -Q "DELE old.txt" ftp://example.com/</c> parses to <c>Quote = ["DELE old.txt"]</c>.</para>
+        /// <para>The .NET FTP client CurlDotNet uses cannot send raw commands. Example: <c>curl -Q "DELE old.txt" ftp://example.com/</c>
+        /// parses to <c>Quote = ["DELE old.txt"]</c> and <c>UnsupportedOptions</c> containing <c>--quote</c>.</para>
         /// </remarks>
         /// <seealso cref="FtpPassive"/>
+        /// <seealso cref="UnsupportedOptions"/>
         public List<string> Quote { get; set; } = new List<string>();
 
         /// <summary>
@@ -1721,6 +1880,9 @@ namespace CurlDotNet.Core
 
         /// <summary>The value <see cref="Data"/> had when <see cref="ParsedDataBytes"/> was assembled.</summary>
         internal string? ParsedDataText { get; set; }
+
+        /// <summary>What the certificate check of the handler built for these options saw (set when TLS options are applied).</summary>
+        internal TlsVerificationState? TlsVerification { get; set; }
 
         /// <summary><see cref="CurlSettings.OnRedirect"/>: called with the absolute URL of each redirect that is followed.</summary>
         internal Action<string>? RedirectCallback { get; set; }
