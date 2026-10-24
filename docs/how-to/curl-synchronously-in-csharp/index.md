@@ -1,5 +1,5 @@
 ---
 title: "How to run curl synchronously in C#"
-redirect_to: README.html
+redirect_to: /how-to/curl-synchronously-in-csharp/README.html
 sitemap: false
 ---

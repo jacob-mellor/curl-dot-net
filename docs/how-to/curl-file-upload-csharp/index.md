@@ -1,5 +1,5 @@
 ---
 title: "How to do a curl -F multipart upload in C#"
-redirect_to: README.html
+redirect_to: /how-to/curl-file-upload-csharp/README.html
 sitemap: false
 ---
