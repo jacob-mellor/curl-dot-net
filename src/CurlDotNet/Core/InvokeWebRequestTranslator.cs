@@ -207,7 +207,8 @@ namespace CurlDotNet.Core
                 return false; // a real curl program
             }
 
-            foreach (Match match in Regex.Matches(text, @"(?<=^|\s)-(?<name>[A-Za-z]+)(?=[\s:]|$)"))
+            // only unquoted words count: -d 'text -Body x' is an ordinary curl command
+            foreach (Match match in Regex.Matches(BlankOutQuotedText(text), @"(?<=^|\s)-(?<name>[A-Za-z]+)(?=[\s:]|$)"))
             {
                 if (Telltales.Contains(match.Groups["name"].Value))
                 {
@@ -216,6 +217,48 @@ namespace CurlDotNet.Core
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Replaces the inside of every single- or double-quoted part with spaces (a backslash or backtick before a
+        /// double quote does not end it), so word-level telltales are only found in unquoted text.
+        /// </summary>
+        private static string BlankOutQuotedText(string text)
+        {
+            var sb = new StringBuilder(text.Length);
+            var quote = '\0';
+            for (var i = 0; i < text.Length; i++)
+            {
+                var c = text[i];
+                if (quote == '\0')
+                {
+                    if (c == '\'' || c == '"')
+                    {
+                        quote = c;
+                    }
+
+                    sb.Append(c);
+                    continue;
+                }
+
+                if (quote == '"' && (c == '\\' || c == '`') && i + 1 < text.Length)
+                {
+                    sb.Append("  ");
+                    i++;
+                    continue;
+                }
+
+                if (c == quote)
+                {
+                    quote = '\0';
+                    sb.Append(c);
+                    continue;
+                }
+
+                sb.Append(char.IsWhiteSpace(c) ? c : ' ');
+            }
+
+            return sb.ToString();
         }
 
         /// <summary>The cmdlet name a first word stands for (module-qualified names allowed), or null.</summary>
@@ -234,7 +277,19 @@ namespace CurlDotNet.Core
         internal static List<string> Translate(string command)
         {
             var text = CommandParser.StripPowerShellAssignment(command).Trim();
-            var tokens = Tokenize(text, command, out _); // a "| ConvertFrom-Json" tail does not change the request
+            var tokens = Tokenize(text, command, out var end); // a "| ConvertFrom-Json" tail does not change the request
+            if (end < text.Length && text[end] == '|')
+            {
+                var rest = text.Substring(end + 1).TrimStart();
+                var restWord = rest.Split(new[] { ' ', '\t', '\r', '\n' }, 2)[0];
+                if (CmdletName(restWord) != null)
+                {
+                    throw Error($"The request is the second element of a pipeline (... | {restWord}), so its input comes from the command before the |",
+                        $"Pass that value with a parameter instead, for example {restWord} -Uri https://... -Method Post -Body '...'.",
+                        "|", command);
+                }
+            }
+
             var start = 0;
             var cmdlet = "Invoke-WebRequest";
             if (start < tokens.Count && tokens[start].Value != null && tokens[start].Value!.Bare && tokens[start].Value!.Text == "&")
@@ -343,17 +398,17 @@ namespace CurlDotNet.Core
                 return candidates[0];
             }
 
-            if (candidates.Count > 1)
-            {
-                throw Error($"The parameter name -{typed} is ambiguous: it could be " + string.Join(", ", candidates.Select(c => "-" + c)),
-                    "Type more of the name so only one parameter matches.", "-" + typed, command);
-            }
-
             var hint = cmdlet.Equals("wget", StringComparison.OrdinalIgnoreCase)
                 ? " If this is a GNU wget command (not PowerShell's wget alias), rewrite it as a curl command."
                 : cmdlet.Equals("curl", StringComparison.OrdinalIgnoreCase)
                     ? " If this is a real curl command, pass CurlFlavor.Posix, WindowsCmd or PowerShell instead (or type curl.exe)."
                     : string.Empty;
+
+            if (candidates.Count > 1)
+            {
+                throw Error($"The parameter name -{typed} is ambiguous: it could be " + string.Join(", ", candidates.Select(c => "-" + c)),
+                    "Type more of the name so only one parameter matches." + hint, "-" + typed, command);
+            }
             throw Error($"{cmdlet} has no parameter -{typed} that CurlDotNet can translate",
                 "Check the spelling; the translated parameters are -Uri, -Method, -CustomMethod, -Headers, -Body, -ContentType, -InFile, " +
                 "-Form, -OutFile, -UserAgent, -Proxy, -NoProxy, -TimeoutSec, -ConnectionTimeoutSeconds, -MaximumRedirection, " +
@@ -834,6 +889,13 @@ namespace CurlDotNet.Core
                     var token = new PsToken { Parameter = text.Substring(start, i - start) };
                     if (i < text.Length && text[i] == ':')
                     {
+                        var valueStart = SkipBlank(text, i + 1, false);
+                        if (valueStart >= text.Length || text[valueStart] == '|' || text[valueStart] == ';' || text[valueStart] == '\r' || text[valueStart] == '\n')
+                        {
+                            throw Error($"The parameter -{token.Parameter}: ends with a colon but no value follows it",
+                                $"Write it as -{token.Parameter}:value or -{token.Parameter} value.", "-" + token.Parameter + ":", command);
+                        }
+
                         i++;
                         token.Attached = ParseValue(text, ref i, false, command);
                     }
@@ -842,7 +904,16 @@ namespace CurlDotNet.Core
                     continue;
                 }
 
-                tokens.Add(new PsToken { Value = ParseValue(text, ref i, false, command) });
+                var before = i;
+                var value = ParseValue(text, ref i, false, command);
+                if (i == before)
+                {
+                    throw Error($"The character '{text[i]}' at position {i + 1} does not start a value",
+                        "Remove it, or quote the value it belongs to (a URL containing ( or ) is safest in single quotes).",
+                        text.Substring(i), command);
+                }
+
+                tokens.Add(new PsToken { Value = value });
             }
 
             return tokens;
@@ -900,9 +971,10 @@ namespace CurlDotNet.Core
                 return ParseHashtable(text, ref i, command);
             }
 
-            if (c == '@' && i + 1 < text.Length && text[i + 1] == '(')
+            if ((c == '@' || c == '$') && i + 1 < text.Length && text[i + 1] == '(')
             {
-                var end = MatchingParen(text, i + 1);
+                // @( ... ) array and $( ... ) sub-expressions are code, kept for the error message
+                var end = MatchingParen(text, i + 1, command);
                 var raw = text.Substring(i, end - i);
                 i = end;
                 return new PsValue { Kind = ValueKind.Expression, Text = raw };
@@ -910,7 +982,7 @@ namespace CurlDotNet.Core
 
             if (c == '(')
             {
-                var end = MatchingParen(text, i);
+                var end = MatchingParen(text, i, command);
                 var inner = text.Substring(i + 1, Math.Max(0, end - i - 2));
                 var raw = text.Substring(i, end - i);
                 i = end;
@@ -1061,7 +1133,8 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>Index after the parenthesis matching the one at <paramref name="open"/>, honouring quotes.</summary>
-        private static int MatchingParen(string text, int open)
+        /// <exception cref="CurlInvalidCommandException">The parenthesis is never closed.</exception>
+        private static int MatchingParen(string text, int open, string command)
         {
             var depth = 0;
             var i = open;
@@ -1085,7 +1158,7 @@ namespace CurlDotNet.Core
                 i++;
             }
 
-            return text.Length;
+            throw Error("A parenthesis ( is never closed", "Add the closing ), or quote the value if the ( belongs to it.", text.Substring(open), command);
         }
 
         private static int SkipQuoted(string text, int i, Func<char, bool> isQuote)
@@ -1123,12 +1196,22 @@ namespace CurlDotNet.Core
         {
             var sb = new StringBuilder();
             var bare = true;
+            var depth = 0;
             while (i < text.Length)
             {
                 var c = text[i];
-                if (char.IsWhiteSpace(c) || c == ';' || c == '|' || (inHashtable && c == '}') || c == ')')
+                if (char.IsWhiteSpace(c) || c == ';' || c == '|' || (inHashtable && c == '}') || (c == ')' && depth == 0))
                 {
                     break;
+                }
+
+                if (sb.Length > 0 && (c == '(' || c == ')'))
+                {
+                    // parentheses inside a word, as in https://en.wikipedia.org/wiki/Foo_(bar), belong to it
+                    depth += c == '(' ? 1 : -1;
+                    sb.Append(c);
+                    i++;
+                    continue;
                 }
 
                 if (c == '`' && i + 1 < text.Length)
@@ -1145,21 +1228,21 @@ namespace CurlDotNet.Core
                 if (c == '@' && sb.Length == 0 && i + 1 < text.Length &&
                     (CommandParser.IsPowerShellSingleQuote(text[i + 1]) || CommandParser.IsPowerShellDoubleQuote(text[i + 1])))
                 {
-                    i = CommandParser.ReadPowerShellHereString(text, i, sb);
+                    i = CommandParser.ReadPowerShellHereString(text, i, sb, CurlFlavor.InvokeWebRequest);
                     bare = false;
                     continue;
                 }
 
                 if (CommandParser.IsPowerShellSingleQuote(c))
                 {
-                    i = CommandParser.ReadPowerShellSingleQuoted(text, i + 1, sb);
+                    i = CommandParser.ReadPowerShellSingleQuoted(text, i + 1, sb, CurlFlavor.InvokeWebRequest);
                     bare = false;
                     continue;
                 }
 
                 if (CommandParser.IsPowerShellDoubleQuote(c))
                 {
-                    i = CommandParser.ReadPowerShellDoubleQuoted(text, i + 1, sb);
+                    i = CommandParser.ReadPowerShellDoubleQuoted(text, i + 1, sb, CurlFlavor.InvokeWebRequest);
                     bare = false;
                     continue;
                 }

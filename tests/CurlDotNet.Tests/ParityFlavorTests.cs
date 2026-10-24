@@ -796,6 +796,105 @@ namespace CurlDotNet.Tests
 
         #endregion
 
+        #region Edge cases found in review
+
+        [Fact]
+        public void InvokeWebRequest_ParenthesesInsideAUrl_BelongToIt()
+        {
+            Parse("wget https://en.wikipedia.org/wiki/Foo_(bar)", CurlFlavor.Auto).Url.Should().Be("https://en.wikipedia.org/wiki/Foo_(bar)");
+        }
+
+        [Theory]
+        [InlineData("iwr https://x.example )", "does not start a value")]
+        [InlineData("iwr https://x.example -Body $(cat a.json)", "PowerShell expression $(cat a.json)")]
+        [InlineData("iwr https://x.example -Body (Get-Content a.json", "( is never closed")]
+        [InlineData("iwr -Uri:", "ends with a colon")]
+        [InlineData("wget -O out.html https://x.example", "GNU wget")]
+        [InlineData("'{\"a\":1}' | irm https://x.example -Method Post", "second element of a pipeline")]
+        [InlineData("iwr https://x.example -Body @\"x\"", "as InvokeWebRequest")]
+        public void InvokeWebRequest_BrokenSyntax_ThrowsInsteadOfHangingOrGuessing(string command, string expected)
+        {
+            Action act = () => Parse(command, command.StartsWith("wget", StringComparison.Ordinal) ? CurlFlavor.Auto : CurlFlavor.InvokeWebRequest);
+
+            act.Should().Throw<CurlInvalidCommandException>().Where(e => e.Message.Contains(expected) && e.Message.Contains(Docs));
+        }
+
+        [Theory]
+        [InlineData("curl -d 'text=hello -Body world' https://x.example", "text=hello -Body world")]
+        [InlineData("curl -H 'X-Auth -Token: abc' -d \"a -Uri b\" https://x.example", "a -Uri b")]
+        public void Auto_CmdletWordsInsideQuotes_DoNotMakeABashCommandInvokeWebRequest(string command, string data)
+        {
+            Curl.DetectFlavor(command).Should().Be(CurlFlavor.Posix);
+            Parse(command, CurlFlavor.Auto).Data.Should().Be(data);
+        }
+
+        [Fact]
+        public void WindowsCmd_CaretCannotStopPercentExpansion()
+        {
+            var name = SetVariable("abc");
+
+            Parse($"curl https://x.example/^%{name}%", CurlFlavor.WindowsCmd).Url.Should().Be("https://x.example/abc");
+        }
+
+        [Theory]
+        [InlineData("curl https://x.example/a | findstr x", CurlFlavor.WindowsCmd)]
+        [InlineData("curl https://x.example/a > out.txt", CurlFlavor.WindowsCmd)]
+        [InlineData("curl https://x.example/a 2>nul", CurlFlavor.WindowsCmd)]
+        [InlineData("curl https://x.example/a && echo ok", CurlFlavor.WindowsCmd)]
+        [InlineData("curl.exe https://x.example/a && echo ok", CurlFlavor.PowerShell)]
+        [InlineData("curl.exe https://x.example/a > out.txt", CurlFlavor.PowerShell)]
+        [InlineData("curl.exe --% https://x.example/a | ConvertFrom-Json", CurlFlavor.PowerShell)]
+        [InlineData("curl https://x.example/a | jq .", CurlFlavor.Posix)]
+        [InlineData("curl https://x.example/a 2>/dev/null", CurlFlavor.Posix)]
+        [InlineData("curl https://x.example/a && echo ok; echo done", CurlFlavor.Posix)]
+        [InlineData("curl https://x.example/a \\", CurlFlavor.Posix)]
+        public void ShellOperators_EndTheCurlCommand(string command, CurlFlavor flavor)
+        {
+            var options = Parse(command, flavor);
+
+            options.Url.Should().Be("https://x.example/a");
+            options.AdditionalTransfers.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void Posix_UnquotedVariable_IsSplitIntoWords_QuotedIsNot()
+        {
+            var name = SetVariable("-s -L");
+
+            var unquoted = Parse($"curl ${name} https://x.example", CurlFlavor.Posix);
+            var quoted = Parse($"curl -H \"X: ${name}\" https://x.example", CurlFlavor.Posix);
+
+            unquoted.Silent.Should().BeTrue();
+            unquoted.FollowLocation.Should().BeTrue();
+            quoted.Headers["X"].Should().Be("-s -L");
+        }
+
+        [Fact]
+        public void PowerShell_ArgumentWithBareQuotes_KeepsItsBackslashEscapes()
+        {
+            var hereString = Parse("curl.exe -d @'\n{\"a\":\"say \\\"hi\\\"\"}\n'@ https://x.example", CurlFlavor.PowerShell);
+            var windowsStyle = Parse("curl.exe -d 'say \\\"hi\\\"' https://x.example", CurlFlavor.PowerShell);
+
+            hereString.Data.Should().Be("{\"a\":\"say \\\"hi\\\"\"}");
+            windowsStyle.Data.Should().Be("say \"hi\"");
+        }
+
+        [Fact]
+        public void PowerShell_EmptyHereString_IsAnEmptyArgument()
+        {
+            Parse("curl.exe -H @'\n'@ https://x.example", CurlFlavor.PowerShell).Url.Should().Be("https://x.example");
+        }
+
+        [Fact]
+        public void NoUrl_MessageLinksTheFlavorGuide()
+        {
+            Action act = () => Parse("curl -d \"abc https://x.example", CurlFlavor.WindowsCmd);
+
+            act.Should().Throw<CurlInvalidCommandException>().Where(e => e.Message.Contains("No URL specified") && e.Message.Contains(Docs));
+        }
+
+        #endregion
+
         #region Public API
 
         [Fact]

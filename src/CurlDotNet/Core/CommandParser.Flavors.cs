@@ -226,13 +226,18 @@ namespace CurlDotNet.Core
                     continue;
                 }
 
+                if (c == '|' || c == ';' || c == '&' || c == '>' || c == '<')
+                {
+                    // the shell ends the command here: "| jq .", "&& echo ok", "> out.txt", "2>/dev/null"
+                    DropRedirectionHandle(c, ref inWord, current);
+                    break;
+                }
+
                 if (c == '\\')
                 {
                     if (i + 1 >= text.Length)
                     {
-                        current.Append('\\');
-                        inWord = true;
-                        i++;
+                        i++; // a backslash that ends the text continues onto nothing
                         continue;
                     }
 
@@ -280,8 +285,25 @@ namespace CurlDotNet.Core
 
                 if (c == '$' && TryExpandPosixVariable(text, i, out var value, out var consumed))
                 {
-                    current.Append(value);
-                    inWord |= value.Length > 0;
+                    // an unquoted expansion is split into words on spaces, tabs and newlines, as bash does
+                    foreach (var v in value)
+                    {
+                        if (v == ' ' || v == '\t' || v == '\n')
+                        {
+                            if (inWord)
+                            {
+                                args.Add(current.ToString());
+                                current.Clear();
+                                inWord = false;
+                            }
+                        }
+                        else
+                        {
+                            current.Append(v);
+                            inWord = true;
+                        }
+                    }
+
                     i += consumed;
                     continue;
                 }
@@ -297,6 +319,29 @@ namespace CurlDotNet.Core
             }
 
             return args;
+        }
+
+        /// <summary>
+        /// At a redirection (<c>&gt;</c> or <c>&lt;</c>) directly after a file-descriptor number, as in
+        /// <c>2&gt;/dev/null</c> or <c>2&gt;nul</c>, the number belongs to the redirection, not to the arguments.
+        /// </summary>
+        private static void DropRedirectionHandle(char c, ref bool inWord, StringBuilder current)
+        {
+            if (!inWord || (c != '>' && c != '<') || current.Length == 0)
+            {
+                return;
+            }
+
+            for (var k = 0; k < current.Length; k++)
+            {
+                if (current[k] < '0' || current[k] > '9')
+                {
+                    return;
+                }
+            }
+
+            current.Clear();
+            inWord = false;
         }
 
         /// <summary>Reads a bash double-quoted string starting after the opening quote; returns the index after the closing quote.</summary>
@@ -464,17 +509,29 @@ namespace CurlDotNet.Core
         /// </summary>
         internal static List<string> TokenizeWindowsCmd(string text)
         {
+            // phase 1: %VAR% expansion runs over the whole line before carets mean anything,
+            // so ^%VAR% still expands (a caret cannot protect a percent sign at the prompt)
+            text = ExpandCmdVariables(text);
+
             var line = new StringBuilder(text.Length);
             var quoted = false;
             var i = 0;
             while (i < text.Length)
             {
                 var c = text[i];
-                if (c == '%' && TryExpandCmdVariable(text, i, out var value, out var consumed))
+                if (!quoted && (c == '&' || c == '|' || c == '<' || c == '>'))
                 {
-                    line.Append(value);
-                    i += consumed;
-                    continue;
+                    // cmd.exe ends the command at an unescaped & | < > outside quotes ("| findstr x", "> out.txt", "2>nul")
+                    if (c == '>' || c == '<')
+                    {
+                        var end = line.Length;
+                        if (end > 0 && line[end - 1] >= '0' && line[end - 1] <= '9' && (end == 1 || char.IsWhiteSpace(line[end - 2])))
+                        {
+                            line.Length = end - 1;
+                        }
+                    }
+
+                    break;
                 }
 
                 if (c == '^' && !quoted)
@@ -508,6 +565,30 @@ namespace CurlDotNet.Core
             }
 
             return SplitWindowsArguments(line.ToString());
+        }
+
+        /// <summary>Replaces every <c>%NAME%</c> naming a set environment variable; everything else is kept.</summary>
+        private static string ExpandCmdVariables(string text)
+        {
+            if (text.IndexOf('%') < 0)
+            {
+                return text;
+            }
+
+            var expanded = new StringBuilder(text.Length);
+            for (var i = 0; i < text.Length; i++)
+            {
+                if (text[i] == '%' && TryExpandCmdVariable(text, i, out var value, out var consumed))
+                {
+                    expanded.Append(value);
+                    i += consumed - 1;
+                    continue;
+                }
+
+                expanded.Append(text[i]);
+            }
+
+            return expanded.ToString();
         }
 
         /// <summary>
@@ -639,9 +720,13 @@ namespace CurlDotNet.Core
                     continue;
                 }
 
-                if (c == '|' || c == ';')
+                if (c == '|' || c == ';' || c == '>' ||
+                    (c == '&' && ((i + 1 < text.Length && text[i + 1] == '&') || args.Count > 0 || inWord)))
                 {
-                    break; // the rest is another pipeline element or statement (| ConvertFrom-Json, ; echo done)
+                    // the rest is another pipeline element, statement, chain or redirection
+                    // ("| ConvertFrom-Json", "; echo done", "&& echo ok", "> out.txt", "2> err.txt"); a leading & is the call operator
+                    DropRedirectionHandle(c, ref inWord, current);
+                    break;
                 }
 
                 if (c == '#' && !inWord)
@@ -741,8 +826,14 @@ namespace CurlDotNet.Core
         /// </summary>
         private static int ReadStopParsing(string text, int start, List<string> args, HashSet<int> literalArgs)
         {
+            // stop-parsing lasts until the end of the line or an unquoted pipe ("--% ... | ConvertFrom-Json")
             var end = start;
-            while (end < text.Length && text[end] != '\n' && text[end] != '\r') end++;
+            var quoted = false;
+            while (end < text.Length && text[end] != '\n' && text[end] != '\r' && (quoted || text[end] != '|'))
+            {
+                if (text[end] == '"') quoted = !quoted;
+                end++;
+            }
 
             var raw = text.Substring(start, end - start);
             var expanded = new StringBuilder(raw.Length);
@@ -764,7 +855,7 @@ namespace CurlDotNet.Core
                 args.Add(argument);
             }
 
-            if (text.Substring(end).Trim().Length > 0)
+            if (end < text.Length && text[end] != '|' && text.Substring(end).Trim().Length > 0)
             {
                 throw FlavorSyntaxError(CurlFlavor.PowerShell,
                     "The stop-parsing token --% only covers the rest of its own line, but the command continues on the next line",
@@ -814,7 +905,7 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>Reads a PowerShell single-quoted string after the opening quote (<c>''</c> is one quote).</summary>
-        internal static int ReadPowerShellSingleQuoted(string text, int start, StringBuilder current)
+        internal static int ReadPowerShellSingleQuoted(string text, int start, StringBuilder current, CurlFlavor flavor = CurlFlavor.PowerShell)
         {
             var i = start;
             while (i < text.Length)
@@ -836,7 +927,7 @@ namespace CurlDotNet.Core
                 i++;
             }
 
-            throw FlavorSyntaxError(CurlFlavor.PowerShell, "A single quote is never closed",
+            throw FlavorSyntaxError(flavor, "A single quote is never closed",
                 "Add the closing ' (inside single quotes write a quote as '').", text.Substring(start - 1), text);
         }
 
@@ -844,7 +935,7 @@ namespace CurlDotNet.Core
         /// Reads a PowerShell double-quoted string after the opening quote: backtick escapes, <c>""</c> as one
         /// quote, <c>$env:NAME</c> / <c>$NAME</c> expansion, <c>$( ... )</c> left as typed.
         /// </summary>
-        internal static int ReadPowerShellDoubleQuoted(string text, int start, StringBuilder current)
+        internal static int ReadPowerShellDoubleQuoted(string text, int start, StringBuilder current, CurlFlavor flavor = CurlFlavor.PowerShell)
         {
             var i = start;
             while (i < text.Length)
@@ -895,7 +986,7 @@ namespace CurlDotNet.Core
                 i++;
             }
 
-            throw FlavorSyntaxError(CurlFlavor.PowerShell, "A double quote is never closed",
+            throw FlavorSyntaxError(flavor, "A double quote is never closed",
                 "Add the closing \" (inside double quotes write a quote as `\" or \"\").", text.Substring(start - 1), text);
         }
 
@@ -903,16 +994,24 @@ namespace CurlDotNet.Core
         /// Reads a here-string <c>@' ... '@</c> (literal) or <c>@" ... "@</c> (expandable) starting at the
         /// <c>@</c>; the content is the lines between the opening and closing lines.
         /// </summary>
-        internal static int ReadPowerShellHereString(string text, int at, StringBuilder current)
+        internal static int ReadPowerShellHereString(string text, int at, StringBuilder current, CurlFlavor flavor = CurlFlavor.PowerShell)
         {
             var expandable = IsPowerShellDoubleQuote(text[at + 1]);
             var contentStart = SkipSpacesAndTabs(text, at + 2);
             contentStart += NewlineLength(text, contentStart);
+            // the closing line may directly follow the opening one (an empty here-string)
             var terminator = new Regex(expandable ? "(\\r\\n|\\r|\\n)[\"“”„]@" : "(\\r\\n|\\r|\\n)['‘’‚‛]@");
+            var empty = new Regex(expandable ? "\\G[\"“”„]@" : "\\G['‘’‚‛]@");
+            var emptyMatch = empty.Match(text, contentStart);
+            if (emptyMatch.Success && contentStart > at + 2)
+            {
+                return emptyMatch.Index + emptyMatch.Length;
+            }
+
             var match = terminator.Match(text, contentStart);
             if (!match.Success)
             {
-                throw FlavorSyntaxError(CurlFlavor.PowerShell, "A here-string is never closed",
+                throw FlavorSyntaxError(flavor, "A here-string is never closed",
                     "End it with " + (expandable ? "\"@" : "'@") + " at the very start of its own line.", text.Substring(at), text);
             }
 
@@ -947,14 +1046,33 @@ namespace CurlDotNet.Core
 
         /// <summary>
         /// The Windows C runtime's reading of an argument PowerShell built: a run of 2n+1 backslashes followed
-        /// by a double quote becomes n backslashes and a literal quote (<c>\"</c> → <c>"</c>). Bare quotes and
-        /// even runs are kept as typed, which is what PowerShell 7.3+ passes through.
+        /// by a double quote becomes n backslashes and a literal quote (<c>\"</c> → <c>"</c>), which is how
+        /// Windows PowerShell 5.1 (and 7.2 and older) commands are written. An argument that also contains a bare
+        /// quote was written for PowerShell 7.3+, which passes arguments through intact, so it is kept as typed
+        /// (its <c>\"</c> is a real escape, for example inside a JSON string).
         /// </summary>
         internal static string ApplyWindowsQuoteEscapes(string argument)
         {
             if (argument.IndexOf("\\\"", StringComparison.Ordinal) < 0)
             {
                 return argument;
+            }
+
+            // An argument with a bare quote was written for PowerShell 7.3+, which passes it through intact
+            // (Windows PowerShell 5.1 would have stripped those quotes), so its \" is a real escape such as a JSON one.
+            for (var k = 0; k < argument.Length; k++)
+            {
+                if (argument[k] != '"')
+                {
+                    continue;
+                }
+
+                var backslashes = 0;
+                for (var b = k - 1; b >= 0 && argument[b] == '\\'; b--) backslashes++;
+                if (backslashes % 2 == 0)
+                {
+                    return argument;
+                }
             }
 
             var sb = new StringBuilder(argument.Length);

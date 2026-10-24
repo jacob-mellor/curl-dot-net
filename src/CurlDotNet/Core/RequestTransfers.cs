@@ -101,7 +101,11 @@ namespace CurlDotNet.Core
 
             if (transfers.Count == 0)
             {
-                throw new CurlInvalidCommandException("No URL specified in command.", "URL", originalCommand);
+                throw new CurlInvalidCommandException(
+                    "No URL specified in command. Add the URL to fetch (for example \"curl https://example.com\"). " +
+                    "If the command has one, a quote that is never closed may have swallowed it, or the command was written for a " +
+                    "different shell: see " + FlavorDocs + " and https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/url-errors.md",
+                    "URL", originalCommand);
             }
 
             var first = transfers[0];

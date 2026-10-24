@@ -95,8 +95,12 @@ namespace CurlDotNet
         /// whatever it is (<c>a\ b</c> is one argument with a space, <c>C:\temp</c> becomes <c>C:temp</c>).</para>
         /// <para><b>Line continuation:</b> a backslash as the last character of a line.</para>
         /// <para><b>Variables:</b> <c>$VAR</c> and <c>${VAR}</c> expand outside single quotes from the process
-        /// environment; <c>%VAR%</c> and <c>$env:VAR</c> are ordinary text. <c>#</c> at the start of a word
-        /// begins a comment that runs to the end of the line.</para>
+        /// environment; outside double quotes the value is split into separate arguments at spaces, tabs and
+        /// newlines (so <c>$CURL_OPTS</c> holding <c>-s -L</c> is two options). <c>%VAR%</c> and
+        /// <c>$env:VAR</c> are ordinary text.</para>
+        /// <para><b>End of the command:</b> <c>#</c> at the start of a word begins a comment that runs to the end
+        /// of the line, and an unquoted <c>|</c>, <c>;</c>, <c>&amp;</c>, <c>&gt;</c> or <c>&lt;</c> ends the curl
+        /// command, so a pasted <c>| jq .</c>, <c>&amp;&amp; echo ok</c> or <c>2&gt;/dev/null</c> tail is ignored.</para>
         /// <para>Example: <c>curl -H "Authorization: Bearer $TOKEN" -d '{"a":1}' https://api.example.com</c> with
         /// <c>TOKEN=abc</c> sends <c>Authorization: Bearer abc</c> and the body <c>{"a":1}</c>.</para>
         /// </remarks>
@@ -115,11 +119,14 @@ namespace CurlDotNet
         /// quote and <c>""</c> is also a literal quote (C runtime rules); a run of backslashes is halved only
         /// when it is followed by a quote.</para>
         /// <para><b>Escape character:</b> caret <c>^</c>, outside double quotes: <c>^&amp;</c>, <c>^|</c>,
-        /// <c>^%</c> and <c>^^</c> give the second character, and <c>^"</c> gives a quote that cmd.exe does not
-        /// treat as quoting but the C runtime still does. Inside double quotes a caret is literal.</para>
+        /// <c>^&lt;</c>, <c>^&gt;</c> and <c>^^</c> give the second character, and <c>^"</c> gives a quote that
+        /// cmd.exe does not treat as quoting but the C runtime still does. Inside double quotes a caret is literal.
+        /// An unescaped <c>&amp;</c>, <c>|</c>, <c>&lt;</c> or <c>&gt;</c> outside double quotes ends the curl
+        /// command (so <c>| findstr x</c> or <c>2&gt;nul</c> is ignored), exactly as cmd.exe would run it.</para>
         /// <para><b>Line continuation:</b> <c>^</c> as the last character of a line.</para>
         /// <para><b>Variables:</b> <c>%VAR%</c> expands everywhere, inside double quotes too, when the variable
-        /// is set (an unset one stays <c>%VAR%</c>, as in an interactive cmd.exe); <c>$VAR</c> is ordinary
+        /// is set (an unset one stays <c>%VAR%</c>, as in an interactive cmd.exe). Expansion happens before
+        /// carets are read, so a caret cannot stop it: <c>^%VAR%</c> still expands. <c>$VAR</c> is ordinary
         /// text.</para>
         /// <para><b>Backslash</b> is a path separator, never an escape on its own: <c>C:\temp\a.txt</c> stays as
         /// typed. It only matters directly before a double quote.</para>
@@ -143,17 +150,24 @@ namespace CurlDotNet
         /// <para><b>Escape character:</b> backtick, inside double quotes and in bare words. A backslash is not a
         /// PowerShell escape.</para>
         /// <para><b>Line continuation:</b> a backtick as the last character of a line.</para>
-        /// <para><b>Windows argument rule:</b> after PowerShell has built each argument, curl.exe's C runtime
-        /// reads it again, so a backslash-escaped quote becomes a quote: <c>\"</c> gives <c>"</c> and <c>\\\"</c>
-        /// gives <c>\"</c>. This is why Windows documentation writes <c>-d '{\"key\":\"value\"}'</c>. Bare
-        /// double quotes inside single quotes are kept as typed (the PowerShell 7.3+ behaviour).</para>
-        /// <para><b>Stop-parsing:</b> after the token <c>--%</c>, the rest of the line is not PowerShell syntax:
-        /// it is handed to curl.exe as typed, with only <c>%NAME%</c> environment references expanded, and split
-        /// with the <see cref="WindowsCmd"/> C runtime rules (double quotes group, <c>\"</c> is a quote).</para>
-        /// <para><b>Variables:</b> <c>$env:NAME</c> as above; <c>%VAR%</c> does not expand (outside <c>--%</c>).
-        /// <c>#</c> at the start of a word begins a comment. An unquoted <c>|</c> or <c>;</c> ends the command, so
-        /// a pasted <c>| ConvertFrom-Json</c> tail is ignored. A leading <c>&amp;</c> call operator and a
-        /// <c>$result =</c> assignment are removed.</para>
+        /// <para><b>Windows argument rule:</b> how an argument reaches curl.exe depends on the PowerShell version.
+        /// Windows PowerShell 5.1 (and 7.2 and older) hands curl.exe a command line that its C runtime reads again,
+        /// so commands written for it escape quotes with a backslash: <c>-d '{\"key\":\"value\"}'</c>, where
+        /// <c>\"</c> arrives as <c>"</c> (and <c>\\\"</c> as <c>\"</c>). PowerShell 7.3+ passes arguments intact,
+        /// so commands written for it use bare quotes: <c>-d '{"key":"value"}'</c>. CurlDotNet reads each argument
+        /// the way it was evidently written: an argument with no bare double quote has every backslash-escaped
+        /// quote turned into a quote (the 5.1 reading), and an argument that contains a bare double quote is sent
+        /// as typed, <c>\"</c> included (the 7.3+ reading, which keeps JSON escapes such as
+        /// <c>{"say":"\"hi\""}</c> intact). Either way the author's intended bytes are sent.</para>
+        /// <para><b>Stop-parsing:</b> after the token <c>--%</c>, the rest of the line (up to an unquoted
+        /// <c>|</c>) is not PowerShell syntax: it is handed to curl.exe as typed, with only <c>%NAME%</c>
+        /// environment references expanded, and split with the <see cref="WindowsCmd"/> C runtime rules (double
+        /// quotes group, <c>\"</c> is a quote).</para>
+        /// <para><b>Variables:</b> <c>$env:NAME</c> as above; <c>%VAR%</c> does not expand (outside <c>--%</c>).</para>
+        /// <para><b>End of the command:</b> <c>#</c> at the start of a word begins a comment. An unquoted
+        /// <c>|</c>, <c>;</c>, <c>&gt;</c>, <c>&amp;&amp;</c> or a later <c>&amp;</c> ends the command, so a pasted
+        /// <c>| ConvertFrom-Json</c> or <c>&amp;&amp; echo ok</c> tail is ignored. A leading <c>&amp;</c> call
+        /// operator and a <c>$result =</c> assignment are removed.</para>
         /// <para>Example: <c>curl.exe -H 'Content-Type: application/json' -d '{\"a\":1}' https://api.example.com</c>
         /// sends <c>Content-Type: application/json</c> and the body <c>{"a":1}</c>.</para>
         /// </remarks>
