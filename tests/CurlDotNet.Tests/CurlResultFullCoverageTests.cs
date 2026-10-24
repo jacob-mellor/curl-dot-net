@@ -552,17 +552,33 @@ namespace CurlDotNet.Tests
 
         #region Display Operations Tests
 
+        /// <summary>Redirects Console.Out for one test and always restores the original writer afterwards.</summary>
+        private static string CaptureConsole(Action act)
+        {
+            var original = Console.Out;
+            using var writer = new StringWriter();
+            Console.SetOut(writer);
+            try
+            {
+                act();
+            }
+            finally
+            {
+                Console.SetOut(original);
+            }
+            return writer.ToString();
+        }
+
         [Fact]
         public void PrintBody_OutputsBodyAndReturnsResult()
         {
             var result = new CurlResult { Body = "Test output" };
-            using var writer = new StringWriter();
-            Console.SetOut(writer);
+            CurlResult returned = null;
 
-            var returned = result.PrintBody();
+            var output = CaptureConsole(() => returned = result.PrintBody());
 
             returned.Should().BeSameAs(result);
-            writer.ToString().Should().Contain("Test output");
+            output.Should().Contain("Test output");
         }
 
         [Fact]
@@ -573,13 +589,11 @@ namespace CurlDotNet.Tests
                 StatusCode = 200,
                 Body = "Success"
             };
-            using var writer = new StringWriter();
-            Console.SetOut(writer);
+            CurlResult returned = null;
 
-            var returned = result.Print();
+            var output = CaptureConsole(() => returned = result.Print());
 
             returned.Should().BeSameAs(result);
-            var output = writer.ToString();
             output.Should().Contain("Status: 200");
             output.Should().Contain("Success");
         }
@@ -603,13 +617,11 @@ namespace CurlDotNet.Tests
                     Total = 100
                 }
             };
-            using var writer = new StringWriter();
-            Console.SetOut(writer);
+            CurlResult returned = null;
 
-            var returned = result.PrintVerbose();
+            var output = CaptureConsole(() => returned = result.PrintVerbose());
 
             returned.Should().BeSameAs(result);
-            var output = writer.ToString();
             output.Should().Contain("Status: 200");
             output.Should().Contain("Content-Type: text/plain");
             output.Should().Contain("DNS: 10ms");
@@ -625,10 +637,8 @@ namespace CurlDotNet.Tests
                 Body = "Success",
                 Timings = null
             };
-            using var writer = new StringWriter();
-            Console.SetOut(writer);
 
-            Action act = () => result.PrintVerbose();
+            Action act = () => CaptureConsole(() => result.PrintVerbose());
 
             act.Should().NotThrow();
         }
