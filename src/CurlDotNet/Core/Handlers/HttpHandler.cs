@@ -160,10 +160,10 @@ namespace CurlDotNet.Core
                     double delaySeconds = 0;
                     if (reason != null)
                     {
-                        // an explicit --retry-delay is kept; otherwise a longer Retry-After replaces the backoff
-                        // (curl takes the larger of the two; Retry-After: 0 means "no hint")
+                        // curl (tool_operate.c) waits the larger of its own delay (--retry-delay, or the doubling
+                        // backoff) and the server's Retry-After, capped at 10 minutes; Retry-After: 0 means "no hint"
                         var backoff = options.RetryDelay > 0 ? options.RetryDelay : Math.Min(Math.Pow(2, attempt), 600);
-                        var serverWait = options.RetryDelay > 0 ? 0 : retryAfter?.TotalSeconds ?? 0;
+                        var serverWait = Math.Min(retryAfter?.TotalSeconds ?? 0, 600);
                         delaySeconds = Math.Max(backoff, serverWait);
                         var elapsed = (DateTime.UtcNow - retryStarted).TotalSeconds;
                         if (options.RetryMaxTime > 0

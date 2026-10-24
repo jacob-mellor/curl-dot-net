@@ -82,6 +82,19 @@ var settings = new CurlSettings().WithFollowRedirects();
 var result = await Curl.ExecuteAsync("curl https://httpbin.org/redirect/1", settings);
 ```
 
+`WithRedirectHandler` is called with the absolute URL of every redirect that is followed, before the next request is sent. Throw from it to refuse a target: the transfer stops with `CurlAbortedByCallbackException` (exit code 42), carrying your exception as `InnerException`.
+
+```csharp
+using CurlDotNet.Core;
+
+var hops = new List<string>();
+var tracked = new CurlSettings()
+    .WithFollowRedirects()
+    .WithRedirectHandler(url => hops.Add(url));
+await Curl.ExecuteAsync("curl https://httpbin.org/redirect/2", tracked);
+Console.WriteLine(string.Join(" -> ", hops));
+```
+
 ## What happens to the method and body
 
 CurlDotNet follows curl's rules, not a browser's:

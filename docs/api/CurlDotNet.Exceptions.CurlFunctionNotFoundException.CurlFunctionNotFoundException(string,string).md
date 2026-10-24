@@ -3,7 +3,8 @@
 
 ## CurlFunctionNotFoundException\(string, string\) Constructor
 
-Initializes a new instance of the [CurlFunctionNotFoundException](CurlDotNet.Exceptions.CurlFunctionNotFoundException.md 'CurlDotNet\.Exceptions\.CurlFunctionNotFoundException') class\.
+Creates the error \(exit code 41\) for a missing function, with advice to remove the option or change
+platform\.
 
 ```csharp
 public CurlFunctionNotFoundException(string functionName, string command=null);
@@ -20,4 +21,11 @@ The function name that was not found\.
 
 `command` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-The curl command that caused the exception\.
+The curl command that caused the exception, or null\.
+
+### Remarks
+
+Message: `Function not found: NAME`.
+
+### See Also
+- [CurlNotBuiltInException](CurlDotNet.Exceptions.CurlNotBuiltInException.md 'CurlDotNet\.Exceptions\.CurlNotBuiltInException')

@@ -97,7 +97,7 @@ var result = await Curl.ExecuteAsync("curl https://httpbin.org/get", Profiles.Ba
 Console.WriteLine(result.StatusCode);
 ```
 
-`CurlSettings` also offers `WithConnectTimeout`, `WithFollowRedirects`, `WithInsecure`, `WithRetries`, `WithHeaders` and `WithCancellation`, all of which the engine applies. (`WithProxy`, `WithUserAgent`, `WithCookies` and `WithProgress` exist on the class but are not applied to the request; put `-x`, `-A` or `-H 'User-Agent: ...'`, and `-b`/`-c` in the command instead.)
+`CurlSettings` also offers `WithConnectTimeout`, `WithFollowRedirects`, `WithInsecure`, `WithRetries`, `WithHeaders`, `WithCancellation`, `WithProgress`, `WithProxy`, `WithUserAgent`, `WithCookies` (a `CookieContainer` sent and updated on every hop, so a session carries over between calls), `WithRedirectHandler`, `WithAutoDecompression` and `WithBufferSize`. The engine applies every one of them, to every URL of a multi-URL command, and a value set in the settings overrides the same option in the command.
 
 ## Pattern 5: Contract-Locked Responses
 

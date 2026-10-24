@@ -83,7 +83,7 @@ await Curl.ExecuteAsync(
     "curl --trace-ascii trace-ascii.txt -d 'a=1' https://httpbin.org/post");
 ```
 
-The trace records connection and proxy selection, TLS verification, redirects and the body bytes. Keep trace files out of version control; they contain any credentials you sent.
+The trace records connection and proxy selection, TLS verification, redirects and the body bytes. Its `== Info: Command:` line shows the command with credentials masked (`-u`, `--oauth2-bearer`, `-b` values, `Authorization` headers, URL passwords), but the wire dump itself shows the request headers exactly as sent, `Authorization` included, as curl's trace does. Keep trace files out of version control; they contain any credentials you sent.
 
 ## One-Line Summaries (-w)
 

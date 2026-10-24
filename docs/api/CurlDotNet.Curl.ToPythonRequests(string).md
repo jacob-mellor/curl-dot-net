@@ -3,29 +3,8 @@
 
 ## Curl\.ToPythonRequests\(string\) Method
 
-
-<b>Convert curl command to Python requests code.</b>
-
-Generates Python code using the popular 'requests' library.
-             Great for Python developers or data scientists.
-
-<b>Example:</b>
-
-```python
-var curlCommand = "curl -u user:pass https://api.example.com/data";
-
-string pythonCode = Curl.ToPythonRequests(curlCommand);
-Console.WriteLine(pythonCode);
-
-// Output:
-// import requests
-//
-// response = requests.get(
-//     'https://api.example.com/data',
-//     auth=('user', 'pass')
-// )
-// print(response.json())
-```
+Translates a curl command into Python code using the `requests` library, for sharing a request with
+Python scripts and notebooks\.
 
 ```csharp
 public static string ToPythonRequests(string command);
@@ -36,8 +15,32 @@ public static string ToPythonRequests(string command);
 
 `command` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-The curl command to convert\.
+The curl command line to translate, read with [DefaultFlavor](CurlDotNet.Curl.DefaultFlavor.md 'CurlDotNet\.Curl\.DefaultFlavor')\.
 
 #### Returns
 [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')  
-Python code using requests library\.
+Python source text using `requests`\.
+
+#### Exceptions
+
+[System\.ArgumentNullException](https://learn.microsoft.com/en-us/dotnet/api/system.argumentnullexception 'System\.ArgumentNullException')  
+[command](CurlDotNet.Curl.ToPythonRequests(string).md#CurlDotNet.Curl.ToPythonRequests(string).command 'CurlDotNet\.Curl\.ToPythonRequests\(string\)\.command') is null, empty or whitespace\.
+
+[CurlInvalidCommandException](CurlDotNet.Exceptions.CurlInvalidCommandException.md 'CurlDotNet\.Exceptions\.CurlInvalidCommandException')  
+The command text cannot be read; the message names the problem\.
+            See https://github\.com/jacob\-mellor/curl\-dot\-net/blob/master/docs/troubleshooting/error\-reference\.md
+
+### Remarks
+
+The generated code covers the method, URL, headers, body and `-u` credentials (as
+            `auth=('user', 'pass')`). Nothing is sent. Credentials appear in the output.
+
+Example: `string py = Curl.ToPythonRequests("curl -u user:pass https://api.example.com/data");`
+            returns code starting with `import requests` that calls `requests.get(...)`.
+
+Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/convert-curl-to-csharp/README.md
+
+### See Also
+- [ToHttpClient\(string\)](CurlDotNet.Curl.ToHttpClient(string).md 'CurlDotNet\.Curl\.ToHttpClient\(string\)')
+- [ToFetch\(string\)](CurlDotNet.Curl.ToFetch(string).md 'CurlDotNet\.Curl\.ToFetch\(string\)')
+- [ToPython\(string\)](CurlDotNet.DotNetCurl.ToPython(string).md 'CurlDotNet\.DotNetCurl\.ToPython\(string\)')

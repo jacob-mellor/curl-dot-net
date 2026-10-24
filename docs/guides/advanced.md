@@ -36,7 +36,7 @@ Curl.DefaultConnectTimeoutSeconds = 5;
 
 ## Retry a failed request
 
-curl's own `--retry` works: it retries timeouts and HTTP 408, 429, 500, 502, 503 and 504, waiting 1 s, 2 s, 4 s... (capped at 10 minutes) unless `--retry-delay` fixes the wait, and it honours `Retry-After`. `--retry-max-time` caps the total, `--retry-connrefused` adds refused connections and `--retry-all-errors` retries anything.
+curl's own `--retry` works: it retries timeouts, DNS failures and HTTP 408, 429, 500, 502, 503 and 504, waiting 1 s, 2 s, 4 s... (capped at 10 minutes) unless `--retry-delay` fixes the wait, and waits longer when the server's `Retry-After` asks for more. `--retry-max-time` caps the total, `--retry-connrefused` adds refused connections and `--retry-all-errors` retries anything.
 
 ```csharp
 var result = await Curl.ExecuteAsync("curl --retry 3 --retry-delay 0.5 https://httpbin.org/status/503");
@@ -102,7 +102,7 @@ var result = await CurlRequestBuilder.Get("https://self-signed.badssl.com/")
     .ExecuteAsync();
 ```
 
-Certificate failures without `-k` throw `CurlSslException`; see [SSL errors](../exceptions/ssl-errors.html).
+Certificate failures without `-k` throw `CurlSslException`. Rather than skipping validation for a private CA, trust it with `--cacert ca.pem` (.NET 5 and later); `--cert`/`--key` (client certificates) and `--pinnedpubkey` work there too. See [SSL errors](../exceptions/ssl-errors.html).
 
 ## curl proxy in C#
 
@@ -137,7 +137,7 @@ var result = await CurlRequestBuilder.Get("https://httpbin.org/cookies")
     .ExecuteAsync();
 ```
 
-Cookies the server sets come back in `result.Headers["Set-Cookie"]`. To carry cookies across several calls, use curl's cookie jar: `-c jar.txt` writes them in Netscape format and `-b jar.txt` sends them back, with curl's domain, path, expiry and `Secure` rules. (`CurlSettings.WithCookies(container)` is not applied by the engine; use the jar.)
+Cookies the server sets come back in `result.Headers["Set-Cookie"]`. To carry cookies across several calls, use curl's cookie jar: `-c jar.txt` writes them in Netscape format and `-b jar.txt` sends them back, with curl's domain, path, expiry and `Secure` rules. If you prefer a .NET `CookieContainer`, pass it with `new CurlSettings().WithCookies(container)`: its cookies are sent on every request (redirect hops included) and every `Set-Cookie` is stored back in it, so the same settings object keeps a session across calls.
 
 ```csharp
 await Curl.ExecuteAsync("curl -c jar.txt https://httpbin.org/cookies/set?session=abc123");

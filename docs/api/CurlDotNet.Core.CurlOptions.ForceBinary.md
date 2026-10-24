@@ -3,14 +3,16 @@
 
 ## CurlOptions\.ForceBinary Property
 
-Forces all response content to be treated as binary data, regardless of Content\-Type header\.
+Treats the response as binary whatever its Content\-Type, so the body bytes land unchanged in
+[BinaryData](CurlDotNet.Core.CurlResult.BinaryData.md 'CurlDotNet\.Core\.CurlResult\.BinaryData') instead of being decoded as text\.
 
 ```csharp
 public bool ForceBinary { get; set; }
 ```
 
 #### Property Value
-[System\.Boolean](https://learn.microsoft.com/en-us/dotnet/api/system.boolean 'System\.Boolean')
+[System\.Boolean](https://learn.microsoft.com/en-us/dotnet/api/system.boolean 'System\.Boolean')  
+True to force binary\. Default: false \(CurlDotNet decides from Content\-Type and by sniffing the bytes\)\.
 
 ### Example
 
@@ -24,9 +26,14 @@ var result = await CurlRequestBuilder
 
 ### Remarks
 
-When set to `true`, the response body will always be read as a byte array
-            using ReadAsByteArrayAsync. This prevents
-            corruption of binary files that may have incorrect Content-Type headers from the server.
+Use it for servers that label files wrongly (an `.xlsx` served as `text/plain`), which would otherwise be
+            corrupted by text decoding. A CurlDotNet setting with no curl flag (curl never decodes bodies).
 
-Use this when downloading files from servers that serve binary content with
-            text-like Content-Type headers (e.g., a server returning .xlsx files as text/plain).
+Example: `new CurlOptions { Url = "https://example.com/report.xlsx", ForceBinary = true }`, then
+            `File.WriteAllBytes("report.xlsx", result.BinaryData)`.
+
+### See Also
+- [BinaryContentTypes](CurlDotNet.Core.CurlOptions.BinaryContentTypes.md 'CurlDotNet\.Core\.CurlOptions\.BinaryContentTypes')
+- [TextContentTypes](CurlDotNet.Core.CurlOptions.TextContentTypes.md 'CurlDotNet\.Core\.CurlOptions\.TextContentTypes')
+- [BinaryData](CurlDotNet.Core.CurlResult.BinaryData.md 'CurlDotNet\.Core\.CurlResult\.BinaryData')
+- [AsBinary\(\)](CurlDotNet.Core.CurlRequestBuilder.AsBinary().md 'CurlDotNet\.Core\.CurlRequestBuilder\.AsBinary\(\)')

@@ -15,23 +15,25 @@ Every type below lives in `CurlDotNet.Exceptions` unless its namespace is writte
 System.Exception
 ├── CurlDotNet.Core.CurlHttpException          result.EnsureSuccess() / EnsureStatus()    none
 └── CurlException                              base of everything below                   (varies)
-    ├── CurlInvalidCommandException            command has options but no URL             none
+    ├── CurlInvalidCommandException            command has options but no URL             2
     │   ├── CurlUnknownOptionException         reserved                                   none
     │   └── CurlOptionSyntaxException          bad --resolve / --connect-to entry         49
     ├── CurlConnectionException                reserved                                   none
     │   ├── CurlDnsException                   reserved                                   6
     │   └── CurlProxyException                 reserved                                   5
     ├── CurlTimeoutException                   timeout base (also a rare fallback)        28
-    │   ├── CurlOperationTimeoutException      -m, --connect-timeout, --retry-max-time    28
-    │   └── CurlFtpAcceptTimeoutException      reserved                                   28
+    │   ├── CurlOperationTimeoutException      -m, --connect-timeout, --speed-limit       28
+    │   └── CurlFtpAcceptTimeoutException      reserved                                   12
     ├── CurlSslException                       TLS base, reserved as a concrete type      60
     │   ├── CurlSslConnectErrorException       TLS handshake failed                       35
     │   ├── CurlPeerFailedVerificationException server certificate rejected               60
-    │   ├── CurlSslCertificateProblemException reserved                                   60
-    │   ├── CurlSslCipherException             reserved                                   60
-    │   ├── CurlSslEngineNotFoundException     reserved                                   60
-    │   ├── CurlSslEngineSetFailedException    reserved                                   60
-    │   └── CurlUseSslFailedException          reserved                                   60
+    │   ├── CurlSslCertificateProblemException --cert/--key file unusable                 58
+    │   ├── CurlSslCaCertBadFileException      --cacert/--capath missing or empty         77
+    │   ├── CurlSslPinnedPublicKeyMismatchException --pinnedpubkey mismatch           90
+    │   ├── CurlSslCipherException             reserved                                   59
+    │   ├── CurlSslEngineNotFoundException     reserved                                   53
+    │   ├── CurlSslEngineSetFailedException    reserved                                   54
+    │   └── CurlUseSslFailedException          reserved                                   64
     ├── CurlAuthenticationException            reserved                                   67
     │   └── CurlLoginDeniedException           reserved                                   67
     ├── CurlHttpException                      result.EnsureSuccessStatusCode()           none
@@ -41,7 +43,7 @@ System.Exception
     ├── CurlNotSupportedException              reserved                                   1
     ├── CurlFailedInitException                reserved                                   2
     ├── CurlMalformedUrlException              URL cannot be parsed                       3
-    ├── CurlNotBuiltInException                reserved                                   4
+    ├── CurlNotBuiltInException                --pinnedpubkey cannot be checked here      4
     ├── CurlCouldntResolveProxyException       proxy name did not resolve                 5
     ├── CurlCouldntResolveHostException        host name did not resolve                  6
     ├── CurlCouldntConnectException            connection refused / unreachable           7
@@ -61,7 +63,7 @@ System.Exception
     ├── CurlBadDownloadResumeException         reserved                                   36
     ├── CurlFileCouldntReadException           -d @file / --json @file missing            37
     ├── CurlFunctionNotFoundException          reserved                                   41
-    ├── CurlAbortedByCallbackException         internal; you get OperationCanceledException 42
+    ├── CurlAbortedByCallbackException         progress or redirect callback threw        42
     ├── CurlBadFunctionArgumentException       CR/LF in a header, resumed upload          43
     ├── CurlInterfaceFailedException           reserved                                   45
     ├── CurlTooManyRedirectsException          --max-redirs exceeded                      47
@@ -80,7 +82,7 @@ System.Exception
     └── CurlCookieException                    reserved                                   none
 ```
 
-A few `CurlErrorCode` values differ from the curl number in the type's name, because the type passes its parent's code: the TLS subclasses other than `CurlSslConnectErrorException` carry 60 (not 53, 54, 58, 59 or 64), `CurlFtpAcceptTimeoutException` carries 28 (not 12), and `CurlUnknownOptionException` carries none (not 48). `CurlOptionSyntaxException` carries 49 when thrown by the library; its single-argument constructor leaves the code `null`.
+Each TLS subclass carries its own curl number (53, 54, 58, 59, 64, 77, 90), and `CurlFtpAcceptTimeoutException` carries 12, even though they derive from `CurlSslException` (60) and `CurlTimeoutException` (28); catch the base type to cover a family. `CurlUnknownOptionException` carries none (not 48). `CurlOptionSyntaxException` carries 49 when thrown by the library; its single-argument constructor leaves the code `null`.
 
 `CurlDotNet.Core.CurlHttpException` (from `EnsureSuccess()`) derives from `System.Exception`, not `CurlException`, and `CurlDotNet.Core.CurlFtpException` (with an `FtpStatusCode` property) is the FTP type the FTP handler actually throws. If a file imports both `CurlDotNet.Core` and `CurlDotNet.Exceptions`, write those names out in full to avoid compiler error CS0104.
 
@@ -92,10 +94,11 @@ Some command-line problems are reported with the base `CurlException` itself (`e
 |---:|------|-----|
 | 2 | An option is the last word of the command and has no value (`curl -H`) | Put the value right after the option; quote it if it has spaces |
 | 2 | Two request methods are asked for: `-I` with `-d`, `-F` with `-d`, `--json` with `-F`, and similar | Keep one; use `-X` to change only the method name |
-| 2 | `--max-filesize` value is not a size (`abc`) | Use bytes with an optional k, M, G, T or P suffix |
+| 2 | The command is only `curl`, or an `ExecuteAsync(CurlOptions)` call has no `Url` | Add the URL |
+| 2 | A numeric option has a value that is not a number: `-m`, `--connect-timeout`, `--max-redirs`, `--retry`, `--retry-delay`, `--retry-max-time`, `--speed-limit`, `--speed-time`, `--limit-rate`, `--max-filesize` (the message names the option) | Give a number; seconds are read like curl (`2.5`, `1e1`, `+5`), sizes take a k, M, G, T or P suffix |
+| 2 | `--aws-sigv4` is malformed (empty, white space, more than four `:` parts, a part over 64 characters); `AwsSigV4Config.Parse` throws the same | Use `provider1[:provider2[:region[:service]]]` |
 | 2 | `-C`/`--continue-at` combined with `--no-clobber` or `--remove-on-error` | Remove one of the two options |
 | 2 | `-K`/`--config` files include each other more than 10 levels deep; a `--variable` error (unset `%ENV` variable, bad byte range, NUL byte in an expansion) | Fix the config file or the variable as the message says |
-| 3 | The command is only `curl` with no URL, or an `ExecuteAsync(CurlOptions)` call has no `Url` | Add the URL |
 | 3 | A URL glob is malformed (`[1-` without `]`) | Fix the `{a,b}` / `[1-10]` expression, escape `\{` `\[`, or pass `-g` |
 | 43 | `-o` uses `#<name>` but the URL has no glob with that name | Name the glob in the URL or remove the placeholder |
 | 1 | An `ftp://` URL on a runtime without `FtpWebRequest` | Use HTTP(S), or a .NET runtime that includes FTP |
@@ -110,7 +113,7 @@ Unknown options do not throw: curl would exit with 2, but CurlDotNet runs the co
 - `StandardOutput` - what the curl tool would already have printed to standard output before failing: `-i` headers, the body kept by `--fail-with-body`, the `-w` text, and the output of earlier URLs in the same command (`null` when nothing was written). The same string is in `ex.Data["CurlDotNet.Stdout"]` (`CurlException.StandardOutputDataKey`)
 - `ex.Data["CurlDotNet.WriteOut"]` (`CurlException.WriteOutDataKey`) - only the `-w`/`--write-out` text of the failed transfer, so `%{exitcode}` and `%{errormsg}` are usable after a failure
 - `Suggestions` - a `List<string>` of fix hints; `DiagnosticInfo` - extra context for logging
-- `IsRetryable()`, `ToDetailedString()`, `ToJson()` - helpers for retry decisions and logging
+- `IsRetryable()`, `ToDetailedString()`, `ToJson()`, `GetDiagnosticInfo()` - helpers for retry decisions and logging. The last three mask credentials in the command (`-u`/`-U`, `--oauth2-bearer`, `--pass`, `-b` values, `Authorization`/`Proxy-Authorization`/`Cookie` headers, URL and proxy passwords); `ex.Command` itself is the command as written
 
 ```csharp
 using CurlDotNet;
@@ -162,7 +165,7 @@ With `-f`/`--fail` the command itself throws, like the curl tool exiting with 22
 
 ## Cancellation Is OperationCanceledException
 
-A cancelled `CancellationToken` surfaces as the standard `OperationCanceledException` (`TaskCanceledException` derives from it) from `Curl.ExecuteAsync`, `Curl.Execute` and `LibCurl`. It is not a `CurlException`, so a `catch (CurlException)` block does not swallow it. `CurlAbortedByCallbackException` (exit code 42) is only an internal mapping that is converted before it reaches your code.
+A cancelled `CancellationToken` surfaces as the standard `OperationCanceledException` (`TaskCanceledException` derives from it) from `Curl.ExecuteAsync`, `Curl.Execute` and `LibCurl`. It is not a `CurlException`, so a `catch (CurlException)` block does not swallow it. Cancellation is converted before it reaches your code; `CurlAbortedByCallbackException` (exit code 42) is thrown only when your own progress callback or `CurlSettings.OnRedirect` handler throws.
 
 ```csharp
 using CurlDotNet;
@@ -184,7 +187,7 @@ catch (OperationCanceledException)
 
 **Exit code:** 28 (CURLE_OPERATION_TIMEDOUT). Derives from `CurlTimeoutException`; one rare fallback path throws the base type, so catch `CurlTimeoutException` to cover both.
 
-Thrown when the transfer exceeds `-m`/`--max-time` (or `Curl.DefaultMaxTimeSeconds`, when set) - the limit covers the whole transfer, body included - when the connection is not established within `--connect-timeout`, or when `--retry-max-time` runs out before any response arrived. There is no implicit timeout: without `-m` or `Curl.DefaultMaxTimeSeconds` a transfer may run as long as the server keeps sending. Both options accept decimals (`--max-time 2.5`).
+Thrown when the transfer exceeds `-m`/`--max-time` (or `Curl.DefaultMaxTimeSeconds`, when set) - the limit covers the whole transfer, body included - when the connection is not established within `--connect-timeout`, or when the download stays below `--speed-limit` bytes per second for `--speed-time` seconds ("Operation too slow"). When `--retry-max-time` runs out, the last attempt's own exception is thrown, as in curl. There is no implicit timeout: without `-m` or `Curl.DefaultMaxTimeSeconds` a transfer may run as long as the server keeps sending. Both options accept decimals (`--max-time 2.5`).
 
 ```csharp
 using CurlDotNet;
@@ -245,7 +248,7 @@ catch (CurlCouldntConnectException ex)
 
 **Exit codes:** 35 (CURLE_SSL_CONNECT_ERROR) and 60 (CURLE_PEER_FAILED_VERIFICATION). Both derive from `CurlSslException`, so catch that to cover both.
 
-`CurlPeerFailedVerificationException` means the server's certificate was rejected (self-signed, expired, wrong host name, untrusted CA). `CurlSslConnectErrorException` means the handshake failed for another reason, such as no common TLS version or a plain-HTTP port. **Fixes:** trust the CA in the operating system store, or for development only use `-k`. `--cacert`, `--cert` and `--key` are parsed but not applied, so custom CAs and client certificates are not supported. See [SSL/TLS errors](../exceptions/ssl-errors.html).
+`CurlPeerFailedVerificationException` means the server's certificate was rejected (self-signed, expired, wrong host name, untrusted CA). `CurlSslConnectErrorException` means the handshake failed for another reason, such as no common TLS version or a plain-HTTP port. **Fixes:** trust the CA in the operating system store, or for development only use `-k`. On .NET 5 and later, `--cacert`/`--capath` trust a private CA, `--cert`/`--key` send a client certificate and `--pinnedpubkey` pins the server key; problems with those files throw `CurlSslCertificateProblemException` (58), `CurlSslCaCertBadFileException` (77) or `CurlSslPinnedPublicKeyMismatchException` (90), all derived from `CurlSslException`. See [SSL/TLS errors](../exceptions/ssl-errors.html).
 
 ### CurlHttpReturnedErrorException
 
@@ -323,9 +326,9 @@ catch (CurlUnsupportedProtocolException ex)
 
 ### CurlInvalidCommandException
 
-**Exit code:** none (`CurlErrorCode` is `null`). Property: `InvalidPart`.
+**Exit code:** 2, like the curl tool. Property: `InvalidPart`.
 
-Thrown before any network activity when the command has options but no URL (`InvalidPart` is `"URL"`). A command that is only `curl` throws a plain `CurlException` with code 3 instead, and option problems throw the plain `CurlException` codes listed [above](#errors-thrown-as-a-plain-curlexception). Its subclass `CurlOptionSyntaxException` (code 49) is thrown for a `--resolve` or `--connect-to` entry whose port is not a number.
+Thrown before any network activity when the command has options but no URL (`InvalidPart` is `"URL"`). A command that is only `curl` throws a plain `CurlException` with code 2, and option problems throw the plain `CurlException` codes listed [above](#errors-thrown-as-a-plain-curlexception). Its subclass `CurlOptionSyntaxException` (code 49) is thrown for a `--resolve` or `--connect-to` entry whose port is not a number.
 
 ```csharp
 try
@@ -368,11 +371,12 @@ Every exception type, sorted by the `CurlErrorCode` it carries. "Reserved" means
 | 1 | `CurlUnsupportedProtocolException` | Scheme with no handler (`gopher://`, `sftp://`, `htp://`...); `-L` redirect to a non-HTTP scheme; unsupported HTTP version in the status line | Use http, https, ftp or file; fetch the redirect target yourself; `--http0.9` for HTTP/0.9 |
 | 1 | `CurlNotSupportedException` | Reserved | - |
 | 1 | `CurlException` (plain) | `ftp://` on a runtime without `FtpWebRequest` | Use HTTP(S) or a runtime with FTP |
-| 2 | `CurlException` (plain) | Option missing its value; two request methods; bad `--max-filesize`; `-C` with `--no-clobber`/`--remove-on-error`; `-K` nesting; `--variable` errors | Fix the option as the message says |
+| 2 | `CurlException` (plain) | Command is only `curl`; no `Url` in `CurlOptions`; option missing its value; non-numeric value for a numeric option; two request methods; `-C` with `--no-clobber`/`--remove-on-error`; `-K` nesting; `--variable` errors | Fix the option as the message says |
+| 2 | `CurlInvalidCommandException` | Options but no URL; malformed `--aws-sigv4` | Add the URL; fix the value |
 | 2 | `CurlFailedInitException` | Reserved | - |
 | 3 | `CurlMalformedUrlException` | URL (or redirect `Location`) cannot be parsed | Fix spaces, port, encoding |
-| 3 | `CurlException` (plain) | Command is only `curl`; no `Url` in `CurlOptions`; malformed URL glob | Add the URL; fix the glob or pass `-g` |
-| 4 | `CurlNotBuiltInException` | Reserved | - |
+| 3 | `CurlException` (plain) | Malformed URL glob | Fix the glob or pass `-g` |
+| 4 | `CurlNotBuiltInException` | `--pinnedpubkey` on an https transfer where the pin cannot be checked (.NET Standard 2.0 / .NET Framework, or your own `HttpClient`) | Run on .NET 5+ or drop the pin |
 | 5 | `CurlCouldntResolveProxyException` | Proxy name does not resolve | Check `-x` and proxy environment variables; `--noproxy` |
 | 5 | `CurlProxyException` | Reserved | - |
 | 6 | `CurlCouldntResolveHostException` | Host name does not resolve | Check spelling and DNS; `--resolve` |
@@ -387,18 +391,18 @@ Every exception type, sorted by the `CurlErrorCode` it carries. "Reserved" means
 | 22 | `CurlHttpReturnedErrorException` | `-f`/`--fail` or `--fail-with-body` and status >= 400 | Drop `-f` to get a `CurlResult`, or handle it |
 | 23 | `CurlWriteErrorException` | `-o`/`-O`/`-D`/`-c` file cannot be written: missing directory, invalid name, permissions, disk full; `-O -J` would overwrite; `--no-clobber` ran out of names | Create the directory or add `--create-dirs`; pick a writable path |
 | 25 | `CurlUploadFailedException` | Reserved | - |
-| 26 | `CurlReadErrorException` | Input file missing or unreadable (`-T`, `-F @`/`<`, `--data-urlencode @`, `--url-query @`, `--variable @`, `-K`, mixed `-d @file`, `-` stdin); bad `.netrc` quoting | Fix the path (relative to the working directory) |
+| 26 | `CurlReadErrorException` | Input file missing or unreadable (`-H @file`, `-T`, `-F @`/`<`, `--data-urlencode @`, `--url-query @`, `--variable @`, `-K`, mixed `-d @file`, `-` stdin); bad `.netrc` quoting | Fix the path (relative to the working directory) |
 | 27 | `CurlOutOfMemoryException` | Reserved | - |
-| 28 | `CurlOperationTimeoutException` | `-m`/`--max-time`, `--connect-timeout`, `--retry-max-time` expired | Raise the limit; `--retry` |
+| 28 | `CurlOperationTimeoutException` | `-m`/`--max-time` or `--connect-timeout` expired; the transfer stayed below `--speed-limit` for `--speed-time` seconds | Raise the limit; `--retry` |
 | 28 | `CurlTimeoutException` | Base type; thrown directly only on a rare fallback path | Same as above |
-| 28 | `CurlFtpAcceptTimeoutException` | Reserved | - |
 | 33 | `CurlRangeErrorException` | `-C` resume, but the server sent the whole file (no `Content-Range`) | Download again without `-C` |
 | 34 | `CurlHttpPostErrorException` | Reserved | - |
-| 35 | `CurlSslConnectErrorException` | TLS handshake failed (not a certificate problem) | Check that the port speaks TLS and supports a modern version |
+| 12 | `CurlFtpAcceptTimeoutException` | Reserved | - |
+| 35 | `CurlSslConnectErrorException` | TLS handshake failed (not a certificate problem): no common TLS version or cipher (`--tlsv1.x`, `--tls-max`, `--ciphers`), the server rejected the client certificate, or the port does not speak TLS | Check the port and the TLS options |
 | 36 | `CurlBadDownloadResumeException` | Reserved | - |
 | 37 | `CurlFileCouldntReadException` | Single `-d @file`, `--data-binary @file` or `--json @file` missing; `file://` permission denied | Fix the path |
 | 41 | `CurlFunctionNotFoundException` | Reserved | - |
-| 42 | `CurlAbortedByCallbackException` | Internal only; callers get `OperationCanceledException` | Catch `OperationCanceledException` |
+| 42 | `CurlAbortedByCallbackException` | A progress callback (`WithProgress` / `ProgressHandler`) or a `CurlSettings.OnRedirect` handler threw; your exception is the `InnerException`. A cancelled token still surfaces as `OperationCanceledException` | Fix or catch inside the callback; throw from `OnRedirect` on purpose to refuse a redirect target |
 | 43 | `CurlBadFunctionArgumentException` | CR or LF in a `-H` value or `--request-target`; space in `--request-target`; `-C` with a request body (`-d`/`-F`/`-T`) | One header per `-H`; percent-encode; drop `-C` for uploads |
 | 43 | `CurlException` (plain) | `-o` uses `#<name>` with no glob of that name | Name the glob or remove the placeholder |
 | 45 | `CurlInterfaceFailedException` | Reserved | - |
@@ -408,15 +412,18 @@ Every exception type, sorted by the `CurlErrorCode` it carries. "Reserved" means
 | 52 | `CurlGotNothingException` | Server (or proxy) closed the connection without sending a byte | Check server logs, port and TLS; `--retry` |
 | 55 | `CurlSendErrorException` | Reserved | - |
 | 56 | `CurlReceiveErrorException` | Connection failed while reading the response; response headers over 300 KB in total | Retry; server-side problem |
-| 60 | `CurlPeerFailedVerificationException` | Server certificate rejected | Trust the CA in the OS store; `-k` for development only |
-| 60 | `CurlSslException` and `CurlSslCertificateProblemException`, `CurlSslCipherException`, `CurlSslEngineNotFoundException`, `CurlSslEngineSetFailedException`, `CurlUseSslFailedException` | Reserved (catch `CurlSslException` to cover 35 and 60) | - |
+| 53, 54, 59, 64 | `CurlSslEngineNotFoundException`, `CurlSslEngineSetFailedException`, `CurlSslCipherException`, `CurlUseSslFailedException` | Reserved | - |
+| 58 | `CurlSslCertificateProblemException` | `--cert`/`--key` file missing, wrong format or password, key does not match (.NET 5+) | Check the path, `--cert-type` and `--pass` |
+| 60 | `CurlPeerFailedVerificationException` | Server certificate rejected | Trust the CA with `--cacert` (.NET 5+) or in the OS store; `-k` for development only |
+| 60 | `CurlSslException` | Base type, reserved as a concrete type (catch it to cover every TLS failure) | - |
 | 61 | `CurlBadContentEncodingException` | `--compressed` body cannot be decoded; invalid `Transfer-Encoding` (chunked not last, unknown coding, more than five, gzip without `--tr-encoding`) | Server bug; drop `--compressed` to keep the raw bytes |
 | 63 | `CurlFileSizeExceededException` | `--max-filesize` exceeded (announced or while downloading) | Raise the limit |
+| 77 | `CurlSslCaCertBadFileException` | `--cacert` file or `--capath` folder missing, unreadable or without a certificate (.NET 5+) | Fix the path; PEM or DER certificates |
+| 90 | `CurlSslPinnedPublicKeyMismatchException` | The server key matches no `--pinnedpubkey` pin, or the pin cannot be read | Update the pin (the message shows the presented key's pin) |
 | 67 | `CurlAuthenticationException`, `CurlLoginDeniedException` | Reserved | - |
 | 94 | `CurlAuthErrorException` | `--digest`/`--ntlm`/`--negotiate`/`--anyauth` (or `--proxy-*`) could not process the challenge | Try `--basic`; inspect the challenge with `-v` |
 | 100 | `CurlTooLargeException` | More than 5000 response header fields, or a header line over 100 KB | Server bug or attack |
 | 100 | `CurlException` (plain) | NTLM user name too long | Shorten it |
-| none | `CurlInvalidCommandException` | Options but no URL | Add the URL |
 | none | `CurlUnknownOptionException` | Reserved (unknown options go to `CurlOptions.UnknownOptions`) | `Curl.Validate()` |
 | none | `CurlDotNet.Exceptions.CurlHttpException` | `result.EnsureSuccessStatusCode()` on a non-2xx result | Handle the status |
 | none | `CurlDotNet.Core.CurlHttpException` | `result.EnsureSuccess()` / `EnsureStatus(code)` | Handle the status |

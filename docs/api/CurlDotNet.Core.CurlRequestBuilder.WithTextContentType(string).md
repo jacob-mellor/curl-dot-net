@@ -3,7 +3,8 @@
 
 ## CurlRequestBuilder\.WithTextContentType\(string\) Method
 
-Register a MIME type that should always be treated as text content\.
+Registers a MIME type \(such as `application/x-custom-config`\) whose responses are always decoded as
+text into [Body](CurlDotNet.Core.CurlResult.Body.md 'CurlDotNet\.Core\.CurlResult\.Body'), even though the library would treat it as binary\.
 
 ```csharp
 public CurlDotNet.Core.CurlRequestBuilder WithTextContentType(string mimeType);
@@ -18,19 +19,19 @@ The MIME type to treat as text \(e\.g\., "application/x\-custom\-text"\)\.
 
 #### Returns
 [CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.md 'CurlDotNet\.Core\.CurlRequestBuilder')  
-Builder for method chaining\.
-
-### Example
-
-```csharp
-var result = await CurlRequestBuilder
-    .Get("https://example.com/config")
-    .WithTextContentType("application/x-custom-config")
-    .ExecuteAsync();
-Console.WriteLine(result.Body); // Treated as text
-```
+This builder, for chaining\.
 
 ### Remarks
 
-Use this for custom MIME types that the library treats as binary by default
-            but that you know contain text data.
+Use this for custom types you know contain text; the body is decoded with the response's charset
+            (UTF-8 when none is given). Call it once per type.
+
+This is a CurlDotNet option with no curl flag, so [ToCurlCommand\(\)](CurlDotNet.Core.CurlRequestBuilder.ToCurlCommand().md 'CurlDotNet\.Core\.CurlRequestBuilder\.ToCurlCommand\(\)') does not print it.
+
+Example: `var r = await CurlRequestBuilder.Get(url).WithTextContentType("application/x-custom-config").ExecuteAsync();`
+            then `Console.WriteLine(r.Body);`.
+
+### See Also
+- [WithBinaryContentType\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithBinaryContentType(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithBinaryContentType\(string\)')
+- [AsBinary\(\)](CurlDotNet.Core.CurlRequestBuilder.AsBinary().md 'CurlDotNet\.Core\.CurlRequestBuilder\.AsBinary\(\)')
+- [TextContentTypes](CurlDotNet.Core.CurlOptions.TextContentTypes.md 'CurlDotNet\.Core\.CurlOptions\.TextContentTypes')

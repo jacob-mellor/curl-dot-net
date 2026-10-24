@@ -3,7 +3,8 @@
 
 ## CurlUnknownOptionException\(string, string\) Constructor
 
-Initializes a new instance of the [CurlUnknownOptionException](CurlDotNet.Exceptions.CurlUnknownOptionException.md 'CurlDotNet\.Exceptions\.CurlUnknownOptionException') class\.
+Creates the error for an unknown option, with curl's wording `option NAME: is unknown` and advice to check the
+spelling\.
 
 ```csharp
 public CurlUnknownOptionException(string optionName, string command=null);
@@ -14,10 +15,17 @@ public CurlUnknownOptionException(string optionName, string command=null);
 
 `optionName` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-The name of the unknown option that was specified\.
+The name of the unknown option that was specified, with its dashes\.
 
 <a name='CurlDotNet.Exceptions.CurlUnknownOptionException.CurlUnknownOptionException(string,string).command'></a>
 
 `command` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-The curl command that caused the exception\.
+The curl command that caused the exception, or null\.
+
+### Remarks
+
+Example: `throw new CurlUnknownOptionException("--headers", command);`
+
+### See Also
+- [CurlOptionSyntaxException](CurlDotNet.Exceptions.CurlOptionSyntaxException.md 'CurlDotNet\.Exceptions\.CurlOptionSyntaxException')

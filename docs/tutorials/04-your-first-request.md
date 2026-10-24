@@ -378,7 +378,7 @@ CurlPeerFailedVerificationException: Peer certificate verification failed: ...
 var result = await Curl.ExecuteAsync("curl -k https://self-signed.badssl.com/");
 ```
 
-**Solution for production:** fix the server certificate or install the issuing CA in the machine's trust store. `--cacert` is parsed but not applied by CurlDotNet, so a private CA must be trusted by the operating system. See [SSL errors](../exceptions/ssl-errors.html).
+**Solution for production:** fix the server certificate, or trust the issuing CA: `--cacert ca.pem` works as in curl on .NET 5 and later; on .NET Framework install the CA in the machine's trust store. See [SSL errors](../exceptions/ssl-errors.html).
 
 ### Problem 5: Forgot 'await'
 

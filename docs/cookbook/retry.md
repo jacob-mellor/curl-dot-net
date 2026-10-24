@@ -12,7 +12,7 @@ To retry a request in C# the way curl does, add `--retry N` to the command you p
 ```csharp
 using CurlDotNet;
 
-// Up to 3 retries for timeouts and HTTP 408, 429, 500, 502, 503 and 504
+// Up to 3 retries for timeouts, DNS failures and HTTP 408, 429, 500, 502, 503 and 504
 var result = await Curl.ExecuteAsync("curl --retry 3 -m 10 https://httpbin.org/status/200");
 Console.WriteLine(result.StatusCode);   // 200
 ```
@@ -23,10 +23,11 @@ Console.WriteLine(result.StatusCode);   // 200
 
 | Failure | Retried with `--retry` | Also needs |
 |---------|------------------------|------------|
-| Timeout (`-m` expired, exit 28) | yes | |
+| Timeout (`-m` expired or `--speed-limit` tripped, exit 28) | yes | |
+| Host or proxy name did not resolve (exit 6, 5) | yes | |
 | HTTP 408, 429, 500, 502, 503, 504 | yes | |
 | Connection failed (exit 7) | no | `--retry-connrefused` (CurlDotNet retries any connect failure with it; curl only a refused connection) |
-| Any other error (DNS failure, other 4xx/5xx with `-f`, TLS, ...) | no | `--retry-all-errors` |
+| Any other error (other 4xx/5xx with `-f`, TLS, ...) | no | `--retry-all-errors` |
 
 Transient HTTP statuses are retried with or without `-f`. When the last attempt still gets, say, a 503, the result depends on `-f`: without it you get a normal `CurlResult` with `StatusCode` 503; with it `CurlHttpReturnedErrorException` (exit 22) is thrown.
 
@@ -50,7 +51,7 @@ catch (CurlCouldntConnectException ex)
 }
 catch (CurlTimeoutException)
 {
-    Console.WriteLine("Gave up: --retry-max-time ran out");
+    Console.WriteLine("Gave up: the last attempt timed out");
 }
 ```
 
@@ -60,13 +61,13 @@ catch (CurlTimeoutException)
 |--------|---------|
 | `--retry N` | Retry up to N times after the first attempt. |
 | `--retry-delay SECONDS` | Wait this long between attempts instead of the doubling back-off. Decimals work: `--retry-delay 0.5` (a CurlDotNet extension; the curl tool takes whole seconds). |
-| `--retry-max-time SECONDS` | Stop retrying when the next wait would go past this many seconds since the first attempt. |
+| `--retry-max-time SECONDS` | Stop retrying once this many seconds have passed since the first attempt, or when a server's `Retry-After` wait would go past that point. |
 | `--retry-all-errors` | Retry every failure, not only the transient ones. |
 | `--retry-connrefused` | Also retry when the connection cannot be made. |
 
-The waits without `--retry-delay` are 1, 2, 4, 8 ... seconds, up to 600. A `Retry-After: <seconds>` header on a retried response replaces the wait, capped at 600 seconds. Two differences from the curl tool: CurlDotNet honours `Retry-After` even when `--retry-delay` is given (curl then ignores the header), and only the seconds form is read, not an HTTP date.
+The waits without `--retry-delay` are 1, 2, 4, 8 ... seconds, up to 600. Like curl, the wait before each retry is the larger of that delay (or your `--retry-delay`) and the server's `Retry-After: <seconds>` header, capped at 600 seconds; `Retry-After: 0` is treated as no hint. Only the seconds form of `Retry-After` is read, not an HTTP date.
 
-When `--retry-max-time` runs out after a failed attempt, CurlDotNet throws `CurlOperationTimeoutException` (exit 28) rather than the last attempt's own error as curl does, so catch `CurlTimeoutException` too when you use it.
+When `--retry-max-time` runs out after a failed attempt, the last attempt's own result or exception stands, exactly as in curl. `-w` output is written once, for the final attempt, and `%{num_retries}` reports how many retries happened.
 
 ## Retries without a command string
 
@@ -119,7 +120,7 @@ See [curl download file in C#](beginner/download-file.html) for `-C -` and the o
 ## Gotchas
 
 - Cancellation is not retried. A cancelled `CancellationToken` stops the retry loop, including a wait between attempts, and throws `OperationCanceledException`.
-- `-w` / `--write-out` text: when an attempt returns a transient status without `-f` (a 503, say) and is retried, its body and its `-w` text stay in `Body` ahead of the final attempt's output. The curl tool prints `-w` only once, so with `--retry` prefer reading `result.StatusCode` over parsing `-w` output. `%{num_retries}` is currently always 0.
+- `-w` / `--write-out` text is written once, after the final attempt, as the curl tool does, and `%{num_retries}` holds the number of retries. When an attempt returns a transient status without `-f` (a 503, say) and is retried, its body stays in `Body` ahead of the final attempt's output, the way curl prints every attempt to stdout; use `-o` or read `result.StatusCode` if you only want the last response.
 - With several URLs in one command, each transfer gets its own retries.
 - Retries apply to HTTP and HTTPS transfers.
 

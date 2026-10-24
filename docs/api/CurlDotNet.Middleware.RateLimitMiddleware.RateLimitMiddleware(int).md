@@ -3,7 +3,7 @@
 
 ## RateLimitMiddleware\(int\) Constructor
 
-Initializes a new instance of the [RateLimitMiddleware](CurlDotNet.Middleware.RateLimitMiddleware.md 'CurlDotNet\.Middleware\.RateLimitMiddleware') class\.
+Creates a rate limiter that allows [requestsPerSecond](CurlDotNet.Middleware.RateLimitMiddleware.RateLimitMiddleware(int).md#CurlDotNet.Middleware.RateLimitMiddleware.RateLimitMiddleware(int).requestsPerSecond 'CurlDotNet\.Middleware\.RateLimitMiddleware\.RateLimitMiddleware\(int\)\.requestsPerSecond') requests to complete per second\.
 
 ```csharp
 public RateLimitMiddleware(int requestsPerSecond);
@@ -14,4 +14,18 @@ public RateLimitMiddleware(int requestsPerSecond);
 
 `requestsPerSecond` [System\.Int32](https://learn.microsoft.com/en-us/dotnet/api/system.int32 'System\.Int32')
 
-Maximum number of requests allowed per second\.
+Requests per second, 1 or more \(for example the limit in the API's documentation\)\.
+
+#### Exceptions
+
+[System\.ArgumentOutOfRangeException](https://learn.microsoft.com/en-us/dotnet/api/system.argumentoutofrangeexception 'System\.ArgumentOutOfRangeException')  
+[requestsPerSecond](CurlDotNet.Middleware.RateLimitMiddleware.RateLimitMiddleware(int).md#CurlDotNet.Middleware.RateLimitMiddleware.RateLimitMiddleware(int).requestsPerSecond 'CurlDotNet\.Middleware\.RateLimitMiddleware\.RateLimitMiddleware\(int\)\.requestsPerSecond') is 0 or negative\. Fix: pass 1 or
+            more\. See https://github\.com/jacob\-mellor/curl\-dot\-net/blob/master/docs/guides/advanced\.md
+
+### Remarks
+
+Example: `new RateLimitMiddleware(2)` spaces sequential requests about half a second apart once two
+            have completed within a second.
+
+### See Also
+- [UseRateLimit\(int\)](CurlDotNet.Middleware.CurlMiddlewarePipelineBuilder.UseRateLimit(int).md 'CurlDotNet\.Middleware\.CurlMiddlewarePipelineBuilder\.UseRateLimit\(int\)')

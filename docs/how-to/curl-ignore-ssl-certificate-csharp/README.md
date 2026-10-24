@@ -69,9 +69,18 @@ var result = await CurlRequestBuilder
 
 Do not use it against production APIs or anything carrying credentials over an untrusted network. A better fix for development is to trust the dev certificate (`dotnet dev-certs https --trust` for ASP.NET Core).
 
-## Limitations
+## Trust the certificate instead of skipping the check
 
-`--cacert`, `--capath`, `--cert`, `--key` and `--pinnedpubkey` (custom CA bundles, client certificates and key pinning) are not supported in 9.8.0: the parser accepts them, but the transport does not apply them. The OS trust store is used instead, so a private CA can be trusted by installing it there. If you need mutual TLS or a pinned CA, configure an `HttpClientHandler` and use `HttpClient` directly.
+When the server's certificate comes from a private or corporate CA, trust that CA rather than switching validation off. On .NET 5 and later `--cacert` (a PEM bundle) and `--capath` (a folder of certificates) work as in curl: only those CAs are trusted, and the host name is still checked.
+
+```csharp
+using CurlDotNet;
+
+var result = await Curl.ExecuteAsync("curl --cacert corp-ca.pem https://intranet.example/");
+Console.WriteLine(result.StatusCode);
+```
+
+A missing or empty bundle throws `CurlSslCaCertBadFileException` (exit code 77). The other TLS options are applied too: `--cert`/`--key` for mutual TLS and `--pinnedpubkey sha256//...` to pin the server's key (checked even with `-k`). On .NET Standard 2.0 and .NET Framework these options are listed in `CurlOptions.UnsupportedOptions` instead and the operating system trust store is used, so install a private CA there. See [SSL certificate errors](../../exceptions/ssl-errors.md).
 
 ## Related
 

@@ -83,14 +83,14 @@ using CurlDotNet;
 
 var check = Curl.Validate("curl -X POST");
 if (!check.IsValid)
-    Console.WriteLine(check.Error);  // No URL specified in command.
+    Console.WriteLine(check.Error);  // No URL specified in command "curl -X POST": ...
 ```
 
 ## Which curl flags work
 
 The parser knows curl 8.7.1's complete option table, including combined short flags (`-sSL`), attached values (`-m10`) and `--long=value`. The flags you meet in API docs all work: `-X`, `-H`, `-d` and its variants (`--data-binary`, `--data-raw`, `--data-urlencode`, `--json`), `-G`, `-F`, `-T`, `-u` with `--basic`, `--digest`, `--ntlm`, `--negotiate` and `--anyauth`, `-A`, `-e`, `-b` and `-c` (cookie strings and cookie jars), `-L`, `--max-redirs`, `-k`, `-x`, `--proxy-user`, `--socks5`, `-m`, `--connect-timeout`, `--retry`, `-o`, `-O`, `-D`, `-I`, `-i`, `-v`, `--trace`, `--compressed`, `-r`, `-w`, `--http2` and `--aws-sigv4`. Several URLs in one command run one after another, URL globs such as `[1-3]` expand, and `-K` reads a config file; see [multiple URLs and globbing](../../cookbook/multiple-urls-and-globbing.md) and [config files and variables](../../cookbook/config-files-and-variables.md).
 
-Options that are recognised but not implemented are listed in `ParsedOptions.UnsupportedOptions`, and typos land in `ParsedOptions.UnknownOptions` (which makes `Validate` report the command as invalid). Still not applied: client certificates and custom CAs (`--cert`, `--key`, `--cacert`, `--capath`, `--pinnedpubkey`), protocols other than HTTP, HTTPS, FTP and FILE, and `--parallel` (transfers run one after another). `~/.curlrc` is never read implicitly; pass it with `-K`.
+Options that are recognised but not implemented are listed in `ParsedOptions.UnsupportedOptions`, and typos land in `ParsedOptions.UnknownOptions` (which makes `Validate` report the command as invalid). Not available: protocols other than HTTP, HTTPS, FTP and FILE, and `--parallel` (transfers run one after another). Client certificates and custom CAs (`--cert`, `--key`, `--cacert`, `--capath`, `--pinnedpubkey`) are applied on .NET 5 and later and listed in `UnsupportedOptions` on .NET Standard 2.0 and .NET Framework. `~/.curlrc` is never read implicitly; pass it with `-K`.
 
 Like the curl CLI, CurlDotNet sends `User-Agent: curl/8.7.1` and `Accept: */*` by default, so APIs that require a User-Agent (GitHub's, for example) work as pasted. Use `-A` to send your own.
 

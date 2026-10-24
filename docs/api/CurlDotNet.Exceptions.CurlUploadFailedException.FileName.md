@@ -3,11 +3,19 @@
 
 ## CurlUploadFailedException\.FileName Property
 
-Gets the file name that failed to upload
+The name of the file whose upload the server refused, as given with `-T` or `-F name=@file`\.
 
 ```csharp
 public string FileName { get; }
 ```
 
 #### Property Value
-[System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+[System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')  
+A local file name or path\.
+
+### Remarks
+
+Check its size against the server's upload limit.
+
+### See Also
+- [Command](CurlDotNet.Exceptions.CurlException.Command.md 'CurlDotNet\.Exceptions\.CurlException\.Command')

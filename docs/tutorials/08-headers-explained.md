@@ -67,7 +67,7 @@ var a = await Curl.ExecuteAsync("curl https://httpbin.org/get", settings);
 var b = await Curl.ExecuteAsync("curl https://httpbin.org/headers", settings);
 ```
 
-Use `WithHeader("User-Agent", ...)` here: the engine applies `CurlSettings` headers, timeouts, redirects, `-k`, retries, progress and cancellation, but `CurlSettings.WithUserAgent` is not applied to the request. To change the User-Agent for every request in the process, set `Curl.DefaultUserAgent`.
+`WithHeader("User-Agent", ...)` and `CurlSettings.WithUserAgent("MyApp/1.0")` both work; a `Headers` entry is applied last and wins. Both replace a `-A` in the command. To change the User-Agent for every request in the process, set `Curl.DefaultUserAgent`.
 
 ### Headers CurlDotNet Sends by Default
 

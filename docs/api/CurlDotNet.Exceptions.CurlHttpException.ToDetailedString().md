@@ -3,7 +3,8 @@
 
 ## CurlHttpException\.ToDetailedString\(\) Method
 
-Returns a detailed string representation of the exception including HTTP status information\.
+Returns the base detailed report plus the HTTP status line, client/server classification, response body
+and response headers, for logs\.
 
 ```csharp
 public override string ToDetailedString();
@@ -11,4 +12,13 @@ public override string ToDetailedString();
 
 #### Returns
 [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')  
-A detailed string representation of the exception\.
+The text of [ToDetailedString\(\)](CurlDotNet.Exceptions.CurlException.ToDetailedString().md 'CurlDotNet\.Exceptions\.CurlException\.ToDetailedString\(\)') followed by `HTTP Status: 404 Not Found`
+            and the body and header lines\.
+
+### Remarks
+
+The body is printed in full; trim it before logging very large error pages. Example:
+            `logger.LogError(ex.ToDetailedString());`
+
+### See Also
+- [ToDetailedString\(\)](CurlDotNet.Exceptions.CurlException.ToDetailedString().md 'CurlDotNet\.Exceptions\.CurlException\.ToDetailedString\(\)')

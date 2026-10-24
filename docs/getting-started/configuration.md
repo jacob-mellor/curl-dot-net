@@ -98,7 +98,20 @@ Curl.DefaultInsecure = true;
 
 ### Custom Certificates
 
-`--cacert`, `--capath`, `--cert`, `--key` and `--pinnedpubkey` are parsed (into `CurlOptions.CaCertFile`, `CertFile` and `KeyFile`) but the transport does not apply them. Certificates are verified against the operating system's trust store, so a private CA has to be installed there. Client-certificate authentication is not available through CurlDotNet; use `HttpClient` with an `HttpClientHandler` whose `ClientCertificates` you fill for those endpoints.
+On .NET 5 and later the curl TLS options are applied:
+
+- `--cacert FILE` / `--capath DIR` trust a private or corporate CA (only those CAs, as in curl). A missing or empty bundle throws `CurlSslCaCertBadFileException` (exit code 77).
+- `--cert FILE[:password]`, `--key`, `--cert-type PEM|DER|P12`, `--key-type` and `--pass` send a client certificate for mutual TLS. A file that cannot be used throws `CurlSslCertificateProblemException` (58).
+- `--pinnedpubkey sha256//BASE64` pins the server's public key; a mismatch throws `CurlSslPinnedPublicKeyMismatchException` (90).
+- `--tlsv1.0` ... `--tlsv1.3` and `--tls-max` choose the TLS versions; `--ciphers` / `--tls13-ciphers` take IANA suite names where .NET can restrict cipher suites (Linux), and are listed in `UnsupportedOptions` elsewhere.
+
+```csharp
+// private CA plus a client certificate in a PKCS#12 file
+var result = await Curl.ExecuteAsync(
+    "curl --cacert corp-ca.pem --cert client.p12:secret --cert-type P12 https://mtls.example.com/");
+```
+
+On .NET Standard 2.0 and .NET Framework the trust and client-certificate options are listed in `CurlOptions.UnsupportedOptions` and the operating system trust store is used, and `--pinnedpubkey` fails with exit code 4 rather than skip the check. See [SSL certificate errors](../exceptions/ssl-errors.html).
 
 ## Proxy Configuration
 
@@ -169,7 +182,7 @@ var result = await Curl.ExecuteAsync(
 
 ## Advanced Settings with CurlSettings
 
-For per-call settings that are not part of the command string, use the `CurlSettings` class. The engine applies its timeouts, redirect and `-k` switches, extra headers, retries and cancellation token:
+For per-call settings that are not part of the command string, use the `CurlSettings` class. The engine applies every member (timeouts, redirects and a redirect callback, `-k`, extra headers, User-Agent, proxy, a `CookieContainer`, decompression, buffer size, retries, progress and the cancellation token) to every URL of the command:
 
 ```csharp
 using CurlDotNet.Core;
@@ -261,7 +274,7 @@ var next = await Curl.ExecuteAsync(
 
 ### Custom DNS Servers
 
-`--dns-servers` is parsed but not applied; CurlDotNet always uses the operating system's resolver. To steer one host name, use `--resolve` or `--connect-to` instead.
+`--dns-servers` is accepted but listed in `CurlOptions.UnsupportedOptions`: CurlDotNet always uses the operating system's resolver. To steer one host name, use `--resolve` or `--connect-to` instead.
 
 ### DNS Override (Host Resolution)
 
@@ -274,7 +287,15 @@ var result = await Curl.ExecuteAsync(
 
 ## Speed Limits and Keep-Alive
 
-`--limit-rate`, `--speed-limit`, `--speed-time` and `--keepalive-time` are accepted so pasted commands keep working, but they are not applied to HTTP transfers. Use `--max-time` to bound a slow transfer.
+`--limit-rate` caps the download speed (`CurlOptions.LimitRate`; `100k` is 102400 bytes per second), and `--speed-limit`/`--speed-time` abort a transfer that stays below a rate for a number of seconds with `CurlOperationTimeoutException` (exit code 28). Both apply to http and https response bodies.
+
+```csharp
+// at most 500 KB/s, and give up if it drops below 1 KB/s for 30 seconds
+var result = await Curl.ExecuteAsync(
+    "curl --limit-rate 500k --speed-limit 1024 --speed-time 30 -o big.zip https://example.com/big.zip");
+```
+
+`--keepalive-time` only switches TCP keep-alive on for FTP transfers; HTTP connections use HttpClient's pooling. `--interface`, `--dns-servers`, `--quote`, `--disable-epsv` and `--disable-eprt` are accepted and listed in `CurlOptions.UnsupportedOptions`.
 
 ## Environment-Specific Configuration
 

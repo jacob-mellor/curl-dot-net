@@ -21,7 +21,7 @@ Console.WriteLine($"{http.StatusCode} {https.StatusCode}");
 
 The HTTP version flags are applied to each request: `--http1.0` and `--http1.1` pin the version, `--http2` and `--http3` ask for HTTP/2 or HTTP/3 and allow a lower version when the server does not offer it, and `--http2-prior-knowledge` and `--http3-only` require it. On .NET 5 and later this sets `HttpRequestMessage.Version` and `VersionPolicy`; on .NET Standard 2.0 and .NET Framework only the version is set and the runtime's `HttpClient` decides. HTTP/3 also needs QUIC support in the operating system.
 
-TLS is handled by the .NET runtime against the operating system's trust store (`--cacert`, `--cert` and `--key` are parsed but not applied). `-k` / `--insecure` disables certificate validation for development:
+TLS is handled by the .NET runtime, against the operating system's trust store by default. On .NET 5 and later the curl TLS options are applied: `--cacert`/`--capath` (a private CA), `--cert`/`--key`/`--cert-type`/`--pass` (client certificates for mutual TLS), `--pinnedpubkey`, `--tlsv1.0` to `--tlsv1.3` and `--tls-max`, and `--ciphers`/`--tls13-ciphers` where .NET can restrict cipher suites (Linux). On .NET Standard 2.0 and .NET Framework the trust and client-certificate options are listed in `CurlOptions.UnsupportedOptions` (see [SSL certificate errors](exceptions/ssl-errors.html)). `-k` / `--insecure` disables certificate validation for development:
 
 ```csharp
 using CurlDotNet;

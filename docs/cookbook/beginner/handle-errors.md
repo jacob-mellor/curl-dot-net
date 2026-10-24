@@ -212,7 +212,7 @@ catch (CurlException ex)                      { Console.WriteLine(ex.Message); }
 
 **Ambiguous reference `CurlHttpException`.** Both `CurlDotNet.Core` and `CurlDotNet.Exceptions` define one. Qualify the type: `catch (CurlDotNet.Core.CurlHttpException ex)`.
 
-**A self-signed certificate fails with `CurlPeerFailedVerificationException`.** Certificate problems are TLS exceptions (exit code 60; a failed handshake is `CurlSslConnectErrorException`, exit code 35), not connection failures. For development only, add `-k` (or `.Insecure()` on the builder). Custom CA files (`--cacert`) and client certificates (`--cert`) are parsed but not applied yet.
+**A self-signed certificate fails with `CurlPeerFailedVerificationException`.** Certificate problems are TLS exceptions (exit code 60; a failed handshake is `CurlSslConnectErrorException`, exit code 35), not connection failures. For development only, add `-k` (or `.Insecure()` on the builder). For production, trust the CA instead: `--cacert ca.pem` (and client certificates with `--cert`) work as in curl on .NET 5 and later; see [SSL errors](../../exceptions/ssl-errors.html).
 
 **I want to validate the command before running it.** `Curl.Validate("curl ...")` returns a `ValidationResult` with `IsValid` and `Error` without sending anything. A misspelled option makes it invalid.
 

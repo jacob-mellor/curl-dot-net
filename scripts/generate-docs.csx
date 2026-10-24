@@ -93,7 +93,9 @@ if (Directory.Exists(apiDir))
 }
 Directory.CreateDirectory(apiDir);
 
-var apiResult = await RunCommand(toolPath, $"-a \"{assembly}\" -o \"{apiDir}\"");
+// Public and protected surface only: internals (e.g. the TLS helpers) are not part of the API and some
+// have signatures long enough to exceed the file-name limit when a page is generated for them.
+var apiResult = await RunCommand(toolPath, $"-a \"{assembly}\" -o \"{apiDir}\" --GeneratedAccessModifiers Public,Protected");
 if (apiResult != 0)
 {
     AnsiConsole.MarkupLine("[red]DefaultDocumentation failed[/]");

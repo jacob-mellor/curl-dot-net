@@ -3,7 +3,8 @@
 
 ## CurlConnectionException\.Host Property
 
-Gets the host that could not be connected to\.
+The host name or IP address that could not be reached, exactly as it appears in the URL \(or the proxy's
+host for [CurlProxyException](CurlDotNet.Exceptions.CurlProxyException.md 'CurlDotNet\.Exceptions\.CurlProxyException')\)\.
 
 ```csharp
 public string Host { get; }
@@ -11,10 +12,11 @@ public string Host { get; }
 
 #### Property Value
 [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')  
-The hostname or IP address that failed to connect\.
+A name such as `api.example.com` or an address such as `192.168.1.10`; null when unknown\.
 
 ### Remarks
 
-This may be a hostname (e.g., "api.example.com") or IP address (e.g., "192.168.1.1").
+Use it for per-host fallback: `catch (CurlConnectionException ex) when (ex.Host == primary) { url = backupUrl; }`
 
-AI-Usage: Use this to implement host-specific retry or fallback logic.
+### See Also
+- [Port](CurlDotNet.Exceptions.CurlConnectionException.Port.md 'CurlDotNet\.Exceptions\.CurlConnectionException\.Port')

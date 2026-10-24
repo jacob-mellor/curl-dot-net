@@ -3,7 +3,8 @@
 
 ## CurlDnsException Class
 
-Thrown when DNS resolution fails for a hostname\.
+A host name that could not be turned into an IP address \(curl exit code 6, CURLE\_COULDNT\_RESOLVE\_HOST\):
+the name is misspelled, does not exist, or DNS is unreachable\.
 
 ```csharp
 public class CurlDnsException : CurlDotNet.Exceptions.CurlConnectionException
@@ -16,33 +17,39 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 ```csharp
 try
 {
-    var result = await curl.ExecuteAsync("curl https://non-existent-domain.invalid");
+    var result = await Curl.ExecuteAsync("curl https://non-existent-domain.invalid");
 }
-catch (CurlDnsException ex)
+catch (CurlCouldntResolveHostException ex)      // what the transport throws (exit code 6)
+{
+    Console.WriteLine($"DNS lookup failed for: {ex.Hostname}");
+}
+catch (CurlDnsException ex)                     // raised by your own code
 {
     Console.WriteLine($"DNS lookup failed for: {ex.Host}");
-
-    // Suggest alternatives
-    if (ex.Host.Contains("github"))
-        Console.WriteLine("Did you mean: github.com?");
-
-    // Or try with IP address directly
-    var ipAddress = "140.82.114.3"; // github.com IP
-    result = await curl.ExecuteAsync($"curl https://{ipAddress}");
 }
 ```
 
 ### Remarks
 
-This exception indicates the hostname could not be resolved to an IP address.
+A [CurlConnectionException](CurlDotNet.Exceptions.CurlConnectionException.md 'CurlDotNet\.Exceptions\.CurlConnectionException') with [Host](CurlDotNet.Exceptions.CurlConnectionException.Host.md 'CurlDotNet\.Exceptions\.CurlConnectionException\.Host') set to the name. The
+            transport reports DNS failures as [CurlCouldntResolveHostException](CurlDotNet.Exceptions.CurlCouldntResolveHostException.md 'CurlDotNet\.Exceptions\.CurlCouldntResolveHostException'); this type is for your own code
+            and older callers that catch it.
 
-Curl error code: CURLE_COULDNT_RESOLVE_HOST (6)
+Fixes: check the spelling of the host in the URL, try `nslookup host` on the same machine, check VPN or
+            proxy settings, or pin the name with `--resolve host:443:1.2.3.4`.
+            Example: `catch (CurlDnsException ex) { Console.WriteLine($"Unknown host {ex.Host}"); }`
 
-AI-Usage: Catch this to handle DNS failures separately from other connection issues.
+Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md
 
-AI-Pattern: Check for typos in hostname or DNS server configuration.
+### See Also
+- [CurlCouldntResolveHostException](CurlDotNet.Exceptions.CurlCouldntResolveHostException.md 'CurlDotNet\.Exceptions\.CurlCouldntResolveHostException')
+- [CurlConnectionException](CurlDotNet.Exceptions.CurlConnectionException.md 'CurlDotNet\.Exceptions\.CurlConnectionException')
 
 | Constructors | |
 | :--- | :--- |
-| [CurlDnsException\(string, string\)](CurlDotNet.Exceptions.CurlDnsException.#ctor.md#CurlDotNet.Exceptions.CurlDnsException.CurlDnsException(string,string) 'CurlDotNet\.Exceptions\.CurlDnsException\.CurlDnsException\(string, string\)') | Initializes a new instance of the [CurlDnsException](CurlDotNet.Exceptions.CurlDnsException.md 'CurlDotNet\.Exceptions\.CurlDnsException') class\. |
-| [CurlDnsException\(SerializationInfo, StreamingContext\)](CurlDotNet.Exceptions.CurlDnsException.#ctor.md#CurlDotNet.Exceptions.CurlDnsException.CurlDnsException(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext) 'CurlDotNet\.Exceptions\.CurlDnsException\.CurlDnsException\(System\.Runtime\.Serialization\.SerializationInfo, System\.Runtime\.Serialization\.StreamingContext\)') | Initializes a new instance with serialized data\. |
+| [CurlDnsException\(string, string\)](CurlDotNet.Exceptions.CurlDnsException.#ctor.md#CurlDotNet.Exceptions.CurlDnsException.CurlDnsException(string,string) 'CurlDotNet\.Exceptions\.CurlDnsException\.CurlDnsException\(string, string\)') | Creates the exception for [hostname](CurlDotNet.Exceptions.CurlDnsException.md#CurlDotNet.Exceptions.CurlDnsException.CurlDnsException(string,string).hostname 'CurlDotNet\.Exceptions\.CurlDnsException\.CurlDnsException\(string, string\)\.hostname'), with curl's message `Could not resolve host: NAME` and exit code 6\. |
+| [CurlDnsException\(SerializationInfo, StreamingContext\)](CurlDotNet.Exceptions.CurlDnsException.#ctor.md#CurlDotNet.Exceptions.CurlDnsException.CurlDnsException(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext) 'CurlDotNet\.Exceptions\.CurlDnsException\.CurlDnsException\(System\.Runtime\.Serialization\.SerializationInfo, System\.Runtime\.Serialization\.StreamingContext\)') | Restores the exception from serialized data on \.NET Framework \(host name and exit code included\)\. |
+
+| Properties | |
+| :--- | :--- |
+| [DefaultSuggestion](CurlDotNet.Exceptions.CurlDnsException.DefaultSuggestion.md 'CurlDotNet\.Exceptions\.CurlDnsException\.DefaultSuggestion') | How to fix this kind of error in one sentence, used as [Suggestions](CurlDotNet.Exceptions.CurlException.Suggestions.md 'CurlDotNet\.Exceptions\.CurlException\.Suggestions') \(and as the second line of [Message](CurlDotNet.Exceptions.CurlException.Message.md 'CurlDotNet\.Exceptions\.CurlException\.Message')\) when the message itself does not say how to fix it\. |

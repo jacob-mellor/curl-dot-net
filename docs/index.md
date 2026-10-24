@@ -16,7 +16,7 @@ Console.WriteLine(result.StatusCode);   // 200
 Console.WriteLine(result.Body);         // JSON text
 ```
 
-Like the curl tool, CurlDotNet sends `User-Agent: curl/8.7.1` and `Accept: */*` unless you set your own, so APIs that insist on a User-Agent (GitHub's, for example) work as they do from a terminal. Its behaviour is checked against curl's own test suite: 606 of the 620 runnable curl tests pass ([how CurlDotNet is tested](reference/curl-test-suite.html)).
+Like the curl tool, CurlDotNet sends `User-Agent: curl/8.7.1` and `Accept: */*` unless you set your own, so APIs that insist on a User-Agent (GitHub's, for example) work as they do from a terminal. Its behaviour is checked against curl's own test suite: 607 of the 620 runnable curl tests pass (97.9%) ([how CurlDotNet is tested](reference/curl-test-suite.html)).
 
 ## Install CurlDotNet
 

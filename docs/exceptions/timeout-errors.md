@@ -33,9 +33,9 @@ Catching the base type `CurlTimeoutException` works too. A cancelled `Cancellati
 | Type | `CurlErrorCode` | Thrown when |
 |------|----:|-------------|
 | `CurlTimeoutException` | 28 | Base class of the timeout types. Thrown directly only on a rare fallback path, so `catch (CurlTimeoutException)` covers every timeout |
-| `CurlOperationTimeoutException` | 28 | `-m`/`--max-time` expired (message: "Operation timed out after N milliseconds with M bytes received"); `--connect-timeout` expired ("Connection timed out after N milliseconds while connecting to host port P"); `--retry-max-time` ran out before any response arrived |
+| `CurlOperationTimeoutException` | 28 | `-m`/`--max-time` expired (message: "Operation timed out after N milliseconds with M bytes received"); `--connect-timeout` expired ("Connection timed out after N milliseconds while connecting to host port P"); the download stayed below `--speed-limit` for `--speed-time` seconds ("Operation too slow. Less than N bytes/sec transferred the last S seconds") |
 | `CurlFtpAcceptTimeoutException` | 28 | Reserved: nothing throws it today (curl's own code for this case is 12) |
-| `CurlAbortedByCallbackException` | 42 | Internal only: a cancelled token is converted to `OperationCanceledException` before it reaches your code |
+| `CurlAbortedByCallbackException` | 42 | Not a timeout: thrown when your own progress callback or `CurlSettings.OnRedirect` handler throws. A cancelled token is converted to `OperationCanceledException` before it reaches your code |
 
 `Timeout` holds the limit that expired as a `TimeSpan?`.
 
@@ -90,6 +90,21 @@ try
 catch (CurlOperationTimeoutException ex) when (ex.Message.StartsWith("Connection timed out"))
 {
     Console.WriteLine("Host did not accept the connection in time");
+}
+```
+
+### --speed-limit and --speed-time
+
+To abort a transfer that stalls without capping a healthy one, use curl's low-speed check. `--speed-limit 1000 --speed-time 15` throws `CurlOperationTimeoutException` when fewer than 1000 bytes per second arrive for 15 seconds in a row, with curl's message "Operation too slow. Less than 1000 bytes/sec transferred the last 15 seconds". The same settings are `CurlOptions.SpeedLimit` and `SpeedTime`. A non-numeric value for either option fails with exit code 2 before anything is sent.
+
+```csharp
+try
+{
+    var result = await Curl.ExecuteAsync("curl --speed-limit 1000 --speed-time 15 -o big.bin https://httpbin.org/bytes/1048576");
+}
+catch (CurlOperationTimeoutException ex) when (ex.Message.StartsWith("Operation too slow"))
+{
+    Console.WriteLine("The download stalled");
 }
 ```
 

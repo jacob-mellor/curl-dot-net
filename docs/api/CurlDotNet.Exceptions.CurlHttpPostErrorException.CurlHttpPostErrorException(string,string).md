@@ -3,7 +3,8 @@
 
 ## CurlHttpPostErrorException\(string, string\) Constructor
 
-Initializes a new instance of CurlHttpPostErrorException\.
+Creates the form\-post error \(exit code 34\), prefixing `HTTP POST error:` to the caller's explanation of
+which field failed\.
 
 ```csharp
 public CurlHttpPostErrorException(string message, string? command=null);
@@ -14,10 +15,17 @@ public CurlHttpPostErrorException(string message, string? command=null);
 
 `message` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-The error message\.
+Which form field failed and why; optionally followed by fix lines\.
 
 <a name='CurlDotNet.Exceptions.CurlHttpPostErrorException.CurlHttpPostErrorException(string,string).command'></a>
 
 `command` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-The curl command that failed\.
+The curl command that failed, or null\.
+
+### Remarks
+
+Example: `throw new CurlHttpPostErrorException("field 'avatar' names a folder, not a file.", command);`
+
+### See Also
+- [CurlUploadFailedException](CurlDotNet.Exceptions.CurlUploadFailedException.md 'CurlDotNet\.Exceptions\.CurlUploadFailedException')

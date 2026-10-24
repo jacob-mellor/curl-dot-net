@@ -131,7 +131,7 @@ var settings = new CurlSettings()
 var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/503", settings);
 ```
 
-Also applied: `WithConnectTimeout(seconds)`, `WithInsecure()`, `WithHeader(key, value)`, `WithHeaders(dict)`, `WithCancellation(token)`. `WithUserAgent`, `WithProxy`, `WithCookies`, `WithAutoDecompression`, `WithBufferSize`, `WithRedirectHandler` and `WithProgress` exist on the class but the engine does not apply them; use `-A`, `-x`, `-b`/`-c` and `--compressed` in the command instead. `WithRetries` is the .NET shortcut for `--retry N --retry-delay S --retry-all-errors`; see [curl --retry in C#](../cookbook/retry.html).
+Also applied: `WithConnectTimeout(seconds)`, `WithInsecure()`, `WithHeader(key, value)`, `WithHeaders(dict)`, `WithCancellation(token)`, `WithProgress(callback)`, `WithProxy(url[, user, pass])` (like `-x`/`-U`), `WithUserAgent(ua)` (like `-A`), `WithCookies(container)` (a `CookieContainer` that supplies the `Cookie` header and stores every `Set-Cookie`, redirect hops included), `WithRedirectHandler(url => ...)` (called for each followed redirect; throwing from it aborts with `CurlAbortedByCallbackException`, exit code 42), `WithAutoDecompression(bool)` (like `--compressed`) and `WithBufferSize(bytes)`. Every member is applied to every URL of a multi-URL command, and a value set here overrides the same option in the command. `WithRetries` is the .NET shortcut for `--retry N --retry-delay S --retry-all-errors`; see [curl --retry in C#](../cookbook/retry.html).
 
 ## CurlRequestBuilder reference
 

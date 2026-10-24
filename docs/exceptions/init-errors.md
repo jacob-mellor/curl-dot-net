@@ -38,12 +38,13 @@ These types exist in `CurlDotNet.Exceptions` for parity with libcurl's error lis
 | Type | `CurlErrorCode` |
 |------|----:|
 | `CurlFailedInitException` | 2 |
-| `CurlNotBuiltInException` (property `Feature`) | 4 |
 | `CurlOutOfMemoryException` | 27 |
 | `CurlFunctionNotFoundException` (property `FunctionName`) | 41 |
 | `CurlExecutionException` | none |
 
-Exit code 2 does occur, but for command-line mistakes such as an option without its value or two request methods; those throw a plain `CurlException` with `CurlErrorCode` 2 and are covered on the [URL and command errors](url-errors.html) page.
+Exit code 2 does occur, but for command-line mistakes such as a missing URL, an option without its value, a non-numeric value for a numeric option or two request methods; those throw a plain `CurlException` (or `CurlInvalidCommandException` for a missing URL) with `CurlErrorCode` 2 and are covered on the [URL and command errors](url-errors.html) page.
+
+`CurlNotBuiltInException` (exit code 4, property `Feature`) is thrown in one case: `--pinnedpubkey` on an https transfer where the pin cannot be checked (.NET Standard 2.0 or .NET Framework, or when you pass your own `HttpClient`), so the request fails instead of silently skipping the check. See [SSL certificate errors](ssl-errors.html).
 
 ## Common Setup Problems
 

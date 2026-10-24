@@ -3,7 +3,7 @@
 
 ## CurlAuthenticationException\(string, string, string\) Constructor
 
-Initializes a new instance of the CurlAuthenticationException class\.
+Creates a login\-denied error \(exit code 67\) naming the authentication method that was refused\.
 
 ```csharp
 public CurlAuthenticationException(string message, string authMethod=null, string command=null);
@@ -14,16 +14,24 @@ public CurlAuthenticationException(string message, string authMethod=null, strin
 
 `message` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-The error message\.
+What was refused, naming the server and the user \(never the password\)\.
 
 <a name='CurlDotNet.Exceptions.CurlAuthenticationException.CurlAuthenticationException(string,string,string).authMethod'></a>
 
 `authMethod` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-The authentication method that failed\.
+The scheme that failed, such as `Basic` or `Digest`, or null\.
 
 <a name='CurlDotNet.Exceptions.CurlAuthenticationException.CurlAuthenticationException(string,string,string).command'></a>
 
 `command` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-The curl command that caused the error\.
+The curl command that caused the error, or null\.
+
+### Remarks
+
+When [message](CurlDotNet.Exceptions.CurlAuthenticationException.CurlAuthenticationException(string,string,string).md#CurlDotNet.Exceptions.CurlAuthenticationException.CurlAuthenticationException(string,string,string).message 'CurlDotNet\.Exceptions\.CurlAuthenticationException\.CurlAuthenticationException\(string, string, string\)\.message') has no fix, the suggestion tells the reader to check `-u user:password`
+            and the scheme. Example: `throw new CurlAuthenticationException("ftp.example.com refused user 'bob'.", "USER/PASS", command);`
+
+### See Also
+- [CurlLoginDeniedException](CurlDotNet.Exceptions.CurlLoginDeniedException.md 'CurlDotNet\.Exceptions\.CurlLoginDeniedException')

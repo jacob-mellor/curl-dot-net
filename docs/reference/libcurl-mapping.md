@@ -37,6 +37,11 @@ This reference shows libcurl options mapped to C#: each common `CURLOPT_*` setti
 | `CURLOPT_POSTREDIR` | `--post301`, `--post302`, `--post303` | - | - |
 | `CURLOPT_UNRESTRICTED_AUTH` | `--location-trusted` | - | - |
 | `CURLOPT_SSL_VERIFYPEER` | `-k` | `Insecure()` | `WithInsecureSsl()` |
+| `CURLOPT_CAINFO`, `CURLOPT_CAPATH` | `--cacert`, `--capath` (.NET 5+) | - | - |
+| `CURLOPT_SSLCERT`, `CURLOPT_SSLKEY`, `CURLOPT_SSLCERTTYPE`, `CURLOPT_KEYPASSWD` | `--cert FILE[:password]`, `--key`, `--cert-type`, `--pass` (.NET 5+) | - | - |
+| `CURLOPT_PINNEDPUBLICKEY` | `--pinnedpubkey` (.NET 5+) | - | - |
+| `CURLOPT_SSLVERSION` | `--tlsv1.0` ... `--tlsv1.3`, `--tls-max` | - | - |
+| `CURLOPT_SSL_CIPHER_LIST`, `CURLOPT_TLS13_CIPHERS` | `--ciphers`, `--tls13-ciphers` (where .NET supports `CipherSuitesPolicy`) | - | - |
 | `CURLOPT_USERAGENT` | `-A` | `WithUserAgent(ua)` | `WithUserAgent(ua)` |
 | `CURLOPT_REFERER` | `-e` | `WithReferer(url)` | - |
 | `CURLOPT_COOKIE` | `-b 'a=1; b=2'` | `WithCookie(string)` | - |
@@ -52,6 +57,8 @@ This reference shows libcurl options mapped to C#: each common `CURLOPT_*` setti
 | `CURLOPT_UPLOAD`, `CURLOPT_READDATA` | `-T file` | - | - |
 | `CURLOPT_RESUME_FROM_LARGE` | `-C N`, `-C -` | - | - |
 | `CURLOPT_MAXFILESIZE_LARGE` | `--max-filesize` | - | - |
+| `CURLOPT_MAX_RECV_SPEED_LARGE` | `--limit-rate` (`CurlOptions.LimitRate`) | - | - |
+| `CURLOPT_LOW_SPEED_LIMIT`, `CURLOPT_LOW_SPEED_TIME` | `--speed-limit`, `--speed-time` | - | - |
 | `CURLOPT_TIMECONDITION`, `CURLOPT_TIMEVALUE` | `-z` | - | - |
 | `CURLOPT_REQUEST_TARGET` | `--request-target` (.NET 5+) | - | - |
 | `CURLOPT_PATH_AS_IS` | `--path-as-is` | - | - |
@@ -66,7 +73,7 @@ Options marked `-` in the builder and `LibCurl` columns are available through th
 
 Retries are a feature of the curl tool rather than libcurl. CurlDotNet implements them: `--retry`, `--retry-delay`, `--retry-max-time`, `--retry-all-errors` and `--retry-connrefused` (`CurlOptions.Retry`, `RetryDelay`, `RetryMaxTime`, `RetryAllErrors`, `RetryConnRefused`), plus the .NET shortcut `new CurlSettings().WithRetries(3, 500)`. See [curl --retry in C#](../cookbook/retry.html). The same goes for `-w`/`--write-out` ([curl -w in C#](../cookbook/write-out.html)) and for `-K` config files, `--variable` and URL globbing ([config files and variables](../cookbook/config-files-and-variables.html), [multiple URLs and globbing](../cookbook/multiple-urls-and-globbing.html)).
 
-Not mapped: `CURLOPT_SSLCERT`/`CURLOPT_SSLKEY`/`CURLOPT_CAINFO`/`CURLOPT_CAPATH`/`CURLOPT_PINNEDPUBLICKEY` (`--cert`, `--key`, `--cacert`, `--capath`, `--pinnedpubkey`) are parsed into `CurlOptions.CertFile`, `KeyFile` and `CaCertFile` but not applied; certificates are verified against the operating system's trust store. `CURLOPT_MAX_RECV_SPEED_LARGE` (`--limit-rate`) and `CURLOPT_LOW_SPEED_LIMIT` (`--speed-limit`) are parsed but not applied.
+The TLS options (`CURLOPT_CAINFO`, `CURLOPT_CAPATH`, `CURLOPT_SSLCERT`, `CURLOPT_SSLKEY`, `CURLOPT_PINNEDPUBLICKEY`) are applied on .NET 5 and later. On .NET Standard 2.0 and .NET Framework they are listed in `CurlOptions.UnsupportedOptions` and the operating system's trust store is used; `--pinnedpubkey` there fails with exit code 4 instead of skipping the check. See [SSL certificate errors](../exceptions/ssl-errors.html). Not mapped: `CURLOPT_INTERFACE` (`--interface`), `CURLOPT_DNS_SERVERS` (`--dns-servers`) and `CURLOPT_QUOTE` (`--quote`), which are accepted and listed in `UnsupportedOptions`.
 
 ## HTTP Methods
 
@@ -113,8 +120,9 @@ libcurl returns a `CURLcode`; CurlDotNet throws a typed exception from `CurlDotN
 |--------------|---------------------|------|
 | `CURLE_OK` (0) | (none) | Success; HTTP 4xx/5xx still return a result with `IsSuccess == false` unless `-f` is given |
 | `CURLE_UNSUPPORTED_PROTOCOL` (1) | `CurlUnsupportedProtocolException` | Scheme other than http, https, ftp, ftps, file (also on a redirect), or an unusable status line / HTTP/0.9 reply |
-| `CURLE_FAILED_INIT` (2) | `CurlException` with `CurlErrorCode == 2` | Conflicting request methods (`-I` with `-d`, `-F` with `-d`, ...) or an option missing its value |
+| `CURLE_FAILED_INIT` (2) | `CurlException` with `CurlErrorCode == 2` (`CurlInvalidCommandException` when the URL is missing or `--aws-sigv4` is malformed) | No URL, conflicting request methods (`-I` with `-d`, `-F` with `-d`, ...), an option missing its value, or a non-numeric value for a numeric option |
 | `CURLE_URL_MALFORMAT` (3) | `CurlMalformedUrlException` | URL cannot be parsed (a bad URL glob is a `CurlException` with `CurlErrorCode == 3`) |
+| `CURLE_NOT_BUILT_IN` (4) | `CurlNotBuiltInException` | `--pinnedpubkey` where the pin cannot be checked (.NET Standard 2.0 / .NET Framework, or your own `HttpClient`) |
 | `CURLE_COULDNT_RESOLVE_PROXY` (5) | `CurlCouldntResolveProxyException` | Proxy host name cannot be resolved |
 | `CURLE_COULDNT_RESOLVE_HOST` (6) | `CurlCouldntResolveHostException` | Host name cannot be resolved |
 | `CURLE_COULDNT_CONNECT` (7) | `CurlCouldntConnectException` | Connection refused or unreachable (the message names the proxy when one is used) |
@@ -122,21 +130,26 @@ libcurl returns a `CURLcode`; CurlDotNet throws a typed exception from `CurlDotN
 | `CURLE_PARTIAL_FILE` (18) | `CurlPartialFileException` | The connection closed before the announced body length arrived |
 | `CURLE_HTTP_RETURNED_ERROR` (22) | `CurlHttpReturnedErrorException` | `-f`/`--fail` (or `--fail-with-body`) and HTTP status 400 or above |
 | `CURLE_WRITE_ERROR` (23) | `CurlWriteErrorException` | An output file (`-o`, `-D`, `-c`) cannot be written, for example a missing directory |
-| `CURLE_READ_ERROR` (26) | `CurlReadErrorException` | An input file (`-d @file`, `-T`, `-F file=@path`, `-K`) is missing or unreadable |
-| `CURLE_OPERATION_TIMEDOUT` (28) | `CurlOperationTimeoutException` | `--max-time` or `--connect-timeout` exceeded |
+| `CURLE_READ_ERROR` (26) | `CurlReadErrorException` | An input file (`-H @file`, `-T`, `-F file=@path`, `-K`, mixed `-d @file`) is missing or unreadable |
+| `CURLE_OPERATION_TIMEDOUT` (28) | `CurlOperationTimeoutException` | `--max-time` or `--connect-timeout` exceeded, or the transfer stayed below `--speed-limit` for `--speed-time` |
 | `CURLE_RANGE_ERROR` (33) | `CurlRangeErrorException` | `-C` resume asked for, but the server ignored the range |
-| `CURLE_SSL_CONNECT_ERROR` (35) | `CurlSslConnectErrorException` | TLS handshake failed |
+| `CURLE_SSL_CONNECT_ERROR` (35) | `CurlSslConnectErrorException` | TLS handshake failed (no common version or cipher, client certificate rejected, not a TLS port) |
+| `CURLE_ABORTED_BY_CALLBACK` (42) | `CurlAbortedByCallbackException` | Your progress callback or `CurlSettings.OnRedirect` handler threw (its exception is the `InnerException`) |
 | `CURLE_BAD_FUNCTION_ARGUMENT` (43) | `CurlBadFunctionArgumentException` | CR or LF inside a header value, or a resumed upload |
 | `CURLE_TOO_MANY_REDIRECTS` (47) | `CurlTooManyRedirectsException` | More than `--max-redirs` redirects |
 | `CURLE_SETOPT_OPTION_SYNTAX` (49) | `CurlOptionSyntaxException` | Bad `--resolve` or `--connect-to` value |
 | `CURLE_GOT_NOTHING` (52) | `CurlGotNothingException` | The server closed the connection without replying |
 | `CURLE_RECV_ERROR` (56) | `CurlReceiveErrorException` | Receiving data failed |
-| `CURLE_PEER_FAILED_VERIFICATION` (60) | `CurlPeerFailedVerificationException` | Server certificate rejected (`-k` skips the check) |
+| `CURLE_SSL_CERTPROBLEM` (58) | `CurlSslCertificateProblemException` | The `--cert`/`--key` file cannot be used (path, format, password) |
+| `CURLE_PEER_FAILED_VERIFICATION` (60) | `CurlPeerFailedVerificationException` | Server certificate rejected (`-k` skips the check; `--cacert` trusts a private CA) |
 | `CURLE_BAD_CONTENT_ENCODING` (61) | `CurlBadContentEncodingException` | Broken chunked or compressed (`--compressed`) body |
 | `CURLE_FILESIZE_EXCEEDED` (63) | `CurlFileSizeExceededException` | Body larger than `--max-filesize` |
+| `CURLE_SSL_CACERT_BADFILE` (77) | `CurlSslCaCertBadFileException` | The `--cacert` file or `--capath` folder is missing, unreadable or empty |
+| `CURLE_SSL_PINNEDPUBKEYNOTMATCH` (90) | `CurlSslPinnedPublicKeyMismatchException` | The server key matches no `--pinnedpubkey` pin |
 | `CURLE_AUTH_ERROR` (94) | `CurlAuthErrorException` | A Digest/NTLM challenge could not be processed (a wrong password is a normal 401 result) |
 | `CURLE_TOO_LARGE` (100) | `CurlTooLargeException` | The response header block is larger than curl accepts |
-| `CURLE_ABORTED_BY_CALLBACK` (42) | standard `OperationCanceledException` | Your `CancellationToken` was cancelled; CurlDotNet surfaces cancellation the .NET way, not as a `CurlException` |
+
+A cancelled `CancellationToken` is not reported as `CURLE_ABORTED_BY_CALLBACK`: CurlDotNet surfaces cancellation the .NET way, as the standard `OperationCanceledException`.
 
 `result.EnsureSuccess()` and `EnsureStatus()` throw `CurlDotNet.Core.CurlHttpException` after the fact, when you did not pass `-f`.
 

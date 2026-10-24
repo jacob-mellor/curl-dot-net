@@ -28,8 +28,8 @@ catch (CurlInvalidCommandException ex)    { Console.WriteLine($"Bad command near
 | `curl https://example.com:abc` | `CurlMalformedUrlException` (3) | Port is not a number |
 | `curl gopher://example.com` | `CurlUnsupportedProtocolException` (1) | Scheme has no handler |
 | `curl htp://example.com` | `CurlUnsupportedProtocolException` (1) | Typo in the scheme |
-| `curl -X GET` | `CurlInvalidCommandException` (no code) | Options but no URL (`InvalidPart` is `"URL"`) |
-| `curl` | `CurlException` (3) | Nothing after the program name |
+| `curl -X GET` | `CurlInvalidCommandException` (2) | Options but no URL (`InvalidPart` is `"URL"`) |
+| `curl` | `CurlException` (2) | Nothing after the program name |
 | `curl 'https://example.com/[1-'` | `CurlException` (3) | Malformed URL glob |
 
 Like command-line curl, CurlDotNet prepends `http://` to a URL without a scheme (`ftp://` when the host starts with `ftp.`), so `curl example.com` works. Write `https://` explicitly when you want TLS. `CurlMalformedUrlException` is also thrown when a redirect's `Location` header is not a valid URL, and `CurlUnsupportedProtocolException` when a `-L` redirect points at a scheme other than `http` or `https`.
@@ -42,12 +42,15 @@ These are thrown while the command is parsed, before any network activity:
 |---------|-----------|----:|
 | An option is the last word and has no value (`curl https://example.com -H`) | `CurlException` | 2 |
 | Two request methods: `-I` with `-d`, `-F` with `-d`, `--json` with `-F`... | `CurlException` | 2 |
-| `--max-filesize abc`, `-C` with `--no-clobber`, `-K` files nested too deep, `--variable` errors | `CurlException` | 2 |
+| A numeric option with a value that is not a number (`-m abc`, `--retry x`, `--max-redirs`, `--connect-timeout`, `--retry-delay`, `--retry-max-time`, `--speed-limit`, `--speed-time`, `--limit-rate`, `--max-filesize`); the message names the option. Seconds are read like curl, so `-m 1e1` and `-m +5` are accepted | `CurlException` | 2 |
+| `--aws-sigv4` malformed (empty, white space, more than four `:` parts); `AwsSigV4Config.Parse` throws the same | `CurlInvalidCommandException` | 2 |
+| `-C` with `--no-clobber`, `-K` files nested too deep, `--variable` errors | `CurlException` | 2 |
+| `-H @file` where the file does not exist | `CurlReadErrorException` | 26 |
 | `-o` uses `#<name>` for a glob the URL does not name | `CurlException` | 43 |
 | CR or LF inside a `-H` value or `--request-target`, space in `--request-target` | `CurlBadFunctionArgumentException` (property `ArgumentName`) | 43 |
 | `-C`/`--continue-at` with a request body (`-d`, `-F`, `-T`) | `CurlBadFunctionArgumentException` | 43 |
 | `--resolve` / `--connect-to` entry with a non-numeric port | `CurlOptionSyntaxException` (a `CurlInvalidCommandException`) | 49 |
-| Options but no URL | `CurlInvalidCommandException` | none |
+| Options but no URL | `CurlInvalidCommandException` | 2 |
 
 ```csharp
 using CurlDotNet;

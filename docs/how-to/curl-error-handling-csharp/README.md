@@ -95,7 +95,7 @@ catch (CurlException ex) when (ex.IsRetryable())
 | `-f` and a status of 400 or above | `CurlHttpReturnedErrorException` | 22 |
 | `--max-redirs` exceeded | `CurlTooManyRedirectsException` | 47 |
 | Unsupported scheme such as `gopher://` | `CurlUnsupportedProtocolException` | 1 |
-| Command has no URL | `CurlInvalidCommandException` | (none) |
+| Command has no URL | `CurlInvalidCommandException` | 2 |
 | `-F 'f=@missing.txt'`, `-T missing.txt` | `CurlReadErrorException` | 26 |
 | `-o` into a directory that does not exist | `CurlWriteErrorException` | 23 |
 | Server closed the connection without a reply | `CurlGotNothingException` | 52 |
@@ -111,7 +111,7 @@ DNS and TLS failures have their own codes, so `IsRetryable()` is `true` for 6 an
 |---|---|
 | `CurlErrorCode` | curl exit code (`int?`) |
 | `GetCurlErrorName()` | Name for the code |
-| `Command` | The command that failed. It may contain secrets, so redact before logging |
+| `Command` | The command that failed, exactly as written. It may contain secrets; log `ToDetailedString()` or `ToJson()` instead, which mask credentials |
 | `Suggestions` | Hints for fixing the problem, when available |
 | `IsRetryable()` | `true` for codes 6, 7, 28, 52, 55 and 56 |
 | `ToUserFriendlyMessage()` | Text you can show to a user |

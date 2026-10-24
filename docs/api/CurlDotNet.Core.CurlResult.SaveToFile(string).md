@@ -3,30 +3,8 @@
 
 ## CurlResult\.SaveToFile\(string\) Method
 
-
-<b>Save the response to a file - works for both text and binary!</b>
-
-Smart saving - automatically handles text vs binary:
-
-```csharp
-// Save any response
-result.SaveToFile("output.txt");     // Text saved as text
-result.SaveToFile("image.png");      // Binary saved as binary
-
-// Chain operations (returns this)
-result
-    .SaveToFile("backup.json")       // Save a backup
-    .ParseJson<Data>();              // Then parse it
-```
-
-<b>Path examples:</b>
-
-```csharp
-result.SaveToFile("file.txt");              // Current directory
-result.SaveToFile("data/file.txt");         // Relative path
-result.SaveToFile(@"C:\temp\file.txt");     // Absolute path
-result.SaveToFile("/home/user/file.txt");   // Linux/Mac path
-```
+Writes the response to [filePath](CurlDotNet.Core.CurlResult.SaveToFile(string).md#CurlDotNet.Core.CurlResult.SaveToFile(string).filePath 'CurlDotNet\.Core\.CurlResult\.SaveToFile\(string\)\.filePath') \- the bytes of [BinaryData](CurlDotNet.Core.CurlResult.BinaryData.md 'CurlDotNet\.Core\.CurlResult\.BinaryData') for binary responses,
+otherwise the text of [Body](CurlDotNet.Core.CurlResult.Body.md 'CurlDotNet\.Core\.CurlResult\.Body') \- overwriting any existing file, and returns this result\.
 
 ```csharp
 public CurlDotNet.Core.CurlResult SaveToFile(string filePath);
@@ -37,40 +15,42 @@ public CurlDotNet.Core.CurlResult SaveToFile(string filePath);
 
 `filePath` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-Where to save the file
+Relative \(to the current directory\) or absolute path, such as `"data.json"`,
+            `"downloads/report.pdf"` or `@"C:\Temp\out.txt"`\.
 
 #### Returns
 [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')  
-This result \(for chaining\)
+This same result, for chaining\.
 
-### Example
+#### Exceptions
 
-```csharp
-// Download and save JSON response
-var result = await Curl.ExecuteAsync("curl https://api.example.com/data.json");
-result.SaveToFile("data.json");
-// File is now saved to disk AND still available in result.Body
+[System\.ArgumentException](https://learn.microsoft.com/en-us/dotnet/api/system.argumentexception 'System\.ArgumentException')  
+[filePath](CurlDotNet.Core.CurlResult.SaveToFile(string).md#CurlDotNet.Core.CurlResult.SaveToFile(string).filePath 'CurlDotNet\.Core\.CurlResult\.SaveToFile\(string\)\.filePath') is null, empty or whitespace; pass a path such as
+            `"out.json"`\. See https://github\.com/jacob\-mellor/curl\-dot\-net/blob/master/docs/how\-to/curl\-download\-file\-csharp/README\.md
 
-// Download image and save
-var result = await Curl.ExecuteAsync("curl https://example.com/logo.png");
-result.SaveToFile("logo.png");
-Console.WriteLine($"Saved {result.BinaryData.Length} bytes");
+[CurlWriteErrorException](CurlDotNet.Exceptions.CurlWriteErrorException.md 'CurlDotNet\.Exceptions\.CurlWriteErrorException')  
+The file could not be written \(exit code 23\): the folder does not
+            exist, access is denied, the file is locked by another program, the disk is full, or the name contains invalid
+            characters\. The message names the path, the cause and the fix\.
+            See https://github\.com/jacob\-mellor/curl\-dot\-net/blob/master/docs/how\-to/curl\-download\-file\-csharp/README\.md
 
-// Chain with parsing
-var result = await Curl.ExecuteAsync("curl https://api.example.com/users");
-var users = result
-    .SaveToFile("backup-users.json")  // Save backup
-    .ParseJson<List<User>>();    // Then parse
+### Remarks
 
-// Save with relative path
-result.SaveToFile("downloads/report.pdf");
+Text is written as UTF-8 (without a byte-order mark); binary data byte-for-byte. The path is added to
+            [OutputFiles](CurlDotNet.Core.CurlResult.OutputFiles.md 'CurlDotNet\.Core\.CurlResult\.OutputFiles'). The folder must already exist. Note that [Body](CurlDotNet.Core.CurlResult.Body.md 'CurlDotNet\.Core\.CurlResult\.Body') is what curl prints, so a
+            command with `-i` or `-w` saves those extras too.
 
-// Save with absolute path
-result.SaveToFile(@"C:\Temp\output.txt");  // Windows
-result.SaveToFile("/tmp/output.txt");       // Linux/Mac
-```
+For large downloads prefer curl's own `-o file` (or `-O`), which writes as the transfer runs:
+            `await Curl.ExecuteAsync("curl -o report.pdf https://example.com/report.pdf");`
+
+Example: `(await Curl.ExecuteAsync("curl https://example.com/logo.png")).SaveToFile("logo.png");` or chained:
+            `var data = result.EnsureSuccess().SaveToFile("backup.json").ParseJson<Data>();`
+
+Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md
 
 ### See Also
-- [Async version that doesn't block](CurlDotNet.Core.CurlResult.SaveToFileAsync(string).md 'CurlDotNet\.Core\.CurlResult\.SaveToFileAsync\(string\)')
-- [Save JSON with formatting](CurlDotNet.Core.CurlResult.SaveAsJson(string,bool).md 'CurlDotNet\.Core\.CurlResult\.SaveAsJson\(string, bool\)')
-- [Append to existing file instead of overwriting](CurlDotNet.Core.CurlResult.AppendToFile(string).md 'CurlDotNet\.Core\.CurlResult\.AppendToFile\(string\)')
+- [SaveToFileAsync\(string\)](CurlDotNet.Core.CurlResult.SaveToFileAsync(string).md 'CurlDotNet\.Core\.CurlResult\.SaveToFileAsync\(string\)')
+- [AppendToFile\(string\)](CurlDotNet.Core.CurlResult.AppendToFile(string).md 'CurlDotNet\.Core\.CurlResult\.AppendToFile\(string\)')
+- [SaveAsJson\(string, bool\)](CurlDotNet.Core.CurlResult.SaveAsJson(string,bool).md 'CurlDotNet\.Core\.CurlResult\.SaveAsJson\(string, bool\)')
+- [OutputFiles](CurlDotNet.Core.CurlResult.OutputFiles.md 'CurlDotNet\.Core\.CurlResult\.OutputFiles')
+- [BinaryData](CurlDotNet.Core.CurlResult.BinaryData.md 'CurlDotNet\.Core\.CurlResult\.BinaryData')

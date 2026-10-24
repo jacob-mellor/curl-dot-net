@@ -130,7 +130,7 @@ A proxy that answers `407 Proxy Authentication Required` to a `-p` tunnel is rep
 ## Gotchas
 
 - An HTTPS target through an HTTP proxy uses `CONNECT` tunnelling automatically; you do not need `-p`.
-- Inspecting traffic with Fiddler, Charles or mitmproxy? Combine `-x http://127.0.0.1:8888` with `-k` so the tool's certificate is accepted (development only). Trusting the tool's CA with `--cacert` is parsed but not applied yet.
+- Inspecting traffic with Fiddler, Charles or mitmproxy? Combine `-x http://127.0.0.1:8888` with `-k` so the tool's certificate is accepted (development only). Better, trust the tool's root certificate with `--cacert fiddler-root.pem` (.NET 5 and later), which keeps verification on.
 
 ## Related
 

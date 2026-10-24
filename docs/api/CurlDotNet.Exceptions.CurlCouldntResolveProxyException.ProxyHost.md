@@ -3,11 +3,19 @@
 
 ## CurlCouldntResolveProxyException\.ProxyHost Property
 
-Gets the proxy host that could not be resolved
+The proxy host name that could not be resolved, as given with `-x` or in a proxy environment variable\.
 
 ```csharp
 public string ProxyHost { get; }
 ```
 
 #### Property Value
-[System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+[System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')  
+A host name such as `proxy.corp.local`\.
+
+### Remarks
+
+Example: `Console.WriteLine($"https_proxy={Environment.GetEnvironmentVariable("https_proxy")}");` shows where it came from.
+
+### See Also
+- [ProxyHost](CurlDotNet.Exceptions.CurlProxyException.ProxyHost.md 'CurlDotNet\.Exceptions\.CurlProxyException\.ProxyHost')

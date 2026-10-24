@@ -3,7 +3,8 @@
 
 ## CurlHttpException\.IsRetryable\(\) Method
 
-Determines whether the HTTP error is retryable\.
+Tells whether the same request may succeed later: true for 429 \(rate limited\) and every 5xx server error,
+false for other 4xx errors, which need the request to change first\.
 
 ```csharp
 public override bool IsRetryable();
@@ -11,4 +12,12 @@ public override bool IsRetryable();
 
 #### Returns
 [System\.Boolean](https://learn.microsoft.com/en-us/dotnet/api/system.boolean 'System\.Boolean')  
-true if the error is retryable \(429 or 5xx status codes\); otherwise, false\.
+True for status 429 or 500 and above; otherwise false\.
+
+### Remarks
+
+Example: `catch (CurlHttpException ex) when (ex.IsRetryable()) { await Task.Delay(ex.GetRetryAfter() ?? TimeSpan.FromSeconds(5)); }`
+
+### See Also
+- [GetRetryAfter\(\)](CurlDotNet.Exceptions.CurlHttpException.GetRetryAfter().md 'CurlDotNet\.Exceptions\.CurlHttpException\.GetRetryAfter\(\)')
+- [IsServerError](CurlDotNet.Exceptions.CurlHttpException.IsServerError.md 'CurlDotNet\.Exceptions\.CurlHttpException\.IsServerError')

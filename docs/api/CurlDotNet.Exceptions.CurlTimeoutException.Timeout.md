@@ -3,7 +3,8 @@
 
 ## CurlTimeoutException\.Timeout Property
 
-Gets the timeout duration that was exceeded\.
+The limit that expired: the `-m/--max-time` or `--connect-timeout` value, so you can decide
+whether raising it makes sense\.
 
 ```csharp
 public System.Nullable<System.TimeSpan> Timeout { get; }
@@ -11,10 +12,13 @@ public System.Nullable<System.TimeSpan> Timeout { get; }
 
 #### Property Value
 [System\.Nullable&lt;](https://learn.microsoft.com/en-us/dotnet/api/system.nullable-1 'System\.Nullable\`1')[System\.TimeSpan](https://learn.microsoft.com/en-us/dotnet/api/system.timespan 'System\.TimeSpan')[&gt;](https://learn.microsoft.com/en-us/dotnet/api/system.nullable-1 'System\.Nullable\`1')  
-The timeout duration, or null if not specified\.
+The configured limit as a [System\.TimeSpan](https://learn.microsoft.com/en-us/dotnet/api/system.timespan 'System\.TimeSpan'); [System\.TimeSpan\.Zero](https://learn.microsoft.com/en-us/dotnet/api/system.timespan.zero 'System\.TimeSpan\.Zero') or null when no explicit
+            limit was set \(for example a caller\-supplied HttpClient timed out\)\.
 
 ### Remarks
 
-This represents the --max-time or --connect-timeout value that was exceeded.
+Example: `var next = (ex.Timeout ?? TimeSpan.FromSeconds(30)).TotalSeconds * 2;` then run the command
+            again with `-m {next}`.
 
-AI-Usage: Use this to determine if timeout should be increased.
+### See Also
+- [CurlErrorCode](CurlDotNet.Exceptions.CurlException.CurlErrorCode.md 'CurlDotNet\.Exceptions\.CurlException\.CurlErrorCode')

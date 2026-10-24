@@ -32,8 +32,9 @@ Cancellation is not an exit code either: a cancelled `CancellationToken` throws 
 | Code | curl name | CurlDotNet throws | When | How to fix |
 |------|-----------|-------------------|------|-----------|
 | 1 | `CURLE_UNSUPPORTED_PROTOCOL` | `CurlUnsupportedProtocolException` | URL scheme with no handler (`sftp://`, `htp://` ...), a `-L` redirect to a non-HTTP scheme, a response that is not HTTP/1.x or HTTP/2 (HTTP/0.9 without `--http0.9`) | Use http, https, ftp or file; `--http0.9` for ancient servers |
-| 2 | `CURLE_FAILED_INIT` | `CurlException` | An option is missing its value (`curl -H`), two request methods conflict (`-I` with `-d`, `-F` with `-d`, `--json` with `-F`), a bad `--max-filesize`, `-K` files nested too deeply, a `--variable` error | Fix the command as the message says |
-| 3 | `CURLE_URL_MALFORMAT` | `CurlMalformedUrlException`, or `CurlException` | The URL (or a redirect `Location`) cannot be parsed, the command is only `curl` with no URL, a malformed glob such as `[1-` | Fix the URL; escape `{` `[` or use `-g` |
+| 2 | `CURLE_FAILED_INIT` | `CurlException`, or `CurlInvalidCommandException` | No URL at all (`curl`, `curl -s`, a `CurlOptions` without `Url`), an option is missing its value (`curl -H`), a numeric option has a non-numeric value (`-m`, `--connect-timeout`, `--max-redirs`, `--retry`, `--retry-delay`, `--retry-max-time`, `--speed-limit`, `--speed-time`, `--limit-rate`, `--max-filesize`; the message names the option, and seconds are read like curl so `1e1` and `+5` work), a malformed `--aws-sigv4` (also from `AwsSigV4Config.Parse`), two request methods conflict (`-I` with `-d`, `-F` with `-d`, `--json` with `-F`), `-K` files nested too deeply, a `--variable` error | Fix the command as the message says |
+| 3 | `CURLE_URL_MALFORMAT` | `CurlMalformedUrlException`, or `CurlException` | The URL (or a redirect `Location`) cannot be parsed, a malformed glob such as `[1-` | Fix the URL; escape `{` `[` or use `-g` |
+| 4 | `CURLE_NOT_BUILT_IN` | `CurlNotBuiltInException` | `--pinnedpubkey` on an https transfer where the pin cannot be checked (.NET Standard 2.0 / .NET Framework, or your own `HttpClient`) | Run on .NET 5+, or drop the pin |
 | 5 | `CURLE_COULDNT_RESOLVE_PROXY` | `CurlCouldntResolveProxyException` | The proxy host name does not resolve | Check `-x` and the `http_proxy` / `https_proxy` / `all_proxy` variables |
 | 6 | `CURLE_COULDNT_RESOLVE_HOST` | `CurlCouldntResolveHostException` | The host name does not resolve | Check the spelling and DNS; `--resolve host:port:address` |
 | 7 | `CURLE_COULDNT_CONNECT` | `CurlCouldntConnectException` | Connection refused or unreachable, to the host or the proxy (`ViaProxy` says which); a refused `-p` tunnel | Start the server, check port and firewall; `--retry-connrefused` |
@@ -42,25 +43,29 @@ Cancellation is not an exit code either: a cancelled `CancellationToken` throws 
 | 18 | `CURLE_PARTIAL_FILE` | `CurlPartialFileException` | The connection closed before `Content-Length` bytes (or the last chunk) arrived | Retry, or resume with `-C -` |
 | 22 | `CURLE_HTTP_RETURNED_ERROR` | `CurlHttpReturnedErrorException` | `-f` / `--fail` or `--fail-with-body` and a status of 400 or more | Handle the status, or drop `-f` to get a normal result |
 | 23 | `CURLE_WRITE_ERROR` | `CurlWriteErrorException` | An `-o`, `-O`, `-D` or `-c` file cannot be written: missing directory, bad name, no permission, `-J` would overwrite | Create the directory or add `--create-dirs`; pick a writable path |
-| 26 | `CURLE_READ_ERROR` | `CurlReadErrorException` | An input file is missing or unreadable: `-T`, `-F name=@file`, `--data-urlencode @file`, `-K`, `--variable name@file`, `.netrc` | Fix the path (relative paths are relative to the working directory) |
-| 28 | `CURLE_OPERATION_TIMEDOUT` | `CurlOperationTimeoutException` | `-m` / `--max-time` or `--connect-timeout` expired; also `--retry-max-time` running out after a failed attempt (curl reports that attempt's own code instead) | Raise the limit; add `--retry` |
+| 26 | `CURLE_READ_ERROR` | `CurlReadErrorException` | An input file is missing or unreadable: `-H @file`, `-T`, `-F name=@file`, `--data-urlencode @file`, `-K`, `--variable name@file`, `.netrc` | Fix the path (relative paths are relative to the working directory) |
+| 28 | `CURLE_OPERATION_TIMEDOUT` | `CurlOperationTimeoutException` | `-m` / `--max-time` or `--connect-timeout` expired, or the transfer stayed below `--speed-limit` bytes per second for `--speed-time` seconds | Raise the limit; add `--retry` |
 | 33 | `CURLE_RANGE_ERROR` | `CurlRangeErrorException` | `-C` asked to resume but the server sent the whole document | Download again without `-C` |
-| 35 | `CURLE_SSL_CONNECT_ERROR` | `CurlSslConnectErrorException` | The TLS handshake failed (not a certificate problem) | Check the port speaks TLS and supports a current TLS version |
+| 35 | `CURLE_SSL_CONNECT_ERROR` | `CurlSslConnectErrorException` | The TLS handshake failed (not a certificate problem): no common TLS version or cipher, the server rejected the client certificate, or the port does not speak TLS | Check the port and the `--tlsv1.x` / `--tls-max` / `--ciphers` / `--cert` options |
 | 37 | `CURLE_FILE_COULDNT_READ_FILE` | `CurlFileCouldntReadException` | A single `-d @file`, `--data-binary @file` or `--json @file` is missing (the curl tool reports 26 here); `file://` permission denied | Fix the path |
+| 42 | `CURLE_ABORTED_BY_CALLBACK` | `CurlAbortedByCallbackException` | Your progress callback or `CurlSettings.OnRedirect` handler threw; your exception is the `InnerException` | Handle the error inside the callback, or throw on purpose to refuse a redirect |
 | 43 | `CURLE_BAD_FUNCTION_ARGUMENT` | `CurlBadFunctionArgumentException`, or `CurlException` | CR or LF inside a `-H` value or `--request-target`, `-C` with an upload (curl ignores `-C` there), `#name` in `-o` with no such glob | One header per `-H`; drop `-C` for uploads |
 | 47 | `CURLE_TOO_MANY_REDIRECTS` | `CurlTooManyRedirectsException` | More redirects than `--max-redirs` (default 50; `-1` is unlimited) | Raise `--max-redirs` or fix the redirect loop |
 | 49 | `CURLE_SETOPT_OPTION_SYNTAX` | `CurlOptionSyntaxException` | A `--resolve` or `--connect-to` entry is malformed | Use `HOST:PORT:ADDRESS` / `HOST1:PORT1:HOST2:PORT2` |
 | 52 | `CURLE_GOT_NOTHING` | `CurlGotNothingException` | The server accepted the request and closed without a byte | Check the server, the port and http vs https |
 | 56 | `CURLE_RECV_ERROR` | `CurlReceiveErrorException` | The connection failed while reading the response, or the headers exceed 300 KB | Retry; server-side problem |
-| 60 | `CURLE_PEER_FAILED_VERIFICATION` | `CurlPeerFailedVerificationException` | The server certificate was rejected (expired, wrong name, untrusted CA) | Trust the CA in the operating system store; `-k` only for development |
+| 58 | `CURLE_SSL_CERTPROBLEM` | `CurlSslCertificateProblemException` | The `--cert`/`--key` client certificate cannot be used: missing file, wrong `--cert-type`, wrong password, key does not match | Fix the file, `--cert-type` or `--pass` |
+| 60 | `CURLE_PEER_FAILED_VERIFICATION` | `CurlPeerFailedVerificationException` | The server certificate was rejected (expired, wrong name, untrusted CA) | Trust a private CA with `--cacert` (.NET 5+) or in the operating system store; `-k` only for development |
 | 61 | `CURLE_BAD_CONTENT_ENCODING` | `CurlBadContentEncodingException` | A `--compressed` body cannot be decoded, or the `Transfer-Encoding` is invalid | Server bug; drop `--compressed` to get the raw bytes |
 | 63 | `CURLE_FILESIZE_EXCEEDED` | `CurlFileSizeExceededException` | The response is larger than `--max-filesize` | Raise the limit |
+| 77 | `CURLE_SSL_CACERT_BADFILE` | `CurlSslCaCertBadFileException` | The `--cacert` file or `--capath` folder is missing, unreadable or holds no certificate | Fix the path; use PEM or DER certificates |
+| 90 | `CURLE_SSL_PINNEDPUBKEYNOTMATCH` | `CurlSslPinnedPublicKeyMismatchException` | The server's public key matches no `--pinnedpubkey` pin, or the pin cannot be read | Update the pin; the message shows the pin of the key that was presented |
 | 94 | `CURLE_AUTH_ERROR` | `CurlAuthErrorException` | `--digest`, `--ntlm`, `--negotiate`, `--anyauth` (or a `--proxy-` variant) could not process the challenge | Try `--basic`; look at the challenge with `-v`. A wrong password is a normal 401 result, not this error |
 | 100 | `CURLE_TOO_LARGE` | `CurlTooLargeException` | More than 5000 response header fields, or a header line over 100 KB | Server bug or hostile server |
 
-Exceptions of the same family share base types, so you can catch broadly: `CurlTimeoutException` for 28, `CurlSslException` for 35 and 60, `CurlDotNet.Exceptions.CurlHttpException` for 22, and `CurlException` for everything.
+Exceptions of the same family share base types, so you can catch broadly: `CurlTimeoutException` for 28, `CurlSslException` for 35, 58, 60, 77 and 90, `CurlDotNet.Exceptions.CurlHttpException` for 22, and `CurlException` for everything.
 
-One case has no code: a command with options but no URL (`curl -s`) throws `CurlInvalidCommandException` with `CurlErrorCode` null, where the curl tool exits with 2.
+A command with options but no URL (`curl -s`) throws `CurlInvalidCommandException` with `CurlErrorCode` 2, as the curl tool exits with 2.
 
 ## When does a code stop the command?
 
@@ -111,7 +116,7 @@ catch (CurlException ex)
 
 ## Codes CurlDotNet does not produce
 
-curl defines more than 90 codes. The ones not in the table belong to protocols or features CurlDotNet does not implement (SSH, SMTP, TFTP, TELNET, LDAP, client certificates) and are never returned. Some exception types exist for them so that code written against curl's numbering compiles; the [error reference](../troubleshooting/error-reference.html) lists every type, including those reserved ones.
+curl defines more than 90 codes. The ones not in the table belong to protocols or features CurlDotNet does not implement (SSH, SMTP, TFTP, TELNET, LDAP) and are never returned. Some exception types exist for them so that code written against curl's numbering compiles; the [error reference](../troubleshooting/error-reference.html) lists every type, including those reserved ones.
 
 ## Related
 

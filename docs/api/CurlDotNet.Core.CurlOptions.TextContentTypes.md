@@ -3,14 +3,16 @@
 
 ## CurlOptions\.TextContentTypes Property
 
-Additional MIME types that should be treated as text content\.
+Extra MIME types that are always read as text \(into [Body](CurlDotNet.Core.CurlResult.Body.md 'CurlDotNet\.Core\.CurlResult\.Body')\), for custom types the
+library would otherwise treat as binary\.
 
 ```csharp
 public System.Collections.Generic.List<string> TextContentTypes { get; set; }
 ```
 
 #### Property Value
-[System\.Collections\.Generic\.List&lt;](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1 'System\.Collections\.Generic\.List\`1')[System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')[&gt;](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1 'System\.Collections\.Generic\.List\`1')
+[System\.Collections\.Generic\.List&lt;](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1 'System\.Collections\.Generic\.List\`1')[System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')[&gt;](https://learn.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1 'System\.Collections\.Generic\.List\`1')  
+MIME types such as `"application/x-ndjson"`\. Default: empty\.
 
 ### Example
 
@@ -24,7 +26,12 @@ var result = await CurlRequestBuilder
 
 ### Remarks
 
-These MIME types take priority over the built-in binary detection (but not
-            [BinaryContentTypes](CurlDotNet.Core.CurlOptions.BinaryContentTypes.md 'CurlDotNet\.Core\.CurlOptions\.BinaryContentTypes') which has highest priority). Use this to override
-            the default behavior for MIME types that you know are text but that the library
-            treats as binary by default.
+These take priority over the built-in binary detection, but not over [BinaryContentTypes](CurlDotNet.Core.CurlOptions.BinaryContentTypes.md 'CurlDotNet\.Core\.CurlOptions\.BinaryContentTypes') or
+            [ForceBinary](CurlDotNet.Core.CurlOptions.ForceBinary.md 'CurlDotNet\.Core\.CurlOptions\.ForceBinary').
+
+Example: `options.TextContentTypes.Add("application/x-custom-config");` then read `result.Body`.
+
+### See Also
+- [BinaryContentTypes](CurlDotNet.Core.CurlOptions.BinaryContentTypes.md 'CurlDotNet\.Core\.CurlOptions\.BinaryContentTypes')
+- [ForceBinary](CurlDotNet.Core.CurlOptions.ForceBinary.md 'CurlDotNet\.Core\.CurlOptions\.ForceBinary')
+- [WithTextContentType\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithTextContentType(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithTextContentType\(string\)')

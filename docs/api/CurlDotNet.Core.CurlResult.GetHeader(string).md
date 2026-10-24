@@ -3,10 +3,8 @@
 
 ## CurlResult\.GetHeader\(string\) Method
 
-
-<b>Get a specific header value (case-insensitive).</b>
-
-Easy header access with null safety. This matches curl's header behavior exactly.
+Returns the value of one response header by name, ignoring case, or null when the response did not have it \-
+safer than indexing [Headers](CurlDotNet.Core.CurlResult.Headers.md 'CurlDotNet\.Core\.CurlResult\.Headers'), which throws for a missing name\.
 
 ```csharp
 public string GetHeader(string headerName);
@@ -17,44 +15,23 @@ public string GetHeader(string headerName);
 
 `headerName` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-Name of the header \(case doesn't matter\)
+The header name without the colon, in any case, such as `Content-Type`,
+            `location` or `ETAG`\. Null or empty returns null\.
 
 #### Returns
 [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')  
-Header value or null if not found
+The header value as sent by the server \(text after the colon, trimmed\), or null when absent\.
 
-### Example
+### Remarks
 
-```csharp
-// Get content type
-var contentType = result.GetHeader("Content-Type");
-if (contentType?.Contains("json") == true)
-{
-    var data = result.ParseJson<MyData>();
-}
+Repeated headers come back joined with `", "` (for example two `Set-Cookie` lines). The lookup is
+            case-insensitive even when you replaced [Headers](CurlDotNet.Core.CurlResult.Headers.md 'CurlDotNet\.Core\.CurlResult\.Headers') with a case-sensitive dictionary.
 
-// Check rate limits (common in APIs)
-var remaining = result.GetHeader("X-RateLimit-Remaining");
-if (remaining != null && int.Parse(remaining) < 10)
-{
-    Console.WriteLine("⚠️ Only {0} API calls left!", remaining);
-}
+Example: `var left = result.GetHeader("X-RateLimit-Remaining"); if (left != null && int.Parse(left) < 10) await Task.Delay(60_000);`
+            or `if (result.GetHeader("Content-Type")?.Contains("json") == true) data = result.ParseJson<Data>();`
 
-// Check cache control
-var cacheControl = result.GetHeader("Cache-Control");
-if (cacheControl?.Contains("no-cache") == true)
-{
-    Console.WriteLine("Response should not be cached");
-}
-
-// Get redirect location
-var location = result.GetHeader("Location");
-if (location != null)
-{
-    Console.WriteLine($"Redirected to: {location}");
-}
-```
+Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/08-headers-explained.md
 
 ### See Also
-- [Check if header exists](CurlDotNet.Core.CurlResult.HasHeader(string).md 'CurlDotNet\.Core\.CurlResult\.HasHeader\(string\)')
-- [Access all headers as dictionary](CurlDotNet.Core.CurlResult.Headers.md 'CurlDotNet\.Core\.CurlResult\.Headers')
+- [HasHeader\(string\)](CurlDotNet.Core.CurlResult.HasHeader(string).md 'CurlDotNet\.Core\.CurlResult\.HasHeader\(string\)')
+- [Headers](CurlDotNet.Core.CurlResult.Headers.md 'CurlDotNet\.Core\.CurlResult\.Headers')

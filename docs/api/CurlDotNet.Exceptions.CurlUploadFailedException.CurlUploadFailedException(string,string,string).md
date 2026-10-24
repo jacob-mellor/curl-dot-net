@@ -3,7 +3,8 @@
 
 ## CurlUploadFailedException\(string, string, string\) Constructor
 
-Initializes a new instance of the [CurlUploadFailedException](CurlDotNet.Exceptions.CurlUploadFailedException.md 'CurlDotNet\.Exceptions\.CurlUploadFailedException') class\.
+Creates the upload error \(exit code 25\) for [fileName](CurlDotNet.Exceptions.CurlUploadFailedException.CurlUploadFailedException(string,string,string).md#CurlDotNet.Exceptions.CurlUploadFailedException.CurlUploadFailedException(string,string,string).fileName 'CurlDotNet\.Exceptions\.CurlUploadFailedException\.CurlUploadFailedException\(string, string, string\)\.fileName'), prefixing `Upload failed for FILE:`
+to the caller's explanation\.
 
 ```csharp
 public CurlUploadFailedException(string fileName, string message, string command=null);
@@ -20,10 +21,17 @@ The name of the file that failed to upload\.
 
 `message` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-The error message that explains the reason for the exception\.
+Why the upload failed and, optionally, how to fix it \(newline\-separated\)\.
 
 <a name='CurlDotNet.Exceptions.CurlUploadFailedException.CurlUploadFailedException(string,string,string).command'></a>
 
 `command` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-The curl command that caused the exception\.
+The curl command that caused the exception, or null\.
+
+### Remarks
+
+Example: `throw new CurlUploadFailedException("big.iso", "the server answered 552 (quota exceeded).", command);`
+
+### See Also
+- [CurlReadErrorException](CurlDotNet.Exceptions.CurlReadErrorException.md 'CurlDotNet\.Exceptions\.CurlReadErrorException')

@@ -80,6 +80,28 @@ var result = await Curl.ExecuteAsync(
 
 On .NET 5 and later it is enforced per connection attempt, as in curl, and a connect timeout also throws `CurlOperationTimeoutException` (exit code 28) with a "Connection timed out after ... milliseconds" message. On .NET Framework and .NET Standard 2.0 builds it is applied on a best-effort basis, so keep `-m` as the hard limit there. The builder equivalent is `WithConnectTimeout(TimeSpan)`, and FTP transfers honour it too.
 
+## Slow downloads: --speed-limit and --limit-rate
+
+`-m` cuts off a healthy but large download too. To give up only when a transfer stalls, use curl's low-speed check: `--speed-limit BYTES --speed-time SECONDS` aborts when the download stays below that rate for that long, with `CurlOperationTimeoutException` (exit code 28) and curl's "Operation too slow" message. `--speed-time` alone uses a limit of 1 byte per second, and `--speed-limit` alone a window of 30 seconds.
+
+```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
+
+try
+{
+    // give up if fewer than 1000 bytes/s arrive for 15 seconds in a row
+    var result = await Curl.ExecuteAsync(
+        "curl --speed-limit 1000 --speed-time 15 -o big.bin https://httpbin.org/bytes/1048576");
+}
+catch (CurlOperationTimeoutException ex) when (ex.Message.StartsWith("Operation too slow"))
+{
+    Console.WriteLine("The download stalled");
+}
+```
+
+`--limit-rate` works the other way round: it caps the download speed (`--limit-rate 100k` is 102400 bytes per second; `k`, `M` and `G` suffixes work), which is `CurlOptions.LimitRate`. Both apply to http and https response bodies; uploads are not throttled.
+
 ## Timeout versus cancellation
 
 A `CancellationToken` you cancel yourself raises the standard `OperationCanceledException`, not a timeout, so you can tell the two apart:
@@ -101,7 +123,7 @@ catch (CurlOperationTimeoutException) { Console.WriteLine("Hit --max-time"); }
 
 - `-m` is the whole operation, including redirects followed with `-L` and the download itself. A 1 GB download needs a long `-m`, or none.
 - The timeout is in seconds and may be fractional: `-m 0.5` is half a second.
-- Timeouts are retried when you ask for it: `--retry 3` retries a timed-out transfer (and HTTP 408/429/5xx), with `--retry-max-time` capping the total. See [curl --retry in C#](retry.html).
+- Timeouts are retried when you ask for it: `--retry 3` retries a timed-out or too-slow transfer (and HTTP 408/429/5xx), with `--retry-max-time` capping the total. See [curl --retry in C#](retry.html).
 
 ## Related
 

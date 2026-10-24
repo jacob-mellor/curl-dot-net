@@ -141,7 +141,7 @@ The SDK is not on your `PATH`. Reinstall from [dotnet.microsoft.com/download](ht
 
 ### SSL or certificate errors on first run
 
-CurlDotNet uses the operating system's certificate store through .NET. Make sure the OS root certificates are up to date (`sudo apt-get install ca-certificates` on Debian/Ubuntu). For development servers with self-signed certificates you can pass `-k` (see [curl ignore SSL certificate in C#](../guides/advanced.html#curl-ignore-ssl-certificate-in-c)); do not use it in production.
+By default CurlDotNet uses the operating system's certificate store through .NET. Make sure the OS root certificates are up to date (`sudo apt-get install ca-certificates` on Debian/Ubuntu). For a private or corporate CA, pass it with `--cacert ca.pem` (.NET 5 and later), as with curl. For development servers with self-signed certificates you can pass `-k` (see [curl ignore SSL certificate in C#](../guides/advanced.html#curl-ignore-ssl-certificate-in-c)); do not use it in production.
 
 More: [Troubleshooting](../troubleshooting/README.html) and [Common issues](../troubleshooting/common-issues.html).
 

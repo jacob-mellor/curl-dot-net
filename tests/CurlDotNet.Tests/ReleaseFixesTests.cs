@@ -145,17 +145,32 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
-        public async Task RetryDelay_WinsOverRetryAfter()
+        public async Task RetryDelay_AndRetryAfter_LargerWaitWins()
         {
+            // curl's tool_operate.c: the retry wait is the larger of --retry-delay (or the backoff) and Retry-After
             using var server = new RawReplyServer(
-                "HTTP/1.1 503 Busy\r\nRetry-After: 120\r\nContent-Length: 0\r\n\r\n",
+                "HTTP/1.1 503 Busy\r\nRetry-After: 2\r\nContent-Length: 0\r\n\r\n",
                 Ok);
 
             var clock = Stopwatch.StartNew();
-            var result = await Curl.ExecuteAsync($"curl --retry 1 --retry-delay 1 {server.Url("/")}");
+            var result = await Curl.ExecuteAsync($"curl --retry 1 --retry-delay 0.2 {server.Url("/")}");
 
-            clock.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(20), "an explicit --retry-delay is not overridden by the server's Retry-After");
-            clock.Elapsed.Should().BeGreaterOrEqualTo(TimeSpan.FromMilliseconds(900));
+            clock.Elapsed.Should().BeGreaterOrEqualTo(TimeSpan.FromMilliseconds(1900), "Retry-After: 2 is longer than --retry-delay 0.2");
+            clock.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(10));
+            result.StatusCode.Should().Be(200);
+        }
+
+        [Fact]
+        public async Task RetryDelay_LongerThanRetryAfter_IsKept()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 503 Busy\r\nRetry-After: 1\r\nContent-Length: 0\r\n\r\n",
+                Ok);
+
+            var clock = Stopwatch.StartNew();
+            var result = await Curl.ExecuteAsync($"curl --retry 1 --retry-delay 1.5 {server.Url("/")}");
+
+            clock.Elapsed.Should().BeGreaterOrEqualTo(TimeSpan.FromMilliseconds(1400), "--retry-delay 1.5 is longer than Retry-After: 1");
             result.StatusCode.Should().Be(200);
         }
 

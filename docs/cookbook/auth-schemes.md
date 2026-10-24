@@ -172,7 +172,7 @@ var result = await Curl.ExecuteAsync(@"
 - Never hard-code secrets in the command string in source control; read them from environment variables or your secret store and interpolate them.
 - A password containing `@`, `:` or spaces must be quoted: `-u 'user:p@ss word'`. Only the first colon separates user and password.
 - Basic credentials are only safe over HTTPS; the header is just base64.
-- Client certificates and custom CAs (`--cert`, `--key`, `--cacert`, `--capath`) are parsed and stored in `CurlOptions` but not applied to the connection yet. For mutual TLS, use `HttpClient` directly with a configured handler (`Curl.ToHttpClient` generates equivalent `HttpClient` C# code to start from).
+- Client certificates (mutual TLS) work on .NET 5 and later: `--cert client.pem --key client.key`, or `--cert client.p12:password --cert-type P12`, with `--pass` for an encrypted key and `--cacert` for a private CA. On .NET Standard 2.0 and .NET Framework these options are listed in `CurlOptions.UnsupportedOptions` and no certificate is sent. See [SSL certificate errors](../exceptions/ssl-errors.html).
 - `~/.curlrc` is never read implicitly; put shared options in a file and load it with `-K`.
 
 ## Related

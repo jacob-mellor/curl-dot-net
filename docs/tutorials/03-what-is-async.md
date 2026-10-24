@@ -250,7 +250,7 @@ static async Task Main()
 }
 ```
 
-If you really need a synchronous call (a console script, for example), use the synchronous API instead: `var result = Curl.Execute("curl https://httpbin.org/get");`.
+If you really need a synchronous call (a console script, for example), use the synchronous API instead: `var result = Curl.Execute("curl https://httpbin.org/get");`. It blocks the calling thread until the transfer ends, so keep it out of UI event handlers and classic ASP.NET request code.
 
 ### Mistake 3: Not Making the Method Async
 

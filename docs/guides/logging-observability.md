@@ -25,6 +25,8 @@ The `-v` flag mirrors the CLI, showing connection, TLS, and header exchanges. cu
 
 ## 2. Structured Logging with Middleware
 
+The built-in `LoggingMiddleware` (`CurlMiddlewarePipeline.CreateBuilder().UseLogging(line => logger.LogInformation(line))`) logs each command with its credentials masked: the values of `-u`/`-U`, `--oauth2-bearer`, `--pass`, `-b` cookie strings, the password in `--cert FILE:PASSWORD`, `Authorization`, `Proxy-Authorization` and `Cookie` headers, and passwords in URLs and proxy URLs appear as `***`. Other values, such as a password inside `-d` form data, are logged as written.
+
 Wrap requests in a custom middleware to push structured logs to Serilog, Microsoft.Extensions.Logging, etc.
 
 ```csharp
@@ -89,7 +91,7 @@ curl_request_duration_milliseconds{endpoint="/health",status="200"} 142
 
 ## 4. Capturing Request/Response Bodies Safely
 
-Never log secrets. Use redaction helpers before writing payloads:
+Never log secrets. The library masks credentials in what it writes itself (`LoggingMiddleware`, the `Command:` line of a `--trace` file, and `CurlException.ToDetailedString()`, `ToJson()` and `GetDiagnosticInfo()`), but `ex.Command`, `result.Body` and the `--trace` wire dump hold the raw values. Use redaction helpers before writing payloads:
 
 ```csharp
 string Redact(string body) =>

@@ -9,7 +9,7 @@ CurlDotNet reference pages answer five questions: where each piece of documentat
 
 - [Documentation Overview](documentation.html) - Map of every documentation section with direct links
 - [libcurl Mapping](libcurl-mapping.html) - libcurl `CURLOPT_*`, `CURLINFO_*` and `CURLE_*` mapped to CurlDotNet methods, properties and exceptions
-- [curl CLI Compatibility](curl-cli-compatibility.html) - Generated table of all curl 8.7.1 options (implemented, parsed but not applied, ignored), command-line syntax and shell quoting on Linux, macOS and Windows
+- [curl CLI Compatibility](curl-cli-compatibility.html) - Generated table of all 281 options in curl's table (133 implemented, 139 accepted and listed in `UnsupportedOptions`, 9 terminal-only or without effect), command-line syntax and shell quoting on Linux, macOS and Windows
 - [curl Exit Codes in C#](curl-exit-codes.html) - Every curl exit code CurlDotNet produces, the exception type it throws and how to fix it
 - [curl Test Suite](curl-test-suite.html) - How CurlDotNet replays 1092 of curl's own test files, how to run them and read the report
 

@@ -3,11 +3,19 @@
 
 ## CurlFunctionNotFoundException\.FunctionName Property
 
-Gets the function name that was not found
+The function or platform API that could not be found, so you can tell which option depends on it\.
 
 ```csharp
 public string FunctionName { get; }
 ```
 
 #### Property Value
-[System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+[System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')  
+The function name as passed to the constructor\.
+
+### Remarks
+
+Search the compatibility list for the option that needs it.
+
+### See Also
+- [Feature](CurlDotNet.Exceptions.CurlNotBuiltInException.Feature.md 'CurlDotNet\.Exceptions\.CurlNotBuiltInException\.Feature')

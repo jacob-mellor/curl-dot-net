@@ -3,7 +3,8 @@
 
 ## CurlRedirectException\.RedirectCount Property
 
-Gets the number of redirects that were followed before the limit was exceeded\.
+How many redirects were followed before the limit stopped the chain; a value equal to the limit usually
+means a redirect loop\.
 
 ```csharp
 public int RedirectCount { get; }
@@ -11,10 +12,11 @@ public int RedirectCount { get; }
 
 #### Property Value
 [System\.Int32](https://learn.microsoft.com/en-us/dotnet/api/system.int32 'System\.Int32')  
-The count of redirects attempted\.
+The number of hops followed\.
 
 ### Remarks
 
-This helps identify potential redirect loops or excessive redirect chains.
+Example: `if (ex.RedirectCount >= 50) Console.WriteLine("Redirect loop - check cookies and login");`
 
-AI-Usage: If count is high, suspect a redirect loop.
+### See Also
+- [LastUrl](CurlDotNet.Exceptions.CurlRedirectException.LastUrl.md 'CurlDotNet\.Exceptions\.CurlRedirectException\.LastUrl')

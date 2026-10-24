@@ -1326,8 +1326,8 @@ namespace CurlDotNet.Core
         /// </summary>
         /// <value>Seconds. Default: 0 (use the server's <c>Retry-After</c> or exponential backoff).</value>
         /// <remarks>
-        /// <para>A fixed delay is not overridden by the server's <c>Retry-After</c> header; leave it at 0 to honour
-        /// <c>Retry-After</c>. A negative or non-numeric value on the command line fails with exit code 2.
+        /// <para>Like curl, the wait before a retry is the larger of this delay (or the backoff) and the server's
+        /// <c>Retry-After</c> header, capped at 600 seconds. A negative or non-numeric value on the command line fails with exit code 2.
         /// Example: <c>curl --retry 5 --retry-delay 0.5 URL</c> is <c>new CurlOptions { Url = url, Retry = 5, RetryDelay = 0.5 }</c>.</para>
         /// </remarks>
         /// <seealso cref="Retry"/>

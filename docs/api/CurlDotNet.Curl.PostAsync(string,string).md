@@ -3,24 +3,8 @@
 
 ## Curl\.PostAsync\(string, string\) Method
 
-
-<b>Quick POST request - simpler syntax for posting data.</b>
-
-Convenient method for simple POST requests with string data.
-
-<b>Example:</b>
-
-```csharp
-// Post form data
-var response = await Curl.Post(
-    "https://api.example.com/login",
-    "username=john&password=secret123"
-);
-
-// Post JSON data
-var json = "{\"name\":\"John\",\"age\":30}";
-var result = await Curl.Post("https://api.example.com/users", json);
-```
+Sends a POST request with [data](CurlDotNet.Curl.PostAsync(string,string).md#CurlDotNet.Curl.PostAsync(string,string).data 'CurlDotNet\.Curl\.PostAsync\(string, string\)\.data') as the body \(like `curl -d DATA URL`\), with no quoting or
+escaping needed for the data\.
 
 ```csharp
 public static System.Threading.Tasks.Task<CurlDotNet.Core.CurlResult> PostAsync(string url, string data);
@@ -31,24 +15,52 @@ public static System.Threading.Tasks.Task<CurlDotNet.Core.CurlResult> PostAsync(
 
 `url` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-The URL to POST to\.
+An absolute URL to post to, for example `https://api.example.com/users`\.
 
 <a name='CurlDotNet.Curl.PostAsync(string,string).data'></a>
 
 `data` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-The data to send in the POST body\. Can be:
-- JSON string: `"{\"key\":\"value\"}"`
-- Form data: `"key1=value1&key2=value2"`
-- XML or any other string content
+The request body as text: form fields \(`key1=value1&key2=value2`\), JSON
+            \(`{"key":"value"}`\), XML or anything else\. Null sends an empty body\.
 
 #### Returns
 [System\.Threading\.Tasks\.Task&lt;](https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1 'System\.Threading\.Tasks\.Task\`1')[CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')[&gt;](https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1 'System\.Threading\.Tasks\.Task\`1')  
-A [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult') with the response\.
+The [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult') with the server's status, headers and body\.
+
+#### Exceptions
+
+[System\.ArgumentException](https://learn.microsoft.com/en-us/dotnet/api/system.argumentexception 'System\.ArgumentException')  
+[url](CurlDotNet.Curl.PostAsync(string,string).md#CurlDotNet.Curl.PostAsync(string,string).url 'CurlDotNet\.Curl\.PostAsync\(string, string\)\.url') is null, empty or whitespace\. See
+            https://github\.com/jacob\-mellor/curl\-dot\-net/blob/master/docs/exceptions/url\-errors\.md
+
+[CurlException](CurlDotNet.Exceptions.CurlException.md 'CurlDotNet\.Exceptions\.CurlException')  
+The transfer failed; see [ExecuteAsync\(string\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string) 'CurlDotNet\.Curl\.ExecuteAsync\(string\)')\.
+
+### Example
+
+```csharp
+var response = await Curl.PostAsync("https://api.example.com/login", "username=john&password=secret123");
+var created = await Curl.PostAsync("https://api.example.com/notes", "It's \"quoted\" and that's fine");
+```
 
 ### Remarks
 
-Equivalent to `curl -X POST -d <data> <url>`, but the data is passed straight to the
-             engine, so quotes, apostrophes and spaces in [data](CurlDotNet.Curl.PostAsync(string,string).md#CurlDotNet.Curl.PostAsync(string,string).data 'CurlDotNet\.Curl\.PostAsync\(string, string\)\.data') need no escaping.
+The body is sent exactly as given; quotes, apostrophes, spaces and newlines need no escaping. As with
+            `curl -d`, the request has `Content-Type: application/x-www-form-urlencoded` unless you send
+            something else; for JSON use [PostJsonAsync\(string, object\)](CurlDotNet.Curl.PostJsonAsync(string,object).md 'CurlDotNet\.Curl\.PostJsonAsync\(string, object\)'), which sets `Content-Type: application/json`.
+            The data is not URL-encoded for you: for form fields write `name=value&other=2` and encode values
+            with `Uri.EscapeDataString`.
 
-For POST with headers, use [PostJson\(string, object\)](CurlDotNet.Curl.PostJson(string,object).md 'CurlDotNet\.Curl\.PostJson\(string, object\)') or the full [Execute\(string\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string) 'CurlDotNet\.Curl\.Execute\(string\)') method.
+HTTP errors are returned, not thrown; check [IsSuccess](CurlDotNet.Core.CurlResult.IsSuccess.md 'CurlDotNet\.Core\.CurlResult\.IsSuccess').
+
+Example: `var result = await Curl.PostAsync("https://api.example.com/login", "username=john&password=" + Uri.EscapeDataString(pw));`
+
+Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md
+
+### See Also
+- [Blocking version](CurlDotNet.Curl.Post(string,string).md 'CurlDotNet\.Curl\.Post\(string, string\)')
+- [Post an object as JSON](CurlDotNet.Curl.PostJsonAsync(string,object).md 'CurlDotNet\.Curl\.PostJsonAsync\(string, object\)')
+- [Builder equivalent](CurlDotNet.Core.CurlRequestBuilder.Post(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.Post\(string\)')
+- [libcurl\-style equivalent](CurlDotNet.Lib.LibCurl.PostAsync(string,object,System.Action_CurlDotNet.Core.CurlOptions_,System.Threading.CancellationToken).md 'CurlDotNet\.Lib\.LibCurl\.PostAsync\(string, object, System\.Action\<CurlDotNet\.Core\.CurlOptions\>, System\.Threading\.CancellationToken\)')
+- [PostAsync\(string, string\)](CurlDotNet.DotNetCurl.PostAsync(string,string).md 'CurlDotNet\.DotNetCurl\.PostAsync\(string, string\)')

@@ -3,10 +3,8 @@
 
 ## CurlResult\.HasHeader\(string\) Method
 
-
-<b>Check if a header exists.</b>
-
-Test for header presence before accessing. This is case-insensitive, matching curl's behavior.
+True when the response contains the header [headerName](CurlDotNet.Core.CurlResult.HasHeader(string).md#CurlDotNet.Core.CurlResult.HasHeader(string).headerName 'CurlDotNet\.Core\.CurlResult\.HasHeader\(string\)\.headerName') \(ignoring case\), so you can test before
+reading it\.
 
 ```csharp
 public bool HasHeader(string headerName);
@@ -17,43 +15,20 @@ public bool HasHeader(string headerName);
 
 `headerName` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-Name of the header to check \(case\-insensitive\)
+The header name without the colon, in any case, such as `Set-Cookie`\. Null or empty
+            returns false\.
 
 #### Returns
 [System\.Boolean](https://learn.microsoft.com/en-us/dotnet/api/system.boolean 'System\.Boolean')  
-true if the header exists, false otherwise
+true when the header is present \(even with an empty value\); otherwise false\.
 
-### Example
+### Remarks
 
-```csharp
-// Check for cookies
-if (result.HasHeader("Set-Cookie"))
-{
-    var cookie = result.GetHeader("Set-Cookie");
-    Console.WriteLine($"Cookie received: {cookie}");
-}
+Uses the same case-insensitive lookup as [GetHeader\(string\)](CurlDotNet.Core.CurlResult.GetHeader(string).md 'CurlDotNet\.Core\.CurlResult\.GetHeader\(string\)'); `HasHeader(x)` is equivalent to
+            `GetHeader(x) != null`.
 
-// Check for authentication requirements
-if (result.HasHeader("WWW-Authenticate"))
-{
-    Console.WriteLine("Authentication required");
-}
-
-// Check for custom headers
-if (result.HasHeader("X-Custom-Header"))
-{
-    var value = result.GetHeader("X-Custom-Header");
-    ProcessCustomValue(value);
-}
-
-// Conditional logic based on headers
-if (result.HasHeader("Content-Encoding") && 
-    result.GetHeader("Content-Encoding").Contains("gzip"))
-{
-    Console.WriteLine("Response is gzip compressed");
-}
-```
+Example: `if (result.HasHeader("WWW-Authenticate")) Console.WriteLine("Server wants credentials: " + result.GetHeader("WWW-Authenticate"));`
 
 ### See Also
-- [Get header value](CurlDotNet.Core.CurlResult.GetHeader(string).md 'CurlDotNet\.Core\.CurlResult\.GetHeader\(string\)')
-- [Access all headers](CurlDotNet.Core.CurlResult.Headers.md 'CurlDotNet\.Core\.CurlResult\.Headers')
+- [GetHeader\(string\)](CurlDotNet.Core.CurlResult.GetHeader(string).md 'CurlDotNet\.Core\.CurlResult\.GetHeader\(string\)')
+- [Headers](CurlDotNet.Core.CurlResult.Headers.md 'CurlDotNet\.Core\.CurlResult\.Headers')

@@ -66,7 +66,7 @@ var result = await CurlRequestBuilder.Post("https://httpbin.org/post")
 | Save to file | `-o` | Write the stream yourself |
 | Streaming large bodies | No, the response is buffered in memory | Yes (`ResponseHeadersRead`) |
 | HTTP/2 and HTTP/3 selection | `--http1.1`, `--http2`, `--http2-prior-knowledge`, `--http3` | `HttpRequestMessage.Version` |
-| Client certificates, custom CA | Not supported (`--cert`, `--cacert` are parsed but not applied) | `HttpClientHandler` / `SocketsHttpHandler` |
+| Client certificates, custom CA, key pinning | `--cert`, `--key`, `--cacert`, `--capath`, `--pinnedpubkey` (.NET 5+) | `HttpClientHandler` / `SocketsHttpHandler` |
 | `IHttpClientFactory`, typed clients, Polly | Not integrated | First-class |
 | Code generation (C#, Python, JS, PowerShell) | Built in | n/a |
 | Dependencies | One NuGet package | In the box |
@@ -81,7 +81,7 @@ var result = await CurlRequestBuilder.Post("https://httpbin.org/post")
 ## Choose HttpClient when
 
 - You are building a high-throughput service and want `IHttpClientFactory`, handler pipelines and resilience policies.
-- You stream large uploads or downloads, or need mutual TLS or a pinned CA.
+- You stream large uploads or downloads, or need mutual TLS or a custom CA on .NET Framework (CurlDotNet applies `--cert` and `--cacert` on .NET 5 and later only).
 - Every allocation matters. CurlDotNet parses a string per call; no benchmark is published, so measure in your own workload if this is a concern.
 
 Mixing them is fine: prototype with the pasted curl command, then call `Curl.ToHttpClient(cmd)` for a starting point when you move a hot path to raw `HttpClient`. It carries over headers, body, `-u`, `-x`, `-k`, `-L`, `-m` and `-F`.

@@ -3,21 +3,25 @@
 
 ## CurlOptions\.DataRaw Property
 
-Whether the data was provided via \-\-data\-raw, which prevents @file expansion\.
-When true, a leading @ in [Data](CurlDotNet.Core.CurlOptions.Data.md 'CurlDotNet\.Core\.CurlOptions\.Data') is treated as a literal character
-rather than a file reference\. This matches curl's \-\-data\-raw behavior\.
+Sends [Data](CurlDotNet.Core.CurlOptions.Data.md 'CurlDotNet\.Core\.CurlOptions\.Data') literally even when it starts with `@`, instead of reading a file;
+curl's `--data-raw`, which is `-d` without the `@file` feature\.
 
 ```csharp
 public bool DataRaw { get; set; }
 ```
 
 #### Property Value
-[System\.Boolean](https://learn.microsoft.com/en-us/dotnet/api/system.boolean 'System\.Boolean')
+[System\.Boolean](https://learn.microsoft.com/en-us/dotnet/api/system.boolean 'System\.Boolean')  
+True to send a leading `@` as a character\. Default: false\.
 
 ### Remarks
 
-In curl, --data-raw is identical to --data except that @ has no special meaning.
-            This is useful when the data literally starts with @ and should not be interpreted
-            as a file reference.
+Use it when the body really begins with `@`, such as a mention or a decorator name.
+            Example: `curl --data-raw "@channel deploy done" URL` is
+            `new CurlOptions { Url = url, Method = "POST", Data = "@channel deploy done", DataRaw = true }`; without
+            `DataRaw` CurlDotNet would try to read a file called `channel deploy done`.
 
-See: https://curl.se/docs/manpage.html#--data-raw
+curl manual: https://curl.se/docs/manpage.html#--data-raw
+
+### See Also
+- [Data](CurlDotNet.Core.CurlOptions.Data.md 'CurlDotNet\.Core\.CurlOptions\.Data')

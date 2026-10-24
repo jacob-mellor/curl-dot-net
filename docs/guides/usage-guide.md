@@ -293,7 +293,15 @@ var saved = await Curl.ExecuteAsync("curl -o largefile.zip https://example.com/l
 var resumed = await Curl.ExecuteAsync("curl -C - -o largefile.zip https://example.com/largefile.zip");
 ```
 
-CurlDotNet has no download progress callback today (`CurlSettings.WithProgress` is accepted but not invoked); `-C -` resume and `--retry` are the tools for long downloads.
+For a progress display, pass a callback with `CurlSettings.WithProgress`. It is called once per network read of an http/https body with the percentage (-1 when the length is unknown), the bytes received and the total; throwing from it aborts the download with `CurlAbortedByCallbackException` (exit code 42). `-C -` resume, `--retry`, `--limit-rate` and `--speed-limit` are the other tools for long downloads.
+
+```csharp
+var settings = new CurlSettings()
+    .WithProgress((percent, received, total) =>
+        Console.Write(percent < 0 ? $"\r{received:N0} bytes" : $"\r{percent:F0}%"));
+
+var big = await Curl.ExecuteAsync("curl -o largefile.zip https://example.com/largefile.zip", settings);
+```
 
 ### Uploading Files
 
@@ -682,7 +690,7 @@ var result = await CurlRequestBuilder.Get("https://self-signed.example.com")
 // Same as: curl -k https://self-signed.example.com
 ```
 
-`--cacert` and `--cert` are parsed but not applied; certificates are checked against the operating system's trust store.
+On .NET 5 and later `--cacert`/`--capath` trust a private CA, `--cert`/`--key` send a client certificate and `--pinnedpubkey` pins the server key; on .NET Standard 2.0 and .NET Framework those options are listed in `CurlOptions.UnsupportedOptions` and certificates are checked against the operating system's trust store. See [SSL certificate errors](../exceptions/ssl-errors.html).
 
 #### Proxy Configuration
 ```csharp

@@ -4,5 +4,5 @@
 
 | Classes | |
 | :--- | :--- |
-| [FluentExtensions](CurlDotNet.Extensions.FluentExtensions.md 'CurlDotNet\.Extensions\.FluentExtensions') | Extension methods for fluent curl building\. |
-| [StringExtensions](CurlDotNet.Extensions.StringExtensions.md 'CurlDotNet\.Extensions\.StringExtensions') | Extension methods for string to provide syntactic sugar for curl operations\. |
+| [FluentExtensions](CurlDotNet.Extensions.FluentExtensions.md 'CurlDotNet\.Extensions\.FluentExtensions') | Start a [CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.md 'CurlDotNet\.Core\.CurlRequestBuilder') from a URL string: `"https://api.example.com".ToCurl()`, `.WithHeader(...)` or `.WithMethod("DELETE")`, then chain and `ExecuteAsync()`\. |
+| [StringExtensions](CurlDotNet.Extensions.StringExtensions.md 'CurlDotNet\.Extensions\.StringExtensions') | Run curl straight from a string: `await "curl https://api.github.com".CurlAsync()`, `await "https://example.com".CurlBodyAsync()`, `"curl ...".Curl()` for synchronous code\. |

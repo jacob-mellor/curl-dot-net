@@ -22,7 +22,7 @@ With `-o` the body goes to the file and `Body` holds only the `-w` text, which m
 
 ## Variables
 
-Every variable curl documents for HTTP transfers is available (`%{num_retries}` exists but currently always prints 0). The most used:
+Every variable curl documents for HTTP transfers is available, including `%{num_retries}` (how many `--retry` attempts were made; with `--retry` the `-w` text is written once, for the final attempt). The most used:
 
 | Variable | Value |
 |----------|-------|
@@ -47,7 +47,7 @@ Every variable curl documents for HTTP transfers is available (`%{num_retries}` 
 
 ## Everything as JSON
 
-`%{json}` prints all variables as one JSON object, and `%{header_json}` the response headers:
+`%{json}` prints all variables as one JSON object in curl's variable order, and `%{header_json}` the response headers. As in curl, numeric variables (`http_code`, `size_*`, `time_*`, `num_*` ...) are JSON numbers and a variable with no value is `null`, not a quoted string, so `GetInt32()` and `GetDouble()` work directly:
 
 ```csharp
 using System.Text.Json;
@@ -57,7 +57,7 @@ var result = await Curl.ExecuteAsync("curl -s -o get.json -w '%{json}' https://h
 
 using var doc = JsonDocument.Parse(result.Body);
 var root = doc.RootElement;
-Console.WriteLine(root.GetProperty("http_code"));                 // 200
+Console.WriteLine(root.GetProperty("http_code").GetInt32());     // 200
 Console.WriteLine(root.GetProperty("time_total").GetDouble());   // seconds
 ```
 

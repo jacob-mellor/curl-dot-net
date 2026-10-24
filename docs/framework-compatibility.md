@@ -35,6 +35,10 @@ The same commands parse and run everywhere, but on .NET 8 and later CurlDotNet o
 | `--http2`, `--http3` | Version and fallback policy applied | Version requested; the runtime's `HttpClient` decides (the .NET Framework one speaks HTTP/1.1) |
 | `--request-target`, removing `Host`, blank headers | Yes | No |
 | `--raw`, lower-case chunk sizes | Yes | No |
+| `--cacert`, `--capath` (private CA) | Applied | Listed in `UnsupportedOptions`; the system trust store is used |
+| `--cert`, `--key`, `--cert-type`, `--pass` (client certificates) | Applied | Listed in `UnsupportedOptions`; no certificate is sent |
+| `--pinnedpubkey` | Applied (exit 90 on mismatch) | https transfers fail with exit code 4 rather than skip the check |
+| `--ciphers`, `--tls13-ciphers` | Applied on Linux (`CipherSuitesPolicy`); listed in `UnsupportedOptions` elsewhere | Listed in `UnsupportedOptions` |
 | Response headers in `result.Headers` / `-i` | Exactly as sent | As `HttpClient` parsed them |
 | `ParseJson<T>()` | `System.Text.Json`, case-insensitive | `System.Text.Json` on `net472`/`net48`, Newtonsoft.Json on `netstandard2.0`; both case-insensitive |
 
@@ -54,7 +58,7 @@ Or in the project file (any version; the package resolves the right target):
 
 ## Usage on .NET Framework
 
-Synchronous and asynchronous APIs both work on .NET Framework. Many Framework apps use the synchronous `Curl.Execute`:
+Synchronous and asynchronous APIs both work on .NET Framework. Many Framework apps use the synchronous `Curl.Execute`, which blocks the calling thread until the transfer ends; keep it out of WinForms/WPF event handlers and classic ASP.NET request code, where `await Curl.ExecuteAsync` is the right call (the library uses `ConfigureAwait(false)` internally, so awaiting it from those contexts is safe):
 
 ```csharp
 using System;

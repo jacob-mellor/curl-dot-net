@@ -170,7 +170,7 @@ Write directly to a file with `-o` or `Curl.DownloadAsync(url, path)` rather tha
 
 ### Does CurlDotNet support all curl options?
 
-CurlDotNet parses curl 8.7.1's complete option table, and the HTTP, FTP and file options are implemented: methods, headers, every `-d`/`--data-*` form, `-F`, `-G`, `-T`, `--json`, auth (Basic, Digest, NTLM, Negotiate, `--anyauth`, `--oauth2-bearer`, `.netrc`), cookies and jars, redirects, proxies (HTTP and SOCKS), `--retry`, `--max-time` and `--connect-timeout`, output options (`-o`, `-O`, `-D`, `-J`, `--create-dirs`, `-C`), `-w`, URL globbing, several URLs and `-K` config files. Options the library does not implement are still parsed (their values are consumed) and listed in `CurlOptions.UnsupportedOptions`. `--cacert`, `--cert` and `--key` are stored but not applied by the transport (use the OS trust store; for client certificates use `HttpClient` directly, and `Curl.ToHttpClient(command)` generates the starting code), and `--parallel` runs the transfers one after another. See [curl CLI Compatibility](../reference/curl-cli-compatibility.html), and [open an issue](https://github.com/jacob-mellor/curl-dot-net/issues) if you need one that is missing.
+CurlDotNet parses curl 8.7.1's complete option table, and the HTTP, FTP and file options are implemented: methods, headers, every `-d`/`--data-*` form, `-F`, `-G`, `-T`, `--json`, auth (Basic, Digest, NTLM, Negotiate, `--anyauth`, `--oauth2-bearer`, `.netrc`), cookies and jars, redirects, proxies (HTTP and SOCKS), `--retry`, `--max-time`, `--connect-timeout`, `--limit-rate` and `--speed-limit`, TLS options (`--cacert`, `--cert`, `--key`, `--pinnedpubkey`, `--tlsv1.x`; .NET 5 and later), output options (`-o`, `-O`, `-D`, `-J`, `--create-dirs`, `-C`), `-w`, URL globbing, several URLs and `-K` config files. Options the library does not implement are still parsed (their values are consumed) and listed in `CurlOptions.UnsupportedOptions`. On .NET Standard 2.0 and .NET Framework the TLS trust and client-certificate options are listed there too, and `--parallel` runs the transfers one after another. See [curl CLI Compatibility](../reference/curl-cli-compatibility.html), and [open an issue](https://github.com/jacob-mellor/curl-dot-net/issues) if you need one that is missing.
 
 ### Can I use CurlDotNet with ASP.NET Core?
 
@@ -208,7 +208,7 @@ A rejected certificate (self-signed, expired or mismatched) throws `CurlPeerFail
 await Curl.ExecuteAsync("curl -k https://localhost:5001/");
 ```
 
-For production, install the server's CA certificate in the operating system trust store. `--cacert` is parsed but not applied, so a private CA must be trusted at the operating-system level. See [SSL Certificate Errors](common-issues.html#ssl-certificate-errors).
+For production, trust the server's CA: pass it with `--cacert ca.pem` (.NET 5 and later), or install it in the operating system trust store (required on .NET Standard 2.0 and .NET Framework, where `--cacert` is listed in `UnsupportedOptions`). See [SSL Certificate Errors](common-issues.html#ssl-certificate-errors).
 
 ### Why does my curl command work in the terminal but not in CurlDotNet?
 

@@ -3,7 +3,8 @@
 
 ## CurlCookieException\.CookieJarPath Property
 
-Gets the path to the cookie jar file that caused the error, if applicable\.
+The cookie file that could not be read or written, as given to `-b`/`--cookie` or
+`-c`/`--cookie-jar`\.
 
 ```csharp
 public string CookieJarPath { get; }
@@ -11,10 +12,11 @@ public string CookieJarPath { get; }
 
 #### Property Value
 [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')  
-The file path to the cookie jar, or null if not file\-related\.
+A file path, or null when the problem is a cookie string rather than a file\.
 
 ### Remarks
 
-This property helps identify file access issues with cookie storage.
+Example: `File.Exists(ex.CookieJarPath)` tells whether the file is missing or unreadable.
 
-AI-Usage: Use this to check file permissions or suggest alternative paths.
+### See Also
+- [Command](CurlDotNet.Exceptions.CurlException.Command.md 'CurlDotNet\.Exceptions\.CurlException\.Command')

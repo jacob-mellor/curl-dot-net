@@ -75,7 +75,7 @@ Run it with `dotnet script check.csx`. On the .NET 10 SDK, a file-based app work
 - **WPF, WinForms, MAUI UI code:** blocking the UI thread freezes the window.
 - **Many requests at once:** `Curl.ExecuteManyAsync(cmd1, cmd2, ...)` runs them concurrently.
 
-`Curl.Execute` is implemented as `ExecuteAsync(...).GetAwaiter().GetResult()`. With a single-threaded `SynchronizationContext` (classic ASP.NET or a UI thread) that pattern can deadlock, which is one more reason to stay async there.
+`Curl.Execute` waits on `ExecuteAsync(...)`. Every `await` inside the library uses `ConfigureAwait(false)`, so the call does not deadlock on a UI or classic ASP.NET `SynchronizationContext` by itself, but it still blocks the calling thread for the whole transfer, and a callback you supply (a progress or redirect handler, middleware, your own `HttpMessageHandler`) that waits for that same context can still deadlock. Do not use the synchronous methods on a UI thread or in classic ASP.NET request code; await `ExecuteAsync` there.
 
 Since C# 7.1 `Main` can be `async`, and top-level statements can use `await` directly, so in new console apps the async version costs nothing extra.
 

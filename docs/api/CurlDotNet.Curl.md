@@ -3,32 +3,8 @@
 
 ## Curl Class
 
-
-<b>🚀 THE MAIN CURLDOTNET CLASS - Start here!</b>
-
-This class lets you run ANY curl command in C# by just copying and pasting it as a string.
-             No translation needed. No learning curve. If it works in curl, it works here.\<example\>
-  \<code language="csharp"\>
-             // Just paste any curl command as a string:
-             var response = await Curl\.ExecuteAsync\("curl https://api\.github\.com"\);
-             Console\.WriteLine\(response\.Body\);  // That's it\! You're done\!
-            
-             // Apply CurlSettings for retries/timeouts
-             var settings = new CurlSettings\(\)
-                 \.WithTimeout\(seconds: 10\)
-                 \.WithRetries\(count: 2, delayMs: 500\);
-             var json = await Curl\.ExecuteAsync\("curl https://httpbin\.org/json", settings\);
-             json\.EnsureSuccess\(\);
-             \</code\>
-\</example\>
-
-<b>What is curl?</b> curl is the universal tool for making HTTP requests from the command line.
-             Every API documentation uses it. Now you can use those exact same commands in your C# code.
-
-<b>Learn more:</b>
-- 📖 curl documentation: [https://curl\.se/docs/](https://curl.se/docs/ 'https://curl\.se/docs/')
-- 📚 curl tutorial: [https://curl\.se/docs/tutorial\.html](https://curl.se/docs/tutorial.html 'https://curl\.se/docs/tutorial\.html')
-- ⌨️ curl command generator: [https://curlbuilder\.com/](https://curlbuilder.com/ 'https://curlbuilder\.com/')
+Runs curl commands from C\#: pass the command text you would type in a terminal \(for example
+`curl -H 'Accept: application/json' https://api.example.com`\) and get a [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult') back\.
 
 ```csharp
 public static class Curl
@@ -36,71 +12,116 @@ public static class Curl
 
 Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system.object 'System\.Object') &#129106; Curl
 
+### Example
+
+```csharp
+// Just paste any curl command as a string:
+var response = await Curl.ExecuteAsync("curl https://api.github.com");
+Console.WriteLine(response.Body);
+
+// Apply CurlSettings for retries/timeouts
+var settings = new CurlSettings()
+    .WithTimeout(seconds: 10)
+    .WithRetries(count: 2, delayMs: 500);
+var json = await Curl.ExecuteAsync("curl https://httpbin.org/json", settings);
+json.EnsureSuccess();
+
+// Or build the request in code
+var result = await CurlRequestBuilder.Post("https://api.example.com/data")
+    .WithJson(new { key = "value" })
+    .ExecuteAsync();
+```
+
 ### Remarks
 
-<b>Why use CurlDotNet instead of HttpClient?</b>
-1. ✂️ <b>Copy &amp; Paste</b> - Use commands directly from API docs without translation
-2. 🎓 <b>No Learning Curve</b> - If you know curl (everyone does), you know this
-3. 🔄 <b>Easy Migration</b> - Move from bash scripts to C# without rewriting
-4. 📦 <b>All Features</b> - Supports all 300+ curl options out of the box
+<b>Start here.</b>[ExecuteAsync\(string\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string) 'CurlDotNet\.Curl\.ExecuteAsync\(string\)') is the main method: copy a command from API
+             documentation, Stack Overflow, Postman ("Code > cURL") or a browser's "Copy as cURL" and pass it as a string.
+             The leading `curl` is optional. Shell quoting, line continuations (`\`, `^`, backtick) and
+             environment variables are read the way the shell it came from would read them (see [CurlFlavor](CurlDotNet.CurlFlavor.md 'CurlDotNet\.CurlFlavor')).
 
-<b>Thread Safety:</b> All methods are thread-safe. You can call them from multiple threads simultaneously.
+<b>Four ways to make a request</b>, all producing the same [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult'):
+             a command string with [ExecuteAsync\(string\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string) 'CurlDotNet\.Curl\.ExecuteAsync\(string\)'); a typed [CurlOptions](CurlDotNet.Core.CurlOptions.md 'CurlDotNet\.Core\.CurlOptions') object with
+             [ExecuteAsync\(CurlOptions\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions\)') (nothing is parsed, so data needs no quoting); the fluent
+             [CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.md 'CurlDotNet\.Core\.CurlRequestBuilder') (`CurlRequestBuilder.Get(url).WithHeader(...).ExecuteAsync()`); and the
+             libcurl-style [LibCurl](CurlDotNet.Lib.LibCurl.md 'CurlDotNet\.Lib\.LibCurl') instance API with default headers and timeouts. The quick helpers
+             [GetAsync\(string\)](CurlDotNet.Curl.GetAsync(string).md 'CurlDotNet\.Curl\.GetAsync\(string\)'), [PostAsync\(string, string\)](CurlDotNet.Curl.PostAsync(string,string).md 'CurlDotNet\.Curl\.PostAsync\(string, string\)'), [PostJsonAsync\(string, object\)](CurlDotNet.Curl.PostJsonAsync(string,object).md 'CurlDotNet\.Curl\.PostJsonAsync\(string, object\)') and [DownloadAsync\(string, string\)](CurlDotNet.Curl.DownloadAsync(string,string).md 'CurlDotNet\.Curl\.DownloadAsync\(string, string\)')
+             cover one-line cases.
 
-<b>Memory Efficiency:</b> Responses are streamed, not loaded into memory all at once. Perfect for large files.
+<b>What counts as a failure.</b> Like the curl tool, an HTTP error status (404, 500...) is not an
+             exception: you get a result with [StatusCode](CurlDotNet.Core.CurlResult.StatusCode.md 'CurlDotNet\.Core\.CurlResult\.StatusCode') set, and can call
+             [EnsureSuccess\(\)](CurlDotNet.Core.CurlResult.EnsureSuccess().md 'CurlDotNet\.Core\.CurlResult\.EnsureSuccess\(\)'). Add `-f`/`--fail` to the command to turn HTTP errors into a
+             [CurlHttpReturnedErrorException](CurlDotNet.Exceptions.CurlHttpReturnedErrorException.md 'CurlDotNet\.Exceptions\.CurlHttpReturnedErrorException') (exit code 22). Everything curl reports with a non-zero exit code
+             (DNS failure 6, connection refused 7, timeout 28, TLS problem 35/60, write error 23...) throws a
+             [CurlException](CurlDotNet.Exceptions.CurlException.md 'CurlDotNet\.Exceptions\.CurlException') subtype whose [CurlErrorCode](CurlDotNet.Exceptions.CurlException.CurlErrorCode.md 'CurlDotNet\.Exceptions\.CurlException\.CurlErrorCode') is curl's exit code and whose
+             message says what happened, how to fix it and where to read more.
 
-<b>Sponsored by</b>[IronSoftware](https://ironsoftware.com 'https://ironsoftware\.com') - creators of IronPDF, IronOCR, IronXL, and IronBarcode.
+<b>Sync and async.</b> Every `...Async` method has a blocking twin without the suffix
+             ([Execute\(string\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string) 'CurlDotNet\.Curl\.Execute\(string\)'), [Get\(string\)](CurlDotNet.Curl.Get(string).md 'CurlDotNet\.Curl\.Get\(string\)'), [Post\(string, string\)](CurlDotNet.Curl.Post(string,string).md 'CurlDotNet\.Curl\.Post\(string, string\)'), [PostJson\(string, object\)](CurlDotNet.Curl.PostJson(string,object).md 'CurlDotNet\.Curl\.PostJson\(string, object\)'),
+             [Download\(string, string\)](CurlDotNet.Curl.Download(string,string).md 'CurlDotNet\.Curl\.Download\(string, string\)')). Use the async ones in UI, ASP.NET and any code that is already async.
 
-<b>Two Ways to Use CurlDotNet:</b>
-1. <b>Paste curl commands:</b> Just copy/paste any curl command string - it works!
-               
-  
-  ```csharp
-  var result = await Curl.ExecuteAsync("curl -X POST https://api.example.com/data -H 'Content-Type: application/json' -d '{\"key\":\"value\"}'");
-  ```
-2. <b>Use fluent builder:</b> For programmatic API with IntelliSense
-               
-  
-  ```csharp
-  var result = await CurlRequestBuilder.Post("https://api.example.com/data").WithHeader("Content-Type", "application/json").WithJson(new { key = "value" }).ExecuteAsync();
-  ```
+<b>Thread safety.</b> All static methods are safe to call from many threads at once; they share one
+             pooled connection engine. The `Default*` properties are process-wide settings read at the start of every
+             request, so set them once at start-up.
+
+<b>Memory.</b> The response body is read into memory ([Body](CurlDotNet.Core.CurlResult.Body.md 'CurlDotNet\.Core\.CurlResult\.Body') or
+             [BinaryData](CurlDotNet.Core.CurlResult.BinaryData.md 'CurlDotNet\.Core\.CurlResult\.BinaryData')) even when `-o` also writes it to a file, so for multi-gigabyte
+             downloads use a streaming `HttpClient` instead.
+
+Example: `var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");` then
+             `Console.WriteLine($"{result.StatusCode}: {result.Body}");`.
+
+Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/run-curl-command-in-csharp/README.md
+             - error handling: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md
+
+Sponsored by [IronSoftware](https://ironsoftware.com 'https://ironsoftware\.com') - creators of IronPDF, IronOCR, IronXL, and IronBarcode.
+
+### See Also
+- [DotNetCurl](CurlDotNet.DotNetCurl.md 'CurlDotNet\.DotNetCurl')
+- [CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.md 'CurlDotNet\.Core\.CurlRequestBuilder')
+- [LibCurl](CurlDotNet.Lib.LibCurl.md 'CurlDotNet\.Lib\.LibCurl')
+- [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')
+- [CurlException](CurlDotNet.Exceptions.CurlException.md 'CurlDotNet\.Exceptions\.CurlException')
 
 | Fields | |
 | :--- | :--- |
-| [CurlCompatVersion](CurlDotNet.Curl.CurlCompatVersion.md 'CurlDotNet\.Curl\.CurlCompatVersion') | The curl release whose command\-line behaviour CurlDotNet reproduces\. Used for the default `User-Agent` header \(`curl/8.7.1`\) and reported by `curl --version` style output\. |
+| [CurlCompatVersion](CurlDotNet.Curl.CurlCompatVersion.md 'CurlDotNet\.Curl\.CurlCompatVersion') | The curl release \(`8.7.1`\) whose command\-line behaviour CurlDotNet reproduces; it is also the version in the default `User-Agent: curl/8.7.1` header\. |
 
 | Properties | |
 | :--- | :--- |
-| [DefaultConnectTimeoutSeconds](CurlDotNet.Curl.DefaultConnectTimeoutSeconds.md 'CurlDotNet\.Curl\.DefaultConnectTimeoutSeconds') |   <b>Sets how long to wait for a connection to be established (in seconds).</b>  This is different from the total timeout - it only applies to making the initial connection.              Like adding `--connect-timeout` to every curl command.  <b>Example:</b>\`\.\.\.\`  <b>Tip:</b> Set this lower than DefaultMaxTimeSeconds to fail fast on dead servers.  <b>Learn more:</b>[curl \-\-connect\-timeout documentation](https://curl.se/docs/manpage.html#--connect-timeout 'https://curl\.se/docs/manpage\.html\#\-\-connect\-timeout') |
-| [DefaultFollowRedirects](CurlDotNet.Curl.DefaultFollowRedirects.md 'CurlDotNet\.Curl\.DefaultFollowRedirects') |   <b>Controls whether curl automatically follows HTTP redirects (301, 302, etc).</b>  When true, acts like adding `-L` or `--location` to every command.              Many APIs use redirects, so you often want this enabled.  <b>Example:</b>\`\.\.\.\`  <b>Security note:</b> Be careful following redirects to untrusted sources.  <b>Learn more:</b>[curl \-L documentation](https://curl.se/docs/manpage.html#-L 'https://curl\.se/docs/manpage\.html\#\-L') |
-| [DefaultInsecure](CurlDotNet.Curl.DefaultInsecure.md 'CurlDotNet\.Curl\.DefaultInsecure') |   <b>⚠️ WARNING: Disables SSL certificate validation - ONLY use for development/testing!</b>  When true, acts like adding `-k` or `--insecure` to every command.              This accepts any SSL certificate, even self-signed or expired ones.  <b>Example (DEVELOPMENT ONLY):</b>\`\.\.\.\`  <b>🔴 NEVER use this in production!</b> It makes you vulnerable to man-in-the-middle attacks.  <b>Learn more:</b>[curl \-k documentation](https://curl.se/docs/manpage.html#-k 'https://curl\.se/docs/manpage\.html\#\-k') |
-| [DefaultMaxTimeSeconds](CurlDotNet.Curl.DefaultMaxTimeSeconds.md 'CurlDotNet\.Curl\.DefaultMaxTimeSeconds') |   <b>Sets a global timeout for all curl operations (in seconds).</b>  This is like adding `--max-time` to every curl command automatically.              Set to 0 (default) for no timeout. Individual commands can still override this.  <b>Example:</b>\`\.\.\.\`  <b>Learn more:</b>[curl \-\-max\-time documentation](https://curl.se/docs/manpage.html#-m 'https://curl\.se/docs/manpage\.html\#\-m') |
-| [DefaultUserAgent](CurlDotNet.Curl.DefaultUserAgent.md 'CurlDotNet\.Curl\.DefaultUserAgent') |   <b>The User-Agent sent when a command does not set one.</b>  Real curl always identifies itself as `curl/<version>`, and many APIs             (GitHub's, for example) reject requests with no User-Agent at all, so CurlDotNet sends             `curl/8.7.1` by default. Override per request with `-A` / `--user-agent` or             `-H "User-Agent: ..."`, suppress it with `-H "User-Agent:"`, or change the default             for the whole process here.\`\.\.\.\` |
+| [DefaultConnectTimeoutSeconds](CurlDotNet.Curl.DefaultConnectTimeoutSeconds.md 'CurlDotNet\.Curl\.DefaultConnectTimeoutSeconds') | A process\-wide limit, in whole seconds, on how long establishing a connection may take, as if `--connect-timeout` were added to every command that does not set its own\. 0 \(the default\) means no limit\. |
+| [DefaultFlavor](CurlDotNet.Curl.DefaultFlavor.md 'CurlDotNet\.Curl\.DefaultFlavor') | The shell \(bash, cmd\.exe, PowerShell, Invoke\-WebRequest\) whose quoting rules are used to read command strings when a call does not name one; [Auto](CurlDotNet.CurlFlavor.md#CurlDotNet.CurlFlavor.Auto 'CurlDotNet\.CurlFlavor\.Auto') by default, which detects it\. |
+| [DefaultFollowRedirects](CurlDotNet.Curl.DefaultFollowRedirects.md 'CurlDotNet\.Curl\.DefaultFollowRedirects') | When true, every request follows HTTP redirects \(301, 302, 303, 307, 308\) as if `-L`/`--location` were in every command\. False \(the default\) returns the redirect response itself, like curl\. |
+| [DefaultInsecure](CurlDotNet.Curl.DefaultInsecure.md 'CurlDotNet\.Curl\.DefaultInsecure') | When true, TLS certificates are not verified for any request, as if `-k`/`--insecure` were in every command\. Development and testing only: it accepts self\-signed, expired and wrong\-host certificates\. |
+| [DefaultMaxTimeSeconds](CurlDotNet.Curl.DefaultMaxTimeSeconds.md 'CurlDotNet\.Curl\.DefaultMaxTimeSeconds') | A process\-wide limit, in whole seconds, on how long any HTTP transfer may take, as if `-m`/`--max-time` were added to every command that does not set its own\. 0 \(the default\) means no limit\. |
+| [DefaultUserAgent](CurlDotNet.Curl.DefaultUserAgent.md 'CurlDotNet\.Curl\.DefaultUserAgent') | The `User-Agent` header sent when a command does not set one; `curl/8.7.1` unless you change it\. Set it to null or an empty string to send no User\-Agent at all\. |
 
 | Methods | |
 | :--- | :--- |
-| [BuildQuickOptions\(string, string, string, string, string\)](CurlDotNet.Curl.BuildQuickOptions(string,string,string,string,string).md 'CurlDotNet\.Curl\.BuildQuickOptions\(string, string, string, string, string\)') | Builds the [CurlOptions](CurlDotNet.Core.CurlOptions.md 'CurlDotNet\.Core\.CurlOptions') for the quick helper methods directly, bypassing the command parser so user data never has to be shell\-quoted\. [OriginalCommand](CurlDotNet.Core.CurlOptions.OriginalCommand.md 'CurlDotNet\.Core\.CurlOptions\.OriginalCommand') is still populated with an equivalent, correctly quoted command for diagnostics\. |
-| [Download\(string, string\)](CurlDotNet.Curl.Download(string,string).md 'CurlDotNet\.Curl\.Download\(string, string\)') |   <b>⚠️ SYNCHRONOUS file download (blocks thread).</b> |
-| [DownloadAsync\(string, string\)](CurlDotNet.Curl.DownloadAsync(string,string).md 'CurlDotNet\.Curl\.DownloadAsync\(string, string\)') |   <b>Download a file from a URL and save it to disk.</b>  Downloads any file and saves it to the specified path. Shows progress if the file is large.  <b>Example:</b>\`\.\.\.\`  <b>With Error Handling:</b>\`\.\.\.\` |
-| [Execute\(CurlOptions\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.Execute\(CurlDotNet\.Core\.CurlOptions\)') |   <b>⚠️ SYNCHRONOUS execution of a <see cref="T:CurlDotNet.Core.CurlOptions"/> object - blocks the thread.</b>  Nothing is parsed, so data containing quotes or spaces needs no escaping.             Prefer [ExecuteAsync\(CurlOptions\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions\)') in async code.\`\.\.\.\` |
-| [Execute\(string\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string) 'CurlDotNet\.Curl\.Execute\(string\)') |   <b>⚠️ SYNCHRONOUS - Execute curl command and WAIT for it to complete (BLOCKS thread).</b>  This method BLOCKS your thread until the HTTP request completes. Your application              will FREEZE during this time. Only use when async is not possible.  <b>When to use SYNC (this method):</b>\.\.\.  <b>Example - When sync is OK:</b>\`\.\.\.\`  <b>⚠️ WARNING:</b> This blocks your thread. The application cannot do anything else              while waiting for the HTTP response. Use ExecuteAsync instead whenever possible! |
-| [Execute\(string, CurlSettings\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string,CurlDotNet.Core.CurlSettings) 'CurlDotNet\.Curl\.Execute\(string, CurlDotNet\.Core\.CurlSettings\)') |   <b>⚠️ SYNCHRONOUS with settings - Blocks thread with advanced options.</b> |
-| [Execute\(string, CancellationToken\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string,System.Threading.CancellationToken) 'CurlDotNet\.Curl\.Execute\(string, System\.Threading\.CancellationToken\)') |   <b>⚠️ SYNCHRONOUS with cancellation - Blocks thread but can be cancelled.</b>  Still BLOCKS your thread, but can be cancelled. Prefer ExecuteAsync with cancellation.\`\.\.\.\` |
-| [ExecuteAsync\(CurlOptions\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions\)') |   <b>Execute a request described by a <see cref="T:CurlDotNet.Core.CurlOptions"/> object - no command string, no quoting.</b>  Use this when the values come from variables and you do not want to think about shell              quoting at all. Nothing is parsed: data containing quotes, spaces or backslashes is sent              exactly as given. The convenience helpers ([PostAsync\(string, string\)](CurlDotNet.Curl.PostAsync(string,string).md 'CurlDotNet\.Curl\.PostAsync\(string, string\)'), [PostJsonAsync\(string, object\)](CurlDotNet.Curl.PostJsonAsync(string,object).md 'CurlDotNet\.Curl\.PostJsonAsync\(string, object\)'),              [DownloadAsync\(string, string\)](CurlDotNet.Curl.DownloadAsync(string,string).md 'CurlDotNet\.Curl\.DownloadAsync\(string, string\)')) are built on this method.  <b>Example:</b>\`\.\.\.\` |
-| [ExecuteAsync\(CurlOptions, CancellationToken\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions,System.Threading.CancellationToken) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions, System\.Threading\.CancellationToken\)') |   <b>Execute a <see cref="T:CurlDotNet.Core.CurlOptions"/> request with cancellation support.</b>  See [ExecuteAsync\(CurlOptions\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions\)') for details. |
-| [ExecuteAsync\(string\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string) 'CurlDotNet\.Curl\.ExecuteAsync\(string\)') |   <b>🎯 THE MAIN METHOD - Executes any curl command and returns the response.</b>  Just paste ANY curl command as a string. It works exactly like running curl from the command line,              but returns the result as a nice C# object you can work with.\<example\>   \<code language="csharp"\>              // Copy any curl command from documentation and paste it here:              var response = await Curl\.ExecuteAsync\("curl https://api\.github\.com/users/octocat"\);                           // Work with the response:              Console\.WriteLine\($"Status: \{response\.StatusCode\}"\);  // 200              Console\.WriteLine\($"Body: \{response\.Body\}"\);          // JSON data              var user = response\.ParseJson&lt;GitHubUser&gt;\(\);        // Parse to object                           // Use CurlSettings for retries/timeouts:              var settings = new CurlSettings\(\)                  \.WithTimeout\(seconds: 10\)                  \.WithRetries\(count: 2, delayMs: 250\);              var resilient = await Curl\.ExecuteAsync\("curl \-\-max\-time 5 https://httpbin\.org/json", settings\);              resilient\.EnsureSuccess\(\);              \</code\> \</example\>  <b>Real-World Example from Stripe Docs:</b>\`\.\.\.\`  <b>All HTTP Methods Supported:</b>\`\.\.\.\`  <b>Common Options:</b>\`\.\.\.\` |
-| [ExecuteAsync\(string, CurlSettings\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,CurlDotNet.Core.CurlSettings) 'CurlDotNet\.Curl\.ExecuteAsync\(string, CurlDotNet\.Core\.CurlSettings\)') |   <b>Execute with advanced settings - for when you need more control.</b>  Use this overload when you need features beyond what curl command strings provide,              like progress callbacks, custom HTTP handlers, or retry policies.  <b>Example with Progress Reporting:</b>\`\.\.\.\`  <b>Example with Custom Retry Policy:</b>\`\.\.\.\` |
-| [ExecuteAsync\(string, CancellationToken\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,System.Threading.CancellationToken) 'CurlDotNet\.Curl\.ExecuteAsync\(string, System\.Threading\.CancellationToken\)') |   <b>Execute a curl command with cancellation support - perfect for long-running operations.</b>  This lets you cancel the HTTP request if it's taking too long or if the user cancels.              Essential for good user experience in desktop and mobile apps.  <b>Basic Example:</b>\`\.\.\.\`  <b>User-Cancellable Download:</b>\`\.\.\.\`  <b>Web API with Request Timeout:</b>\`\.\.\.\` |
-| [ExecuteManyAsync\(string\[\]\)](CurlDotNet.Curl.ExecuteManyAsync(string[]).md 'CurlDotNet\.Curl\.ExecuteManyAsync\(string\[\]\)') |   <b>Execute multiple curl commands in parallel - great for performance!</b>  Runs multiple HTTP requests at the same time, which is much faster than running them one by one.              Perfect for fetching data from multiple APIs or endpoints simultaneously.  <b>Example - Fetch Multiple APIs:</b>\`\.\.\.\`  <b>Example - Aggregate Data:</b>\`\.\.\.\`  <b>Error Handling - Some May Fail:</b>\`\.\.\.\` |
-| [Get\(string\)](CurlDotNet.Curl.Get(string).md 'CurlDotNet\.Curl\.Get\(string\)') |   <b>⚠️ SYNCHRONOUS GET request (blocks thread).</b>\`\.\.\.\` |
-| [GetAsync\(string\)](CurlDotNet.Curl.GetAsync(string).md 'CurlDotNet\.Curl\.GetAsync\(string\)') |   <b>Quick GET request - simpler syntax for basic GET operations.</b>  When you just need to GET a URL without any options, use this shortcut method.  <b>Example:</b>\`\.\.\.\` |
-| [Post\(string, string\)](CurlDotNet.Curl.Post(string,string).md 'CurlDotNet\.Curl\.Post\(string, string\)') |   <b>⚠️ SYNCHRONOUS POST request (blocks thread).</b> |
-| [PostAsync\(string, string\)](CurlDotNet.Curl.PostAsync(string,string).md 'CurlDotNet\.Curl\.PostAsync\(string, string\)') |   <b>Quick POST request - simpler syntax for posting data.</b>  Convenient method for simple POST requests with string data.  <b>Example:</b>\`\.\.\.\` |
-| [PostJson\(string, object\)](CurlDotNet.Curl.PostJson(string,object).md 'CurlDotNet\.Curl\.PostJson\(string, object\)') |   <b>⚠️ SYNCHRONOUS POST with JSON (blocks thread).</b> |
-| [PostJsonAsync\(string, object\)](CurlDotNet.Curl.PostJsonAsync(string,object).md 'CurlDotNet\.Curl\.PostJsonAsync\(string, object\)') |   <b>POST with JSON data - automatically serializes objects to JSON.</b>  The easiest way to POST JSON data. Pass any object and it's automatically              serialized to JSON with the correct Content-Type header.  <b>Example:</b>\`\.\.\.\`  <b>Works with any object:</b>\`\.\.\.\` |
-| [SerializeJson\(object\)](CurlDotNet.Curl.SerializeJson(object).md 'CurlDotNet\.Curl\.SerializeJson\(object\)') | Serializes an object to JSON the way a curl user would type it: apostrophes, quotes and non\-ASCII characters are kept literal instead of being \\uXXXX\-escaped\. |
-| [SyncVsAsyncDocumentation\(\)](CurlDotNet.Curl.SyncVsAsyncDocumentation().md 'CurlDotNet\.Curl\.SyncVsAsyncDocumentation\(\)') |   <b>📚 UNDERSTANDING SYNC vs ASYNC in CurlDotNet</b>  <b>ASYNC Methods (end with "Async"):</b>\.\.\.  <b>SYNC Methods (no "Async" suffix):</b>\.\.\.  <b>Examples showing the difference:</b>\`\.\.\.\`  <b>CancellationToken doesn't determine sync/async!</b>\`\.\.\.\` |
-| [ToFetch\(string\)](CurlDotNet.Curl.ToFetch(string).md 'CurlDotNet\.Curl\.ToFetch\(string\)') |   <b>Convert curl command to JavaScript fetch() code.</b>  Generates JavaScript code that does the same thing as your curl command.              Useful for web developers who need the same request in JavaScript.  <b>Example:</b>\`\.\.\.\` |
-| [ToHttpClient\(string\)](CurlDotNet.Curl.ToHttpClient(string).md 'CurlDotNet\.Curl\.ToHttpClient\(string\)') |   <b>Convert curl command to C# HttpClient code - great for learning!</b>  Shows you exactly how to write the same request using HttpClient.              Perfect for understanding what curl is doing or migrating to pure HttpClient.  <b>Example:</b>\`\.\.\.\` |
-| [ToPowershellCode\(string\)](CurlDotNet.Curl.ToPowershellCode(string).md 'CurlDotNet\.Curl\.ToPowershellCode\(string\)') |   <b>Convert a curl command to PowerShell code.</b>  Generates PowerShell code using Invoke-RestMethod that performs the same request.  <b>Example:</b>\`\.\.\.\` |
-| [ToPythonRequests\(string\)](CurlDotNet.Curl.ToPythonRequests(string).md 'CurlDotNet\.Curl\.ToPythonRequests\(string\)') |   <b>Convert curl command to Python requests code.</b>  Generates Python code using the popular 'requests' library.              Great for Python developers or data scientists.  <b>Example:</b>\`\.\.\.\` |
-| [Validate\(string\)](CurlDotNet.Curl.Validate(string).md 'CurlDotNet\.Curl\.Validate\(string\)') |   <b>Check if a curl command is valid without executing it.</b>  Useful for validating user input or checking commands before running them.              This only checks syntax, not whether the URL actually exists.  <b>Example:</b>\`\.\.\.\`  <b>Validate User Input:</b>\`\.\.\.\` |
+| [DetectFlavor\(string\)](CurlDotNet.Curl.DetectFlavor(string).md 'CurlDotNet\.Curl\.DetectFlavor\(string\)') | Returns the shell flavor [Auto](CurlDotNet.CurlFlavor.md#CurlDotNet.CurlFlavor.Auto 'CurlDotNet\.CurlFlavor\.Auto') would read [command](CurlDotNet.Curl.DetectFlavor(string).md#CurlDotNet.Curl.DetectFlavor(string).command 'CurlDotNet\.Curl\.DetectFlavor\(string\)\.command') with, without parsing or sending anything\. |
+| [Download\(string, string\)](CurlDotNet.Curl.Download(string,string).md 'CurlDotNet\.Curl\.Download\(string, string\)') | Downloads [url](CurlDotNet.Curl.Download(string,string).md#CurlDotNet.Curl.Download(string,string).url 'CurlDotNet\.Curl\.Download\(string, string\)\.url') to [outputPath](CurlDotNet.Curl.Download(string,string).md#CurlDotNet.Curl.Download(string,string).outputPath 'CurlDotNet\.Curl\.Download\(string, string\)\.outputPath') and blocks until the file is written; the synchronous twin of [DownloadAsync\(string, string\)](CurlDotNet.Curl.DownloadAsync(string,string).md 'CurlDotNet\.Curl\.DownloadAsync\(string, string\)') \(like `curl -o PATH URL`\)\. |
+| [DownloadAsync\(string, string\)](CurlDotNet.Curl.DownloadAsync(string,string).md 'CurlDotNet\.Curl\.DownloadAsync\(string, string\)') | Downloads [url](CurlDotNet.Curl.DownloadAsync(string,string).md#CurlDotNet.Curl.DownloadAsync(string,string).url 'CurlDotNet\.Curl\.DownloadAsync\(string, string\)\.url') and saves the response body to [outputPath](CurlDotNet.Curl.DownloadAsync(string,string).md#CurlDotNet.Curl.DownloadAsync(string,string).outputPath 'CurlDotNet\.Curl\.DownloadAsync\(string, string\)\.outputPath') \(like `curl -o PATH URL`\); paths with spaces or quotes need no escaping\. |
+| [Execute\(CurlOptions\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.Execute\(CurlDotNet\.Core\.CurlOptions\)') | Sends a request described by a [CurlOptions](CurlDotNet.Core.CurlOptions.md 'CurlDotNet\.Core\.CurlOptions') object and blocks the calling thread until the response arrives; nothing is parsed, so data with quotes or spaces needs no escaping\. |
+| [Execute\(string\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string) 'CurlDotNet\.Curl\.Execute\(string\)') | Runs a curl command and blocks the calling thread until the response arrives; the synchronous twin of [ExecuteAsync\(string\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string) 'CurlDotNet\.Curl\.ExecuteAsync\(string\)') for console tools, scripts and code that cannot be async\. |
+| [Execute\(string, CurlSettings\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string,CurlDotNet.Core.CurlSettings) 'CurlDotNet\.Curl\.Execute\(string, CurlDotNet\.Core\.CurlSettings\)') | Runs a curl command with timeouts, retries, extra headers or a progress callback from a [CurlSettings](CurlDotNet.Core.CurlSettings.md 'CurlDotNet\.Core\.CurlSettings') object, blocking the calling thread until the response arrives\. |
+| [Execute\(string, CurlFlavor\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string,CurlDotNet.CurlFlavor) 'CurlDotNet\.Curl\.Execute\(string, CurlDotNet\.CurlFlavor\)') | Executes a curl command copied from a specific shell and blocks the calling thread until the response arrives\. |
+| [Execute\(string, CancellationToken\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string,System.Threading.CancellationToken) 'CurlDotNet\.Curl\.Execute\(string, System\.Threading\.CancellationToken\)') | Runs a curl command, blocking the calling thread until the response arrives or [cancellationToken](CurlDotNet.Curl.md#CurlDotNet.Curl.Execute(string,System.Threading.CancellationToken).cancellationToken 'CurlDotNet\.Curl\.Execute\(string, System\.Threading\.CancellationToken\)\.cancellationToken') is cancelled; the synchronous twin of [ExecuteAsync\(string, CancellationToken\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,System.Threading.CancellationToken) 'CurlDotNet\.Curl\.ExecuteAsync\(string, System\.Threading\.CancellationToken\)')\. |
+| [ExecuteAsync\(CurlOptions\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions\)') | Sends a request described by a [CurlOptions](CurlDotNet.Core.CurlOptions.md 'CurlDotNet\.Core\.CurlOptions') object instead of a command string, so values from variables are sent exactly as given with no shell quoting to get wrong\. |
+| [ExecuteAsync\(CurlOptions, CancellationToken\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions,System.Threading.CancellationToken) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions, System\.Threading\.CancellationToken\)') | Sends a request described by a [CurlOptions](CurlDotNet.Core.CurlOptions.md 'CurlDotNet\.Core\.CurlOptions') object, like [ExecuteAsync\(CurlOptions\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions\)'), and stops it when [cancellationToken](CurlDotNet.Curl.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions,System.Threading.CancellationToken).cancellationToken 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions, System\.Threading\.CancellationToken\)\.cancellationToken') is cancelled\. |
+| [ExecuteAsync\(string\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string) 'CurlDotNet\.Curl\.ExecuteAsync\(string\)') | Runs a curl command \(the same text you would type in a terminal\) and returns the response; this is the main method of CurlDotNet\. |
+| [ExecuteAsync\(string, CurlSettings\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,CurlDotNet.Core.CurlSettings) 'CurlDotNet\.Curl\.ExecuteAsync\(string, CurlDotNet\.Core\.CurlSettings\)') | Runs a curl command with timeouts, retries, extra headers, a progress callback or a cancellation token set in code through a [CurlSettings](CurlDotNet.Core.CurlSettings.md 'CurlDotNet\.Core\.CurlSettings') object instead of in the command text\. |
+| [ExecuteAsync\(string, CurlFlavor\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,CurlDotNet.CurlFlavor) 'CurlDotNet\.Curl\.ExecuteAsync\(string, CurlDotNet\.CurlFlavor\)') | Runs a curl command that was copied from a specific shell \(bash, cmd\.exe, PowerShell or Invoke\-WebRequest\), reading its quotes, escapes, line continuations and variables the way that shell would\. |
+| [ExecuteAsync\(string, CurlFlavor, CancellationToken\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,CurlDotNet.CurlFlavor,System.Threading.CancellationToken) 'CurlDotNet\.Curl\.ExecuteAsync\(string, CurlDotNet\.CurlFlavor, System\.Threading\.CancellationToken\)') | Runs a curl command copied from a specific shell, like [ExecuteAsync\(string, CurlFlavor\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,CurlDotNet.CurlFlavor) 'CurlDotNet\.Curl\.ExecuteAsync\(string, CurlDotNet\.CurlFlavor\)'), and stops it when [cancellationToken](CurlDotNet.Curl.md#CurlDotNet.Curl.ExecuteAsync(string,CurlDotNet.CurlFlavor,System.Threading.CancellationToken).cancellationToken 'CurlDotNet\.Curl\.ExecuteAsync\(string, CurlDotNet\.CurlFlavor, System\.Threading\.CancellationToken\)\.cancellationToken') is cancelled\. |
+| [ExecuteAsync\(string, CancellationToken\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,System.Threading.CancellationToken) 'CurlDotNet\.Curl\.ExecuteAsync\(string, System\.Threading\.CancellationToken\)') | Runs a curl command like [ExecuteAsync\(string\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string) 'CurlDotNet\.Curl\.ExecuteAsync\(string\)') and stops it when [cancellationToken](CurlDotNet.Curl.md#CurlDotNet.Curl.ExecuteAsync(string,System.Threading.CancellationToken).cancellationToken 'CurlDotNet\.Curl\.ExecuteAsync\(string, System\.Threading\.CancellationToken\)\.cancellationToken') is cancelled, for user "Cancel" buttons, request aborts in ASP\.NET Core and your own deadlines\. |
+| [ExecuteManyAsync\(string\[\]\)](CurlDotNet.Curl.ExecuteManyAsync(string[]).md 'CurlDotNet\.Curl\.ExecuteManyAsync\(string\[\]\)') | Runs several curl commands at the same time and returns their results in the same order, so N requests take about as long as the slowest one instead of the sum\. |
+| [Get\(string\)](CurlDotNet.Curl.Get(string).md 'CurlDotNet\.Curl\.Get\(string\)') | Sends a plain GET request to [url](CurlDotNet.Curl.Get(string).md#CurlDotNet.Curl.Get(string).url 'CurlDotNet\.Curl\.Get\(string\)\.url') and blocks until the response arrives; the synchronous twin of [GetAsync\(string\)](CurlDotNet.Curl.GetAsync(string).md 'CurlDotNet\.Curl\.GetAsync\(string\)') \(like `curl URL`\)\. |
+| [GetAsync\(string\)](CurlDotNet.Curl.GetAsync(string).md 'CurlDotNet\.Curl\.GetAsync\(string\)') | Sends a plain GET request to [url](CurlDotNet.Curl.GetAsync(string).md#CurlDotNet.Curl.GetAsync(string).url 'CurlDotNet\.Curl\.GetAsync\(string\)\.url') \(like `curl URL`\) and returns the response; use it when you need no headers, auth or other options\. |
+| [Post\(string, string\)](CurlDotNet.Curl.Post(string,string).md 'CurlDotNet\.Curl\.Post\(string, string\)') | Sends a POST request with [data](CurlDotNet.Curl.Post(string,string).md#CurlDotNet.Curl.Post(string,string).data 'CurlDotNet\.Curl\.Post\(string, string\)\.data') as the body and blocks until the response arrives; the synchronous twin of [PostAsync\(string, string\)](CurlDotNet.Curl.PostAsync(string,string).md 'CurlDotNet\.Curl\.PostAsync\(string, string\)') \(like `curl -d DATA URL`\)\. |
+| [PostAsync\(string, string\)](CurlDotNet.Curl.PostAsync(string,string).md 'CurlDotNet\.Curl\.PostAsync\(string, string\)') | Sends a POST request with [data](CurlDotNet.Curl.PostAsync(string,string).md#CurlDotNet.Curl.PostAsync(string,string).data 'CurlDotNet\.Curl\.PostAsync\(string, string\)\.data') as the body \(like `curl -d DATA URL`\), with no quoting or escaping needed for the data\. |
+| [PostJson\(string, object\)](CurlDotNet.Curl.PostJson(string,object).md 'CurlDotNet\.Curl\.PostJson\(string, object\)') | Serializes [data](CurlDotNet.Curl.PostJson(string,object).md#CurlDotNet.Curl.PostJson(string,object).data 'CurlDotNet\.Curl\.PostJson\(string, object\)\.data') to JSON and POSTs it with `Content-Type: application/json`, blocking until the response arrives; the synchronous twin of [PostJsonAsync\(string, object\)](CurlDotNet.Curl.PostJsonAsync(string,object).md 'CurlDotNet\.Curl\.PostJsonAsync\(string, object\)')\. |
+| [PostJsonAsync\(string, object\)](CurlDotNet.Curl.PostJsonAsync(string,object).md 'CurlDotNet\.Curl\.PostJsonAsync\(string, object\)') | Serializes [data](CurlDotNet.Curl.PostJsonAsync(string,object).md#CurlDotNet.Curl.PostJsonAsync(string,object).data 'CurlDotNet\.Curl\.PostJsonAsync\(string, object\)\.data') to JSON and POSTs it with `Content-Type: application/json` \(like `curl -H 'Content-Type: application/json' -d '{...}' URL`\)\. |
+| [ToFetch\(string\)](CurlDotNet.Curl.ToFetch(string).md 'CurlDotNet\.Curl\.ToFetch\(string\)') | Translates a curl command into JavaScript `fetch()` code that sends the same request, for web front ends and Node\.js\. |
+| [ToHttpClient\(string\)](CurlDotNet.Curl.ToHttpClient(string).md 'CurlDotNet\.Curl\.ToHttpClient\(string\)') | Translates a curl command into equivalent C\# `HttpClient` code, for learning what the command does or for moving a request to plain `HttpClient`\. |
+| [ToPowershellCode\(string\)](CurlDotNet.Curl.ToPowershellCode(string).md 'CurlDotNet\.Curl\.ToPowershellCode\(string\)') | Translates a curl command into a PowerShell `Invoke-RestMethod` call that sends the same request, for Windows admins and build scripts\. |
+| [ToPythonRequests\(string\)](CurlDotNet.Curl.ToPythonRequests(string).md 'CurlDotNet\.Curl\.ToPythonRequests\(string\)') | Translates a curl command into Python code using the `requests` library, for sharing a request with Python scripts and notebooks\. |
+| [Validate\(string\)](CurlDotNet.Curl.Validate.md#CurlDotNet.Curl.Validate(string) 'CurlDotNet\.Curl\.Validate\(string\)') | Checks a curl command without sending anything and reports whether it can run, what is wrong with it, and exactly which URL, method, headers and body it would send\. |
+| [Validate\(string, CurlFlavor\)](CurlDotNet.Curl.Validate.md#CurlDotNet.Curl.Validate(string,CurlDotNet.CurlFlavor) 'CurlDotNet\.Curl\.Validate\(string, CurlDotNet\.CurlFlavor\)') | Checks a curl command copied from a specific shell without executing it, reading it with that shell's quoting, escaping, line\-continuation and variable rules\. |

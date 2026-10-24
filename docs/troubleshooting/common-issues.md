@@ -276,7 +276,7 @@ var result = await Curl.ExecuteAsync("curl -k https://localhost:5001/api/health"
 
 `Curl.DefaultInsecure = true` applies the same setting process-wide, which is convenient for local integration tests and dangerous anywhere else.
 
-**Fix for production:** make the operating system trust the certificate authority. CurlDotNet uses the system trust store; `--cacert`, `--cert` and `--key` are parsed but not applied by the transport. Client certificates are not supported either; see [SSL errors](../exceptions/ssl-errors.html).
+**Fix for production:** trust the certificate authority. On .NET 5 and later pass the CA bundle with `--cacert ca.pem` (or a folder with `--capath`), exactly as with curl; on .NET Standard 2.0 and .NET Framework install the CA in the operating system trust store. Client certificates (`--cert`, `--key`) and `--pinnedpubkey` are applied on .NET 5 and later too; see [SSL errors](../exceptions/ssl-errors.html).
 
 ```bash
 # macOS: trust a CA certificate
@@ -574,7 +574,7 @@ async Task MyMethod()
 }
 ```
 
-If you cannot use `async`, the synchronous methods exist: `Curl.Execute(command)`, `Curl.Get(url)`, `Curl.PostJson(url, body)`.
+If you cannot use `async`, the synchronous methods exist: `Curl.Execute(command)`, `Curl.Get(url)`, `Curl.PostJson(url, body)`. They block the calling thread for the whole transfer, so do not call them on a UI thread or in classic ASP.NET request code.
 
 ### The name 'Curl' does not exist in the current context
 

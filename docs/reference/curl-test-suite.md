@@ -13,9 +13,9 @@ CurlDotNet identifies itself as curl 8.7.1 (`User-Agent: curl/8.7.1`) and claims
 |--------|-------|
 | Test files replayed | 1092 |
 | Runnable (not skipped) | 620 |
-| Pass | 606 (97.7%) |
-| of which byte-exact, header order included | 215 |
-| Fail, every one listed in `known-failures.txt` | 14 |
+| Pass | 607 (97.9%) |
+| of which byte-exact, header order included | 216 |
+| Fail, every one listed in `known-failures.txt` | 13 |
 | Skipped (need servers or features CurlDotNet does not have) | 472 |
 
 Source: curl/curl commit `178e5077b6`, October 2026. The figures come from `tests/CurlDotNet.CurlSuite/curl-suite-report.md`, which every run regenerates.
@@ -79,18 +79,17 @@ To look at a failing test, open `tests/CurlDotNet.CurlSuite/data/testNNNN`, then
 - A failing test that is **not** on the list fails the build. A change that breaks curl compatibility cannot slip in.
 - A listed test that **starts passing** also fails the build, with the message "now passes: remove it from known-failures.txt". The list cannot quietly go stale.
 
-The 14 tests on the list today, grouped by cause:
+The 13 tests on the list today, grouped by cause:
 
 | Cause | Tests | Why |
 |-------|-------|-----|
 | Harness limitations | 24, 435 | The harness does not capture stderr; one test's expected output needs `runtests.pl`'s Perl-based placeholder rewriting |
 | `HttpClient` / .NET limitations | 46, 209, 213, 259, 265, 1473, 1617, 2051, 5029 | `System.Uri` rejects the host `domain..tld`; `HttpClient` performs NTLM proxy `CONNECT` itself; a `100 Continue` block with proxy Digest; obs-fold header lines; two user `Connection` headers are joined; no connection reuse across `--next` transfers; a TLS handshake timeout is reported as 35 instead of 28 |
 | Deliberate differences | 433, 436 | CurlDotNet never reads `~/.curlrc` implicitly; a library must not change requests because of a file in the user's home directory (use `-K`) |
-| Small library gap | 419 | `--dump-header` to a path that cannot be created should be exit 23; the transfer error 52 wins today |
 
 ## The unit tests
 
-The suite above checks behaviour against curl. The regular unit tests in `tests/CurlDotNet.Tests` (about 1450 test cases) check CurlDotNet's own API: parsing, the request builder, results, exceptions, and parity tests (`Parity*.cs`) for each curl behaviour that was ported. The offline categories run in a few seconds against an in-process HTTP server; this is the filter CI uses (other categories need the network or a real `curl` binary):
+The suite above checks behaviour against curl. The regular unit tests in `tests/CurlDotNet.Tests` (1788 test cases) check CurlDotNet's own API: parsing, the request builder, results, exceptions, and parity tests (`Parity*.cs`) for each curl behaviour that was ported. The offline categories run in a few seconds against an in-process HTTP server; this is the filter CI uses (other categories need the network or a real `curl` binary):
 
 ```bash
 dotnet test tests/CurlDotNet.Tests/CurlDotNet.Tests.csproj -c Release --framework net10.0 \

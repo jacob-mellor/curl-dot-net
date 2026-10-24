@@ -34,18 +34,19 @@ catch (CurlException ex)
 
 | Situation | Exception (exit code) | Useful properties |
 |-----------|-----------|-------------------|
-| `-m`/`--max-time` or `--connect-timeout` expired | `CurlOperationTimeoutException` (28), a `CurlTimeoutException` | `Timeout` |
+| `-m`/`--max-time` or `--connect-timeout` expired, or the transfer stayed below `--speed-limit` | `CurlOperationTimeoutException` (28), a `CurlTimeoutException` | `Timeout` |
 | Your `CancellationToken` was cancelled | `System.OperationCanceledException` | `CancellationToken` |
 | Host name does not resolve | `CurlCouldntResolveHostException` (6) | `Hostname` |
 | Proxy name does not resolve | `CurlCouldntResolveProxyException` (5) | `ProxyHost` |
 | Connection refused or unreachable | `CurlCouldntConnectException` (7) | `Host`, `Port`, `ViaProxy` |
 | TLS handshake failed / certificate rejected | `CurlSslConnectErrorException` (35) / `CurlPeerFailedVerificationException` (60), both `CurlSslException` | `Message` |
+| `--cert`/`--key` unusable, `--cacert` file missing, `--pinnedpubkey` mismatch (.NET 5+) | `CurlSslCertificateProblemException` (58) / `CurlSslCaCertBadFileException` (77) / `CurlSslPinnedPublicKeyMismatchException` (90), all `CurlSslException` | `Message` |
 | `-f`/`--fail` and status >= 400 | `CurlHttpReturnedErrorException` (22) | `StatusCode`, `ResponseBody` |
 | `--max-redirs` exceeded | `CurlTooManyRedirectsException` (47) | `RedirectCount` |
 | URL cannot be parsed | `CurlMalformedUrlException` (3) | `MalformedUrl` |
 | URL scheme not supported | `CurlUnsupportedProtocolException` (1) | `Protocol` |
-| Command has options but no URL | `CurlInvalidCommandException` (none) | `InvalidPart` |
-| Option missing its value, conflicting methods | `CurlException` (2) | `Message` |
+| Command has options but no URL | `CurlInvalidCommandException` (2) | `InvalidPart` |
+| Option missing its value or with a non-numeric value, conflicting methods | `CurlException` (2) | `Message` |
 | CR/LF in a `-H` header | `CurlBadFunctionArgumentException` (43) | `ArgumentName` |
 | `-o`, `-D` or `-c` file cannot be written | `CurlWriteErrorException` (23) | `FilePath` |
 | `-T`, `-F name=@file`, `-K` file missing | `CurlReadErrorException` (26) | `FilePath` |
@@ -63,7 +64,7 @@ The [error reference](../troubleshooting/error-reference.html) lists every excep
 - [HTTP errors](http-errors.html) - 4xx/5xx results, `-f`, `EnsureSuccess`, `--retry`
 - [Initialization errors](init-errors.html) - package and setup problems
 - [Redirect errors](redirect-errors.html) - `-L`, `--max-redirs`, `CurlTooManyRedirectsException`
-- [SSL/TLS errors](ssl-errors.html) - certificate failures and `-k`
+- [SSL/TLS errors](ssl-errors.html) - certificate failures, `-k`, `--cacert`, client certificates and `--pinnedpubkey` (35, 58, 60, 77, 90)
 - [Timeout errors](timeout-errors.html) - `-m`, `--connect-timeout`, `CurlOperationTimeoutException`, cancellation
 - [Transfer and file errors](transfer-errors.html) - partial file, write and read errors, empty reply, `--max-filesize`, FTP
 - [URL and command errors](url-errors.html) - `CurlMalformedUrlException`, `CurlUnsupportedProtocolException`, option errors

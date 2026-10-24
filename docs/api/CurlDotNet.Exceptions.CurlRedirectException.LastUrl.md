@@ -3,7 +3,7 @@
 
 ## CurlRedirectException\.LastUrl Property
 
-Gets the last URL that was attempted before the redirect limit was exceeded\.
+The last URL in the chain before it was stopped, which shows where the loop or the long chain goes\.
 
 ```csharp
 public string LastUrl { get; }
@@ -11,10 +11,11 @@ public string LastUrl { get; }
 
 #### Property Value
 [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')  
-The final URL in the redirect chain, or null if not available\.
+An absolute URL, or null when not recorded\.
 
 ### Remarks
 
-This URL can help identify where the redirect loop or chain ends.
+Open it with `curl -i` (without `-L`) to see its `Location` header.
 
-AI-Usage: Use this to debug redirect chains and identify problematic URLs.
+### See Also
+- [RedirectCount](CurlDotNet.Exceptions.CurlRedirectException.RedirectCount.md 'CurlDotNet\.Exceptions\.CurlRedirectException\.RedirectCount')

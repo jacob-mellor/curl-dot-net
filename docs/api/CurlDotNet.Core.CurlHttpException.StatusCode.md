@@ -3,11 +3,20 @@
 
 ## CurlHttpException\.StatusCode Property
 
-The HTTP status code that caused the error
+The HTTP status the server answered with \(for example 404 or 503\), copied from [StatusCode](CurlDotNet.Core.CurlResult.StatusCode.md 'CurlDotNet\.Core\.CurlResult\.StatusCode')\.
 
 ```csharp
 public int StatusCode { get; }
 ```
 
 #### Property Value
-[System\.Int32](https://learn.microsoft.com/en-us/dotnet/api/system.int32 'System\.Int32')
+[System\.Int32](https://learn.microsoft.com/en-us/dotnet/api/system.int32 'System\.Int32')  
+The status code; 0 when the request had no HTTP response\.
+
+### Remarks
+
+Example: `catch (CurlHttpException ex) when (ex.StatusCode >= 500) { /* retry later */ }`
+
+### See Also
+- [StatusCode](CurlDotNet.Core.CurlResult.StatusCode.md 'CurlDotNet\.Core\.CurlResult\.StatusCode')
+- [ResponseBody](CurlDotNet.Core.CurlHttpException.ResponseBody.md 'CurlDotNet\.Core\.CurlHttpException\.ResponseBody')
