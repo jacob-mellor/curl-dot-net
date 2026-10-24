@@ -222,6 +222,82 @@ namespace CurlDotNet.Tests
 
             var message = AssertWhatFixLink(ex, $"for new {type.Name}({signature})");
             _output.WriteLine(message);
+
+            // CurlDotNet.Core.CurlFtpException lives in FtpHandler.cs and is covered by the transport owners
+            if (type != typeof(CurlException) && type.Namespace == "CurlDotNet.Exceptions" && ex.CurlErrorCode.HasValue)
+            {
+                ex.Suggestions[0].Should().NotBe(CurlException.DefaultFix(ex.CurlErrorCode.Value),
+                    $"new {type.Name}({signature}) must give advice specific to its error, not the generic text for exit code {ex.CurlErrorCode}");
+            }
+        }
+
+        private static CurlException Construct(ConstructorInfo ctor) =>
+            (CurlException)ctor.Invoke(ctor.GetParameters().Select(ArgumentFor).ToArray());
+
+        [Fact]
+        public void DifferentConstructorsOfTheSameType_GiveDifferentMessages()
+        {
+            var types = typeof(CurlException).Assembly.GetTypes()
+                .Where(t => t.IsPublic && !t.IsAbstract && typeof(CurlException).IsAssignableFrom(t) && t != typeof(CurlException));
+            var duplicates = new List<string>();
+            foreach (var type in types)
+            {
+                var messages = type.GetConstructors()
+                    .Where(c => !c.GetParameters().Any(p => p.ParameterType == typeof(System.Runtime.Serialization.SerializationInfo)))
+                    .Select(c => (Signature: string.Join(",", c.GetParameters().Select(p => p.Name)), Message: Construct(c).Message))
+                    .ToList();
+                foreach (var group in messages.GroupBy(m => m.Message).Where(g => g.Count() > 1))
+                {
+                    duplicates.Add($"{type.Name}: {string.Join(" | ", group.Select(g => g.Signature))}");
+                }
+            }
+            duplicates.Should().BeEmpty("each constructor exists for a different situation, so its message must differ");
+        }
+
+        [Fact]
+        public void SameTypeDifferentSituation_GivesDifferentAdvice()
+        {
+            var server = new CurlCouldntConnectException("api.example.com", 443, "Connection refused", viaProxy: false, "curl https://api.example.com");
+            var proxy = new CurlCouldntConnectException("proxy.local", 3128, "Connection refused", viaProxy: true, "curl -x proxy.local:3128 https://api.example.com");
+            server.Suggestions[0].Should().NotBe(proxy.Suggestions[0]);
+            proxy.Message.Should().Contain("proxy.local").And.Contain("3128").And.Contain("--noproxy");
+            server.Message.Should().Contain("api.example.com").And.Contain("443");
+
+            var notFound = new CurlHttpReturnedErrorException(404, "Not Found", null, "https://api.example.com/v1/x?token=secret", false, null);
+            var unauthorized = new CurlHttpReturnedErrorException(401, "Unauthorized", null, "https://api.example.com/v1/x", false, null);
+            notFound.Message.Should().Contain("404").And.Contain("https://api.example.com/v1/x").And.NotContain("token=secret");
+            notFound.Suggestions.Should().Contain(s => s.Contains("URL"));
+            unauthorized.Suggestions.Should().Contain(s => s.Contains("credentials"));
+            notFound.Suggestions.Should().NotBeEquivalentTo(unauthorized.Suggestions);
+
+            var write = new CurlFileException("Could not save.", "/tmp/a.json", CurlFileException.FileOperation.Write);
+            var read = new CurlFileException("Could not load.", "/tmp/a.json", CurlFileException.FileOperation.Read);
+            write.Suggestions[0].Should().NotBe(read.Suggestions[0]);
+        }
+
+        [Theory]
+        [InlineData(typeof(CurlSslEngineNotFoundException), 53)]
+        [InlineData(typeof(CurlSslEngineSetFailedException), 54)]
+        [InlineData(typeof(CurlSslCertificateProblemException), 58)]
+        [InlineData(typeof(CurlSslCipherException), 59)]
+        [InlineData(typeof(CurlUseSslFailedException), 64)]
+        [InlineData(typeof(CurlPeerFailedVerificationException), 60)]
+        [InlineData(typeof(CurlSslConnectErrorException), 35)]
+        [InlineData(typeof(CurlFtpAcceptTimeoutException), 12)]
+        public void ExitCode_MatchesCurlH(Type type, int code)
+        {
+            var ex = (CurlException)Activator.CreateInstance(type, "detail of the problem", null)!;
+            ex.CurlErrorCode.Should().Be(code);
+        }
+
+        [Fact]
+        public void HttpException_StatusAdvice_GoesIntoSuggestionsWithoutBeingRepeatedInTheMessage()
+        {
+            var ex = new CurlDotNet.Exceptions.CurlHttpException("GET https://api.example.com/x failed", 429);
+            ex.Suggestions.Count.Should().BeGreaterThan(1);
+            ex.Suggestions[0].Should().Contain("rate limit");
+            CountOf(ex.Message, ex.Suggestions[0]).Should().Be(1);
+            AssertWhatFixLink(ex);
         }
 
         // ------------------------------------------------------------------ real failures

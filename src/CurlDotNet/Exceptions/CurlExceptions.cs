@@ -22,56 +22,85 @@ using System.Text;
 namespace CurlDotNet.Exceptions
 {
     /// <summary>
-    /// Base exception for all curl operations. This is the base class for all curl-specific exceptions.
+    /// Base class of every error CurlDotNet throws: catch it to handle any failed curl command, read
+    /// <see cref="CurlErrorCode"/> for curl's exit code and <see cref="Message"/> for what happened and how to fix it.
     /// </summary>
     /// <remarks>
-    /// <para>This exception provides common properties for all curl errors including the command that was executed and the curl error code.</para>
-    /// <para>Curl error codes match the original curl error codes from the C implementation.</para>
-    /// <para>AI-Usage: Catch this exception type to handle any curl-related error generically.</para>
-    /// <para>AI-Pattern: Use specific derived exceptions for targeted error handling.</para>
+    /// <para>Every failure of <c>Curl.ExecuteAsync</c>, <c>Curl.Execute</c>, <see cref="CurlDotNet.Core.CurlRequestBuilder"/>
+    /// and <see cref="CurlDotNet.Lib.LibCurl"/> surfaces as a <see cref="CurlException"/> subclass. There is one subclass
+    /// per curl exit code (for example <see cref="CurlCouldntResolveHostException"/> for exit code 6,
+    /// <see cref="CurlOperationTimeoutException"/> for 28, <see cref="CurlPeerFailedVerificationException"/> for 60), so
+    /// you can catch exactly the failures you can handle and let the rest bubble up.</para>
+    /// <para>An HTTP error status (404, 500...) is not an exception: it comes back as a normal
+    /// <see cref="CurlDotNet.Core.CurlResult"/> with <c>StatusCode</c> set, unless the command uses <c>-f</c>/<c>--fail</c>,
+    /// in which case <see cref="CurlHttpReturnedErrorException"/> (exit code 22) is thrown.</para>
+    /// <para>The message has three parts: what happened (first line, also <see cref="WhatHappened"/>), how to fix it (the
+    /// following lines, also <see cref="Suggestions"/>) and a <c>See https://...</c> documentation link (last line, also
+    /// <see cref="DocumentationUrl"/>). <see cref="Command"/> holds the command that failed and
+    /// <see cref="StandardOutput"/> what curl would already have printed.</para>
+    /// <para>Example: <c>try { var r = await Curl.ExecuteAsync("curl https://api.example.com/users"); }
+    /// catch (CurlCouldntResolveHostException ex) { Console.WriteLine($"Bad host {ex.Hostname}"); }
+    /// catch (CurlTimeoutException) { /* retry later */ } catch (CurlException ex) { Console.WriteLine($"curl exit {ex.CurlErrorCode}: {ex.Message}"); }</c></para>
+    /// <para>Exit code table and handling patterns: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md.
+    /// Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</para>
     /// </remarks>
     /// <example>
     /// <code>
     /// try
     /// {
-    ///     var result = await curl.ExecuteAsync("curl https://api.example.com");
+    ///     var result = await Curl.ExecuteAsync("curl https://api.example.com");
     /// }
     /// catch (CurlConnectionException ex)
     /// {
-    ///     // Handle connection-specific issues
     ///     Console.WriteLine($"Failed to connect to {ex.Host}:{ex.Port}");
     /// }
     /// catch (CurlException ex)
     /// {
-    ///     // Handle any other curl error
-    ///     Console.WriteLine($"Curl failed: {ex.Message}");
-    ///     Console.WriteLine($"Command: {ex.Command}");
-    ///     Console.WriteLine($"Error code: {ex.CurlErrorCode}");
+    ///     Console.WriteLine(ex.WhatHappened);
+    ///     foreach (var fix in ex.Suggestions) Console.WriteLine("  fix: " + fix);
+    ///     Console.WriteLine($"exit code {ex.CurlErrorCode}, docs: {ex.DocumentationUrl}");
     /// }
     /// </code>
     /// </example>
+    /// <seealso cref="CurlHttpReturnedErrorException"/>
+    /// <seealso cref="CurlTimeoutException"/>
+    /// <seealso cref="CurlConnectionException"/>
+    /// <seealso cref="CurlInvalidCommandException"/>
     [Serializable]
     public class CurlException : Exception
     {
         /// <summary>
-        /// Gets the curl command that was being executed when the exception occurred.
+        /// The curl command (or a description of the API call) that was running when the error happened, exactly
+        /// as it was passed in, so you can log it or re-run it in a terminal.
         /// </summary>
-        /// <value>The full curl command string, or null if not applicable.</value>
+        /// <value>The full command string such as <c>curl -sS -H 'Accept: application/json' https://api.example.com</c>;
+        /// for <see cref="CurlDotNet.Core.CurlRequestBuilder"/> calls, the equivalent produced by
+        /// <c>ToCurlCommand()</c>; null when the error did not come from a command.</value>
         /// <remarks>
-        /// <para>This property contains the exact command that was passed to the Execute method.</para>
-        /// <para>AI-Usage: Use this for logging and debugging to understand what command failed.</para>
+        /// <para>The command may contain secrets (<c>-u user:password</c>, <c>-H 'Authorization: Bearer ...'</c>). Mask it
+        /// before writing it to shared logs. <see cref="Message"/> itself never includes the whole command.</para>
+        /// <para>Example: <c>catch (CurlException ex) { logger.LogWarning("curl failed: {Cmd}", Mask(ex.Command)); }</c></para>
         /// </remarks>
+        /// <seealso cref="CurlErrorCode"/>
+        /// <seealso cref="StandardOutput"/>
         public string Command { get; }
 
         /// <summary>
-        /// Gets the curl error code matching the original curl implementation.
+        /// curl's exit code for this failure (the <c>CURLE_*</c> value from <c>curl.h</c>), for example 6 when the
+        /// host name cannot be resolved, 7 when the connection is refused, 22 for <c>-f</c> HTTP errors and 28 for a timeout.
         /// </summary>
-        /// <value>The curl error code (e.g., 6 for DNS resolution failure, 28 for timeout), or null if not a curl-specific error.</value>
+        /// <value>An integer from 1 to 100 that matches what the curl command-line tool would return as <c>$?</c>; null only
+        /// for exceptions that have no curl equivalent (such as a JSON parsing error in <c>ParseJson</c>).</value>
         /// <remarks>
-        /// <para>Error codes match the CURLE_* constants from curl.h</para>
-        /// <para>Common codes: 6=DNS failure, 7=connection failed, 28=timeout, 35=SSL error</para>
-        /// <para>AI-Usage: Use this to determine the specific type of curl error programmatically.</para>
+        /// <para>Common codes: 3 malformed URL, 5 proxy not resolved, 6 host not resolved, 7 connection failed, 18 partial body,
+        /// 22 HTTP error with <c>-f</c>, 23 write error, 26 read error, 28 timeout, 35 TLS handshake failed, 47 too many redirects,
+        /// 52 empty reply, 56 receive error, 60 certificate not trusted. <see cref="GetCurlErrorName"/> returns the
+        /// <c>CURLE_</c> name.</para>
+        /// <para>Example: <c>catch (CurlException ex) when (ex.CurlErrorCode == 28) { /* timed out: retry with a longer -m */ }</c></para>
+        /// <para>Full table: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</para>
         /// </remarks>
+        /// <seealso cref="GetCurlErrorName"/>
+        /// <seealso cref="IsRetryable"/>
         public int? CurlErrorCode { get; }
 
         /// <summary>
@@ -419,6 +448,18 @@ namespace CurlDotNet.Exceptions
                 }
             }
 
+            var extra = ExtraSuggestions;
+            if (extra != null)
+            {
+                foreach (var more in extra)
+                {
+                    if (!string.IsNullOrWhiteSpace(more) && !suggestions.Contains(more))
+                    {
+                        suggestions.Add(more);
+                    }
+                }
+            }
+
             string message;
             if (link == null && fixes.Count == 0 && !addedFix && cause == null)
             {
@@ -503,6 +544,21 @@ namespace CurlDotNet.Exceptions
         protected virtual string? DefaultSuggestion => null;
 
         /// <summary>
+        /// Further fixes appended to <see cref="Suggestions"/> after the ones in the message, for errors where
+        /// several remedies apply (for example the status-specific advice of <see cref="CurlHttpException"/>).
+        /// </summary>
+        /// <value>Null or empty in <see cref="CurlException"/> itself; derived types may return extra sentences.
+        /// Entries already in the list are skipped. They are not added to <see cref="Message"/>.</value>
+        /// <remarks>
+        /// <para>Read lazily, the first time <see cref="Suggestions"/> or <see cref="Message"/> is used, so an override
+        /// may use properties set by the derived constructor.</para>
+        /// <para>Example: <c>protected override IEnumerable&lt;string&gt;? ExtraSuggestions =&gt; new[] { "Check the service status page." };</c></para>
+        /// </remarks>
+        /// <seealso cref="DefaultSuggestion"/>
+        /// <seealso cref="Suggestions"/>
+        protected virtual IEnumerable<string>? ExtraSuggestions => null;
+
+        /// <summary>
         /// The generic fix for a curl exit code, used when a message does not say how to fix the problem.
         /// </summary>
         internal static string DefaultFix(int code)
@@ -553,10 +609,16 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlException"/> class with serialized data.
+        /// Restores an exception (its message, <see cref="Command"/> and <see cref="CurlErrorCode"/>) from serialized
+        /// data; used by remoting and binary serialization on .NET Framework.
         /// </summary>
-        /// <param name="info">The serialization information.</param>
-        /// <param name="context">The streaming context.</param>
+        /// <remarks>
+        /// <para>You do not call this yourself. Derived types that add state must call it and restore their own fields.
+        /// Binary serialization is obsolete on .NET 8 and later; prefer <see cref="ToJson"/> to move errors between processes.</para>
+        /// </remarks>
+        /// <param name="info">The serialized object data written by <see cref="GetObjectData"/>.</param>
+        /// <param name="context">The source of the serialized stream, supplied by the serializer.</param>
+        /// <seealso cref="GetObjectData"/>
         protected CurlException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
             Command = info.GetString(nameof(Command));
@@ -564,10 +626,16 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Sets the <see cref="SerializationInfo"/> with information about the exception.
+        /// Writes the exception, including <see cref="Command"/> and <see cref="CurlErrorCode"/>, into serialization data
+        /// so it can cross an AppDomain or remoting boundary on .NET Framework.
         /// </summary>
-        /// <param name="info">The serialization information.</param>
-        /// <param name="context">The streaming context.</param>
+        /// <remarks>
+        /// <para>Called by the serializer, not by your code. On .NET 8 and later binary serialization is obsolete; use
+        /// <see cref="ToJson"/> for logs and message queues instead.</para>
+        /// </remarks>
+        /// <param name="info">The object that receives the serialized values (message, command, exit code).</param>
+        /// <param name="context">The destination of the serialized stream, supplied by the serializer.</param>
+        /// <seealso cref="ToJson"/>
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             base.GetObjectData(info, context);
@@ -578,11 +646,21 @@ namespace CurlDotNet.Exceptions
         #region Fluent Methods for Easy Inspection
 
         /// <summary>
-        /// Add contextual information to the exception (fluent).
+        /// Attaches one key/value fact (a request id, a tenant, a retry number) to this exception and returns the same
+        /// exception, so you can enrich and rethrow it in one expression.
         /// </summary>
-        /// <param name="key">Context key</param>
-        /// <param name="value">Context value</param>
-        /// <returns>This exception for chaining</returns>
+        /// <remarks>
+        /// <para>The value is stored in <see cref="Context"/>, replacing an existing value with the same key, and appears in
+        /// <see cref="ToDetailedString"/>, <see cref="ToJson"/> and <see cref="GetDiagnosticInfo"/>. It does not change
+        /// <see cref="Message"/>.</para>
+        /// <para>Example: <c>catch (CurlException ex) { throw ex.WithContext("orderId", order.Id).WithContext("attempt", 3); }</c>
+        /// (use <c>throw;</c> instead when you want to keep the original stack trace).</para>
+        /// </remarks>
+        /// <param name="key">Name of the fact, such as <c>"orderId"</c>; any non-null string.</param>
+        /// <param name="value">The value to record; any object, printed with <c>ToString()</c> in the detailed text.</param>
+        /// <returns>This same exception instance, for chaining.</returns>
+        /// <seealso cref="WithContext(Dictionary{string, object})"/>
+        /// <seealso cref="Context"/>
         public CurlException WithContext(string key, object value)
         {
             Context[key] = value;
@@ -590,10 +668,16 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Add multiple context values (fluent).
+        /// Attaches several key/value facts at once (copied into <see cref="Context"/>) and returns the same exception for
+        /// chaining, for example everything your logging scope already knows.
         /// </summary>
-        /// <param name="context">Dictionary of context values</param>
-        /// <returns>This exception for chaining</returns>
+        /// <remarks>
+        /// <para>Existing keys are overwritten. Example: <c>throw ex.WithContext(new Dictionary&lt;string, object&gt; { ["user"] = userId, ["region"] = "eu" });</c></para>
+        /// </remarks>
+        /// <param name="context">The facts to copy; each key/value pair is added to <see cref="Context"/>. Must not be null.</param>
+        /// <returns>This same exception instance, for chaining.</returns>
+        /// <seealso cref="WithContext(string, object)"/>
+        /// <seealso cref="Context"/>
         public CurlException WithContext(Dictionary<string, object> context)
         {
             foreach (var kvp in context)
@@ -604,10 +688,19 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Add a suggestion for resolving this error (fluent).
+        /// Adds your own advice on how to fix the problem to <see cref="Suggestions"/> (ignored if the same text is already
+        /// there) and returns the same exception for chaining.
         /// </summary>
-        /// <param name="suggestion">Helpful suggestion text</param>
-        /// <returns>This exception for chaining</returns>
+        /// <remarks>
+        /// <para>Use it in middleware or wrappers that know something CurlDotNet does not, such as which configuration key
+        /// holds the API token. The text is shown by <see cref="ToUserFriendlyMessage"/> and <see cref="ToDetailedString"/>;
+        /// <see cref="Message"/> is not changed.</para>
+        /// <para>Example: <c>catch (CurlHttpReturnedErrorException ex) when (ex.StatusCode == 401) { throw ex.WithSuggestion("Renew the token in appsettings.json:Api:Token."); }</c></para>
+        /// </remarks>
+        /// <param name="suggestion">One sentence telling the reader what to do, such as <c>"Renew the API token."</c>.</param>
+        /// <returns>This same exception instance, for chaining.</returns>
+        /// <seealso cref="Suggestions"/>
+        /// <seealso cref="ToUserFriendlyMessage"/>
         public CurlException WithSuggestion(string suggestion)
         {
             if (!Suggestions.Contains(suggestion))
@@ -618,10 +711,17 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Add diagnostic information (fluent).
+        /// Stores free-form diagnostic text (a verbose log, a trace excerpt, environment details) in
+        /// <see cref="DiagnosticInfo"/> and returns the same exception for chaining.
         /// </summary>
-        /// <param name="diagnosticInfo">Diagnostic details</param>
-        /// <returns>This exception for chaining</returns>
+        /// <remarks>
+        /// <para>Replaces any previous value. Printed by <see cref="ToDetailedString"/> and included in <see cref="ToJson"/>.</para>
+        /// <para>Example: run the command with <c>--trace-ascii trace.txt</c>, then <c>throw ex.WithDiagnostics(File.ReadAllText("trace.txt"));</c></para>
+        /// </remarks>
+        /// <param name="diagnosticInfo">The text to attach; any string, may span several lines; null clears it.</param>
+        /// <returns>This same exception instance, for chaining.</returns>
+        /// <seealso cref="DiagnosticInfo"/>
+        /// <seealso cref="ToDetailedString"/>
         public CurlException WithDiagnostics(string diagnosticInfo)
         {
             DiagnosticInfo = diagnosticInfo;
@@ -629,9 +729,19 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Get a detailed string representation of the exception.
+        /// Returns a multi-line report for logs: type, what happened, documentation link, command, exit code and name,
+        /// context, how-to-fix list, diagnostics, inner exception and stack trace.
         /// </summary>
-        /// <returns>Detailed error information</returns>
+        /// <remarks>
+        /// <para>Use it where a human will read the log later; use <see cref="ToJson"/> for structured logging and
+        /// <see cref="ToUserFriendlyMessage"/> for end users. The command is printed as-is, so mask secrets first if the log
+        /// is shared. <see cref="CurlHttpException"/> adds the status, headers and body.</para>
+        /// <para>Example: <c>catch (CurlException ex) { logger.LogError(ex.ToDetailedString()); }</c></para>
+        /// </remarks>
+        /// <returns>A string that starts with <c>=== CURL EXCEPTION DETAILS ===</c> and has one labelled line per fact.</returns>
+        /// <seealso cref="ToJson"/>
+        /// <seealso cref="ToUserFriendlyMessage"/>
+        /// <seealso cref="Log"/>
         public virtual string ToDetailedString()
         {
             var sb = new StringBuilder();
@@ -684,9 +794,16 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Get the exception as a structured JSON object for logging.
+        /// Serializes the exception to indented JSON (type, message, whatHappened, documentationUrl, command, exit code and
+        /// name, context, suggestions, diagnostics, retryability, stack trace, inner message) for structured logs.
         /// </summary>
-        /// <returns>JSON representation of the exception</returns>
+        /// <remarks>
+        /// <para>Uses System.Text.Json, or Newtonsoft.Json on the .NET Standard 2.0 build. Values in <see cref="Context"/> must
+        /// be serializable. Example: <c>catch (CurlException ex) { telemetry.TrackTrace(ex.ToJson()); }</c></para>
+        /// </remarks>
+        /// <returns>An indented JSON object such as <c>{ "type": "CurlOperationTimeoutException", "curlErrorCode": 28, ... }</c>.</returns>
+        /// <seealso cref="GetDiagnosticInfo"/>
+        /// <seealso cref="ToDetailedString"/>
         public virtual string ToJson()
         {
             var errorObject = new Dictionary<string, object>
@@ -714,9 +831,17 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Get diagnostic information for debugging.
+        /// Returns the facts about this error as a dictionary (type, message, command, exit code and name, timestamp,
+        /// machine, OS, retryability, context, suggestions, inner exception) for logging scopes and telemetry.
         /// </summary>
-        /// <returns>Diagnostic details</returns>
+        /// <remarks>
+        /// <para>Missing values are reported as <c>"N/A"</c>. Example:
+        /// <c>using (logger.BeginScope(ex.GetDiagnosticInfo())) logger.LogError(ex.WhatHappened);</c></para>
+        /// </remarks>
+        /// <returns>A new dictionary with keys such as <c>ExceptionType</c>, <c>CurlErrorCode</c>, <c>CurlErrorName</c>,
+        /// <c>IsRetryable</c> and <c>Suggestions</c>.</returns>
+        /// <seealso cref="ToJson"/>
+        /// <seealso cref="Log"/>
         public virtual Dictionary<string, object> GetDiagnosticInfo()
         {
             return new Dictionary<string, object>
@@ -739,9 +864,16 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Get the CURLE_* constant name for the error code.
+        /// Returns the <c>CURLE_*</c> constant name for <see cref="CurlErrorCode"/>, such as <c>CURLE_COULDNT_RESOLVE_HOST</c>
+        /// for 6, so logs can be searched with the same names as libcurl's documentation.
         /// </summary>
-        /// <returns>Curl error constant name</returns>
+        /// <remarks>
+        /// <para>Unknown codes are reported as <c>CURLE_UNKNOWN_n</c>; null when there is no exit code. Example:
+        /// <c>Console.WriteLine($"{ex.CurlErrorCode} {ex.GetCurlErrorName()}");</c> prints <c>28 CURLE_OPERATION_TIMEDOUT</c>.</para>
+        /// <para>Meaning of each code: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</para>
+        /// </remarks>
+        /// <returns>The constant name, or null when <see cref="CurlErrorCode"/> is null.</returns>
+        /// <seealso cref="CurlErrorCode"/>
         public string GetCurlErrorName()
         {
             if (!CurlErrorCode.HasValue) return null;
@@ -787,9 +919,16 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Check if this error is potentially retryable.
+        /// Tells whether running the same command again might succeed: true for transient network failures (DNS, refused
+        /// or reset connections, timeouts, empty replies), false for problems that need a change first (bad URL, TLS, auth).
         /// </summary>
-        /// <returns>True if the error might succeed on retry</returns>
+        /// <remarks>
+        /// <para>Retryable exit codes: 6, 7, 28, 52, 55, 56. <see cref="CurlHttpException"/> also treats 429 and 5xx as
+        /// retryable. Use it to decide on a retry loop with backoff, or use curl's own <c>--retry 3</c> in the command.</para>
+        /// <para>Example: <c>catch (CurlException ex) when (ex.IsRetryable() &amp;&amp; attempt &lt; 3) { await Task.Delay(1000 * attempt); }</c></para>
+        /// </remarks>
+        /// <returns>True when a retry may help; false when the command or the environment must change first.</returns>
+        /// <seealso cref="CurlErrorCode"/>
         public virtual bool IsRetryable()
         {
             if (!CurlErrorCode.HasValue) return false;
@@ -809,18 +948,33 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Log this exception with structured data.
+        /// Sends this exception to your logging callback as two values: the human-readable <see cref="ToDetailedString"/>
+        /// text and the structured <see cref="GetDiagnosticInfo"/> dictionary.
         /// </summary>
-        /// <param name="logger">Action to perform logging</param>
+        /// <remarks>
+        /// <para>Example with Microsoft.Extensions.Logging:
+        /// <c>ex.Log((text, data) =&gt; { using (logger.BeginScope(data)) logger.LogError(text); });</c></para>
+        /// </remarks>
+        /// <param name="logger">Callback receiving the detailed text and the diagnostic dictionary; must not be null.</param>
+        /// <seealso cref="ToDetailedString"/>
+        /// <seealso cref="GetDiagnosticInfo"/>
         public void Log(Action<string, Dictionary<string, object>> logger)
         {
             logger(ToDetailedString(), GetDiagnosticInfo());
         }
 
         /// <summary>
-        /// Create a user-friendly error message.
+        /// Returns short text for end users: <c>Error:</c> what happened, a bullet list of possible solutions, a note when a
+        /// retry may help, and the documentation link, without stack traces or the command.
         /// </summary>
-        /// <returns>Simplified error message for end users</returns>
+        /// <remarks>
+        /// <para>Suitable for a dialog or a CLI tool's error output. Example: <c>catch (CurlException ex) { Console.Error.WriteLine(ex.ToUserFriendlyMessage()); return ex.CurlErrorCode ?? 1; }</c></para>
+        /// </remarks>
+        /// <returns>Several lines: <c>Error: ...</c>, <c>Possible solutions:</c> with <c>•</c> bullets, optionally
+        /// <c>This error might be temporary</c>, and <c>More help: https://...</c>.</returns>
+        /// <seealso cref="Suggestions"/>
+        /// <seealso cref="WhatHappened"/>
+        /// <seealso cref="ToDetailedString"/>
         public virtual string ToUserFriendlyMessage()
         {
             var sb = new StringBuilder();
@@ -852,48 +1006,68 @@ namespace CurlDotNet.Exceptions
     }
 
     /// <summary>
-    /// Thrown when the curl command syntax is invalid or cannot be parsed.
+    /// Thrown before anything is sent when the curl command string cannot be understood: no URL, an unclosed
+    /// quote, a missing option value, or syntax from a different shell than the one CurlDotNet was told to read.
     /// </summary>
     /// <remarks>
-    /// <para>This exception indicates a problem with the curl command syntax, not a network or execution error.</para>
-    /// <para>AI-Usage: Catch this to handle command syntax errors separately from execution errors.</para>
-    /// <para>AI-Pattern: Validate commands before execution to avoid this exception.</para>
+    /// <para>Raised by the command parser (<c>Curl.ExecuteAsync</c>, <c>Curl.Execute</c>, <c>Curl.Validate</c>) and by the
+    /// shell-flavor readers (bash, cmd, PowerShell, Invoke-WebRequest). Nothing has touched the network, so this is
+    /// always a problem in the command text, never in the server. <see cref="InvalidPart"/> names the piece that
+    /// could not be read. Derived types: <see cref="CurlUnknownOptionException"/> (an option curl does not have,
+    /// exit code 48 in curl) and <see cref="CurlOptionSyntaxException"/> (an option value curl cannot parse, exit code 49).</para>
+    /// <para>Usual fixes: start with the URL or <c>curl URL</c>; quote values with spaces (<c>-H 'X-Name: a b'</c>);
+    /// close every quote; when the command was copied from Windows cmd or PowerShell, pass the matching
+    /// <see cref="CurlDotNet.CurlFlavor"/> (or <c>CurlFlavor.Auto</c>).</para>
+    /// <para>Example: <c>try { await Curl.ExecuteAsync("curl -X POST"); } catch (CurlInvalidCommandException ex) { Console.WriteLine($"Fix the command near '{ex.InvalidPart}': {ex.Suggestions[0]}"); }</c>.
+    /// Call <c>Curl.Validate(command)</c> first to check user-supplied commands without throwing.</para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md and
+    /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</para>
     /// </remarks>
     /// <example>
     /// <code>
     /// try
     /// {
-    ///     // Missing URL will throw CurlInvalidCommandException
-    ///     var result = await curl.ExecuteAsync("curl -X POST");
+    ///     var result = await Curl.ExecuteAsync("curl -X POST");   // no URL
     /// }
     /// catch (CurlInvalidCommandException ex)
     /// {
-    ///     Console.WriteLine($"Invalid command syntax: {ex.Message}");
+    ///     Console.WriteLine(ex.WhatHappened);
     ///     Console.WriteLine($"Problem with: {ex.InvalidPart}");
-    ///     // Suggest correction to user
-    ///     Console.WriteLine("Did you forget to specify a URL?");
     /// }
     /// </code>
     /// </example>
+    /// <seealso cref="CurlUnknownOptionException"/>
+    /// <seealso cref="CurlOptionSyntaxException"/>
+    /// <seealso cref="CurlMalformedUrlException"/>
     [Serializable]
     public class CurlInvalidCommandException : CurlException
     {
         /// <summary>
-        /// Gets the part of the command that is invalid.
+        /// The piece of the command that could not be read: an option name such as <c>--frobnicate</c>, an option
+        /// whose value is missing, or the unclosed quoted text.
         /// </summary>
-        /// <value>The specific option, argument, or syntax element that caused the parsing error.</value>
+        /// <value>The offending token exactly as it appeared in the command, or null when the problem is the
+        /// command as a whole (for example "no URL specified").</value>
         /// <remarks>
-        /// <para>This helps identify exactly what part of the command is wrong.</para>
-        /// <para>AI-Usage: Use this to provide specific feedback about what needs to be corrected.</para>
+        /// <para>Use it to highlight the error in an editor or form: <c>commandBox.Select(cmd.IndexOf(ex.InvalidPart), ex.InvalidPart.Length);</c></para>
         /// </remarks>
+        /// <seealso cref="CurlException.Command"/>
         public string InvalidPart { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlInvalidCommandException"/> class.
+        /// Creates the exception for a command that cannot be parsed, naming the part that is wrong so the caller
+        /// can point at it.
         /// </summary>
-        /// <param name="message">The error message describing the invalid syntax.</param>
-        /// <param name="invalidPart">The specific part of the command that is invalid.</param>
-        /// <param name="command">The full curl command that failed to parse.</param>
+        /// <remarks>
+        /// <para>The exit code stays null because the command never ran. When <paramref name="message"/> carries no fix, the
+        /// suggestion tells the reader to correct <paramref name="invalidPart"/> and to quote values; the link points at
+        /// the error reference.</para>
+        /// <para>Example: <c>throw new CurlInvalidCommandException("Option -H needs a value.", "-H", command);</c></para>
+        /// </remarks>
+        /// <param name="message">What is wrong with the command, optionally followed by fix lines and a <c>See URL</c> line.</param>
+        /// <param name="invalidPart">The token that could not be read (an option or quoted text), or null for the whole command.</param>
+        /// <param name="command">The full command text that failed to parse, or null.</param>
+        /// <seealso cref="CurlUnknownOptionException"/>
         public CurlInvalidCommandException(string message, string invalidPart = null, string command = null)
             : base(message, command)
         {
@@ -901,12 +1075,17 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Initializes a new instance that carries the curl exit code of the problem.
+        /// Creates the exception with curl's exit code for the problem, for derived types such as
+        /// <see cref="CurlOptionSyntaxException"/> (49) that curl reports with a specific code.
         /// </summary>
-        /// <param name="message">The error message describing the invalid syntax and how to fix it.</param>
-        /// <param name="curlErrorCode">The curl exit code (for example 49 for an option value curl cannot parse).</param>
-        /// <param name="invalidPart">The specific part of the command that is invalid.</param>
-        /// <param name="command">The full curl command that failed.</param>
+        /// <remarks>
+        /// <para>Used by derived types; <see cref="CurlException.CurlErrorCode"/> is set to <paramref name="curlErrorCode"/>.</para>
+        /// </remarks>
+        /// <param name="message">What is wrong with the command and how to fix it, separated by newlines.</param>
+        /// <param name="curlErrorCode">The curl exit code, for example 49 for an option value curl cannot parse.</param>
+        /// <param name="invalidPart">The specific option or value that is invalid, or null.</param>
+        /// <param name="command">The full curl command that failed, or null.</param>
+        /// <seealso cref="CurlOptionSyntaxException"/>
         protected CurlInvalidCommandException(string message, int curlErrorCode, string invalidPart, string command)
             : base(message, curlErrorCode, command)
         {
@@ -914,8 +1093,12 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Initializes a new instance with serialized data.
+        /// Restores the exception, including <see cref="InvalidPart"/>, from serialized data on .NET Framework.
         /// </summary>
+        /// <remarks><para>Called by the serializer; not used directly.</para></remarks>
+        /// <param name="info">The serialized object data written by <see cref="GetObjectData"/>.</param>
+        /// <param name="context">The source of the serialized stream, supplied by the serializer.</param>
+        /// <seealso cref="GetObjectData"/>
         protected CurlInvalidCommandException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
             InvalidPart = info.GetString(nameof(InvalidPart));
@@ -927,68 +1110,85 @@ namespace CurlDotNet.Exceptions
             base.GetObjectData(info, context);
             info.AddValue(nameof(InvalidPart), InvalidPart);
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl => DocLinks.ErrorReference;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion => string.IsNullOrEmpty(InvalidPart)
+            ? "Write the command as you would type it in a terminal (curl [options] URL), close every quote, and quote values that contain spaces, & or ?."
+            : $"Correct or remove '{InvalidPart}' in the command: check its spelling and value against curl's manual, and quote values that contain spaces, & or ?.";
     }
 
     /// <summary>
-    /// Thrown when a network connection cannot be established to the target host.
+    /// Base type for failures to reach the server or proxy at the network level (name resolution, refused or
+    /// unreachable connection); catch it to handle "could not connect" in one place.
     /// </summary>
     /// <remarks>
-    /// <para>This exception indicates network-level connection failures, not HTTP errors.</para>
-    /// <para>Common causes include: host unreachable, port closed, firewall blocking, network timeout.</para>
-    /// <para>AI-Usage: Catch this to implement retry logic or fallback servers.</para>
-    /// <para>AI-Pattern: Check Host and Port properties to log connection details.</para>
+    /// <para>No HTTP exchange happened: the request was never answered. <see cref="Host"/> and <see cref="Port"/> say
+    /// what was tried. Derived types: <see cref="CurlDnsException"/> (exit code 6) and <see cref="CurlProxyException"/>
+    /// (exit code 5). The transport itself throws the per-exit-code types <see cref="CurlCouldntResolveHostException"/>
+    /// (6), <see cref="CurlCouldntResolveProxyException"/> (5) and <see cref="CurlCouldntConnectException"/> (7), which
+    /// are not subclasses of this type, so catch those too (or catch <see cref="CurlException"/> and check
+    /// <see cref="CurlException.IsRetryable"/>).</para>
+    /// <para>Usual causes: a typo in the host, the service is down, the port is wrong, a firewall or VPN blocks the
+    /// connection, or a proxy is required. Example: <c>catch (CurlConnectionException ex) { Console.WriteLine($"Cannot reach {ex.Host}:{ex.Port}"); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md</para>
     /// </remarks>
     /// <example>
     /// <code>
     /// try
     /// {
-    ///     var result = await curl.ExecuteAsync("curl https://internal-server:8443/api");
-    /// }
-    /// catch (CurlDnsException ex)
-    /// {
-    ///     // DNS couldn't resolve the hostname
-    ///     Console.WriteLine($"DNS lookup failed for {ex.Host}");
-    ///     // Try fallback server
-    ///     result = await curl.ExecuteAsync("curl https://backup-server/api");
+    ///     var result = await Curl.ExecuteAsync("curl https://internal-server:8443/api");
     /// }
     /// catch (CurlConnectionException ex)
     /// {
-    ///     // Connection failed but DNS worked
-    ///     Console.WriteLine($"Cannot connect to {ex.Host}:{ex.Port}");
-    ///     Console.WriteLine("Check if the service is running and firewall rules");
+    ///     Console.WriteLine($"Cannot connect to {ex.Host}:{ex.Port} - {ex.Suggestions[0]}");
     /// }
     /// </code>
     /// </example>
+    /// <seealso cref="CurlDnsException"/>
+    /// <seealso cref="CurlProxyException"/>
+    /// <seealso cref="CurlCouldntConnectException"/>
+    /// <seealso cref="CurlCouldntResolveHostException"/>
     [Serializable]
     public class CurlConnectionException : CurlException
     {
         /// <summary>
-        /// Gets the host that could not be connected to.
+        /// The host name or IP address that could not be reached, exactly as it appears in the URL (or the proxy's
+        /// host for <see cref="CurlProxyException"/>).
         /// </summary>
-        /// <value>The hostname or IP address that failed to connect.</value>
+        /// <value>A name such as <c>api.example.com</c> or an address such as <c>192.168.1.10</c>; null when unknown.</value>
         /// <remarks>
-        /// <para>This may be a hostname (e.g., "api.example.com") or IP address (e.g., "192.168.1.1").</para>
-        /// <para>AI-Usage: Use this to implement host-specific retry or fallback logic.</para>
+        /// <para>Use it for per-host fallback: <c>catch (CurlConnectionException ex) when (ex.Host == primary) { url = backupUrl; }</c></para>
         /// </remarks>
+        /// <seealso cref="Port"/>
         public string Host { get; }
 
         /// <summary>
-        /// Gets the port number that was attempted.
+        /// The TCP port that was tried, or null when the URL used the scheme's default (80 for http, 443 for https,
+        /// 21 for ftp).
         /// </summary>
-        /// <value>The TCP port number, or null if using the default port for the protocol.</value>
+        /// <value>A port number from 1 to 65535, or null for the default port.</value>
         /// <remarks>
-        /// <para>Default ports: HTTP=80, HTTPS=443, FTP=21, FTPS=990.</para>
-        /// <para>AI-Usage: Check if non-standard ports might be blocked by firewalls.</para>
+        /// <para>Non-standard ports such as 8443 are often blocked by corporate firewalls; try the service on 443 first.</para>
         /// </remarks>
+        /// <seealso cref="Host"/>
         public int? Port { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlConnectionException"/> class.
+        /// Creates a connection failure for <paramref name="host"/> (and <paramref name="port"/>) without a curl exit
+        /// code, for code of your own that reports an unreachable endpoint.
         /// </summary>
-        /// <param name="message">The error message describing the connection failure.</param>
-        /// <param name="host">The host that could not be connected to.</param>
-        /// <param name="port">The port number that was attempted.</param>
-        /// <param name="command">The curl command that was executing.</param>
+        /// <remarks>
+        /// <para>When <paramref name="message"/> has no fix, the suggestion names the host and port and the link points at
+        /// the DNS and connection page. Example: <c>throw new CurlConnectionException($"Health check could not reach {host}.", host, 8443, command);</c></para>
+        /// </remarks>
+        /// <param name="message">What failed, naming the host; optionally followed by fix lines and a <c>See URL</c> line.</param>
+        /// <param name="host">The host name or IP address that could not be reached.</param>
+        /// <param name="port">The TCP port that was tried, or null for the scheme's default port.</param>
+        /// <param name="command">The curl command that was executing, or null.</param>
+        /// <seealso cref="CurlCouldntConnectException"/>
         public CurlConnectionException(string message, string host, int? port = null, string command = null)
             : base(message, command)
         {
@@ -997,13 +1197,16 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlConnectionException"/> class with an error code.
+        /// Creates a connection failure that carries curl's exit code, for derived types such as
+        /// <see cref="CurlDnsException"/> (6) and <see cref="CurlProxyException"/> (5).
         /// </summary>
-        /// <param name="message">The error message describing the connection failure.</param>
-        /// <param name="curlErrorCode">The curl error code.</param>
-        /// <param name="host">The host that could not be connected to.</param>
-        /// <param name="port">The port number that was attempted.</param>
-        /// <param name="command">The curl command that was executing.</param>
+        /// <remarks><para>Used by derived types to set <see cref="CurlException.CurlErrorCode"/>.</para></remarks>
+        /// <param name="message">What failed and how to fix it, separated by newlines.</param>
+        /// <param name="curlErrorCode">The curl exit code, for example 6 (could not resolve host).</param>
+        /// <param name="host">The host name or IP address that could not be reached.</param>
+        /// <param name="port">The TCP port that was tried, or null for the default port.</param>
+        /// <param name="command">The curl command that was executing, or null.</param>
+        /// <seealso cref="CurlDnsException"/>
         protected CurlConnectionException(string message, int curlErrorCode, string host, int? port = null, string command = null)
             : base(message, curlErrorCode, command)
         {
@@ -1012,8 +1215,12 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Initializes a new instance with serialized data.
+        /// Restores the exception, including <see cref="Host"/> and <see cref="Port"/>, from serialized data.
         /// </summary>
+        /// <remarks><para>Called by the serializer; not used directly.</para></remarks>
+        /// <param name="info">The serialized object data written by <see cref="GetObjectData"/>.</param>
+        /// <param name="context">The source of the serialized stream, supplied by the serializer.</param>
+        /// <seealso cref="GetObjectData"/>
         protected CurlConnectionException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
             Host = info.GetString(nameof(Host));
@@ -1027,114 +1234,162 @@ namespace CurlDotNet.Exceptions
             info.AddValue(nameof(Host), Host);
             info.AddValue(nameof(Port), Port);
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl => DocLinks.Dns;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion =>
+            $"Check that {Host ?? "the host"}{(Port.HasValue ? ":" + Port.Value : string.Empty)} is the right host and port, that the service is running, and that no firewall, VPN or required proxy (-x) is in the way.";
     }
 
     /// <summary>
-    /// Thrown when DNS resolution fails for a hostname.
+    /// A host name that could not be turned into an IP address (curl exit code 6, CURLE_COULDNT_RESOLVE_HOST):
+    /// the name is misspelled, does not exist, or DNS is unreachable.
     /// </summary>
     /// <remarks>
-    /// <para>This exception indicates the hostname could not be resolved to an IP address.</para>
-    /// <para>Curl error code: CURLE_COULDNT_RESOLVE_HOST (6)</para>
-    /// <para>AI-Usage: Catch this to handle DNS failures separately from other connection issues.</para>
-    /// <para>AI-Pattern: Check for typos in hostname or DNS server configuration.</para>
+    /// <para>A <see cref="CurlConnectionException"/> with <see cref="CurlConnectionException.Host"/> set to the name. The
+    /// transport reports DNS failures as <see cref="CurlCouldntResolveHostException"/>; this type is for your own code
+    /// and older callers that catch it.</para>
+    /// <para>Fixes: check the spelling of the host in the URL, try <c>nslookup host</c> on the same machine, check VPN or
+    /// proxy settings, or pin the name with <c>--resolve host:443:1.2.3.4</c>.
+    /// Example: <c>catch (CurlDnsException ex) { Console.WriteLine($"Unknown host {ex.Host}"); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md</para>
     /// </remarks>
     /// <example>
     /// <code>
     /// try
     /// {
-    ///     var result = await curl.ExecuteAsync("curl https://non-existent-domain.invalid");
+    ///     var result = await Curl.ExecuteAsync("curl https://non-existent-domain.invalid");
     /// }
     /// catch (CurlDnsException ex)
     /// {
     ///     Console.WriteLine($"DNS lookup failed for: {ex.Host}");
-    ///
-    ///     // Suggest alternatives
-    ///     if (ex.Host.Contains("github"))
-    ///         Console.WriteLine("Did you mean: github.com?");
-    ///
-    ///     // Or try with IP address directly
-    ///     var ipAddress = "140.82.114.3"; // github.com IP
-    ///     result = await curl.ExecuteAsync($"curl https://{ipAddress}");
     /// }
     /// </code>
     /// </example>
+    /// <seealso cref="CurlCouldntResolveHostException"/>
+    /// <seealso cref="CurlConnectionException"/>
     [Serializable]
     public class CurlDnsException : CurlConnectionException
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlDnsException"/> class.
+        /// Creates the exception for <paramref name="hostname"/>, with curl's message <c>Could not resolve host: NAME</c>
+        /// and exit code 6.
         /// </summary>
-        /// <param name="hostname">The hostname that could not be resolved.</param>
-        /// <param name="command">The curl command that was executing.</param>
+        /// <remarks>
+        /// <para>The fix line tells the reader to check the spelling and DNS and shows the <c>--resolve</c> workaround for that
+        /// name. Example: <c>throw new CurlDnsException("api.exmaple.com", command);</c></para>
+        /// </remarks>
+        /// <param name="hostname">The host name from the URL that could not be resolved, such as <c>api.example.com</c>.</param>
+        /// <param name="command">The curl command that was executing, or null.</param>
+        /// <seealso cref="CurlCouldntResolveHostException(string, string, string)"/>
         public CurlDnsException(string hostname, string command = null)
-            : base($"Could not resolve host: {hostname}\n" +
-                   $"For DNS troubleshooting, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md",
-                   6, hostname, null, command)
+            : base($"Could not resolve host: {hostname}", 6, hostname, null, command)
         {
-            // CURLE_COULDNT_RESOLVE_HOST = 6
         }
 
         /// <summary>
-        /// Initializes a new instance with serialized data.
+        /// Restores the exception from serialized data on .NET Framework (host name and exit code included).
         /// </summary>
+        /// <remarks><para>Called by the serializer; not used directly.</para></remarks>
+        /// <param name="info">The serialized object data written by GetObjectData.</param>
+        /// <param name="context">The source of the serialized stream, supplied by the serializer.</param>
+        /// <seealso cref="CurlConnectionException"/>
         protected CurlDnsException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion =>
+            $"Check the spelling of '{Host}' in the URL and that this machine's DNS (or VPN) can resolve it (try nslookup {Host}); --resolve {Host}:443:ADDRESS pins the name to an address without DNS.";
     }
 
     /// <summary>
-    /// Thrown when an operation exceeds the configured timeout period.
+    /// Base type for every timeout (curl exit code 28, CURLE_OPERATION_TIMEDOUT): the connection or the whole
+    /// transfer took longer than <c>--connect-timeout</c> or <c>-m/--max-time</c> allowed.
     /// </summary>
     /// <remarks>
-    /// <para>This can occur for connection timeout or total operation timeout.</para>
-    /// <para>Curl error code: CURLE_OPERATION_TIMEDOUT (28)</para>
-    /// <para>AI-Usage: Catch this to implement retry with longer timeout or fail fast.</para>
-    /// <para>AI-Pattern: Log timeout value to help diagnose if timeout is too short.</para>
+    /// <para>CurlDotNet throws the derived <see cref="CurlOperationTimeoutException"/> when <c>-m/--max-time</c> or
+    /// <c>--connect-timeout</c> (or <c>Curl.DefaultMaxTimeSeconds</c> / <c>Curl.DefaultConnectTimeoutSeconds</c>)
+    /// expires, and when a caller-supplied <c>HttpClient</c> gives up on its own <c>Timeout</c>. Cancelling your own
+    /// <c>CancellationToken</c> is not a timeout: it ends with <see cref="CurlAbortedByCallbackException"/> (42).</para>
+    /// <para>Fixes: raise the limit (<c>-m 120</c> for large downloads, <c>--connect-timeout 10</c> for slow networks),
+    /// check that the server is up, or add <c>--retry 3</c>. <see cref="Timeout"/> tells which limit expired.
+    /// Example: <c>catch (CurlTimeoutException ex) { Console.WriteLine($"Gave up after {ex.Timeout?.TotalSeconds} s"); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/timeout-errors.md;
+    /// tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-timeout-csharp/README.md</para>
     /// </remarks>
     /// <example>
     /// <code>
     /// try
     /// {
-    ///     // Set a 5 second timeout
-    ///     var result = await curl.ExecuteAsync("curl --max-time 5 https://slow-server.com/large-file");
+    ///     var result = await Curl.ExecuteAsync("curl --max-time 5 https://slow-server.com/large-file");
     /// }
     /// catch (CurlTimeoutException ex)
     /// {
-    ///     Console.WriteLine($"Operation timed out after {ex.Timeout?.TotalSeconds ?? 0} seconds");
-    ///
-    ///     // Retry with longer timeout
-    ///     Console.WriteLine("Retrying with 30 second timeout...");
-    ///     result = await curl.ExecuteAsync("curl --max-time 30 https://slow-server.com/large-file");
+    ///     Console.WriteLine($"Timed out after {ex.Timeout?.TotalSeconds ?? 0} seconds; retrying with 30");
+    ///     var retry = await Curl.ExecuteAsync("curl --max-time 30 https://slow-server.com/large-file");
     /// }
     /// </code>
     /// </example>
+    /// <seealso cref="CurlOperationTimeoutException"/>
+    /// <seealso cref="CurlAbortedByCallbackException"/>
     [Serializable]
     public class CurlTimeoutException : CurlException
     {
         /// <summary>
-        /// Gets the timeout duration that was exceeded.
+        /// The limit that expired: the <c>-m/--max-time</c> or <c>--connect-timeout</c> value, so you can decide
+        /// whether raising it makes sense.
         /// </summary>
-        /// <value>The timeout duration, or null if not specified.</value>
+        /// <value>The configured limit as a <see cref="TimeSpan"/>; <see cref="TimeSpan.Zero"/> or null when no explicit
+        /// limit was set (for example a caller-supplied HttpClient timed out).</value>
         /// <remarks>
-        /// <para>This represents the --max-time or --connect-timeout value that was exceeded.</para>
-        /// <para>AI-Usage: Use this to determine if timeout should be increased.</para>
+        /// <para>Example: <c>var next = (ex.Timeout ?? TimeSpan.FromSeconds(30)).TotalSeconds * 2;</c> then run the command
+        /// again with <c>-m {next}</c>.</para>
         /// </remarks>
+        /// <seealso cref="CurlException.CurlErrorCode"/>
         public TimeSpan? Timeout { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlTimeoutException"/> class.
+        /// Creates a timeout error (exit code 28) with the limit that expired, for transfers that ran out of time.
         /// </summary>
-        /// <param name="message">The error message describing the timeout.</param>
-        /// <param name="command">The curl command that was executing.</param>
-        /// <param name="timeout">The timeout duration that was exceeded.</param>
+        /// <remarks>
+        /// <para>When <paramref name="message"/> has no fix, the suggestion names the limit and tells the reader to raise
+        /// <c>-m/--max-time</c> or <c>--connect-timeout</c>; the link points at the timeout page.
+        /// Example: <c>throw new CurlTimeoutException("Upload to backup.example.com timed out after 30 s.", command, TimeSpan.FromSeconds(30));</c></para>
+        /// </remarks>
+        /// <param name="message">What timed out, naming the host or URL; optionally followed by fix lines and a <c>See URL</c> line.</param>
+        /// <param name="command">The curl command that was executing, or null.</param>
+        /// <param name="timeout">The limit that expired, or null when none was configured.</param>
+        /// <seealso cref="CurlOperationTimeoutException(double, string, string)"/>
         public CurlTimeoutException(string message, string command = null, TimeSpan? timeout = null)
-            : base($"{message}\nFor timeout configuration, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/timeout-errors.md",
-                   28, command) // CURLE_OPERATION_TIMEDOUT = 28
+            : base(message, 28, command) // CURLE_OPERATION_TIMEDOUT = 28
         {
             Timeout = timeout;
         }
 
         /// <summary>
-        /// Initializes a new instance with serialized data.
+        /// Creates a timeout error with a curl exit code other than 28, for timeouts curl reports separately such as
+        /// <see cref="CurlFtpAcceptTimeoutException"/> (12, the FTP server never connected back).
         /// </summary>
+        /// <remarks><para>Used by derived types to set <see cref="CurlException.CurlErrorCode"/>.</para></remarks>
+        /// <param name="message">What timed out and how to fix it, separated by newlines.</param>
+        /// <param name="command">The curl command that was executing, or null.</param>
+        /// <param name="timeout">The limit that expired, or null when none was configured.</param>
+        /// <param name="curlErrorCode">The curl exit code, for example 12 (CURLE_FTP_ACCEPT_TIMEOUT).</param>
+        /// <seealso cref="CurlFtpAcceptTimeoutException"/>
+        protected CurlTimeoutException(string message, string? command, TimeSpan? timeout, int curlErrorCode)
+            : base(message, curlErrorCode, command)
+        {
+            Timeout = timeout;
+        }
+
+        /// <summary>
+        /// Restores the exception, including <see cref="Timeout"/>, from serialized data on .NET Framework.
+        /// </summary>
+        /// <remarks><para>Called by the serializer; not used directly.</para></remarks>
+        /// <param name="info">The serialized object data written by <see cref="GetObjectData"/>.</param>
+        /// <param name="context">The source of the serialized stream, supplied by the serializer.</param>
+        /// <seealso cref="GetObjectData"/>
         protected CurlTimeoutException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
             Timeout = (TimeSpan?)info.GetValue(nameof(Timeout), typeof(TimeSpan?));
@@ -1146,174 +1401,327 @@ namespace CurlDotNet.Exceptions
             base.GetObjectData(info, context);
             info.AddValue(nameof(Timeout), Timeout);
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl => DocLinks.Timeout;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion => Timeout.HasValue && Timeout.Value > TimeSpan.Zero
+            ? $"The limit was {Timeout.Value.TotalSeconds.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)} s: raise -m/--max-time (whole transfer) or --connect-timeout (connecting only), add --retry 3, or find out why the server answers so slowly."
+            : "No limit was set by the command: set -m/--max-time (seconds) to control it yourself, and check that the server and the network path are responding.";
     }
 
     /// <summary>
-    /// Thrown when SSL/TLS certificate validation fails
+    /// Base type for TLS/SSL failures; this constructor reports exit code 60 (CURLE_PEER_FAILED_VERIFICATION):
+    /// the server's certificate is not trusted, has expired, or does not match the host name.
     /// </summary>
+    /// <remarks>
+    /// <para>Derived types carry curl's specific codes: <see cref="CurlSslConnectErrorException"/> (35, handshake failed),
+    /// <see cref="CurlPeerFailedVerificationException"/> (60, certificate rejected), <see cref="CurlSslCertificateProblemException"/>
+    /// (58, your client certificate), <see cref="CurlSslCipherException"/> (59), <see cref="CurlUseSslFailedException"/> (64),
+    /// <see cref="CurlSslEngineNotFoundException"/> (53) and <see cref="CurlSslEngineSetFailedException"/> (54).
+    /// Catch this type to handle them all.</para>
+    /// <para>Fixes for an untrusted certificate: install the issuing CA on the machine or pass it with
+    /// <c>--cacert ca.pem</c>, fix an expired or mismatched certificate on the server, or (for local testing only) use
+    /// <c>-k/--insecure</c>. Example: <c>catch (CurlSslException ex) { Console.WriteLine(ex.CertificateError ?? ex.WhatHappened); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md;
+    /// how-to: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-ignore-ssl-certificate-csharp/README.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlPeerFailedVerificationException"/>
+    /// <seealso cref="CurlSslConnectErrorException"/>
     public class CurlSslException : CurlException
     {
         /// <summary>
-        /// Details about the certificate error that occurred.
+        /// The TLS layer's own description of the certificate problem, such as <c>RemoteCertificateNameMismatch</c>
+        /// or <c>UntrustedRoot</c>, when it was reported.
         /// </summary>
+        /// <value>The platform's error text, or null when the failure was not about a certificate.</value>
+        /// <remarks>
+        /// <para>Example: <c>if (ex.CertificateError?.Contains("NameMismatch") == true) Console.WriteLine("Use the host name the certificate was issued for.");</c></para>
+        /// </remarks>
+        /// <seealso cref="CurlPeerFailedVerificationException"/>
         public string? CertificateError { get; }
 
         /// <summary>
-        /// Initializes a new instance of CurlSslException.
+        /// Creates a certificate-verification failure (exit code 60) for a server certificate this machine does not
+        /// trust, with the TLS layer's detail.
         /// </summary>
-        /// <param name="message">The error message.</param>
-        /// <param name="certError">Details about the certificate error.</param>
-        /// <param name="command">The curl command that failed.</param>
+        /// <remarks>
+        /// <para>When <paramref name="message"/> has no fix, the suggestion explains <c>--cacert</c>, fixing the server and
+        /// <c>-k</c> for testing. Example: <c>throw new CurlSslException("Certificate for intranet.local is self-signed.", "UntrustedRoot", command);</c></para>
+        /// </remarks>
+        /// <param name="message">What was rejected, naming the host; optionally followed by fix lines and a <c>See URL</c> line.</param>
+        /// <param name="certError">The TLS layer's description of the certificate problem, or null.</param>
+        /// <param name="command">The curl command that failed, or null.</param>
+        /// <seealso cref="CurlPeerFailedVerificationException"/>
         public CurlSslException(string message, string? certError = null, string? command = null)
-            : base($"{message}\nFor SSL/TLS troubleshooting, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md",
-                   60, command) // CURLE_PEER_FAILED_VERIFICATION = 60
+            : base(message, 60, command) // CURLE_PEER_FAILED_VERIFICATION = 60
         {
             CertificateError = certError;
         }
 
         /// <summary>
-        /// Initializes a new instance with a specific curl exit code, such as 35 (CURLE_SSL_CONNECT_ERROR)
-        /// for a TLS handshake that failed for a reason other than certificate verification.
+        /// Creates a TLS failure with a specific curl exit code, such as 35 (CURLE_SSL_CONNECT_ERROR) for a handshake
+        /// that failed for a reason other than certificate verification.
         /// </summary>
-        /// <param name="message">What happened and how to fix it (the documentation link is appended).</param>
-        /// <param name="certError">Details about the certificate error, if any.</param>
-        /// <param name="command">The curl command that failed.</param>
-        /// <param name="curlErrorCode">The curl exit code.</param>
+        /// <remarks><para>Used by the derived TLS types to set <see cref="CurlException.CurlErrorCode"/>.</para></remarks>
+        /// <param name="message">What happened and how to fix it, separated by newlines.</param>
+        /// <param name="certError">Details about the certificate error, if any, or null.</param>
+        /// <param name="command">The curl command that failed, or null.</param>
+        /// <param name="curlErrorCode">The curl exit code, for example 35, 53, 54, 58, 59, 60 or 64.</param>
+        /// <seealso cref="CurlSslConnectErrorException"/>
         protected CurlSslException(string message, string? certError, string? command, int curlErrorCode)
-            : base($"{message}\nFor SSL/TLS troubleshooting, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md",
-                   curlErrorCode, command)
+            : base(message, curlErrorCode, command)
         {
             CertificateError = certError;
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl => DocLinks.Ssl;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion =>
+            "Make the server certificate trusted: install the issuing CA on this machine or pass it with --cacert ca.pem, renew an expired certificate, use the host name the certificate was issued for, or use -k/--insecure for local testing only.";
     }
 
     /// <summary>
-    /// Thrown when authentication fails
+    /// The server rejected the login (curl exit code 67, CURLE_LOGIN_DENIED): the user name or password is wrong,
+    /// or the account may not use the requested authentication method.
     /// </summary>
+    /// <remarks>
+    /// <para>For HTTP a wrong password normally comes back as a 401 <c>CurlResult</c> (or
+    /// <see cref="CurlHttpReturnedErrorException"/> with <c>-f</c>), not as this exception; this type is used for
+    /// protocols with an explicit login step and by <see cref="CurlLoginDeniedException"/>. Challenge negotiation
+    /// failures (Digest, NTLM) are <see cref="CurlAuthErrorException"/> (94).</para>
+    /// <para>Fixes: check <c>-u user:password</c> (quote it if the password has special characters), the account's
+    /// permissions, and the scheme (<c>--basic</c>, <c>--digest</c>, <c>--ntlm</c>).
+    /// Example: <c>catch (CurlAuthenticationException ex) { Console.WriteLine($"Login failed ({ex.AuthMethod ?? "any method"})"); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/auth-errors.md;
+    /// how-to: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-basic-auth-csharp/README.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlLoginDeniedException"/>
+    /// <seealso cref="CurlAuthErrorException"/>
     public class CurlAuthenticationException : CurlException
     {
         /// <summary>
-        /// Gets the authentication method that failed.
+        /// The authentication scheme that was rejected, such as <c>Basic</c>, <c>Digest</c>, <c>NTLM</c> or an FTP
+        /// <c>USER/PASS</c> login, when known.
         /// </summary>
+        /// <value>The scheme name as reported by the code that threw, or null when it is not known.</value>
+        /// <remarks>
+        /// <para>Example: <c>if (ex.AuthMethod == "Basic") Console.WriteLine("Try --digest; the server may not accept Basic.");</c></para>
+        /// </remarks>
+        /// <seealso cref="CurlAuthErrorException.Scheme"/>
         public string AuthMethod { get; }
 
         /// <summary>
-        /// Initializes a new instance of the CurlAuthenticationException class.
+        /// Creates a login-denied error (exit code 67) naming the authentication method that was refused.
         /// </summary>
-        /// <param name="message">The error message.</param>
-        /// <param name="authMethod">The authentication method that failed.</param>
-        /// <param name="command">The curl command that caused the error.</param>
+        /// <remarks>
+        /// <para>When <paramref name="message"/> has no fix, the suggestion tells the reader to check <c>-u user:password</c>
+        /// and the scheme. Example: <c>throw new CurlAuthenticationException("ftp.example.com refused user 'bob'.", "USER/PASS", command);</c></para>
+        /// </remarks>
+        /// <param name="message">What was refused, naming the server and the user (never the password).</param>
+        /// <param name="authMethod">The scheme that failed, such as <c>Basic</c> or <c>Digest</c>, or null.</param>
+        /// <param name="command">The curl command that caused the error, or null.</param>
+        /// <seealso cref="CurlLoginDeniedException"/>
         public CurlAuthenticationException(string message, string authMethod = null, string command = null)
-            : base($"{message}\nFor authentication help, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/auth-errors.md",
-                   67, command) // CURLE_LOGIN_DENIED = 67
+            : base(message, 67, command) // CURLE_LOGIN_DENIED = 67
         {
             AuthMethod = authMethod;
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl => DocLinks.Auth;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion =>
+            $"Check the user name and password given with -u user:password (quote it when the password contains special characters){(string.IsNullOrEmpty(AuthMethod) ? string.Empty : $" and that the server accepts {AuthMethod} authentication")}; try --basic, --digest or --ntlm if the server expects another scheme.";
     }
 
     /// <summary>
-    /// Thrown for HTTP error responses when using ThrowOnError()
+    /// An HTTP error response turned into an exception: holds the status code, reason phrase, response body and
+    /// headers, plus status-specific advice (401: check the token, 429: back off, 5xx: retry later).
     /// </summary>
+    /// <remarks>
+    /// <para>CurlDotNet returns 4xx/5xx responses as a normal <c>CurlResult</c>. It throws the derived
+    /// <see cref="CurlHttpReturnedErrorException"/> (exit code 22) when the command uses <c>-f</c>/<c>--fail</c> or
+    /// <c>--fail-with-body</c>; <see cref="CurlRateLimitException"/> is the 429 variant. Construct it yourself to turn a
+    /// result into an exception: <c>if (result.StatusCode &gt;= 400) throw new CurlHttpException($"GET {url} failed", result.StatusCode, null, result.Body);</c></para>
+    /// <para>Use <see cref="IsClientError"/>/<see cref="IsServerError"/> and the <c>Is*</c> shortcuts to branch, and
+    /// <see cref="GetRetryAfter"/> to honour the server's back-off. Example:
+    /// <c>catch (CurlHttpException ex) when (ex.IsUnauthorized) { await RefreshTokenAsync(); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md;
+    /// tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlHttpReturnedErrorException"/>
+    /// <seealso cref="CurlRateLimitException"/>
     public class CurlHttpException : CurlException
     {
         /// <summary>
-        /// Gets the HTTP status code of the response.
+        /// The HTTP status code the server answered with, such as 404 or 503, so you can branch on it without
+        /// parsing the message.
         /// </summary>
+        /// <value>The numeric status from the status line, normally 400 to 599.</value>
+        /// <remarks>
+        /// <para>Example: <c>switch (ex.StatusCode) { case 404: return null; case 409: return await MergeAsync(); default: throw; }</c></para>
+        /// </remarks>
+        /// <seealso cref="IsStatus(int)"/>
+        /// <seealso cref="StatusText"/>
         public int StatusCode { get; }
 
         /// <summary>
-        /// Gets the HTTP status text of the response.
+        /// The reason phrase from the response's status line, such as <c>Not Found</c> or <c>Service Unavailable</c>,
+        /// when the server sent one.
         /// </summary>
+        /// <value>The text after the status code; null or empty when the server sent none (HTTP/2 never does).</value>
+        /// <remarks><para>For display only; branch on <see cref="StatusCode"/>, never on this text.</para></remarks>
+        /// <seealso cref="StatusCode"/>
         public string StatusText { get; }
 
         /// <summary>
-        /// Gets the response body content.
+        /// The body of the error response, which usually holds the server's own explanation (a JSON error object or
+        /// an HTML error page).
         /// </summary>
+        /// <value>The decoded response text; null when the body was not read (<c>-f</c> without <c>--fail-with-body</c>
+        /// discards it) or empty.</value>
+        /// <remarks>
+        /// <para>Example: <c>var problem = JsonSerializer.Deserialize&lt;ProblemDetails&gt;(ex.ResponseBody ?? "{}");</c>.
+        /// Use <c>--fail-with-body</c> instead of <c>-f</c> to keep the body.</para>
+        /// </remarks>
+        /// <seealso cref="ResponseHeaders"/>
         public string ResponseBody { get; }
 
         /// <summary>
-        /// Gets or sets the response headers.
+        /// The response headers of the error response (for example <c>Retry-After</c>, <c>WWW-Authenticate</c>,
+        /// <c>X-Request-Id</c>), keyed by header name.
         /// </summary>
+        /// <value>A dictionary of header name to value; empty when headers were not attached.</value>
+        /// <remarks>
+        /// <para>Example: <c>ex.ResponseHeaders.TryGetValue("X-Request-Id", out var id)</c> gives the id to quote to the API
+        /// provider's support. <see cref="GetRetryAfter"/> reads <c>Retry-After</c> for you.</para>
+        /// </remarks>
+        /// <seealso cref="GetRetryAfter"/>
+        /// <seealso cref="WithHeaders(Dictionary{string, string})"/>
         public Dictionary<string, string> ResponseHeaders { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
-        /// Initializes a new instance of the CurlHttpException class.
+        /// Creates an HTTP error from a status code and the response, for code that turns a <c>CurlResult</c> with a
+        /// 4xx/5xx status into an exception.
         /// </summary>
-        /// <param name="message">The error message.</param>
-        /// <param name="statusCode">The HTTP status code.</param>
-        /// <param name="statusText">The HTTP status text.</param>
-        /// <param name="responseBody">The response body content.</param>
-        /// <param name="command">The curl command that caused the error.</param>
+        /// <remarks>
+        /// <para><see cref="CurlException.CurlErrorCode"/> stays null (curl only reports 22 with <c>-f</c>). When
+        /// <paramref name="message"/> carries no fix, the advice for <paramref name="statusCode"/> is used (401: check the
+        /// credentials, 404: check the URL, 429: wait, 5xx: retry later) and all advice lines go into
+        /// <see cref="CurlException.Suggestions"/>.</para>
+        /// <para>Example: <c>throw new CurlHttpException($"POST {url} returned {r.StatusCode}", r.StatusCode, null, r.Body, r.Command);</c></para>
+        /// </remarks>
+        /// <param name="message">What failed, naming the method and URL; optionally followed by fix lines and a <c>See URL</c> line.</param>
+        /// <param name="statusCode">The HTTP status code of the response, such as 404.</param>
+        /// <param name="statusText">The reason phrase from the status line, such as <c>Not Found</c>, or null.</param>
+        /// <param name="responseBody">The response body text, or null when it was not read.</param>
+        /// <param name="command">The curl command that caused the error, or null.</param>
+        /// <seealso cref="CurlHttpReturnedErrorException"/>
         public CurlHttpException(string message, int statusCode, string statusText = null, string responseBody = null, string command = null)
-            : base($"{message}\nFor HTTP error handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md",
-                   command)
+            : base(message, command)
         {
             StatusCode = statusCode;
             StatusText = statusText;
             ResponseBody = responseBody;
-
-            // Add automatic suggestions based on status code
-            AutoAddSuggestions();
         }
 
         /// <summary>
-        /// Initializes a new instance that also carries a curl exit code, for HTTP failures that end a
-        /// command (such as <c>-f</c>/<c>--fail</c>, exit code 22) rather than being returned as a result.
+        /// Creates an HTTP error that also carries a curl exit code, for HTTP failures that end a command (such as
+        /// <c>-f</c>/<c>--fail</c>, exit code 22) rather than being returned as a result.
         /// </summary>
-        /// <param name="message">What happened and how to fix it (the documentation link is appended).</param>
-        /// <param name="statusCode">The HTTP status code.</param>
-        /// <param name="statusText">The reason phrase from the status line.</param>
-        /// <param name="responseBody">The response body, when it was read.</param>
-        /// <param name="command">The curl command that caused the error.</param>
+        /// <remarks><para>Used by <see cref="CurlHttpReturnedErrorException"/>.</para></remarks>
+        /// <param name="message">What happened and how to fix it, separated by newlines.</param>
+        /// <param name="statusCode">The HTTP status code of the response, such as 404.</param>
+        /// <param name="statusText">The reason phrase from the status line, or null.</param>
+        /// <param name="responseBody">The response body, when it was read; otherwise null.</param>
+        /// <param name="command">The curl command that caused the error, or null.</param>
         /// <param name="curlErrorCode">The curl exit code, for example 22 (CURLE_HTTP_RETURNED_ERROR).</param>
+        /// <seealso cref="CurlHttpReturnedErrorException"/>
         protected CurlHttpException(string message, int statusCode, string? statusText, string? responseBody, string? command, int curlErrorCode)
-            : base($"{message}\nFor HTTP error handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md",
-                   curlErrorCode, command)
+            : base(message, curlErrorCode, command)
         {
             StatusCode = statusCode;
             StatusText = statusText;
             ResponseBody = responseBody;
-            AutoAddSuggestions();
         }
 
         /// <summary>
-        /// Check if this is a client error (4xx)
+        /// True for 4xx statuses (400 to 499): the request itself is wrong (URL, credentials, body) and repeating it
+        /// unchanged will fail again, except for 408 and 429.
         /// </summary>
+        /// <value>True when <see cref="StatusCode"/> is between 400 and 499.</value>
+        /// <remarks><para>Example: <c>if (ex.IsClientError) log.LogWarning("Fix the request: {Body}", ex.ResponseBody);</c></para></remarks>
+        /// <seealso cref="IsServerError"/>
         public bool IsClientError => StatusCode >= 400 && StatusCode < 500;
 
         /// <summary>
-        /// Check if this is a server error (5xx)
+        /// True for 5xx statuses (500 to 599): the server failed; the same request may work later, so it is a
+        /// candidate for a retry with backoff.
         /// </summary>
+        /// <value>True when <see cref="StatusCode"/> is between 500 and 599.</value>
+        /// <remarks><para>Example: <c>catch (CurlHttpException ex) when (ex.IsServerError) { await Task.Delay(2000); /* retry */ }</c></para></remarks>
+        /// <seealso cref="IsClientError"/>
+        /// <seealso cref="IsRetryable"/>
         public bool IsServerError => StatusCode >= 500 && StatusCode < 600;
 
         /// <summary>
-        /// Check if this is a specific status code.
+        /// Checks for one exact status code, for <c>when</c> filters such as <c>catch (CurlHttpException ex) when (ex.IsStatus(409))</c>.
         /// </summary>
+        /// <remarks><para>Same as <c>ex.StatusCode == code</c>; reads better in exception filters.</para></remarks>
+        /// <param name="code">The HTTP status code to compare with, such as 404 or 409.</param>
+        /// <returns>True when <see cref="StatusCode"/> equals <paramref name="code"/>.</returns>
+        /// <seealso cref="StatusCode"/>
         public bool IsStatus(int code) => StatusCode == code;
 
         /// <summary>
-        /// Check if this is unauthorized (401).
+        /// True for 401 Unauthorized: the credentials are missing, wrong or expired (refresh the token or check
+        /// <c>-u</c>/<c>-H 'Authorization: ...'</c>).
         /// </summary>
+        /// <value>True when <see cref="StatusCode"/> is 401.</value>
+        /// <remarks><para>See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-bearer-token-csharp/README.md</para></remarks>
+        /// <seealso cref="IsForbidden"/>
         public bool IsUnauthorized => StatusCode == 401;
 
         /// <summary>
-        /// Check if this is forbidden (403).
+        /// True for 403 Forbidden: the server knows who you are but this account or token may not do this (missing
+        /// scope, role or IP allow-list).
         /// </summary>
+        /// <value>True when <see cref="StatusCode"/> is 403.</value>
+        /// <remarks><para>Re-sending the same credentials will not help; request the permission or use another account.</para></remarks>
+        /// <seealso cref="IsUnauthorized"/>
         public bool IsForbidden => StatusCode == 403;
 
         /// <summary>
-        /// Check if this is not found (404).
+        /// True for 404 Not Found: the URL path (or the resource id in it) does not exist on this server.
         /// </summary>
+        /// <value>True when <see cref="StatusCode"/> is 404.</value>
+        /// <remarks><para>Check the path, the API version prefix and the id; many APIs also answer 404 for resources you may not see.</para></remarks>
+        /// <seealso cref="IsStatus(int)"/>
         public bool IsNotFound => StatusCode == 404;
 
         /// <summary>
-        /// Check if this is a rate limit error (429).
+        /// True for 429 Too Many Requests: you are being rate limited; wait (see <see cref="GetRetryAfter"/>) before
+        /// sending more requests.
         /// </summary>
+        /// <value>True when <see cref="StatusCode"/> is 429.</value>
+        /// <remarks><para>Example: <c>catch (CurlHttpException ex) when (ex.IsRateLimited) { await Task.Delay(ex.GetRetryAfter() ?? TimeSpan.FromSeconds(30)); }</c></para></remarks>
+        /// <seealso cref="GetRetryAfter"/>
+        /// <seealso cref="CurlRateLimitException"/>
         public bool IsRateLimited => StatusCode == 429;
 
         /// <summary>
-        /// Add response headers (fluent).
+        /// Attaches the response headers to <see cref="ResponseHeaders"/> and returns the same exception, for code that
+        /// builds the exception from a result.
         /// </summary>
+        /// <remarks><para>Example: <c>throw new CurlHttpException("GET failed", r.StatusCode, null, r.Body).WithHeaders(r.Headers);</c></para></remarks>
+        /// <param name="headers">The response headers, header name to value; replaces the current dictionary.</param>
+        /// <returns>This same exception instance, for chaining.</returns>
+        /// <seealso cref="ResponseHeaders"/>
         public CurlHttpException WithHeaders(Dictionary<string, string> headers)
         {
             ResponseHeaders = headers;
@@ -1321,8 +1729,15 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Get retry-after value if present in headers.
+        /// Reads the server's <c>Retry-After</c> header (in seconds) so you know how long to wait before the next
+        /// request after a 429 or 503.
         /// </summary>
+        /// <remarks>
+        /// <para>Only the delay-seconds form (<c>Retry-After: 120</c>) is understood; an HTTP-date value returns null.
+        /// Example: <c>await Task.Delay(ex.GetRetryAfter() ?? TimeSpan.FromSeconds(10));</c></para>
+        /// </remarks>
+        /// <returns>The delay, or null when the header is missing or not a number of seconds.</returns>
+        /// <seealso cref="IsRateLimited"/>
         public TimeSpan? GetRetryAfter()
         {
             if (ResponseHeaders.TryGetValue("Retry-After", out var retryAfter))
@@ -1335,44 +1750,59 @@ namespace CurlDotNet.Exceptions
             return null;
         }
 
-        private void AutoAddSuggestions()
+        /// <summary>The advice for a status code, most useful first.</summary>
+        internal static string[] StatusAdvice(int status)
         {
-            switch (StatusCode)
+            switch (status)
             {
-                case 400:
-                    Suggestions.Add("Check the request parameters and body format");
-                    Suggestions.Add("Ensure all required fields are included");
-                    break;
-                case 401:
-                    Suggestions.Add("Check your authentication credentials");
-                    Suggestions.Add("Ensure your API key or token is valid");
-                    Suggestions.Add("Check if the token has expired");
-                    break;
-                case 403:
-                    Suggestions.Add("Check if you have permission to access this resource");
-                    Suggestions.Add("Verify your API key has the required scopes");
-                    break;
-                case 404:
-                    Suggestions.Add("Verify the URL is correct");
-                    Suggestions.Add("Check if the resource exists");
-                    break;
-                case 429:
-                    Suggestions.Add("You've hit a rate limit - wait before retrying");
-                    Suggestions.Add("Consider implementing exponential backoff");
-                    break;
-                case 500:
-                case 502:
-                case 503:
-                    Suggestions.Add("This is a server error - try again later");
-                    Suggestions.Add("If the problem persists, contact the API provider");
-                    break;
+                case 400: return new[] { "The server rejected the request as malformed (400): check the request body, its Content-Type header and the query parameters against the API's documentation; ResponseBody usually says which field is wrong.", "Ensure all required fields are included." };
+                case 401: return new[] { "The request was not authenticated (401): check the credentials (-u user:password, or -H 'Authorization: Bearer TOKEN'), and renew the token if it has expired.", "Ensure your API key or token is valid and sent in the header the API expects." };
+                case 403: return new[] { "The credentials were accepted but may not do this (403): check the account's permissions or the token's scopes, or ask the API owner for access.", "Verify your API key has the required scopes." };
+                case 404: return new[] { "The URL was not found (404): check the path, the API version prefix and any id in the URL; some APIs also answer 404 for resources you may not see.", "Check that the resource exists." };
+                case 405: return new[] { "The method is not allowed for this URL (405): check -X (GET, POST, PUT, DELETE) against the API's documentation; the Allow response header lists the allowed methods." };
+                case 408: return new[] { "The server timed out waiting for the request (408): retry, and send the body faster or in smaller pieces." };
+                case 409: return new[] { "The request conflicts with the resource's current state (409): fetch the latest version, merge your change and send it again." };
+                case 410: return new[] { "The resource is gone for good (410): stop requesting it and update the URL your code uses." };
+                case 413: return new[] { "The request body is too large for the server (413): send a smaller body or upload in parts." };
+                case 415: return new[] { "The server does not accept this body format (415): set the Content-Type header the API expects, for example -H 'Content-Type: application/json'." };
+                case 422: return new[] { "The request was understood but failed validation (422): ResponseBody lists the fields to correct." };
+                case 429: return new[] { "You've hit a rate limit (429) - wait before retrying: honour the Retry-After header (GetRetryAfter()) and slow down.", "Consider implementing exponential backoff, or add --retry 3 to the command." };
+                case 500: return new[] { "The server failed while handling the request (500): this is a server error - try again later; if it persists, send the API provider the time and any request id from ResponseHeaders.", "If the problem persists, contact the API provider." };
+                case 502: return new[] { "A gateway or proxy got a bad answer from the server behind it (502): this is a server error - try again later.", "If the problem persists, contact the API provider." };
+                case 503: return new[] { "The service is unavailable or overloaded (503): this is a server error - try again later, honouring the Retry-After header.", "If the problem persists, contact the API provider." };
+                case 504: return new[] { "A gateway timed out waiting for the server behind it (504): retry later, or ask for a smaller result (paging) so the server answers faster." };
             }
+            if (status >= 500)
+            {
+                return new[] { $"The server reported an error ({status}): retry later with backoff, and report it to the API provider if it persists." };
+            }
+            if (status >= 400)
+            {
+                return new[] { $"The server refused the request ({status}): read ResponseBody for its explanation and correct the URL, headers or body." };
+            }
+            return new[] { $"The server answered {status}: read ResponseBody and ResponseHeaders for its explanation." };
         }
 
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl => DocLinks.Http;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion => StatusAdvice(StatusCode)[0];
+
+        /// <inheritdoc/>
+        protected override IEnumerable<string>? ExtraSuggestions => StatusAdvice(StatusCode);
+
         /// <summary>
-        /// Returns a detailed string representation of the exception including HTTP status information.
+        /// Returns the base detailed report plus the HTTP status line, client/server classification, response body
+        /// and response headers, for logs.
         /// </summary>
-        /// <returns>A detailed string representation of the exception.</returns>
+        /// <remarks>
+        /// <para>The body is printed in full; trim it before logging very large error pages. Example:
+        /// <c>logger.LogError(ex.ToDetailedString());</c></para>
+        /// </remarks>
+        /// <returns>The text of <see cref="CurlException.ToDetailedString"/> followed by <c>HTTP Status: 404 Not Found</c>
+        /// and the body and header lines.</returns>
+        /// <seealso cref="CurlException.ToDetailedString"/>
         public override string ToDetailedString()
         {
             var details = base.ToDetailedString();
@@ -1400,9 +1830,13 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
-        /// Determines whether the HTTP error is retryable.
+        /// Tells whether the same request may succeed later: true for 429 (rate limited) and every 5xx server error,
+        /// false for other 4xx errors, which need the request to change first.
         /// </summary>
-        /// <returns>true if the error is retryable (429 or 5xx status codes); otherwise, false.</returns>
+        /// <remarks><para>Example: <c>catch (CurlHttpException ex) when (ex.IsRetryable()) { await Task.Delay(ex.GetRetryAfter() ?? TimeSpan.FromSeconds(5)); }</c></para></remarks>
+        /// <returns>True for status 429 or 500 and above; otherwise false.</returns>
+        /// <seealso cref="GetRetryAfter"/>
+        /// <seealso cref="IsServerError"/>
         public override bool IsRetryable()
         {
             // Server errors and rate limits are typically retryable
@@ -1411,363 +1845,670 @@ namespace CurlDotNet.Exceptions
     }
 
     /// <summary>
-    /// Thrown when file operations fail
+    /// A local file could not be read, written, created, deleted, uploaded or downloaded; <see cref="FilePath"/> and
+    /// <see cref="Operation"/> say which file and what was being done.
     /// </summary>
+    /// <remarks>
+    /// <para>CurlDotNet's own transfers report file problems with curl's exit codes instead:
+    /// <see cref="CurlWriteErrorException"/> (23) for <c>-o</c>, <c>-D</c>, <c>-c</c>, <c>--trace</c> output and
+    /// <see cref="CurlReadErrorException"/> (26) for <c>-d @file</c>, <c>-F name=@file</c>, <c>-T</c> and <c>-K</c>. This
+    /// type has no exit code and is meant for application code (for example a download helper) that wants to say
+    /// which file failed. Keep the original <c>IOException</c> as the inner exception.</para>
+    /// <para>Example: <c>catch (IOException io) { throw new CurlFileException($"Could not save {path}", path, CurlFileException.FileOperation.Write, cmd, io); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md and
+    /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-file-upload-csharp/README.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlWriteErrorException"/>
+    /// <seealso cref="CurlReadErrorException"/>
     public class CurlFileException : CurlException
     {
         /// <summary>
-        /// Gets the file path that caused the error.
+        /// The path of the file that failed, as it was given (relative paths are relative to the process's current
+        /// directory).
         /// </summary>
+        /// <value>A file path such as <c>downloads/report.pdf</c>; null when not known.</value>
+        /// <remarks><para>Use <c>Path.GetFullPath(ex.FilePath)</c> to see where the process actually looked.</para></remarks>
+        /// <seealso cref="Operation"/>
         public string FilePath { get; }
 
         /// <summary>
-        /// Gets the file operation that failed.
+        /// What was being done with <see cref="FilePath"/> when it failed (read, write, create, delete, upload or
+        /// download), so you can word the fix.
         /// </summary>
+        /// <value>One of the <see cref="FileOperation"/> values.</value>
+        /// <remarks><para>Example: <c>if (ex.Operation == CurlFileException.FileOperation.Write) Console.WriteLine("Is the disk full?");</c></para></remarks>
+        /// <seealso cref="FilePath"/>
         public FileOperation Operation { get; }
 
         /// <summary>
-        /// Specifies the type of file operation.
+        /// The kind of file access that failed, used by <see cref="Operation"/> to choose the advice in the message.
         /// </summary>
+        /// <remarks><para>Read/Upload point at the upload guide, the others at the download guide.</para></remarks>
+        /// <seealso cref="Operation"/>
         public enum FileOperation
         {
             /// <summary>
-            /// Reading from a file.
+            /// Reading an existing file (for example a request body for <c>-d @file</c>) failed: missing file,
+            /// no read permission, or the file is locked.
             /// </summary>
+            /// <remarks><para>Check the path and the permissions of the current user.</para></remarks>
+            /// <seealso cref="Upload"/>
             Read,
             /// <summary>
-            /// Writing to a file.
+            /// Writing to a file (for example a response saved with <c>-o</c>) failed: no write permission, disk
+            /// full, or the folder does not exist.
             /// </summary>
+            /// <remarks><para>Check the folder exists (or use <c>--create-dirs</c>) and the disk has space.</para></remarks>
+            /// <seealso cref="Create"/>
             Write,
             /// <summary>
-            /// Creating a file.
+            /// Creating a new file failed: the folder is missing, read-only, or a file with that name is locked.
             /// </summary>
+            /// <remarks><para>Create the folder first or add <c>--create-dirs</c>.</para></remarks>
+            /// <seealso cref="Write"/>
             Create,
             /// <summary>
-            /// Deleting a file.
+            /// Deleting a file (for example a partial download after <c>--remove-on-error</c>) failed because it is
+            /// locked or read-only.
             /// </summary>
+            /// <remarks><para>Close programs that hold the file open and check its attributes.</para></remarks>
+            /// <seealso cref="Write"/>
             Delete,
             /// <summary>
-            /// Uploading a file.
+            /// Reading a file to upload it (<c>-T file</c> or <c>-F name=@file</c>) failed: missing file or no read
+            /// permission.
             /// </summary>
+            /// <remarks><para>See the upload guide linked from <see cref="CurlFileException"/>.</para></remarks>
+            /// <seealso cref="Read"/>
             Upload,
             /// <summary>
-            /// Downloading a file.
+            /// Saving a downloaded file (<c>-o file</c> or <c>-O</c>) failed: the folder is missing, not writable, or
+            /// the disk is full.
             /// </summary>
+            /// <remarks><para>See the download guide linked from <see cref="CurlFileException"/>.</para></remarks>
+            /// <seealso cref="Write"/>
             Download
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlFileException"/> class
+        /// Creates a file error naming the path and the operation, keeping the original I/O exception as the inner
+        /// exception so its details are not lost.
         /// </summary>
-        /// <param name="message">The error message describing the file operation failure</param>
-        /// <param name="filePath">The path to the file that caused the error</param>
-        /// <param name="operation">The type of file operation that failed</param>
-        /// <param name="command">The original curl command that was executed</param>
-        /// <param name="innerException">The underlying exception that caused this error</param>
+        /// <remarks>
+        /// <para>When <paramref name="message"/> has no fix, the advice depends on <paramref name="operation"/> (check that
+        /// the file exists for reads, that the folder exists and is writable for writes) and names
+        /// <paramref name="filePath"/>; the inner exception's message is added to the first line when the message does
+        /// not already contain it.</para>
+        /// <para>Example: <c>throw new CurlFileException($"Could not save {path}", path, CurlFileException.FileOperation.Download, cmd, ioException);</c></para>
+        /// </remarks>
+        /// <param name="message">What failed, naming the file; optionally followed by fix lines and a <c>See URL</c> line.</param>
+        /// <param name="filePath">The path of the file that failed, as it was given.</param>
+        /// <param name="operation">What was being done with the file: read, write, create, delete, upload or download.</param>
+        /// <param name="command">The original curl command that was executed, or null.</param>
+        /// <param name="innerException">The underlying I/O exception, kept as InnerException; may be null.</param>
+        /// <seealso cref="CurlWriteErrorException"/>
         public CurlFileException(string message, string filePath, FileOperation operation, string command = null, Exception innerException = null)
             : base(message, command, innerException)
         {
             FilePath = filePath;
             Operation = operation;
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl =>
+            Operation == FileOperation.Read || Operation == FileOperation.Upload ? DocLinks.HowToUpload : DocLinks.HowToDownload;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion
+        {
+            get
+            {
+                var path = FilePath ?? "the file";
+                switch (Operation)
+                {
+                    case FileOperation.Read:
+                    case FileOperation.Upload:
+                        return $"Check that '{path}' exists (relative paths start in {Environment.CurrentDirectory}), that the current user may read it, and that no other program holds it locked.";
+                    case FileOperation.Delete:
+                        return $"Close any program that holds '{path}' open and check that it is not read-only, then try again.";
+                    default:
+                        return $"Check that the folder of '{path}' exists (or add --create-dirs), that the current user may write there, and that the disk is not full.";
+                }
+            }
+        }
     }
 
     /// <summary>
-    /// Thrown when retry attempts are exhausted
+    /// Every attempt of a retried request failed; <see cref="RetryCount"/> says how many were made and
+    /// <see cref="LastAttemptException"/> holds the error of the final one.
     /// </summary>
+    /// <remarks>
+    /// <para>Thrown by the retry middleware (<c>RetryMiddleware</c> in <c>CurlDotNet.Middleware</c>) after its last attempt;
+    /// curl's own <c>--retry N</c> instead rethrows the last error with its exit code. The real cause is the inner
+    /// exception: fix that (DNS, timeout, 5xx), then decide whether more attempts or a longer delay make sense.</para>
+    /// <para>Example: <c>catch (CurlRetryException ex) { Console.WriteLine($"Gave up after {ex.RetryCount} tries: {ex.LastAttemptException?.Message}"); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlException.IsRetryable"/>
     public class CurlRetryException : CurlException
     {
         /// <summary>
-        /// Gets the number of retry attempts that were made before failing
+        /// How many retry attempts were made before giving up (not counting the first try, when the middleware is
+        /// configured that way), useful for logs and alerts.
         /// </summary>
+        /// <value>The configured maximum number of retries that were all used up.</value>
+        /// <remarks><para>Example: <c>metrics.Increment("curl.retries_exhausted", ex.RetryCount);</c></para></remarks>
+        /// <seealso cref="LastAttemptException"/>
         public int RetryCount { get; }
+
         /// <summary>
-        /// Gets the exception from the last retry attempt
+        /// The exception thrown by the final attempt (also <see cref="Exception.InnerException"/>), which tells you why
+        /// the request keeps failing.
         /// </summary>
+        /// <value>Usually a <see cref="CurlException"/> subclass such as <see cref="CurlOperationTimeoutException"/>; null
+        /// when the last attempt returned a failing result instead of throwing.</value>
+        /// <remarks><para>Example: <c>if (ex.LastAttemptException is CurlCouldntResolveHostException) /* no point retrying */;</c></para></remarks>
+        /// <seealso cref="RetryCount"/>
         public Exception LastAttemptException { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlRetryException"/> class
+        /// Creates the "retries exhausted" error with the number of attempts and the last attempt's exception, which
+        /// becomes the inner exception and is summarised in the first line.
         /// </summary>
-        /// <param name="message">The error message describing the retry failure</param>
-        /// <param name="command">The original curl command that was executed</param>
-        /// <param name="retryCount">The number of retry attempts that were made</param>
-        /// <param name="lastException">The exception from the final retry attempt</param>
+        /// <remarks>
+        /// <para>When <paramref name="message"/> has no fix, the suggestion tells the reader to fix the last error's cause
+        /// before adding retries. Example: <c>throw new CurlRetryException($"Failed after {max} retries", command, max, last);</c></para>
+        /// </remarks>
+        /// <param name="message">What failed, such as <c>Failed after 3 retries</c>; optionally followed by fix lines.</param>
+        /// <param name="command">The original curl command that was executed, or null.</param>
+        /// <param name="retryCount">The number of retry attempts that were made.</param>
+        /// <param name="lastException">The exception from the final attempt, kept as InnerException; may be null.</param>
+        /// <seealso cref="LastAttemptException"/>
         public CurlRetryException(string message, string command, int retryCount, Exception lastException)
             : base(message, command, lastException)
         {
             RetryCount = retryCount;
             LastAttemptException = lastException;
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl =>
+            (LastAttemptException as CurlException)?.DocumentationUrl ?? DocLinks.HowToErrorHandling;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion =>
+            $"All {RetryCount} retries failed the same way: fix the cause reported by the last attempt ({LastAttemptException?.GetType().Name ?? "no exception"}) first; more retries or a longer delay only help with temporary outages.";
     }
 
     /// <summary>
-    /// Thrown when FTP operations fail
+    /// An FTP server refused a command (curl exit code 9, CURLE_REMOTE_ACCESS_DENIED); <see cref="FtpCode"/> holds the
+    /// server's reply code, such as 530 (not logged in) or 550 (file unavailable).
     /// </summary>
+    /// <remarks>
+    /// <para>The FTP handler raises its own <c>CurlDotNet.Core.CurlFtpException</c>; this type is for application code and
+    /// callers that catch it. Fixes by reply code: 530 check <c>-u user:password</c>; 550 check the remote path and
+    /// permissions; 553 check the file name; 421/425/426 retry or switch between passive and active mode.</para>
+    /// <para>Example: <c>catch (CurlFtpException ex) when (ex.FtpCode == 550) { Console.WriteLine("No such remote file"); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlRemoteAccessDeniedException"/>
     public class CurlFtpException : CurlException
     {
         /// <summary>
-        /// Gets the FTP response code that caused the error
+        /// The three-digit FTP reply code the server answered with, for example 530 (not logged in), 550 (file not
+        /// found or no permission) or 421 (service not available).
         /// </summary>
+        /// <value>An FTP reply code from 100 to 599.</value>
+        /// <remarks><para>4xx codes are temporary (retry), 5xx codes are permanent (change the request).</para></remarks>
+        /// <seealso cref="CurlException.CurlErrorCode"/>
         public int FtpCode { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlFtpException"/> class
+        /// Creates an FTP error (exit code 9) with the server's reply code, whose meaning chooses the advice in the
+        /// message.
         /// </summary>
-        /// <param name="message">The error message describing the FTP failure</param>
-        /// <param name="ftpCode">The FTP response code</param>
-        /// <param name="command">The original curl command that was executed</param>
+        /// <remarks>
+        /// <para>Example: <c>throw new CurlFtpException("RETR /pub/report.csv was refused", 550, command);</c> produces advice to
+        /// check the remote path and permissions.</para>
+        /// </remarks>
+        /// <param name="message">What the server refused, naming the remote path; optionally followed by fix lines.</param>
+        /// <param name="ftpCode">The FTP reply code the server sent, such as 550.</param>
+        /// <param name="command">The original curl command that was executed, or null.</param>
+        /// <seealso cref="CurlRemoteAccessDeniedException"/>
         public CurlFtpException(string message, int ftpCode, string command = null)
-            : base(message, 9, command) // CURLE_FTP_ACCESS_DENIED = 9
+            : base(message, 9, command) // CURLE_REMOTE_ACCESS_DENIED = 9
         {
             FtpCode = ftpCode;
         }
-    }
 
-    /// <summary>
-    /// Thrown when proxy connection fails
-    /// </summary>
-    public class CurlProxyException : CurlConnectionException
-    {
-        /// <summary>
-        /// Gets the proxy hostname or IP address that failed to connect
-        /// </summary>
-        public string ProxyHost { get; }
-        /// <summary>
-        /// Gets the proxy port number, if specified
-        /// </summary>
-        public int? ProxyPort { get; }
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl => DocLinks.ErrorReference;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CurlProxyException"/> class
-        /// </summary>
-        /// <param name="message">The error message describing the proxy connection failure</param>
-        /// <param name="proxyHost">The proxy hostname or IP address</param>
-        /// <param name="proxyPort">The proxy port number, if applicable</param>
-        /// <param name="command">The original curl command that was executed</param>
-        public CurlProxyException(string message, string proxyHost, int? proxyPort = null, string command = null)
-            : base(message, 5, proxyHost, proxyPort, command)
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion
         {
-            ProxyHost = proxyHost;
-            ProxyPort = proxyPort;
-            // CURLE_COULDNT_RESOLVE_PROXY = 5
+            get
+            {
+                switch (FtpCode)
+                {
+                    case 530: return "The FTP server did not accept the login (530): check the user name and password given with -u user:password.";
+                    case 550: return "The FTP server refused access to the file or folder (550): check the remote path (it is case-sensitive) and the account's permissions.";
+                    case 553: return "The FTP server refused the file name (553): use a name without characters the server does not allow, in a folder you may write to.";
+                    case 421:
+                    case 425:
+                    case 426: return $"The FTP data connection failed ({FtpCode}): retry, and switch between passive (default) and active mode (-P -) if a firewall blocks it.";
+                    default: return $"The FTP server answered {FtpCode}: check the remote path, the credentials (-u) and the server's log; 4xx codes are temporary and worth a retry.";
+                }
+            }
         }
     }
 
     /// <summary>
-    /// Thrown when content parsing fails
+    /// The proxy could not be used (curl exit code 5, CURLE_COULDNT_RESOLVE_PROXY): its name did not resolve or it
+    /// could not be reached; <see cref="ProxyHost"/> and <see cref="ProxyPort"/> say which proxy.
     /// </summary>
+    /// <remarks>
+    /// <para>The transport reports proxy problems as <see cref="CurlCouldntResolveProxyException"/> (5) and
+    /// <see cref="CurlCouldntConnectException"/> with <c>ViaProxy</c> set (7); this type is for application code.
+    /// The proxy comes from <c>-x/--proxy</c> or the <c>http_proxy</c>, <c>https_proxy</c> and <c>all_proxy</c>
+    /// environment variables.</para>
+    /// <para>Fixes: correct the proxy URL (<c>-x http://proxy.corp:3128</c>), check it is running, or bypass it for a host
+    /// with <c>--noproxy host</c>. Example: <c>catch (CurlProxyException ex) { Console.WriteLine($"Proxy {ex.ProxyHost}:{ex.ProxyPort} is down"); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-proxy-csharp/README.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlCouldntResolveProxyException"/>
+    /// <seealso cref="CurlConnectionException"/>
+    public class CurlProxyException : CurlConnectionException
+    {
+        /// <summary>
+        /// The proxy's host name or IP address, from <c>-x/--proxy</c> or a proxy environment variable.
+        /// </summary>
+        /// <value>A host such as <c>proxy.corp.local</c>; also available as <see cref="CurlConnectionException.Host"/>.</value>
+        /// <remarks><para>Compare it with <c>Environment.GetEnvironmentVariable("https_proxy")</c> to find out where it came from.</para></remarks>
+        /// <seealso cref="ProxyPort"/>
+        public string ProxyHost { get; }
+
+        /// <summary>
+        /// The proxy's port, such as 3128 or 8080, or null when the proxy URL did not give one (curl then uses 1080).
+        /// </summary>
+        /// <value>A TCP port number, or null.</value>
+        /// <remarks><para>Also available as <see cref="CurlConnectionException.Port"/>.</para></remarks>
+        /// <seealso cref="ProxyHost"/>
+        public int? ProxyPort { get; }
+
+        /// <summary>
+        /// Creates a proxy failure (exit code 5) naming the proxy host and port, with advice to check the proxy setting
+        /// or bypass it.
+        /// </summary>
+        /// <remarks>
+        /// <para>Example: <c>throw new CurlProxyException("Proxy proxy.corp did not answer.", "proxy.corp", 3128, command);</c></para>
+        /// </remarks>
+        /// <param name="message">What failed with the proxy; optionally followed by fix lines and a <c>See URL</c> line.</param>
+        /// <param name="proxyHost">The proxy host name or IP address.</param>
+        /// <param name="proxyPort">The proxy port number, or null when none was given.</param>
+        /// <param name="command">The original curl command that was executed, or null.</param>
+        /// <seealso cref="CurlCouldntResolveProxyException"/>
+        public CurlProxyException(string message, string proxyHost, int? proxyPort = null, string command = null)
+            : base(message, 5, proxyHost, proxyPort, command) // CURLE_COULDNT_RESOLVE_PROXY = 5
+        {
+            ProxyHost = proxyHost;
+            ProxyPort = proxyPort;
+        }
+
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl => DocLinks.HowToProxy;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion =>
+            $"Check the proxy {ProxyHost}{(ProxyPort.HasValue ? ":" + ProxyPort.Value : string.Empty)} given with -x/--proxy (or the http_proxy/https_proxy/all_proxy environment variables): is the name right and the proxy running? Use --noproxy HOST to connect to a host directly.";
+    }
+
+    /// <summary>
+    /// A response could not be converted to the type you asked for (for example <c>ParseJson&lt;T&gt;()</c> or
+    /// <c>AsJsonDynamic()</c> on an empty body or an HTML error page); the parser's exception is the inner exception.
+    /// </summary>
+    /// <remarks>
+    /// <para>Thrown by <see cref="CurlDotNet.Core.CurlResult"/>'s JSON helpers. It has no curl exit code because the
+    /// transfer itself worked. <see cref="ContentType"/> is the response's Content-Type and <see cref="ExpectedType"/>
+    /// the type you asked for.</para>
+    /// <para>Fixes: check <c>result.StatusCode</c> before parsing (a 401/404/500 page is not your JSON), print
+    /// <c>result.Body</c>, send <c>-H 'Accept: application/json'</c>, and make the class match the JSON
+    /// (<c>JsonPropertyName</c> attributes for different names).
+    /// Example: <c>catch (CurlParsingException ex) { Console.WriteLine($"Got {ex.ContentType}, wanted {ex.ExpectedType?.Name}"); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/parse-json-from-curl-in-csharp/README.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlDotNet.Core.CurlResult.ParseJson{T}"/>
+    /// <seealso cref="CurlDotNet.Core.CurlResult.AsJsonDynamic"/>
     public class CurlParsingException : CurlException
     {
         /// <summary>
-        /// Gets the content type of the data that failed to parse
+        /// The Content-Type of the response that could not be parsed, such as <c>text/html; charset=utf-8</c>, which
+        /// usually explains the failure (an HTML error page instead of JSON).
         /// </summary>
+        /// <value>The header value, or null when the response had none.</value>
+        /// <remarks><para>Example: <c>if (ex.ContentType?.StartsWith("text/html") == true) Console.WriteLine("The server sent an error page");</c></para></remarks>
+        /// <seealso cref="ExpectedType"/>
         public string ContentType { get; }
+
         /// <summary>
-        /// Gets the expected type that the content could not be parsed into
+        /// The .NET type the body was supposed to become, such as <c>List&lt;User&gt;</c>; <c>object</c> for
+        /// <c>AsJsonDynamic()</c>.
         /// </summary>
+        /// <value>The requested type, or null when not known.</value>
+        /// <remarks><para>Compare its properties with the JSON in <c>result.Body</c> when the shapes do not match.</para></remarks>
+        /// <seealso cref="ContentType"/>
         public Type ExpectedType { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlParsingException"/> class
+        /// Creates a parsing error naming the response's Content-Type and the type you asked for, with the parser's own
+        /// exception kept as the inner exception.
         /// </summary>
-        /// <param name="message">The error message describing the parsing failure</param>
-        /// <param name="contentType">The content type of the unparseable data</param>
-        /// <param name="expectedType">The type that was expected</param>
-        /// <param name="command">The original curl command that was executed</param>
-        /// <param name="innerException">The underlying parsing exception</param>
+        /// <remarks>
+        /// <para>When <paramref name="message"/> has no fix, the suggestion tells the reader to check the status code and the
+        /// body. Example: <c>throw new CurlParsingException("Body of GET /users is not JSON.", result.GetHeader("Content-Type"), typeof(User[]), result.Command, jsonException);</c></para>
+        /// </remarks>
+        /// <param name="message">What could not be parsed, naming the URL; optionally followed by fix lines and a <c>See URL</c> line.</param>
+        /// <param name="contentType">The response's Content-Type header value, or null.</param>
+        /// <param name="expectedType">The type the body was supposed to be converted to, or null.</param>
+        /// <param name="command">The original curl command that was executed, or null.</param>
+        /// <param name="innerException">The JSON parser's exception, kept as InnerException; may be null.</param>
+        /// <seealso cref="CurlDotNet.Core.CurlResult.ParseJson{T}"/>
         public CurlParsingException(string message, string contentType, Type expectedType, string command = null, Exception innerException = null)
             : base(message, command, innerException)
         {
             ContentType = contentType;
             ExpectedType = expectedType;
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl => DocLinks.HowToParseJson;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion =>
+            $"The response ({ContentType ?? "no Content-Type"}) could not become {ExpectedType?.Name ?? "the requested type"}: check StatusCode, print Body to see what the server sent, and ask for JSON with -H 'Accept: application/json'.";
     }
 
     /// <summary>
-    /// Thrown when rate limiting is encountered
+    /// The server rate limited the request (HTTP 429 Too Many Requests); <see cref="RetryAfter"/> says how long to
+    /// wait and <see cref="RemainingLimit"/> how many calls are left, when the server said so.
     /// </summary>
+    /// <remarks>
+    /// <para>A <see cref="CurlHttpException"/> with <see cref="CurlHttpException.StatusCode"/> 429 and no curl exit code.
+    /// CurlDotNet does not throw it on its own (a 429 comes back as a <c>CurlResult</c>, or as
+    /// <see cref="CurlHttpReturnedErrorException"/> with <c>-f</c>); create it in your API client from the response's
+    /// <c>Retry-After</c> and <c>X-RateLimit-Remaining</c> headers.</para>
+    /// <para>Example: <c>catch (CurlRateLimitException ex) { await Task.Delay(ex.RetryAfter ?? TimeSpan.FromSeconds(60)); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlHttpException.IsRateLimited"/>
+    /// <seealso cref="CurlHttpException.GetRetryAfter"/>
     public class CurlRateLimitException : CurlHttpException
     {
         /// <summary>
-        /// Gets the time to wait before retrying, if provided by the server
+        /// How long the server asked you to wait before the next request (its <c>Retry-After</c> header), or null when it
+        /// did not say.
         /// </summary>
+        /// <value>The wait time, or null.</value>
+        /// <remarks><para>Example: <c>await Task.Delay(ex.RetryAfter ?? TimeSpan.FromSeconds(30));</c></para></remarks>
+        /// <seealso cref="RemainingLimit"/>
         public TimeSpan? RetryAfter { get; }
+
         /// <summary>
-        /// Gets the number of remaining requests allowed, if provided
+        /// How many requests the server still allows in the current window (for example from <c>X-RateLimit-Remaining</c>),
+        /// or null when unknown.
         /// </summary>
+        /// <value>A non-negative count, usually 0 for a 429, or null.</value>
+        /// <remarks><para>Log it to see how close callers run to the limit.</para></remarks>
+        /// <seealso cref="RetryAfter"/>
         public int? RemainingLimit { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlRateLimitException"/> class
+        /// Creates a 429 rate-limit error carrying the server's wait time and remaining quota, which the advice in the
+        /// message uses.
         /// </summary>
-        /// <param name="message">The error message describing the rate limit</param>
-        /// <param name="retryAfter">The time to wait before retrying</param>
-        /// <param name="remainingLimit">The number of requests remaining</param>
-        /// <param name="command">The original curl command that was executed</param>
+        /// <remarks>
+        /// <para>Example: <c>throw new CurlRateLimitException("api.github.com rate limit reached", TimeSpan.FromSeconds(60), 0, command);</c>
+        /// gives the advice to wait 60 s.</para>
+        /// </remarks>
+        /// <param name="message">What was rate limited, naming the API; optionally followed by fix lines.</param>
+        /// <param name="retryAfter">The time to wait before retrying (the Retry-After header), or null.</param>
+        /// <param name="remainingLimit">The number of requests remaining in the window, or null.</param>
+        /// <param name="command">The original curl command that was executed, or null.</param>
+        /// <seealso cref="CurlHttpException"/>
         public CurlRateLimitException(string message, TimeSpan? retryAfter = null, int? remainingLimit = null, string command = null)
             : base(message, 429, "Too Many Requests", null, command)
         {
             RetryAfter = retryAfter;
             RemainingLimit = remainingLimit;
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion => RetryAfter.HasValue
+            ? $"Wait {RetryAfter.Value.TotalSeconds.ToString("0", System.Globalization.CultureInfo.InvariantCulture)} s (the server's Retry-After) before the next request, and slow down or batch calls so you stay under the limit."
+            : "Wait before the next request (start with 30 s and back off exponentially), and slow down or batch calls so you stay under the limit.";
     }
 
     /// <summary>
-    /// Thrown when execution fails for general reasons
+    /// A command failed for a reason that has no more specific type; the inner exception holds the underlying .NET
+    /// error and the message says in words what it was.
     /// </summary>
+    /// <remarks>
+    /// <para>Use it in wrappers and middleware that run curl commands and need to report an unexpected failure without
+    /// losing the original exception. It carries no curl exit code. Prefer a specific type
+    /// (<see cref="CurlCouldntConnectException"/>, <see cref="CurlWriteErrorException"/>...) when one fits.</para>
+    /// <para>Example: <c>catch (Exception ex) when (!(ex is CurlException)) { throw new CurlExecutionException($"Running '{name}' failed.", command, ex); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlException"/>
     public class CurlExecutionException : CurlException
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlExecutionException"/> class
+        /// Creates a general execution failure that wraps the original exception and summarises it in the first line
+        /// of the message.
         /// </summary>
-        /// <param name="message">The error message describing the execution failure</param>
-        /// <param name="command">The original curl command that was executed</param>
-        /// <param name="innerException">The underlying exception that caused the failure</param>
+        /// <remarks>
+        /// <para>When <paramref name="message"/> has no fix, the suggestion tells the reader to look at the inner exception
+        /// and to rerun the command with <c>-v</c>. Example: <c>throw new CurlExecutionException("Nightly sync failed.", command, ex);</c></para>
+        /// </remarks>
+        /// <param name="message">What failed; optionally followed by fix lines and a <c>See URL</c> line.</param>
+        /// <param name="command">The original curl command that was executed, or null.</param>
+        /// <param name="innerException">The underlying exception that caused the failure, or null.</param>
+        /// <seealso cref="CurlException(string, int, string, Exception)"/>
         public CurlExecutionException(string message, string command = null, Exception innerException = null)
             : base(message, command, innerException)
         {
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl => DocLinks.ErrorReference;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion => InnerException != null
+            ? $"Fix the {InnerException.GetType().Name} reported above (see InnerException), then run the command again with -v or --trace-ascii - to confirm where it fails."
+            : "Run the same command with -v (or --trace-ascii -) to see where it fails, and compare it with the native curl tool.";
     }
 
     /// <summary>
-    /// Thrown when a required feature is not supported
+    /// The command uses a curl feature CurlDotNet does not implement (exit code 1); <see cref="Feature"/> names it so
+    /// you can remove it or fall back to the native curl tool.
     /// </summary>
+    /// <remarks>
+    /// <para>For unsupported URL schemes (gopher://, ldap://...) CurlDotNet throws <see cref="CurlUnsupportedProtocolException"/>;
+    /// for compiled-out options <see cref="CurlNotBuiltInException"/> (4). This type is for other unsupported features.</para>
+    /// <para>Example: <c>catch (CurlNotSupportedException ex) { Console.WriteLine($"{ex.Feature} is not available in CurlDotNet"); }</c></para>
+    /// <para>What is supported: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/reference/curl-cli-compatibility.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlNotBuiltInException"/>
+    /// <seealso cref="CurlUnsupportedProtocolException"/>
     public class CurlNotSupportedException : CurlException
     {
         /// <summary>
-        /// Gets the name of the feature that is not supported
+        /// The curl feature or option that is not available, such as <c>--libcurl</c> or a specific protocol, so you can
+        /// remove it from the command.
         /// </summary>
+        /// <value>The feature name as given to the constructor.</value>
+        /// <remarks><para>Check the compatibility list linked from the type before relying on an option.</para></remarks>
+        /// <seealso cref="CurlNotBuiltInException.Feature"/>
         public string Feature { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlNotSupportedException"/> class
+        /// Creates the "not supported" error (exit code 1) for <paramref name="feature"/>, with advice to remove it or use
+        /// the native curl tool.
         /// </summary>
-        /// <param name="feature">The name of the unsupported feature</param>
-        /// <param name="command">The original curl command that was executed</param>
+        /// <remarks>
+        /// <para>Message: <c>Feature not supported: FEATURE</c>, then the fix and a link to the compatibility list.
+        /// Example: <c>throw new CurlNotSupportedException("--libcurl", command);</c></para>
+        /// </remarks>
+        /// <param name="feature">The name of the unsupported feature or option, such as <c>--libcurl</c>.</param>
+        /// <param name="command">The original curl command that was executed, or null.</param>
+        /// <seealso cref="CurlNotBuiltInException(string, string)"/>
         public CurlNotSupportedException(string feature, string command = null)
-            : base($"Feature not supported: {feature}", 1, command)
+            : base($"Feature not supported: {feature}", 1, command) // CURLE_UNSUPPORTED_PROTOCOL = 1
         {
             Feature = feature;
-            // CURLE_UNSUPPORTED_PROTOCOL = 1
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl => DocLinks.CliCompatibility;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion =>
+            $"CurlDotNet does not implement {Feature}: remove it from the command, or run that command with the native curl tool.";
     }
 
     /// <summary>
-    /// Thrown when cookie operations fail during HTTP requests.
+    /// Reading or writing cookies failed: the cookie jar file (<c>-c</c>) could not be saved, the cookie file
+    /// (<c>-b file</c>) could not be read, or a cookie could not be parsed; <see cref="CookieJarPath"/> names the file.
     /// </summary>
     /// <remarks>
-    /// <para>This exception indicates problems with cookie handling, including cookie jar file access, cookie parsing, or cookie storage.</para>
-    /// <para>Common causes: invalid cookie jar path, file permissions, malformed cookies, or disk space issues.</para>
-    /// <para>AI-Usage: Catch this to handle cookie-related failures separately from other HTTP errors.</para>
-    /// <para>AI-Pattern: Check CookieJarPath property to identify file access issues.</para>
-    /// <para>For more information, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/cookie-errors.md</para>
+    /// <para>CurlDotNet reports a cookie jar that cannot be written as <see cref="CurlWriteErrorException"/> (23), like curl;
+    /// this type is for application code that manages cookie files. Cookie files use the Netscape format written by
+    /// <c>-c</c>; <c>-b</c> also accepts a literal <c>name=value; other=2</c> string.</para>
+    /// <para>Example: <c>catch (CurlCookieException ex) { Console.WriteLine($"Cookie file problem: {ex.CookieJarPath}"); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/cookie-errors.md;
+    /// cookbook: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/cookbook/cookies.md</para>
     /// </remarks>
     /// <example>
     /// <code>
     /// try
     /// {
-    ///     var result = await curl.ExecuteAsync("curl --cookie-jar cookies.txt https://example.com");
+    ///     var result = await Curl.ExecuteAsync("curl --cookie-jar cookies.txt https://example.com");
     /// }
     /// catch (CurlCookieException ex)
     /// {
-    ///     Console.WriteLine($"Cookie error: {ex.Message}");
-    ///     if (!string.IsNullOrEmpty(ex.CookieJarPath))
-    ///     {
-    ///         Console.WriteLine($"Cookie jar path: {ex.CookieJarPath}");
-    ///         // Check file permissions or try alternative path
-    ///     }
+    ///     Console.WriteLine($"Cookie error: {ex.WhatHappened} ({ex.CookieJarPath})");
     /// }
     /// </code>
     /// </example>
+    /// <seealso cref="CurlWriteErrorException"/>
     public class CurlCookieException : CurlException
     {
         /// <summary>
-        /// Gets the path to the cookie jar file that caused the error, if applicable.
+        /// The cookie file that could not be read or written, as given to <c>-b</c>/<c>--cookie</c> or
+        /// <c>-c</c>/<c>--cookie-jar</c>.
         /// </summary>
-        /// <value>The file path to the cookie jar, or null if not file-related.</value>
-        /// <remarks>
-        /// <para>This property helps identify file access issues with cookie storage.</para>
-        /// <para>AI-Usage: Use this to check file permissions or suggest alternative paths.</para>
-        /// </remarks>
+        /// <value>A file path, or null when the problem is a cookie string rather than a file.</value>
+        /// <remarks><para>Example: <c>File.Exists(ex.CookieJarPath)</c> tells whether the file is missing or unreadable.</para></remarks>
+        /// <seealso cref="CurlException.Command"/>
         public string CookieJarPath { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlCookieException"/> class.
+        /// Creates a cookie error naming the cookie file, keeping the original I/O or parsing exception as the inner
+        /// exception.
         /// </summary>
-        /// <param name="message">The error message describing the cookie operation failure.</param>
-        /// <param name="cookieJarPath">The path to the cookie jar file, if applicable.</param>
-        /// <param name="command">The curl command that was executing.</param>
-        /// <param name="innerException">The underlying exception that caused this error.</param>
+        /// <remarks>
+        /// <para>When <paramref name="message"/> has no fix, the advice names the file and its folder; the link points at the
+        /// cookie page. Example: <c>throw new CurlCookieException("Cookie jar could not be saved.", "state/cookies.txt", command, ioException);</c></para>
+        /// </remarks>
+        /// <param name="message">What failed with the cookies; optionally followed by fix lines and a <c>See URL</c> line.</param>
+        /// <param name="cookieJarPath">The path to the cookie file, or null when no file is involved.</param>
+        /// <param name="command">The curl command that was executing, or null.</param>
+        /// <param name="innerException">The underlying exception that caused this error, or null.</param>
+        /// <seealso cref="CurlWriteErrorException"/>
         public CurlCookieException(string message, string cookieJarPath = null, string command = null, Exception innerException = null)
-            : base($"{message}\nFor cookie handling help, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/cookie-errors.md", command, innerException)
+            : base(message, command, innerException)
         {
             CookieJarPath = cookieJarPath;
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl => DocLinks.Cookie;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion => string.IsNullOrEmpty(CookieJarPath)
+            ? "Check the cookie text given with -b: it must look like name=value; other=2, or be the path of a Netscape cookie file written by -c."
+            : $"Check that '{CookieJarPath}' is a Netscape-format cookie file (as written by -c) and that its folder exists and is readable and writable by the current user.";
     }
 
     /// <summary>
-    /// Thrown when redirect limit is exceeded during HTTP requests.
+    /// A redirect chain was longer than allowed (curl exit code 47, CURLE_TOO_MANY_REDIRECTS);
+    /// <see cref="RedirectCount"/> and <see cref="LastUrl"/> show how far it got.
     /// </summary>
     /// <remarks>
-    /// <para>This exception indicates that the maximum number of HTTP redirects has been exceeded.</para>
-    /// <para>Curl error code: CURLE_TOO_MANY_REDIRECTS (47)</para>
-    /// <para>Common causes: redirect loops, misconfigured servers, or intentional redirect chains.</para>
-    /// <para>AI-Usage: Catch this to handle redirect issues separately from other HTTP errors.</para>
-    /// <para>AI-Pattern: Check RedirectCount and LastUrl to debug redirect chains.</para>
-    /// <para>For more information, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/redirect-errors.md</para>
+    /// <para>The transport throws <see cref="CurlTooManyRedirectsException"/> for <c>-L</c> chains longer than
+    /// <c>--max-redirs</c> (50 by default); this type is for application code that follows redirects itself.
+    /// A long chain is usually a loop (A redirects to B, B back to A), often caused by cookies or a login page.</para>
+    /// <para>Fixes: inspect the chain with <c>curl -i -L URL</c>, keep cookies with <c>-b cookies.txt -c cookies.txt</c>,
+    /// or raise <c>--max-redirs</c>. Example: <c>catch (CurlRedirectException ex) { Console.WriteLine($"Stopped after {ex.RedirectCount} hops at {ex.LastUrl}"); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/redirect-errors.md;
+    /// how-to: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-follow-redirects-csharp/README.md</para>
     /// </remarks>
     /// <example>
     /// <code>
     /// try
     /// {
-    ///     // Default limit is usually 50 redirects
-    ///     var result = await curl.ExecuteAsync("curl -L https://example.com/redirect-loop");
+    ///     var result = await Curl.ExecuteAsync("curl -L https://example.com/redirect-loop");
     /// }
     /// catch (CurlRedirectException ex)
     /// {
-    ///     Console.WriteLine($"Too many redirects: {ex.RedirectCount}");
-    ///     Console.WriteLine($"Last URL attempted: {ex.LastUrl}");
-    ///
-    ///     // Try again with limited redirects
-    ///     result = await curl.ExecuteAsync("curl --max-redirs 5 https://example.com/redirect-loop");
+    ///     Console.WriteLine($"Too many redirects: {ex.RedirectCount}, last URL {ex.LastUrl}");
     /// }
     /// </code>
     /// </example>
+    /// <seealso cref="CurlTooManyRedirectsException"/>
     public class CurlRedirectException : CurlException
     {
         /// <summary>
-        /// Gets the number of redirects that were followed before the limit was exceeded.
+        /// How many redirects were followed before the limit stopped the chain; a value equal to the limit usually
+        /// means a redirect loop.
         /// </summary>
-        /// <value>The count of redirects attempted.</value>
-        /// <remarks>
-        /// <para>This helps identify potential redirect loops or excessive redirect chains.</para>
-        /// <para>AI-Usage: If count is high, suspect a redirect loop.</para>
-        /// </remarks>
+        /// <value>The number of hops followed.</value>
+        /// <remarks><para>Example: <c>if (ex.RedirectCount &gt;= 50) Console.WriteLine("Redirect loop - check cookies and login");</c></para></remarks>
+        /// <seealso cref="LastUrl"/>
         public int RedirectCount { get; }
 
         /// <summary>
-        /// Gets the last URL that was attempted before the redirect limit was exceeded.
+        /// The last URL in the chain before it was stopped, which shows where the loop or the long chain goes.
         /// </summary>
-        /// <value>The final URL in the redirect chain, or null if not available.</value>
-        /// <remarks>
-        /// <para>This URL can help identify where the redirect loop or chain ends.</para>
-        /// <para>AI-Usage: Use this to debug redirect chains and identify problematic URLs.</para>
-        /// </remarks>
+        /// <value>An absolute URL, or null when not recorded.</value>
+        /// <remarks><para>Open it with <c>curl -i</c> (without <c>-L</c>) to see its <c>Location</c> header.</para></remarks>
+        /// <seealso cref="RedirectCount"/>
         public string LastUrl { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CurlRedirectException"/> class.
+        /// Creates a too-many-redirects error (exit code 47) with the number of hops and the last URL, which the advice in
+        /// the message uses.
         /// </summary>
-        /// <param name="message">The error message describing the redirect limit exceeded.</param>
-        /// <param name="redirectCount">The number of redirects that were attempted.</param>
-        /// <param name="lastUrl">The last URL in the redirect chain.</param>
-        /// <param name="command">The curl command that was executing.</param>
+        /// <remarks>
+        /// <para>Example: <c>throw new CurlRedirectException("Login keeps redirecting.", 20, lastUrl, command);</c></para>
+        /// </remarks>
+        /// <param name="message">What happened, naming the start URL; optionally followed by fix lines and a <c>See URL</c> line.</param>
+        /// <param name="redirectCount">The number of redirects that were followed.</param>
+        /// <param name="lastUrl">The last URL in the redirect chain, or null.</param>
+        /// <param name="command">The curl command that was executing, or null.</param>
+        /// <seealso cref="CurlTooManyRedirectsException(int, int, string)"/>
         public CurlRedirectException(string message, int redirectCount, string lastUrl = null, string command = null)
-            : base($"{message}\nFor redirect handling help, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/redirect-errors.md", 47, command) // CURLE_TOO_MANY_REDIRECTS = 47
+            : base(message, 47, command) // CURLE_TOO_MANY_REDIRECTS = 47
         {
             RedirectCount = redirectCount;
             LastUrl = lastUrl;
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultDocumentationUrl => DocLinks.Redirect;
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion =>
+            $"After {RedirectCount} redirect(s){(string.IsNullOrEmpty(LastUrl) ? string.Empty : " ending at " + ErrorText.SafeUrl(LastUrl))}: check the chain with curl -i -L for a loop, keep cookies with -b cookies.txt -c cookies.txt, or raise --max-redirs.";
     }
 }
