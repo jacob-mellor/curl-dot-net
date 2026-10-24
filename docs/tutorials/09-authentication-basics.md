@@ -1,518 +1,255 @@
-# Tutorial 9: Authentication Basics
+---
+title: "curl -u Basic Auth and Bearer Tokens in C#"
+description: "Use curl -u basic auth and bearer tokens in C# with CurlDotNet: -u user:pass, --digest, -H Authorization: Bearer, WithBasicAuth and WithBearerToken."
+---
 
-Most APIs require authentication to verify who you are and what you're allowed to access. This tutorial covers common authentication methods with CurlDotNet.
+# Tutorial 9: curl -u Basic Auth and Bearer Tokens in C#
+
+Using curl `-u` basic auth and bearer tokens in C# is a one-line change to the command you pass to `Curl.ExecuteAsync`: add `-u user:pass` for HTTP Basic or `-H 'Authorization: Bearer TOKEN'` for token-based APIs. This tutorial covers the authentication schemes curl supports, their `CurlRequestBuilder` equivalents, and how to handle 401 and 403 responses.
 
 ## Types of Authentication
 
 ### 1. API Key Authentication
-The simplest form - a unique key identifies your application:
+
+The simplest scheme: a key that identifies your application, sent as a header or query parameter. The API's documentation tells you which header name to use.
 
 ```csharp
-var curl = new Curl();
+using System.Text;
+using System.Text.Json.Serialization;
+using CurlDotNet;
+using CurlDotNet.Core;
 
-// API key in header
-curl.Headers.Add("X-API-Key", "your-api-key-here");
+// API key in a header
+var result = await Curl.ExecuteAsync("curl -H 'X-API-Key: your-api-key' https://httpbin.org/headers");
 
-// Or in query parameter
-var result = await curl.GetAsync("https://api.example.com/data?api_key=your-api-key");
+// API key as a query parameter (less secure: it ends up in server logs)
+var result2 = await Curl.ExecuteAsync("curl 'https://httpbin.org/get?api_key=your-api-key'");
 
-// Or custom header name
-curl.Headers.Add("Api-Token", "your-token-here");
+// Builder
+var result3 = await CurlRequestBuilder.Get("https://httpbin.org/headers")
+    .WithHeader("X-API-Key", "your-api-key")
+    .ExecuteAsync();
 ```
 
-### 2. Basic Authentication
-Username and password encoded in base64:
+### 2. Basic Authentication with -u
+
+`-u user:password` makes curl build the `Authorization: Basic ...` header (base64 of `user:password`) for you. Only use it over HTTPS.
 
 ```csharp
-// Method 1: Manual encoding
-var credentials = Convert.ToBase64String(
-    Encoding.UTF8.GetBytes($"{username}:{password}")
-);
-curl.Headers.Add("Authorization", $"Basic {credentials}");
+// curl string
+var result = await Curl.ExecuteAsync(
+    "curl -u alice:secret https://httpbin.org/basic-auth/alice/secret");
 
-// Method 2: Helper method
-curl.SetBasicAuth("username", "password");
+Console.WriteLine(result.StatusCode);   // 200 when the credentials match
 
-var result = await curl.GetAsync("https://api.example.com/protected");
+// Builder
+var result2 = await CurlRequestBuilder.Get("https://httpbin.org/basic-auth/alice/secret")
+    .WithBasicAuth("alice", "secret")
+    .ExecuteAsync();
 ```
 
-### 3. Bearer Token (OAuth 2.0 / JWT)
-Modern token-based authentication:
+You can also write the header by hand. This is what `-u` does internally.
 
 ```csharp
-var curl = new Curl();
-curl.Headers.Add("Authorization", $"Bearer {accessToken}");
+var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes("alice:secret"));
 
-var result = await curl.GetAsync("https://api.example.com/user/profile");
+var result = await Curl.ExecuteAsync(
+    $"curl -H 'Authorization: Basic {credentials}' https://httpbin.org/basic-auth/alice/secret");
 ```
 
-## OAuth 2.0 Flow
+### 3. Bearer Tokens (OAuth 2.0 / JWT)
 
-### Getting an Access Token
+Modern APIs hand you an access token and expect it in the `Authorization` header with the `Bearer` prefix.
+
 ```csharp
-public async Task<string> GetOAuthToken(string clientId, string clientSecret)
-{
-    var curl = new Curl();
+string accessToken = Environment.GetEnvironmentVariable("API_TOKEN");
 
-    // Request token from OAuth server
-    var tokenRequest = new Dictionary<string, string>
-    {
-        ["grant_type"] = "client_credentials",
-        ["client_id"] = clientId,
-        ["client_secret"] = clientSecret,
-        ["scope"] = "read:data write:data"
-    };
+// curl string
+var result = await Curl.ExecuteAsync(
+    $"curl -H 'Authorization: Bearer {accessToken}' https://httpbin.org/bearer");
 
-    var result = await curl.PostFormAsync(
-        "https://auth.example.com/oauth/token",
-        tokenRequest
-    );
+// Builder
+var result2 = await CurlRequestBuilder.Get("https://httpbin.org/bearer")
+    .WithBearerToken(accessToken)
+    .ExecuteAsync();
+```
 
-    if (result.IsSuccess)
-    {
-        var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(result.Data);
-        return tokenResponse.AccessToken;
-    }
+GitHub, for example, accepts a personal access token this way:
 
-    throw new AuthenticationException($"Failed to get token: {result.Error}");
-}
+```csharp
+var result = await Curl.ExecuteAsync(
+    $"curl -H 'Authorization: Bearer {accessToken}' https://api.github.com/user");
 
+if (result.IsSuccess)
+    Console.WriteLine(result.Body);
+else if (result.StatusCode == 401)
+    Console.WriteLine("Token is missing, expired or revoked");
+```
+
+## Choosing the Scheme with curl Flags
+
+`-u` supplies the credentials; a second flag chooses how they are sent. The default is Basic.
+
+| Flag | Scheme |
+|------|--------|
+| `--basic` | HTTP Basic (default for `-u`) |
+| `--digest` | HTTP Digest: a challenge-response scheme that never sends the password itself |
+| `--ntlm` | NTLM, common on Windows intranets |
+| `--negotiate` | SPNEGO / Kerberos |
+| `--anyauth` | Let the server pick the strongest scheme it offers |
+
+```csharp
+// Digest: curl makes an unauthenticated request, receives the challenge, then answers it
+var digest = await Curl.ExecuteAsync(
+    "curl --digest -u alice:secret https://httpbin.org/digest-auth/auth/alice/secret");
+
+// Windows intranet service
+var ntlm = await Curl.ExecuteAsync("curl --ntlm -u 'DOMAIN\\alice:secret' https://intranet.example/api");
+
+// Let the server choose
+var any = await Curl.ExecuteAsync("curl --anyauth -u alice:secret https://httpbin.org/basic-auth/alice/secret");
+```
+
+## Getting an OAuth 2.0 Access Token
+
+Token endpoints are ordinary POST requests, so CurlDotNet handles them with the same `-d` flags you would use on the command line. This is the client-credentials flow.
+
+```csharp
 public class TokenResponse
 {
-    [JsonPropertyName("access_token")]
-    public string AccessToken { get; set; }
-
-    [JsonPropertyName("token_type")]
-    public string TokenType { get; set; }
-
-    [JsonPropertyName("expires_in")]
-    public int ExpiresIn { get; set; }
-
-    [JsonPropertyName("refresh_token")]
-    public string RefreshToken { get; set; }
+    [JsonPropertyName("access_token")] public string AccessToken { get; set; }
+    [JsonPropertyName("expires_in")] public int ExpiresIn { get; set; }
 }
+
+var tokenResult = await Curl.ExecuteAsync(@"curl -X POST https://auth.example.com/oauth/token \
+    -d grant_type=client_credentials \
+    -d client_id=my-client \
+    -d client_secret=my-secret \
+    -d 'scope=read:data write:data'");
+
+var token = tokenResult.EnsureSuccess().ParseJson<TokenResponse>();
 ```
 
-### Using and Refreshing Tokens
+Then use the token until it expires and request a new one.
+
 ```csharp
-public class OAuthClient
+var expiresAt = DateTime.UtcNow.AddSeconds(token.ExpiresIn - 60);   // refresh a minute early
+
+if (DateTime.UtcNow < expiresAt)
 {
-    private readonly Curl _curl;
-    private string _accessToken;
-    private string _refreshToken;
-    private DateTime _tokenExpiry;
-
-    public OAuthClient()
-    {
-        _curl = new Curl();
-    }
-
-    public async Task AuthenticateAsync(string clientId, string clientSecret)
-    {
-        var tokenData = await GetTokenAsync(clientId, clientSecret);
-        SetTokenData(tokenData);
-    }
-
-    private void SetTokenData(TokenResponse tokenData)
-    {
-        _accessToken = tokenData.AccessToken;
-        _refreshToken = tokenData.RefreshToken;
-        _tokenExpiry = DateTime.UtcNow.AddSeconds(tokenData.ExpiresIn - 60); // Buffer
-        _curl.Headers["Authorization"] = $"Bearer {_accessToken}";
-    }
-
-    public async Task<CurlResult> GetAsync(string url)
-    {
-        // Check if token needs refresh
-        if (DateTime.UtcNow >= _tokenExpiry && !string.IsNullOrEmpty(_refreshToken))
-        {
-            await RefreshTokenAsync();
-        }
-
-        return await _curl.GetAsync(url);
-    }
-
-    private async Task RefreshTokenAsync()
-    {
-        var refreshRequest = new Dictionary<string, string>
-        {
-            ["grant_type"] = "refresh_token",
-            ["refresh_token"] = _refreshToken
-        };
-
-        var result = await _curl.PostFormAsync(
-            "https://auth.example.com/oauth/token",
-            refreshRequest
-        );
-
-        if (result.IsSuccess)
-        {
-            var tokenData = JsonSerializer.Deserialize<TokenResponse>(result.Data);
-            SetTokenData(tokenData);
-        }
-        else
-        {
-            throw new AuthenticationException("Failed to refresh token");
-        }
-    }
+    var data = await CurlRequestBuilder.Get("https://api.example.com/data")
+        .WithBearerToken(token.AccessToken)
+        .ExecuteAsync();
 }
 ```
 
-## JWT (JSON Web Tokens)
+## A Reusable Authenticated Client
 
-### Decoding JWT Tokens
+`LibCurl` keeps the credentials between calls, so you set them once.
+
 ```csharp
-public class JwtInfo
-{
-    public static Dictionary<string, object> DecodeJwt(string token)
-    {
-        // JWT has three parts: header.payload.signature
-        var parts = token.Split('.');
-        if (parts.Length != 3)
-            throw new ArgumentException("Invalid JWT format");
+using CurlDotNet.Lib;
 
-        // Decode the payload (second part)
-        var payload = parts[1];
+using var client = new LibCurl()
+    .WithBearerToken(accessToken)
+    .WithHeader("Accept", "application/vnd.github+json");
 
-        // Add padding if needed
-        switch (payload.Length % 4)
-        {
-            case 2: payload += "=="; break;
-            case 3: payload += "="; break;
-        }
+var me = await client.GetAsync("https://api.github.com/user");
+var repos = await client.GetAsync("https://api.github.com/user/repos");
 
-        var bytes = Convert.FromBase64String(payload);
-        var json = Encoding.UTF8.GetString(bytes);
-
-        return JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-    }
-
-    public static bool IsTokenExpired(string token)
-    {
-        var payload = DecodeJwt(token);
-
-        if (payload.TryGetValue("exp", out var exp))
-        {
-            var expiry = DateTimeOffset.FromUnixTimeSeconds(
-                Convert.ToInt64(exp.ToString())
-            ).UtcDateTime;
-
-            return DateTime.UtcNow > expiry;
-        }
-
-        return false; // No expiry claim
-    }
-}
-
-// Usage
-var jwt = "eyJhbGciOiJIUzI1NiIs...";
-if (JwtInfo.IsTokenExpired(jwt))
-{
-    Console.WriteLine("Token expired, need to refresh");
-}
+// Or with Basic credentials
+using var basic = new LibCurl().WithBasicAuth("alice", "secret");
 ```
 
-## Session-Based Authentication
+## Handling 401 and 403
 
-### Login and Cookie Management
+A `401 Unauthorized` means the server did not accept your credentials; a `403 Forbidden` means it knows who you are but you are not allowed. Neither throws: check `StatusCode`.
+
 ```csharp
-public class SessionClient
+var result = await Curl.ExecuteAsync(
+    $"curl -H 'Authorization: Bearer {accessToken}' https://api.github.com/user");
+
+switch (result.StatusCode)
 {
-    private readonly Curl _curl;
-    private string _sessionCookie;
-
-    public SessionClient()
-    {
-        _curl = new Curl();
-    }
-
-    public async Task<bool> LoginAsync(string username, string password)
-    {
-        var loginData = new Dictionary<string, string>
-        {
-            ["username"] = username,
-            ["password"] = password
-        };
-
-        var result = await _curl.PostFormAsync(
-            "https://example.com/api/login",
-            loginData
-        );
-
-        if (result.IsSuccess)
-        {
-            // Extract session cookie
-            if (result.Headers.TryGetValue("Set-Cookie", out string setCookie))
-            {
-                // Parse cookie (simplified - real parsing is more complex)
-                var cookieParts = setCookie.Split(';')[0];
-                _sessionCookie = cookieParts;
-
-                // Add cookie to future requests
-                _curl.Headers["Cookie"] = _sessionCookie;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public async Task<CurlResult> GetProtectedDataAsync(string url)
-    {
-        if (string.IsNullOrEmpty(_sessionCookie))
-            throw new InvalidOperationException("Not logged in");
-
-        return await _curl.GetAsync(url);
-    }
-
-    public async Task LogoutAsync()
-    {
-        await _curl.PostAsync("https://example.com/api/logout", "");
-        _sessionCookie = null;
-        _curl.Headers.Remove("Cookie");
-    }
+    case 401: Console.WriteLine("Credentials rejected: get a new token"); break;
+    case 403: Console.WriteLine("Authenticated, but this token lacks permission"); break;
+    default:  Console.WriteLine(result.IsSuccess ? result.Body : $"HTTP {result.StatusCode}"); break;
 }
 ```
 
-## API Signature Authentication
+### Retry Once with a Fresh Token
 
-### HMAC Signing
 ```csharp
-public class HmacAuthClient
+static async Task<CurlResult> GetWithToken(string url, string token) =>
+    await CurlRequestBuilder.Get(url).WithBearerToken(token).ExecuteAsync();
+
+var result = await GetWithToken("https://api.example.com/data", currentToken);
+
+if (result.StatusCode == 401)
 {
-    private readonly string _apiKey;
-    private readonly string _apiSecret;
-    private readonly Curl _curl;
-
-    public HmacAuthClient(string apiKey, string apiSecret)
-    {
-        _apiKey = apiKey;
-        _apiSecret = apiSecret;
-        _curl = new Curl();
-    }
-
-    public async Task<CurlResult> SendSignedRequest(string url, string method, string body = "")
-    {
-        // Create signature components
-        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
-        var nonce = Guid.NewGuid().ToString();
-
-        // Create string to sign
-        var stringToSign = $"{method}\n{url}\n{timestamp}\n{nonce}\n{body}";
-
-        // Generate HMAC signature
-        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_apiSecret));
-        var signatureBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(stringToSign));
-        var signature = Convert.ToBase64String(signatureBytes);
-
-        // Add auth headers
-        _curl.Headers["X-API-Key"] = _apiKey;
-        _curl.Headers["X-Timestamp"] = timestamp;
-        _curl.Headers["X-Nonce"] = nonce;
-        _curl.Headers["X-Signature"] = signature;
-
-        // Send request
-        if (method == "GET")
-            return await _curl.GetAsync(url);
-        else if (method == "POST")
-            return await _curl.PostAsync(url, body);
-
-        throw new NotSupportedException($"Method {method} not supported");
-    }
+    currentToken = await RequestNewToken();        // your token-endpoint call from above
+    result = await GetWithToken("https://api.example.com/data", currentToken);
 }
 ```
 
-## Two-Factor Authentication (2FA)
+## Checking What Will Be Sent
 
-### Handling 2FA Challenges
+The builder's `ToCurlCommand()` shows the exact command, which is useful for debugging. Be careful not to log it: it contains the credentials.
+
 ```csharp
-public class TwoFactorAuthClient
-{
-    private readonly Curl _curl = new Curl();
+var command = CurlRequestBuilder.Get("https://httpbin.org/basic-auth/alice/secret")
+    .WithBasicAuth("alice", "secret")
+    .ToCurlCommand();
 
-    public async Task<bool> LoginWith2FA(string username, string password)
-    {
-        // Step 1: Initial login
-        var loginResult = await _curl.PostJsonAsync(
-            "https://api.example.com/login",
-            new { username, password }
-        );
-
-        if (loginResult.StatusCode == HttpStatusCode.Accepted) // 202 - needs 2FA
-        {
-            // Parse 2FA challenge
-            var challenge = JsonSerializer.Deserialize<TwoFactorChallenge>(loginResult.Data);
-
-            // Get 2FA code from user
-            Console.Write("Enter 2FA code: ");
-            var code = Console.ReadLine();
-
-            // Step 2: Submit 2FA code
-            var verifyResult = await _curl.PostJsonAsync(
-                "https://api.example.com/verify-2fa",
-                new
-                {
-                    challengeId = challenge.ChallengeId,
-                    code = code
-                }
-            );
-
-            if (verifyResult.IsSuccess)
-            {
-                var authData = JsonSerializer.Deserialize<AuthResponse>(verifyResult.Data);
-                _curl.Headers["Authorization"] = $"Bearer {authData.Token}";
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    class TwoFactorChallenge
-    {
-        public string ChallengeId { get; set; }
-        public string Method { get; set; } // "sms", "totp", "email"
-    }
-
-    class AuthResponse
-    {
-        public string Token { get; set; }
-        public string RefreshToken { get; set; }
-    }
-}
+Console.WriteLine(command);   // curl -u alice:secret https://httpbin.org/basic-auth/alice/secret
 ```
+
+httpbin's `/headers` endpoint echoes the request headers, so you can confirm that the `Authorization` header arrived as expected.
 
 ## Secure Storage of Credentials
 
-### Never Hard-Code Credentials
+Never hard-code secrets in source. Read them from the environment or from .NET configuration (`appsettings.json`, user secrets, a key vault).
+
 ```csharp
-// BAD - Never do this!
+// Bad: a secret in source control
 var apiKey = "sk_live_abcd1234efgh5678";
 
-// GOOD - Use environment variables
-var apiKey = Environment.GetEnvironmentVariable("API_KEY");
+// Good: environment variable
+var apiKey2 = Environment.GetEnvironmentVariable("API_KEY");
 
-// GOOD - Use configuration
-var configuration = new ConfigurationBuilder()
-    .AddJsonFile("appsettings.json")
-    .AddUserSecrets<Program>()
-    .Build();
+// Good: Microsoft.Extensions.Configuration (appsettings.json, user secrets, key vault)
+var apiKey3 = configuration["ApiKey"];
 
-var apiKey = configuration["ApiKey"];
-
-// GOOD - Use secure storage
-var apiKey = await SecureStorage.GetAsync("api_key");
+var result = await Curl.ExecuteAsync($"curl -H 'X-API-Key: {apiKey2}' https://httpbin.org/headers");
 ```
 
-### Token Storage
-```csharp
-public interface ITokenStorage
-{
-    Task SaveTokenAsync(string token);
-    Task<string> GetTokenAsync();
-    Task DeleteTokenAsync();
-}
-
-public class SecureTokenStorage : ITokenStorage
-{
-    private readonly string _storageKey = "auth_token";
-
-    public async Task SaveTokenAsync(string token)
-    {
-        // Platform-specific secure storage
-        #if WINDOWS
-        // Use Windows Credential Manager
-        #elif MACOS
-        // Use macOS Keychain
-        #elif LINUX
-        // Use Secret Service API
-        #else
-        // Encrypted file fallback
-        #endif
-    }
-
-    public async Task<string> GetTokenAsync()
-    {
-        // Retrieve from secure storage
-        return await Task.FromResult("stored_token");
-    }
-
-    public async Task DeleteTokenAsync()
-    {
-        // Remove from secure storage
-    }
-}
-```
-
-## Authentication Patterns
-
-### Automatic Retry with Fresh Token
-```csharp
-public class AuthenticatedApiClient
-{
-    private readonly Curl _curl = new Curl();
-    private readonly ITokenProvider _tokenProvider;
-
-    public AuthenticatedApiClient(ITokenProvider tokenProvider)
-    {
-        _tokenProvider = tokenProvider;
-    }
-
-    public async Task<T> ExecuteWithAuth<T>(
-        Func<Curl, Task<CurlResult>> request,
-        Func<string, T> parser)
-    {
-        // Try with current token
-        var token = await _tokenProvider.GetTokenAsync();
-        _curl.Headers["Authorization"] = $"Bearer {token}";
-
-        var result = await request(_curl);
-
-        // If unauthorized, refresh and retry
-        if (result.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            token = await _tokenProvider.RefreshTokenAsync();
-            _curl.Headers["Authorization"] = $"Bearer {token}";
-
-            result = await request(_curl);
-        }
-
-        if (result.IsSuccess)
-        {
-            return parser(result.Data);
-        }
-
-        throw new ApiException(result.Error);
-    }
-}
-```
+When a command string contains credentials, also make sure you do not write `result.Command` or `ex.Command` to your logs.
 
 ## Best Practices
 
-1. **Never hard-code credentials** - Use environment variables or secure storage
-2. **Use HTTPS always** - Never send credentials over HTTP
-3. **Implement token refresh** - Handle expiration gracefully
-4. **Store tokens securely** - Use platform-specific secure storage
-5. **Validate tokens** - Check expiration before use
-6. **Use appropriate auth method** - Match the API's requirements
-7. **Handle 401/403 properly** - Distinguish between auth and permissions
-8. **Log auth events** - Track login attempts and failures
-9. **Implement rate limiting** - Prevent brute force attacks
-10. **Use MFA when available** - Add extra security layer
+1. Never hard-code credentials; use environment variables or configuration
+2. Always use HTTPS; `-u` and bearer tokens are sent in clear text otherwise
+3. Prefer `--digest` or a token over Basic where the API offers it
+4. Request a new token before the old one expires, and retry once on 401
+5. Treat 401 (bad credentials) and 403 (insufficient permission) differently
+6. Keep `Authorization` headers and `-u` values out of logs
+7. Use the least-privileged scope or token the task needs
 
 ## Summary
 
-Authentication is crucial for API security:
-- Use API keys for simple scenarios
-- Implement OAuth 2.0 for modern APIs
-- Handle tokens properly with refresh logic
-- Store credentials securely
-- Build reusable authentication patterns
+Authentication with CurlDotNet uses the same flags as curl:
+
+- `-u user:pass` for Basic, plus `--digest`, `--ntlm`, `--negotiate` or `--anyauth` to pick the scheme
+- `-H 'Authorization: Bearer TOKEN'` for OAuth 2.0 and JWT APIs
+- `WithBasicAuth` and `WithBearerToken` on `CurlRequestBuilder` and `LibCurl`
+- 401 and 403 come back as status codes on `CurlResult`, not exceptions
 
 ## What's Next?
 
 Learn about [working with files and downloads](10-files-and-downloads.html) in the next tutorial.
 
+See also: [authentication schemes recipe](../cookbook/auth-schemes.html) and [authentication errors](../exceptions/auth-errors.html).
+
 ---
 
-[← Previous: Headers Explained](08-headers-explained.html) | [Next: Files and Downloads →](10-files-and-downloads.html)
+[Previous: Headers Explained](08-headers-explained.html) | [Next: Files and Downloads](10-files-and-downloads.html)

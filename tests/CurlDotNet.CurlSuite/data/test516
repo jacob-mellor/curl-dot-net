@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP POST
+FORM
+libtest
+</keywords>
+</info>
+
+<reply>
+<data crlf="headers">
+HTTP/1.1 200 OK swsclose
+Date: Tue, 09 Nov 2010 14:49:00 GMT
+Server: test-server/fake
+Content-Length: 3
+
+OK
+</data>
+</reply>
+
+<client>
+<features>
+form-api
+</features>
+<server>
+http
+</server>
+
+<name>
+make an HTTPPOST set to NULL
+</name>
+<command>
+http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+</command>
+</client>
+
+<verify>
+<protocol crlf="headers">
+POST /%TESTNUMBER HTTP/1.1
+Host: %HOSTIP:%HTTPPORT
+Accept: */*
+Content-Length: 0
+
+</protocol>
+</verify>
+</testcase>

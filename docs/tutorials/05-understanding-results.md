@@ -1,361 +1,320 @@
-# Tutorial 5: Understanding Results
+---
+title: "Understanding the CurlResult Response in C#"
+description: "Read a CurlResult in C#: StatusCode, Body, IsSuccess, Headers, GetHeader, ParseJson and EnsureSuccess after running a curl command with CurlDotNet."
+---
 
-Every CurlDotNet operation returns a `CurlResult` object. Understanding this result structure is crucial for building robust applications.
+# Tutorial 5: Understanding the CurlResult Response in C#
+
+Every CurlDotNet request returns a `CurlResult`, and understanding the CurlResult response in C# (its `StatusCode`, `Body`, `IsSuccess` and `Headers`) is the foundation for everything that follows in these tutorials. This page walks through each property and the patterns you will use most.
 
 ## The CurlResult Object
 
-When you make any request with CurlDotNet, you get back a `CurlResult`:
+Run any curl command string and you get a `CurlResult` back. The same object comes back from the fluent `CurlRequestBuilder`.
 
 ```csharp
-var curl = new Curl();
-CurlResult result = await curl.GetAsync("https://api.example.com/data");
+using CurlDotNet;
+using CurlDotNet.Core;
+
+CurlResult result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
+
+// The builder returns the same type
+CurlResult same = await CurlRequestBuilder.Get("https://httpbin.org/get").ExecuteAsync();
 ```
 
 ## Key Properties
 
 ### IsSuccess
-The most important property - tells you if the request completed successfully:
+
+`IsSuccess` is `true` when the server answered with a 2xx status code. HTTP errors such as 404 or 500 do not throw; you get a result with `IsSuccess == false`.
 
 ```csharp
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/404");
+
 if (result.IsSuccess)
 {
-    // Request succeeded - safe to use result.Data
-    Console.WriteLine("Success! Data received:");
-    Console.WriteLine(result.Data);
+    Console.WriteLine(result.Body);
 }
 else
 {
-    // Request failed - check result.Error
-    Console.WriteLine($"Request failed: {result.Error}");
+    Console.WriteLine($"Request failed with HTTP {result.StatusCode}");
 }
 ```
 
-### Data
-Contains the response body as a string when the request succeeds:
+### Body
+
+`Body` holds the response body as a string. For JSON APIs this is the raw JSON text you will parse in [Tutorial 7](07-json-for-beginners.html).
 
 ```csharp
-if (result.IsSuccess)
-{
-    string responseBody = result.Data;
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
 
-    // Parse JSON if that's what you're expecting
-    var jsonData = JsonSerializer.Deserialize<MyModel>(result.Data);
-}
+string responseBody = result.Body;
+Console.WriteLine(responseBody.Length + " characters received");
 ```
 
 ### StatusCode
-The HTTP status code returned by the server:
+
+`StatusCode` is a plain `int` holding the HTTP status code the server returned.
 
 ```csharp
+var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
+
 Console.WriteLine($"Server returned: {result.StatusCode}");
 
-// Check specific status codes
-if (result.StatusCode == HttpStatusCode.NotFound)
-{
+if (result.StatusCode == 404)
     Console.WriteLine("The requested resource was not found.");
-}
-else if (result.StatusCode == HttpStatusCode.Unauthorized)
-{
+else if (result.StatusCode == 401)
     Console.WriteLine("Authentication required.");
-}
 ```
 
 ### Headers
-A dictionary containing all response headers:
+
+`Headers` is a case-insensitive `Dictionary<string, string>` of response headers. `GetHeader` returns `null` instead of throwing when a header is missing, and `HasHeader` checks for presence.
 
 ```csharp
-if (result.Headers.ContainsKey("Content-Type"))
-{
-    string contentType = result.Headers["Content-Type"];
-    Console.WriteLine($"Response type: {contentType}");
-}
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
 
-// Iterate through all headers
+string contentType = result.GetHeader("Content-Type");
+Console.WriteLine($"Response type: {contentType}");
+
+if (result.HasHeader("Date"))
+    Console.WriteLine($"Server time: {result.GetHeader("date")}");
+
 foreach (var header in result.Headers)
-{
     Console.WriteLine($"{header.Key}: {header.Value}");
-}
 ```
 
-### Error
-Contains error information when the request fails:
+### What About Network Errors?
+
+There is no error string on the result. Network-level failures (DNS, connection refused, timeouts) never produce a `CurlResult`; they throw an exception derived from `CurlException`, which [Tutorial 6](06-handling-errors.html) covers in detail.
 
 ```csharp
-if (!result.IsSuccess)
-{
-    Console.WriteLine($"Error details: {result.Error}");
+using CurlDotNet.Exceptions;
 
-    // The error message is descriptive and helpful
-    // Examples:
-    // - "Connection timeout after 30 seconds"
-    // - "DNS resolution failed for hostname"
-    // - "SSL certificate verification failed"
+try
+{
+    var result = await Curl.ExecuteAsync("curl -m 5 https://no-such-host.invalid/");
+}
+catch (CurlException ex)
+{
+    Console.WriteLine($"Request never completed: {ex.Message}");
 }
 ```
 
 ## Common Patterns
 
 ### Pattern 1: Simple Success Check
+
 ```csharp
-var result = await curl.GetAsync(url);
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
 
 if (result.IsSuccess)
-{
-    ProcessData(result.Data);
-}
+    Console.WriteLine(result.Body);
 else
-{
-    LogError(result.Error);
-}
+    Console.WriteLine($"HTTP {result.StatusCode}");
 ```
 
 ### Pattern 2: Detailed Status Handling
+
 ```csharp
-var result = await curl.GetAsync(url);
+var result = await Curl.ExecuteAsync("curl https://api.github.com/repos/dotnet/runtime");
 
 switch (result.StatusCode)
 {
-    case HttpStatusCode.OK:
-        ProcessData(result.Data);
-        break;
-
-    case HttpStatusCode.NotModified:
-        Console.WriteLine("Content hasn't changed");
-        break;
-
-    case HttpStatusCode.NotFound:
-        Console.WriteLine("Resource not found");
-        break;
-
-    case HttpStatusCode.Unauthorized:
-        Console.WriteLine("Please authenticate");
-        break;
-
-    default:
-        Console.WriteLine($"Unexpected status: {result.StatusCode}");
-        break;
+    case 200: Console.WriteLine(result.Body); break;
+    case 304: Console.WriteLine("Content has not changed"); break;
+    case 404: Console.WriteLine("Resource not found"); break;
+    case 401: Console.WriteLine("Please authenticate"); break;
+    default:  Console.WriteLine($"Unexpected status: {result.StatusCode}"); break;
 }
 ```
 
-### Pattern 3: Working with Headers
-```csharp
-var result = await curl.GetAsync(url);
+### Pattern 3: Throw on Failure with EnsureSuccess
 
-if (result.IsSuccess)
+`EnsureSuccess()` throws `CurlDotNet.Core.CurlHttpException` for any non-2xx status and returns the result otherwise, so it chains nicely.
+
+```csharp
+try
 {
-    // Check content type before parsing
-    if (result.Headers.TryGetValue("Content-Type", out string contentType))
-    {
-        if (contentType.Contains("application/json"))
-        {
-            var jsonData = JsonSerializer.Deserialize<MyModel>(result.Data);
-        }
-        else if (contentType.Contains("text/html"))
-        {
-            ProcessHtml(result.Data);
-        }
-    }
-
-    // Check for rate limiting headers
-    if (result.Headers.TryGetValue("X-RateLimit-Remaining", out string remaining))
-    {
-        Console.WriteLine($"API calls remaining: {remaining}");
-    }
+    var body = (await Curl.ExecuteAsync("curl https://httpbin.org/status/500"))
+        .EnsureSuccess()
+        .Body;
+}
+catch (CurlDotNet.Core.CurlHttpException ex)
+{
+    Console.WriteLine($"HTTP {ex.StatusCode}: {ex.ResponseBody}");
 }
 ```
 
-### Pattern 4: Response Time Tracking
-```csharp
-var stopwatch = Stopwatch.StartNew();
-var result = await curl.GetAsync(url);
-stopwatch.Stop();
+### Pattern 4: Working with Headers
 
-Console.WriteLine($"Request took: {stopwatch.ElapsedMilliseconds}ms");
-Console.WriteLine($"Status: {result.StatusCode}");
-Console.WriteLine($"Success: {result.IsSuccess}");
+```csharp
+var result = await Curl.ExecuteAsync("curl https://api.github.com/rate_limit");
+
+string contentType = result.GetHeader("Content-Type") ?? "";
+if (contentType.Contains("application/json"))
+    Console.WriteLine("JSON response, safe to parse");
+
+string remaining = result.GetHeader("X-RateLimit-Remaining");
+if (remaining != null)
+    Console.WriteLine($"API calls remaining: {remaining}");
+```
+
+### Pattern 5: Response Time Tracking
+
+`Timings` exposes the same phases curl reports with `-w`, in milliseconds.
+
+```csharp
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
+
+Console.WriteLine($"DNS lookup:  {result.Timings.NameLookup} ms");
+Console.WriteLine($"Connect:     {result.Timings.Connect} ms");
+Console.WriteLine($"First byte:  {result.Timings.StartTransfer} ms");
+Console.WriteLine($"Total:       {result.Timings.Total} ms");
 ```
 
 ## Working with Different Content Types
 
 ### JSON Responses
-```csharp
-var result = await curl.GetAsync("https://api.example.com/user/123");
 
-if (result.IsSuccess)
+`ParseJson<T>()` deserializes `Body` into your class. It throws `InvalidOperationException` when the body is empty or not valid JSON for that type.
+
+```csharp
+public class GitHubUser
 {
-    try
-    {
-        var user = JsonSerializer.Deserialize<User>(result.Data);
-        Console.WriteLine($"User: {user.Name}");
-    }
-    catch (JsonException ex)
-    {
-        Console.WriteLine($"Failed to parse JSON: {ex.Message}");
-    }
+    public string login { get; set; }
+    public int public_repos { get; set; }
 }
+
+var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
+var user = result.ParseJson<GitHubUser>();
+Console.WriteLine($"{user.login} has {user.public_repos} public repos");
 ```
 
 ### XML Responses
-```csharp
-var result = await curl.GetAsync("https://api.example.com/data.xml");
 
-if (result.IsSuccess)
-{
-    var doc = XDocument.Parse(result.Data);
-    var rootElement = doc.Root;
-    // Process XML...
-}
+```csharp
+using System.Xml.Linq;
+
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/xml");
+var doc = XDocument.Parse(result.Body);
+Console.WriteLine(doc.Root.Name);
 ```
 
 ### Binary Data
-```csharp
-var result = await curl.GetAsync("https://example.com/image.jpg");
 
-if (result.IsSuccess)
+When the Content-Type is not text, `IsBinary` is `true` and the bytes are in `BinaryData`. `SaveToFile` writes either text or binary content.
+
+```csharp
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/image/png");
+
+if (result.IsBinary)
 {
-    // For binary data, use GetBytesAsync instead
-    var bytes = await curl.GetBytesAsync("https://example.com/image.jpg");
-    File.WriteAllBytes("image.jpg", bytes);
+    Console.WriteLine($"{result.BinaryData.Length} bytes");
+    result.SaveToFile("image.png");
 }
 ```
 
 ## Best Practices
 
-### 1. Always Check IsSuccess First
+### 1. Check IsSuccess Before Using Body
+
 ```csharp
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/404");
+
 // Good
 if (result.IsSuccess)
-{
-    UseData(result.Data);
-}
+    Console.WriteLine(result.Body);
 
-// Bad - Data might be null if request failed
-UseData(result.Data);  // Potential null reference
+// Risky: Body may be an HTML error page, not the data you expected
+Console.WriteLine(result.Body);
 ```
 
 ### 2. Log Both Success and Failure
+
 ```csharp
-var result = await curl.GetAsync(url);
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
 
 if (result.IsSuccess)
-{
-    _logger.LogInformation($"Request succeeded: {url}");
-    ProcessData(result.Data);
-}
+    logger.LogInformation("GET succeeded in {Ms} ms", result.Timings.Total);
 else
-{
-    _logger.LogError($"Request failed: {url} - {result.Error}");
-}
+    logger.LogError("GET failed with HTTP {Status}", result.StatusCode);
 ```
 
 ### 3. Use Status Codes for Business Logic
+
 ```csharp
-var result = await curl.GetAsync($"/api/users/{userId}");
+var result = await Curl.ExecuteAsync("curl https://api.github.com/users/no-such-user-xyz");
 
-if (result.StatusCode == HttpStatusCode.NotFound)
-{
-    // User doesn't exist - this might be expected
-    return null;
-}
-else if (!result.IsSuccess)
-{
-    // Other errors are unexpected
-    throw new ApplicationException($"Failed to get user: {result.Error}");
-}
+if (result.StatusCode == 404)
+    return null;              // expected: the user does not exist
 
-return JsonSerializer.Deserialize<User>(result.Data);
+return result.EnsureSuccess().ParseJson<GitHubUser>();
 ```
 
-### 4. Extract Common Patterns
-```csharp
-public static class CurlResultExtensions
-{
-    public static T DeserializeJson<T>(this CurlResult result)
-    {
-        if (!result.IsSuccess)
-            throw new InvalidOperationException($"Cannot deserialize failed request: {result.Error}");
+### 4. Prefer the Built-in Helpers
 
-        return JsonSerializer.Deserialize<T>(result.Data);
-    }
-
-    public static bool IsJson(this CurlResult result)
-    {
-        return result.Headers.TryGetValue("Content-Type", out var ct)
-               && ct.Contains("application/json");
-    }
-}
-
-// Usage
-var user = result.DeserializeJson<User>();
-```
+`ParseJson<T>()`, `GetHeader()`, `EnsureSuccess()` and `SaveToFile()` already cover the common cases, so you rarely need your own extension methods on `CurlResult`.
 
 ## Common Mistakes to Avoid
 
-### Mistake 1: Not Checking IsSuccess
+### Mistake 1: Parsing Without Checking the Status
+
 ```csharp
-// Wrong - might crash if request failed
-var data = JsonSerializer.Deserialize<MyData>(result.Data);
+// Wrong: a 500 error page is not JSON
+var data = result.ParseJson<GitHubUser>();
 
 // Right
 if (result.IsSuccess)
 {
-    var data = JsonSerializer.Deserialize<MyData>(result.Data);
+    var data = result.ParseJson<GitHubUser>();
 }
 ```
 
-### Mistake 2: Ignoring Status Codes
-```csharp
-// Wrong - treats all failures the same
-if (!result.IsSuccess)
-{
-    throw new Exception("Request failed");
-}
+### Mistake 2: Treating All Failures the Same
 
-// Right - handle different failures differently
-if (result.StatusCode == HttpStatusCode.TooManyRequests)
+```csharp
+if (result.StatusCode == 429)
 {
-    // Wait and retry
+    // Too many requests: wait and try again later
 }
-else if (result.StatusCode == HttpStatusCode.Unauthorized)
+else if (result.StatusCode == 401)
 {
-    // Refresh authentication
+    // Refresh credentials
+}
+else if (!result.IsSuccess)
+{
+    throw new InvalidOperationException($"HTTP {result.StatusCode}");
 }
 ```
 
-### Mistake 3: Not Logging Errors
-```csharp
-// Wrong - silent failure
-if (result.IsSuccess)
-{
-    ProcessData(result.Data);
-}
+### Mistake 3: Indexing Headers Directly
 
-// Right - log the error
-if (result.IsSuccess)
-{
-    ProcessData(result.Data);
-}
-else
-{
-    _logger.LogError($"Request failed: {result.Error}");
-}
+```csharp
+// Wrong: throws KeyNotFoundException when the header is absent
+var etag = result.Headers["ETag"];
+
+// Right: returns null when absent
+var etag = result.GetHeader("ETag");
 ```
 
 ## Summary
 
-The `CurlResult` object provides everything you need to handle HTTP responses:
-- Check `IsSuccess` to determine if the request succeeded
-- Access response data through the `Data` property
-- Use `StatusCode` for specific HTTP status handling
-- Read response headers from the `Headers` dictionary
-- Get detailed error information from the `Error` property
+The `CurlResult` object gives you everything you need to handle an HTTP response:
 
-Understanding these properties and using them correctly is the foundation for building reliable HTTP clients with CurlDotNet.
+- Check `IsSuccess` to see whether the server returned 2xx
+- Read the response text from `Body`, or bytes from `BinaryData`
+- Use `StatusCode` (an `int`) for specific HTTP status handling
+- Read response headers with `GetHeader` and `HasHeader`
+- Call `EnsureSuccess()` when a non-2xx status should throw
+- Parse JSON with `ParseJson<T>()`
+- Network failures throw a `CurlException` instead of returning a result
 
 ## What's Next?
 
-In the next tutorial, we'll dive deeper into [error handling](06-handling-errors.html) and learn how to build resilient applications that gracefully handle network failures.
+In the next tutorial, we look at [handling errors](06-handling-errors.html): the exceptions CurlDotNet throws for network failures and how to retry safely.
+
+See also: [CurlResult in the API guide](../api-guide/README.html) and the [simple GET recipe](../cookbook/beginner/simple-get.html).
 
 ---
 
-[← Previous: Your First Request](04-your-first-request.html) | [Next: Handling Errors →](06-handling-errors.html)
+[Previous: Your First Request](04-your-first-request.html) | [Next: Handling Errors](06-handling-errors.html)

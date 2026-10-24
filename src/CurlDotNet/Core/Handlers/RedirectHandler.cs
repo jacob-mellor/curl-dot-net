@@ -27,18 +27,18 @@ namespace CurlDotNet.Core.Handlers
             StringBuilder? verboseLog,
             Func<CurlOptions, HttpRequestMessage> createRequestFunc,
             Action<StringBuilder?, HttpRequestMessage> appendVerboseRequestFunc,
-            Action<StringBuilder?, HttpResponseMessage> appendVerboseResponseFunc)
+            Action<StringBuilder?, HttpResponseMessage> appendVerboseResponseFunc,
+            Action<HttpResponseMessage>? onRedirectResponse = null)
         {
             var redirectCount = 0;
             var currentResponse = response;
             var currentRequest = initialRequest;
 
-            // Accumulate redirect headers when -i flag is used
-            // Note: In the original implementation, this was modifying the result body later.
-            // We'll need to handle that. For now, we'll just follow the redirects.
-
             while (IsRedirect(currentResponse.StatusCode) && redirectCount < options.MaxRedirects)
             {
+                // Let the caller record each intermediate response (curl -iL prints every hop's headers)
+                onRedirectResponse?.Invoke(currentResponse);
+
                 var location = currentResponse.Headers.Location;
                 if (location == null)
                 {

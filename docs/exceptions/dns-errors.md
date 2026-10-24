@@ -1,319 +1,140 @@
-# DNS Resolution Errors
+---
+title: "curl Could Not Resolve Host in C# (CurlDotNet)"
+description: "Fix 'curl could not resolve host' and connection refused in C#: CurlDotNet throws CurlCouldntConnectException with Host and Port; how to catch and fix it."
+---
 
-## Overview
+# curl Could Not Resolve Host in C# (DNS and Connection Errors)
 
-DNS errors occur when CurlDotNet cannot resolve a hostname to an IP address. This is one of the most common network errors and usually indicates connectivity or DNS configuration issues.
+"curl could not resolve host" in C# means the host name in your URL did not resolve to an IP address, and "connection refused" means it resolved but nothing answered on that port. CurlDotNet reports both, and TLS handshake failures, as `CurlDotNet.Exceptions.CurlCouldntConnectException`, which carries the `Host` and `Port` it tried to reach. This page shows how to catch it and how to tell the causes apart.
 
-## Common Error Scenarios
+## What Is Thrown
 
-### 1. Host Not Found
+Any failure that prevents a response from arriving at the network level (`HttpRequestException` inside .NET) is mapped to `CurlCouldntConnectException`, curl error code 7:
 
-**Problem:** The hostname doesn't exist in DNS.
+```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
 
-**Common Causes:**
-- Typo in hostname
-- Domain doesn't exist
-- Domain expired
-- Internal hostname on wrong network
+try
+{
+    var result = await Curl.ExecuteAsync("curl https://this-host-does-not-exist.example");
+}
+catch (CurlCouldntConnectException ex)
+{
+    Console.WriteLine($"Could not reach {ex.Host}:{ex.Port}");
+    Console.WriteLine(ex.Message);   // "Failed to connect to this-host-does-not-exist.example:443"
+    Console.WriteLine(ex.CurlErrorCode); // 7
+}
+```
 
-**Solutions:**
+`CurlDnsException` and `CurlCouldntResolveHostException` also exist as types, but the HTTP engine does not currently distinguish DNS failures from other connection failures; catch `CurlCouldntConnectException`.
+
+## Telling the Causes Apart
+
+| Symptom | Likely cause | Check |
+|---------|--------------|-------|
+| Fails instantly for every URL | No network, or a proxy is required | Open any site in a browser; set `-x proxy:port` if your network needs one |
+| Fails only for one host name | Typo, or the name does not exist | `nslookup host` or `ping host` in a terminal |
+| Resolves but refuses | Wrong port, or the service is down | Try the URL in a browser; check the port in the URL |
+| HTTPS fails, HTTP works | TLS handshake failure (certificate) | See [SSL errors](ssl-errors.html) |
+| Works with an IP, not a name | DNS misconfiguration | Check the machine's DNS settings |
+
+## Common Fixes
+
+### Check the URL
+
+```csharp
+var check = Curl.Validate("curl https://api.github.com");
+if (!check.IsValid)
+    Console.WriteLine(check.Error);
+```
+
+`Curl.Validate` catches syntax problems before any network call; it does not resolve the host.
+
+### Go Through a Proxy
+
+Corporate networks often block direct DNS or outbound connections:
+
+```csharp
+var result = await Curl.ExecuteAsync("curl -x http://proxy.corp.example:8080 https://api.github.com");
+```
+
+Builder: `CurlRequestBuilder.Get(url).WithProxy("http://proxy.corp.example:8080")`.
+
+### Retry Transient Failures
+
+Short DNS outages do happen. Retry a few times with a pause, and keep `-m` on each attempt so one hung connection cannot stall the loop:
+
+```csharp
+async Task<CurlResult> RetryRequest(string command, int attempts = 3)
+{
+    for (var i = 1; ; i++)
+    {
+        try { return await Curl.ExecuteAsync(command); }
+        catch (CurlCouldntConnectException) when (i < attempts)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(i));   // 1s, 2s, ...
+        }
+    }
+}
+var result = await RetryRequest("curl -m 10 https://api.github.com");
+```
+
+### Fall Back to Another Host
+
+```csharp
+async Task<CurlResult> FetchFromAnyAsync(params string[] urls)
+{
+    foreach (var url in urls)
+    {
+        try { return await Curl.ExecuteAsync($"curl -m 10 {url}"); }
+        catch (CurlCouldntConnectException) { /* try the next one */ }
+    }
+    throw new InvalidOperationException("All hosts unreachable");
+}
+```
+
+## Debugging
+
+### Inspect the Exception
 
 ```csharp
 try
 {
-    var result = await curl.ExecuteAsync("curl https://example.com");
+    await Curl.ExecuteAsync("curl https://this-host-does-not-exist.example");
 }
-catch (CurlDnsException ex)
+catch (CurlCouldntConnectException ex)
 {
-    Console.WriteLine($"DNS lookup failed for: {ex.Host}");
-
-    // Try with IP address instead
-    var ipAddress = "93.184.216.34"; // example.com IP
-    result = await curl.ExecuteAsync($"curl https://{ipAddress}");
-
-    // Or try alternative domain
-    result = await curl.ExecuteAsync("curl https://www.example.com");
+    Console.WriteLine(ex.Command);     // the command that failed
+    foreach (var tip in ex.Suggestions) Console.WriteLine($"- {tip}");
 }
 ```
 
-### 2. DNS Server Unreachable
+### Test Resolution Outside CurlDotNet
 
-**Problem:** Cannot reach the configured DNS servers.
+```bash
+# Does the name resolve at all?
+nslookup api.github.com
 
-**Common Causes:**
-- No internet connection
-- Firewall blocking DNS (port 53)
-- Corporate proxy requirements
-- DNS server down
-
-**Solutions:**
-
-```csharp
-// Test with public DNS servers
-public async Task<bool> TestDnsConnectivity()
-{
-    // Try resolving with different DNS servers
-    var testHosts = new[]
-    {
-        "8.8.8.8",      // Google DNS
-        "1.1.1.1",      // Cloudflare DNS
-        "208.67.222.222" // OpenDNS
-    };
-
-    foreach (var dns in testHosts)
-    {
-        try
-        {
-            // Test with IP to bypass DNS
-            var result = await curl.ExecuteAsync($"curl http://{dns}");
-            return true;
-        }
-        catch
-        {
-            continue;
-        }
-    }
-    return false;
-}
+# Can the port be reached?
+curl -v https://api.github.com
 ```
 
-### 3. DNS Cache Issues
+If these fail too, the problem is the machine or network, not your code.
 
-**Problem:** Stale DNS cache returning outdated IP addresses.
-
-**Solutions:**
+### Resolve in .NET Directly
 
 ```csharp
-// Force fresh DNS lookup
-public class DnsHelper
-{
-    public static void FlushDnsCache()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            Process.Start("ipconfig", "/flushdns");
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            Process.Start("dscacheutil", "-flushcache");
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            Process.Start("systemctl", "restart systemd-resolved");
-        }
-    }
-}
-```
+using System.Net;
 
-## Best Practices
-
-### 1. DNS Resolution with Fallback
-
-```csharp
-public class DnsResolver
-{
-    private readonly Dictionary<string, string> _knownHosts = new()
-    {
-        { "api.example.com", "93.184.216.34" },
-        { "cdn.example.com", "151.101.1.140" }
-    };
-
-    public async Task<CurlResult> ExecuteWithDnsFallback(string url)
-    {
-        var uri = new Uri(url);
-        var curl = new Curl();
-
-        try
-        {
-            // Try normal DNS resolution
-            return await curl.ExecuteAsync($"curl {url}");
-        }
-        catch (CurlDnsException ex)
-        {
-            // Try with known IP if available
-            if (_knownHosts.TryGetValue(uri.Host, out var ipAddress))
-            {
-                var ipUrl = url.Replace(uri.Host, ipAddress);
-                // Add Host header for virtual hosting
-                return await curl.ExecuteAsync(
-                    $"curl -H \"Host: {uri.Host}\" {ipUrl}"
-                );
-            }
-            throw;
-        }
-    }
-}
-```
-
-### 2. Custom DNS Resolution
-
-```csharp
-public class CustomDnsResolver
-{
-    public async Task<string> ResolveHost(string hostname)
-    {
-        try
-        {
-            var addresses = await Dns.GetHostAddressesAsync(hostname);
-            return addresses.FirstOrDefault()?.ToString();
-        }
-        catch (SocketException)
-        {
-            return null;
-        }
-    }
-
-    public async Task<CurlResult> ExecuteWithCustomDns(string url)
-    {
-        var uri = new Uri(url);
-        var ipAddress = await ResolveHost(uri.Host);
-
-        if (ipAddress == null)
-        {
-            throw new CurlDnsException(uri.Host);
-        }
-
-        var curl = new Curl();
-        var ipUrl = url.Replace(uri.Host, ipAddress);
-        return await curl.ExecuteAsync(
-            $"curl --resolve {uri.Host}:{uri.Port ?? 443}:{ipAddress} {url}"
-        );
-    }
-}
-```
-
-## Debugging Tips
-
-### 1. Test DNS Resolution
-
-```csharp
-public async Task DiagnoseDns(string hostname)
-{
-    Console.WriteLine($"Diagnosing DNS for: {hostname}");
-
-    // Try system DNS resolution
-    try
-    {
-        var addresses = await Dns.GetHostAddressesAsync(hostname);
-        Console.WriteLine($"Resolved to: {string.Join(", ", addresses.Select(a => a.ToString()))}");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"System DNS failed: {ex.Message}");
-    }
-
-    // Try with curl
-    var curl = new Curl();
-    var result = await curl.ExecuteAsync($"curl -v https://{hostname}");
-    Console.WriteLine($"Curl output: {result.StdErr}");
-}
-```
-
-### 2. Use Alternative DNS
-
-```csharp
-// Use specific DNS server with curl
-var result = await curl.ExecuteAsync(
-    "curl --dns-servers 8.8.8.8,8.8.4.4 https://example.com"
-);
-```
-
-### 3. Check Network Connectivity
-
-```csharp
-public async Task<bool> CheckConnectivity()
-{
-    var checks = new Dictionary<string, string>
-    {
-        { "DNS (Google)", "8.8.8.8" },
-        { "DNS (Cloudflare)", "1.1.1.1" },
-        { "HTTP", "http://www.google.com" },
-        { "HTTPS", "https://www.google.com" }
-    };
-
-    foreach (var check in checks)
-    {
-        try
-        {
-            var result = await curl.ExecuteAsync($"curl -I --max-time 5 {check.Value}");
-            Console.WriteLine($"✓ {check.Key}: OK");
-        }
-        catch
-        {
-            Console.WriteLine($"✗ {check.Key}: FAILED");
-        }
-    }
-}
-```
-
-## Platform-Specific Solutions
-
-### Windows
-
-```csharp
-// Reset Windows network stack
-Process.Start("netsh", "winsock reset");
-Process.Start("netsh", "int ip reset");
-Process.Start("ipconfig", "/release");
-Process.Start("ipconfig", "/renew");
-Process.Start("ipconfig", "/flushdns");
-```
-
-### macOS
-
-```csharp
-// Clear DNS cache on macOS
-Process.Start("sudo", "killall -HUP mDNSResponder");
-Process.Start("sudo", "dscacheutil -flushcache");
-```
-
-### Linux
-
-```csharp
-// Restart DNS resolver
-Process.Start("sudo", "systemctl restart systemd-resolved");
-// Or for older systems
-Process.Start("sudo", "service nscd restart");
-```
-
-## Configuration
-
-### hosts File Override
-
-```csharp
-public void AddHostsEntry(string hostname, string ipAddress)
-{
-    string hostsPath;
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-    {
-        hostsPath = @"C:\Windows\System32\drivers\etc\hosts";
-    }
-    else
-    {
-        hostsPath = "/etc/hosts";
-    }
-
-    var entry = $"{ipAddress} {hostname}";
-    File.AppendAllText(hostsPath, Environment.NewLine + entry);
-}
+var addresses = await Dns.GetHostAddressesAsync("api.github.com");
+Console.WriteLine(string.Join(", ", addresses));
 ```
 
 ## Related Documentation
 
-- [Connection Errors](connection-errors.html)
-- [Timeout Errors](timeout-errors.html)
-- [Network Troubleshooting Guide](/guides/network-troubleshooting.html)
-- [CurlDotNet DNS API Reference](/api/CurlDotNet.Exceptions.CurlDnsException.html)
-
-## Error Prevention Checklist
-
-- [ ] Validate hostnames before requests
-- [ ] Implement DNS fallback mechanisms
-- [ ] Cache successful DNS resolutions
-- [ ] Handle both IPv4 and IPv6
-- [ ] Test with IP addresses to isolate DNS issues
-- [ ] Configure appropriate DNS timeouts
-- [ ] Use reliable DNS servers
-- [ ] Implement retry logic for transient failures
-- [ ] Monitor DNS resolution performance
-- [ ] Document internal hostnames and IPs
+- [Timeout errors](timeout-errors.html)
+- [SSL/TLS errors](ssl-errors.html)
+- [Cookbook](../cookbook/index.html)
+- [Troubleshooting: common issues](../troubleshooting/common-issues.html)
+- [Exception reference](index.html)

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP GET
+libtest
+</keywords>
+</info>
+
+<reply>
+<data>
+ICY 200 OK
+Content-Length: 7
+
+MooMoo
+</data>
+</reply>
+
+<client>
+<server>
+http
+</server>
+<name>
+CURLOPT_HTTP200ALIASES
+</name>
+<command>
+http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+</command>
+</client>
+
+<verify>
+<errorcode>
+0
+</errorcode>
+</verify>
+</testcase>

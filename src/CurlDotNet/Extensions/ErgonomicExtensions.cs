@@ -13,6 +13,9 @@ namespace CurlDotNet
     /// </summary>
     public static class ErgonomicExtensions
     {
+        /// <summary>Case-insensitive property matching: camelCase JSON binds to PascalCase C# properties.</summary>
+        private static readonly JsonSerializerOptions DefaultJsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
         /// <summary>
         /// Parse the response body as JSON and deserialize to a strongly-typed object.
         /// </summary>
@@ -34,7 +37,7 @@ namespace CurlDotNet
                 throw new InvalidOperationException("Response body is empty");
             }
 
-            return JsonSerializer.Deserialize<T>(result.Body, options)
+            return JsonSerializer.Deserialize<T>(result.Body, options ?? DefaultJsonOptions)
                 ?? throw new JsonException("Failed to deserialize JSON to target type");
         }
 
@@ -57,7 +60,7 @@ namespace CurlDotNet
 
             try
             {
-                value = JsonSerializer.Deserialize<T>(result.Body, options);
+                value = JsonSerializer.Deserialize<T>(result.Body, options ?? DefaultJsonOptions);
                 return value != null;
             }
             catch

@@ -19,6 +19,7 @@
  ***************************************************************************/
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -91,6 +92,25 @@ namespace CurlDotNet
 
         // Global settings - thread-safe with volatile
         private static volatile int _defaultMaxTimeSeconds = 0; // 0 = no timeout
+
+        /// <summary>
+        /// The curl release whose command-line behaviour CurlDotNet reproduces. Used for the default
+        /// <c>User-Agent</c> header (<c>curl/8.7.1</c>) and reported by <c>curl --version</c> style output.
+        /// </summary>
+        public const string CurlCompatVersion = "8.7.1";
+
+        /// <summary>
+        /// <para><b>The User-Agent sent when a command does not set one.</b></para>
+        /// <para>Real curl always identifies itself as <c>curl/&lt;version&gt;</c>, and many APIs
+        /// (GitHub's, for example) reject requests with no User-Agent at all, so CurlDotNet sends
+        /// <c>curl/8.7.1</c> by default. Override per request with <c>-A</c> / <c>--user-agent</c> or
+        /// <c>-H "User-Agent: ..."</c>, suppress it with <c>-H "User-Agent:"</c>, or change the default
+        /// for the whole process here.</para>
+        /// <code language="csharp">
+        /// Curl.DefaultUserAgent = "MyApp/2.0 (+https://example.com)";
+        /// </code>
+        /// </summary>
+        public static string DefaultUserAgent { get; set; } = "curl/" + CurlCompatVersion;
         private static volatile int _defaultConnectTimeoutSeconds = 0;
         private static volatile bool _defaultFollowRedirects = false;
         private static volatile bool _defaultInsecure = false;
@@ -585,6 +605,96 @@ namespace CurlDotNet
         }
 
         /// <summary>
+        /// <para><b>Execute a request described by a <see cref="CurlOptions"/> object - no command string, no quoting.</b></para>
+        ///
+        /// <para>Use this when the values come from variables and you do not want to think about shell
+        /// quoting at all. Nothing is parsed: data containing quotes, spaces or backslashes is sent
+        /// exactly as given. The convenience helpers (<see cref="PostAsync"/>, <see cref="PostJsonAsync"/>,
+        /// <see cref="DownloadAsync"/>) are built on this method.</para>
+        ///
+        /// <para><b>Example:</b></para>
+        /// <code language="csharp">
+        /// var options = new CurlOptions
+        /// {
+        ///     Url = "https://api.example.com/users",
+        ///     Method = "POST",
+        ///     Data = "{\"name\":\"O'Brien\"}",
+        ///     Headers = { ["Content-Type"] = "application/json" },
+        ///     FollowLocation = true
+        /// };
+        ///
+        /// var result = await Curl.ExecuteAsync(options);
+        /// </code>
+        /// </summary>
+        /// <param name="options">The fully populated request options. <see cref="CurlOptions.Url"/> is required.</param>
+        /// <returns>A <see cref="CurlResult"/> with the response.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> is null.</exception>
+        /// <exception cref="Exceptions.CurlException">Thrown when no URL is set or the request fails.</exception>
+        public static async Task<CurlResult> ExecuteAsync(CurlOptions options)
+        {
+            return await _engine.ExecuteAsync(options);
+        }
+
+        /// <summary>
+        /// <para><b>Execute a <see cref="CurlOptions"/> request with cancellation support.</b></para>
+        /// <para>See <see cref="ExecuteAsync(CurlOptions)"/> for details.</para>
+        /// </summary>
+        /// <param name="options">The fully populated request options. <see cref="CurlOptions.Url"/> is required.</param>
+        /// <param name="cancellationToken">Token used to cancel the request.</param>
+        /// <returns>A <see cref="CurlResult"/> with the response.</returns>
+        public static async Task<CurlResult> ExecuteAsync(CurlOptions options, CancellationToken cancellationToken)
+        {
+            return await _engine.ExecuteAsync(options, cancellationToken);
+        }
+
+        /// <summary>
+        /// Builds the <see cref="CurlOptions"/> for the quick helper methods directly, bypassing the
+        /// command parser so user data never has to be shell-quoted. <see cref="CurlOptions.OriginalCommand"/>
+        /// is still populated with an equivalent, correctly quoted command for diagnostics.
+        /// </summary>
+        private static CurlOptions BuildQuickOptions(string url, string? method, string? data, string? contentType, string? outputFile)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                throw new ArgumentException("URL cannot be null or empty", nameof(url));
+            }
+
+            var options = new CurlOptions
+            {
+                Url = url.Trim(),
+                Method = method,
+                Data = data,
+                OutputFile = outputFile
+            };
+
+            var parts = new List<string> { "curl" };
+            if (!string.IsNullOrEmpty(method))
+            {
+                parts.Add("-X " + method);
+            }
+
+            if (!string.IsNullOrEmpty(contentType))
+            {
+                options.Headers["Content-Type"] = contentType!;
+                parts.Add("-H " + CommandParser.ShellQuote("Content-Type: " + contentType));
+            }
+
+            if (data != null)
+            {
+                parts.Add("-d " + CommandParser.ShellQuote(data));
+            }
+
+            if (!string.IsNullOrEmpty(outputFile))
+            {
+                parts.Add("-o " + CommandParser.ShellQuoteIfNeeded(outputFile));
+            }
+
+            parts.Add(CommandParser.ShellQuoteIfNeeded(options.Url));
+            options.OriginalCommand = string.Join(" ", parts);
+            return options;
+        }
+
+        /// <summary>
         /// <para><b>Quick GET request - simpler syntax for basic GET operations.</b></para>
         ///
         /// <para>When you just need to GET a URL without any options, use this shortcut method.</para>
@@ -610,12 +720,12 @@ namespace CurlDotNet
         /// </param>
         /// <returns>A <see cref="CurlResult"/> with the response.</returns>
         /// <remarks>
-        /// <para>This is equivalent to: <c>Curl.Execute($"curl {url}")</c></para>
+        /// <para>Equivalent to <c>curl &lt;url&gt;</c>.</para>
         /// <para>For GET requests with headers or auth, use the full <see cref="Execute(string)"/> method.</para>
         /// </remarks>
         public static async Task<CurlResult> GetAsync(string url)
         {
-            return await ExecuteAsync($"curl {url}");
+            return await ExecuteAsync(BuildQuickOptions(url, null, null, null, null));
         }
 
         /// <summary>
@@ -647,12 +757,13 @@ namespace CurlDotNet
         /// </param>
         /// <returns>A <see cref="CurlResult"/> with the response.</returns>
         /// <remarks>
-        /// <para>This is equivalent to: <c>Curl.Execute($"curl -X POST -d '{data}' {url}")</c></para>
+        /// <para>Equivalent to <c>curl -X POST -d &lt;data&gt; &lt;url&gt;</c>, but the data is passed straight to the
+        /// engine, so quotes, apostrophes and spaces in <paramref name="data"/> need no escaping.</para>
         /// <para>For POST with headers, use <see cref="PostJson"/> or the full <see cref="Execute(string)"/> method.</para>
         /// </remarks>
         public static async Task<CurlResult> PostAsync(string url, string data)
         {
-            return await ExecuteAsync($"curl -X POST -d '{data}' {url}");
+            return await ExecuteAsync(BuildQuickOptions(url, "POST", data ?? string.Empty, null, null));
         }
 
         /// <summary>
@@ -715,7 +826,7 @@ namespace CurlDotNet
         public static async Task<CurlResult> PostJsonAsync(string url, object data)
         {
             var json = SerializeJson(data);
-            return await ExecuteAsync($"curl -X POST -H 'Content-Type: application/json' -d '{json}' {url}");
+            return await ExecuteAsync(BuildQuickOptions(url, "POST", json, "application/json", null));
         }
 
         /// <summary>
@@ -768,13 +879,17 @@ namespace CurlDotNet
         /// </param>
         /// <returns>A <see cref="CurlResult"/> with download information.</returns>
         /// <remarks>
-        /// <para>This is equivalent to: <c>Curl.Execute($"curl -o {outputPath} {url}")</c></para>
+        /// <para>Equivalent to <c>curl -o &lt;outputPath&gt; &lt;url&gt;</c>; paths with spaces or quotes need no escaping.</para>
         /// <para>For large files with progress, use <see cref="Execute(string, CurlSettings)"/> with OnProgress callback.</para>
         /// </remarks>
         public static async Task<CurlResult> DownloadAsync(string url, string outputPath)
         {
-            // Quote both values so paths and URLs containing spaces survive parsing
-            return await ExecuteAsync($"curl -o \"{outputPath}\" \"{url}\"");
+            if (string.IsNullOrWhiteSpace(outputPath))
+            {
+                throw new ArgumentException("Output path cannot be null or empty", nameof(outputPath));
+            }
+
+            return await ExecuteAsync(BuildQuickOptions(url, null, null, null, outputPath));
         }
 
         /// <summary>
@@ -1044,13 +1159,24 @@ namespace CurlDotNet
             return _engine.ToPowershellCode(command);
         }
 
-        private static string SerializeJson(object data)
+        /// <summary>
+        /// Serializes an object to JSON the way a curl user would type it: apostrophes, quotes and
+        /// non-ASCII characters are kept literal instead of being \uXXXX-escaped.
+        /// </summary>
+        internal static string SerializeJson(object data)
         {
 #if NETSTANDARD2_0
             return Newtonsoft.Json.JsonConvert.SerializeObject(data);
 #else
-            return System.Text.Json.JsonSerializer.Serialize(data);
+            return System.Text.Json.JsonSerializer.Serialize(data, JsonPayloadOptions);
 #endif
         }
+
+#if !NETSTANDARD2_0
+        private static readonly System.Text.Json.JsonSerializerOptions JsonPayloadOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        };
+#endif
     }
 }

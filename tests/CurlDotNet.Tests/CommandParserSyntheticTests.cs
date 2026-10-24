@@ -341,7 +341,8 @@ namespace CurlDotNet.Tests
 
             // Assert
             options.Method.Should().Be("POST");
-            options.Data.Should().Contain("name=John Doe");
+            // curl percent-encodes the value part of each --data-urlencode argument
+            options.Data.Should().Be("name=John%20Doe&email=john%40example.com");
         }
 
         #endregion
@@ -868,6 +869,60 @@ Line 3' \
             // Assert
             options.Silent.Should().BeTrue();
             options.ShowError.Should().BeTrue();
+        }
+
+        #endregion
+
+        #region Quoting helpers and Windows-style escaped quotes
+
+        /// <summary>
+        /// Windows users paste -d '{\"key\":\"value\"}' because curl.exe's argv parser treats \" as a
+        /// literal quote. When a single-quoted segment has only escaped quotes, they are unescaped.
+        /// </summary>
+        [Fact]
+        public void Parse_SingleQuotedWindowsEscapedJson_UnescapesQuotes()
+        {
+            var options = _parser.Parse(@"curl -d '{\""key\"":\""value\""}' https://api.example.com");
+
+            options.Data.Should().Be("{\"key\":\"value\"}");
+        }
+
+        /// <summary>
+        /// Genuine POSIX JSON with an escaped quote inside a string literal must stay untouched.
+        /// </summary>
+        [Fact]
+        public void Parse_SingleQuotedJsonWithRealEscapedQuote_PreservesBackslashes()
+        {
+            var options = _parser.Parse(@"curl -d '{""msg"":""say \""hi\""""}' https://api.example.com");
+
+            options.Data.Should().Be("{\"msg\":\"say \\\"hi\\\"\"}");
+        }
+
+        /// <summary>
+        /// ShellQuote output must round-trip through the parser for every awkward character.
+        /// </summary>
+        [Theory]
+        [InlineData("{\"name\":\"O'Brien\"}")]
+        [InlineData("it's a \"quoted\" value with spaces")]
+        [InlineData("back\\slash and $dollar")]
+        [InlineData("'leading and trailing quotes'")]
+        [InlineData("")]
+        public void ShellQuote_RoundTripsThroughParser(string value)
+        {
+            var command = $"curl -d {CommandParser.ShellQuote(value)} https://api.example.com";
+
+            var options = _parser.Parse(command);
+
+            options.Data.Should().Be(value);
+            options.Url.Should().Be("https://api.example.com");
+        }
+
+        [Fact]
+        public void ShellQuoteIfNeeded_LeavesPlainUrlsUnquoted()
+        {
+            CommandParser.ShellQuoteIfNeeded("https://api.example.com/users?page=1&limit=10").Should().Be("https://api.example.com/users?page=1&limit=10");
+            CommandParser.ShellQuoteIfNeeded("C:/My Files/out.json").Should().Be("'C:/My Files/out.json'");
+            CommandParser.ShellQuoteIfNeeded(null).Should().Be("''");
         }
 
         #endregion

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+unsupported scheme
+</keywords>
+</info>
+<reply>
+<data>
+</data>
+</reply>
+
+<client>
+<server>
+http
+</server>
+<name>
+unsupported protocol:// URL
+</name>
+<command>
+htfp://%HOSTIP:%HTTPPORT/none.htfml
+</command>
+</client>
+
+<verify>
+<errorcode>
+1
+</errorcode>
+</verify>
+</testcase>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+--variable
+</keywords>
+</info>
+
+<reply>
+</reply>
+
+<client>
+<server>
+http
+</server>
+<name>
+--variable with a file byte range, bad range
+</name>
+<command>
+http://%HOSTIP:%HTTPPORT/%TESTNUMBER --variable "name[15-14]@%LOGDIR/fooo" --expand-data '{{name}}'
+</command>
+</client>
+
+<verify>
+<errorcode>
+2
+</errorcode>
+</verify>
+</testcase>

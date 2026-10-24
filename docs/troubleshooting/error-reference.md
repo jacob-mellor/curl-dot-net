@@ -1,167 +1,161 @@
-# Error Reference
+---
+title: "CurlDotNet Error Reference - curl exit codes in C#"
+description: "CurlDotNet error reference: curl exit codes and exceptions in C#. Which CurlException subclass is thrown for timeouts, DNS, TLS, redirects and bad URLs."
+---
 
-CurlDotNet provides specific exception types for each curl error code, making it easy to handle different error conditions precisely.
+# CurlDotNet error reference: curl exit codes and exceptions in C#
+
+CurlDotNet error reference: curl exit codes and exceptions in C# - this page lists the exceptions CurlDotNet throws, the curl exit code each one corresponds to, and how to handle them. Transport failures throw an exception; HTTP 4xx and 5xx status codes do not throw unless you call `result.EnsureSuccess()`.
 
 ## Exception Hierarchy
 
-All CurlDotNet exceptions inherit from `CurlException`:
+All exceptions live in the `CurlDotNet.Exceptions` namespace and derive from `CurlException`, which exposes:
+
+- `Command` - the curl command that failed
+- `CurlErrorCode` - the curl exit code (`int?`) when one applies
+- `Suggestions` - a `List<string>` of fix hints
+- `DiagnosticInfo` - extra context for logging
+
+The exceptions the library throws today:
 
 ```
-CurlException (base class)
-├── CurlHttpException (HTTP 4xx/5xx errors)
-├── CurlFtpException (FTP errors)
-├── CurlTimeoutException (CURLE_OPERATION_TIMEDOUT)
-├── CurlSslException (SSL/TLS errors)
-├── CurlCouldntResolveHostException (DNS failures)
-├── CurlCouldntConnectException (Connection failures)
-├── CurlParsingException (Invalid curl command)
-└── ... (91 total exception types)
+CurlException
+├── CurlTimeoutException                (Timeout: TimeSpan?)
+│   └── CurlOperationTimeoutException   -m/--max-time expired            (exit code 28)
+├── CurlAbortedByCallbackException      CancellationToken cancelled       (exit code 42)
+├── CurlCouldntConnectException         DNS, refused, TLS handshake       (exit code 7)
+├── CurlTooManyRedirectsException       --max-redirs exceeded             (exit code 47)
+├── CurlMalformedUrlException           invalid URL                       (exit code 3)
+├── CurlUnsupportedProtocolException    unknown scheme                    (exit code 1)
+├── CurlInvalidCommandException         no URL / bad option syntax        (no exit code)
+└── CurlFileCouldntReadException        -d @file or -F file=@path missing (exit code 37)
 ```
 
-## Common Exceptions
+`CurlDotNet.Core.CurlHttpException` is separate: it is thrown only by `result.EnsureSuccess()` and `result.EnsureStatus(code)`, and derives from `System.Exception`, not `CurlException`.
 
-### CurlTimeoutException
+Other exception types exist in `CurlDotNet.Exceptions` (for example `CurlSslException`, `CurlCouldntResolveHostException`, `CurlAuthenticationException`, `CurlCookieException`) so that code written against curl exit codes compiles, but the cases they describe currently surface as one of the exceptions listed above.
 
-**Error Code:** CURLE_OPERATION_TIMEDOUT (28)
+## HTTP Status Codes Are Not Exceptions
 
-Thrown when the request takes longer than the configured timeout.
+A 404 or 500 response is a successful transfer from curl's point of view, so `ExecuteAsync` returns normally:
 
 ```csharp
+using CurlDotNet;
+
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/404");
+Console.WriteLine(result.IsSuccess);   // false
+Console.WriteLine(result.StatusCode);  // 404
+```
+
+To turn a non-2xx status into an exception, call `EnsureSuccess()`:
+
+```csharp
+using CurlDotNet;
+
 try
 {
-    var result = await Curl.ExecuteAsync("curl --max-time 5 https://slow-api.com");
+    var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/500");
+    result.EnsureSuccess();
+}
+catch (CurlDotNet.Core.CurlHttpException ex)
+{
+    Console.WriteLine($"HTTP {ex.StatusCode}: {ex.ResponseBody}");
+}
+```
+
+`CurlHttpException` exists in both `CurlDotNet.Core` and `CurlDotNet.Exceptions`. If a file imports both namespaces, qualify the type name as shown above to avoid compiler error CS0104.
+
+## Exceptions
+
+### CurlOperationTimeoutException
+
+**Exit code:** 28 (CURLE_OPERATION_TIMEDOUT). Derives from `CurlTimeoutException`; some code paths throw the base type, so catch `CurlTimeoutException` to cover both.
+
+Thrown when the request exceeds `-m`/`--max-time` (or `Curl.DefaultMaxTimeSeconds`, when set). The default is 0, which means no timeout.
+
+```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
+
+try
+{
+    var result = await Curl.ExecuteAsync("curl --max-time 2 https://httpbin.org/delay/5");
 }
 catch (CurlTimeoutException ex)
 {
-    Console.WriteLine($"Request timed out after {ex.Timeout} seconds");
-    Console.WriteLine($"Error code: {ex.CurlErrorCode}");
+    Console.WriteLine($"Timed out after {ex.Timeout?.TotalSeconds} s");
+    Console.WriteLine($"curl exit code: {ex.CurlErrorCode}");
 }
 ```
 
-**Solutions:**
-- Increase the timeout: `--max-time 60`
-- Check if the server is responding
-- Use `DefaultMaxTimeSeconds` for global timeout
+**Fixes:** raise `--max-time`; note that `--connect-timeout` is parsed but not enforced for HTTP yet, so `--max-time` is the limit that matters; check whether the server is overloaded. See [Timeout Errors](common-issues.html#timeout-errors).
 
----
+### CurlAbortedByCallbackException
 
-### CurlCouldntResolveHostException
+**Exit code:** 42 (CURLE_ABORTED_BY_CALLBACK).
 
-**Error Code:** CURLE_COULDNT_RESOLVE_HOST (6)
-
-Thrown when DNS lookup fails for the hostname.
+Thrown when the `CancellationToken` you passed is cancelled. CurlDotNet does not throw `OperationCanceledException`.
 
 ```csharp
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 try
 {
-    var result = await Curl.ExecuteAsync("curl https://nonexistent-domain.com");
+    var result = await Curl.ExecuteAsync("curl https://httpbin.org/delay/10", cts.Token);
 }
-catch (CurlCouldntResolveHostException ex)
+catch (CurlAbortedByCallbackException)
 {
-    Console.WriteLine($"Could not find host: {ex.Hostname}");
+    Console.WriteLine("Cancelled by the caller");
 }
 ```
-
-**Solutions:**
-- Verify the URL is spelled correctly
-- Check your internet connection
-- Check DNS settings
-- Try using IP address directly
-
----
 
 ### CurlCouldntConnectException
 
-**Error Code:** CURLE_COULDNT_CONNECT (7)
+**Exit code:** 7 (CURLE_COULDNT_CONNECT). Properties: `Host`, `Port`.
 
-Thrown when the connection to the host cannot be established.
+Thrown when no connection could be made: the hostname did not resolve, the port refused the connection, or the TLS handshake failed (self-signed, expired or mismatched certificate).
 
 ```csharp
 try
 {
-    var result = await Curl.ExecuteAsync("curl https://api.example.com:9999");
+    var result = await Curl.ExecuteAsync("curl https://localhost:9999/");
 }
 catch (CurlCouldntConnectException ex)
 {
     Console.WriteLine($"Could not connect to {ex.Host}:{ex.Port}");
+    foreach (var tip in ex.Suggestions)
+        Console.WriteLine($"  - {tip}");
 }
 ```
 
-**Solutions:**
-- Verify the server is running
-- Check firewall settings
-- Verify the port is correct
-- Try with `--connect-timeout` to fail faster
+**Fixes:** check the hostname and port; confirm the server is running and reachable (`nc -vz host 443`); for certificate problems trust the CA on the machine, or use `-k` in development only. See [DNS and Connection Errors](common-issues.html#dns-and-connection-errors) and [SSL Certificate Errors](common-issues.html#ssl-certificate-errors).
 
----
+### CurlTooManyRedirectsException
 
-### CurlSslException
+**Exit code:** 47 (CURLE_TOO_MANY_REDIRECTS). Property: `RedirectCount`.
 
-**Error Codes:** CURLE_SSL_CONNECT_ERROR (35), CURLE_PEER_FAILED_VERIFICATION (60)
-
-Thrown for SSL/TLS certificate problems.
+Thrown when `-L` follows more redirects than `--max-redirs` allows.
 
 ```csharp
 try
 {
-    var result = await Curl.ExecuteAsync("curl https://self-signed-cert.example.com");
+    var result = await Curl.ExecuteAsync("curl -L --max-redirs 2 https://httpbin.org/redirect/5");
 }
-catch (CurlSslException ex)
+catch (CurlTooManyRedirectsException ex)
 {
-    Console.WriteLine($"SSL error: {ex.Message}");
-    if (ex.CertificateError != null)
-    {
-        Console.WriteLine($"Certificate issue: {ex.CertificateError}");
-    }
+    Console.WriteLine($"Stopped after {ex.RedirectCount} redirects");
 }
 ```
 
-**Solutions:**
-- **Development only:** Use `-k` or `--insecure`
-- Install the CA certificate
-- Update system certificates
-- Use `--cacert` to specify custom CA bundle
-
----
-
-### CurlHttpException
-
-Thrown for HTTP error status codes (4xx, 5xx).
-
-```csharp
-try
-{
-    var result = await Curl.ExecuteAsync("curl -f https://api.example.com/notfound");
-}
-catch (CurlHttpException ex)
-{
-    Console.WriteLine($"HTTP Error: {ex.StatusCode}");
-    Console.WriteLine($"Response body: {ex.ResponseBody}");
-
-    switch (ex.StatusCode)
-    {
-        case 400: Console.WriteLine("Bad request - check your parameters"); break;
-        case 401: Console.WriteLine("Unauthorized - check your credentials"); break;
-        case 403: Console.WriteLine("Forbidden - you don't have permission"); break;
-        case 404: Console.WriteLine("Not found - resource doesn't exist"); break;
-        case 429: Console.WriteLine("Rate limited - slow down requests"); break;
-        case 500: Console.WriteLine("Server error - try again later"); break;
-    }
-}
-```
-
----
+**Fixes:** raise `--max-redirs`, or inspect the `Location` header without `-L` to find the redirect loop.
 
 ### CurlMalformedUrlException
 
-**Error Code:** CURLE_URL_MALFORMAT (3)
-
-Thrown when the URL is invalid or malformed.
+**Exit code:** 3 (CURLE_URL_MALFORMAT). Property: `MalformedUrl`.
 
 ```csharp
 try
 {
-    var result = await Curl.ExecuteAsync("curl not-a-valid-url");
+    var result = await Curl.ExecuteAsync("curl 'https://exa mple.com/'");
 }
 catch (CurlMalformedUrlException ex)
 {
@@ -169,162 +163,147 @@ catch (CurlMalformedUrlException ex)
 }
 ```
 
-**Solutions:**
-- Include the protocol (http:// or https://)
-- Check for typos in the URL
-- URL-encode special characters
-
----
+**Fixes:** include the scheme (`https://`), remove spaces, percent-encode special characters.
 
 ### CurlUnsupportedProtocolException
 
-**Error Code:** CURLE_UNSUPPORTED_PROTOCOL (1)
-
-Thrown when the URL uses an unsupported protocol.
+**Exit code:** 1 (CURLE_UNSUPPORTED_PROTOCOL).
 
 ```csharp
 try
 {
-    var result = await Curl.ExecuteAsync("curl gopher://example.com");
+    var result = await Curl.ExecuteAsync("curl gopher://example.com/");
 }
 catch (CurlUnsupportedProtocolException ex)
 {
-    Console.WriteLine($"Unsupported protocol: {ex.Protocol}");
+    Console.WriteLine($"Unsupported protocol: {ex.Message}");
 }
 ```
 
-**Supported protocols:** http, https, ftp, ftps, file
+See [Supported Protocols](../supported-protocols.html) for the schemes CurlDotNet handles.
 
----
+### CurlInvalidCommandException
 
-### CurlParsingException
+**Exit code:** none (`CurlErrorCode` is `null`). Property: `InvalidPart`.
 
-Thrown when the curl command cannot be parsed.
+Thrown before any network activity when the command string cannot be turned into a request, most often because it contains no URL.
 
 ```csharp
 try
 {
-    var result = await Curl.ExecuteAsync("curl --invalid-option https://api.example.com");
+    var result = await Curl.ExecuteAsync("curl -X POST -H 'Accept: application/json'");
 }
-catch (CurlParsingException ex)
+catch (CurlInvalidCommandException ex)
 {
-    Console.WriteLine($"Invalid command: {ex.Message}");
-    Console.WriteLine($"Position: {ex.ErrorPosition}");
+    Console.WriteLine($"Bad command ({ex.InvalidPart}): {ex.Message}");
 }
 ```
 
-**Solutions:**
-- Check curl option spelling
-- Verify quote matching
-- Use `Curl.Validate()` to check commands before executing
+**Fix:** validate first with `Curl.Validate(command)`, which returns `IsValid` and `Error` without executing anything.
 
----
+### CurlFileCouldntReadException
 
-## Complete Error Code Reference
+**Exit code:** 37 (CURLE_FILE_COULDNT_READ_FILE).
 
-| Code | Exception | Description |
-|------|-----------|-------------|
-| 1 | `CurlUnsupportedProtocolException` | Unsupported protocol |
-| 2 | `CurlFailedInitException` | Initialization failed |
-| 3 | `CurlMalformedUrlException` | Invalid URL format |
-| 5 | `CurlCouldntResolveProxyException` | Cannot resolve proxy |
-| 6 | `CurlCouldntResolveHostException` | Cannot resolve host (DNS) |
-| 7 | `CurlCouldntConnectException` | Cannot connect to host |
-| 8 | `CurlWeirdServerReplyException` | Unexpected server response |
-| 9 | `CurlRemoteAccessDeniedException` | Access denied |
-| 22 | `CurlHttpException` | HTTP error (4xx/5xx) |
-| 23 | `CurlWriteException` | Write error |
-| 26 | `CurlReadException` | Read error |
-| 27 | `CurlOutOfMemoryException` | Out of memory |
-| 28 | `CurlTimeoutException` | Operation timed out |
-| 33 | `CurlRangeException` | Range error |
-| 35 | `CurlSslConnectException` | SSL connection error |
-| 47 | `CurlTooManyRedirectsException` | Too many redirects |
-| 51 | `CurlPeerFailedVerificationException` | SSL peer verification failed |
-| 52 | `CurlGotNothingException` | Empty response |
-| 55 | `CurlSendException` | Send error |
-| 56 | `CurlReceiveException` | Receive error |
-| 60 | `CurlSslCertificateException` | SSL certificate problem |
-| 67 | `CurlLoginDeniedException` | Login denied |
-
-## Best Practices for Error Handling
-
-### 1. Catch Specific Exceptions First
+Thrown when `-d @body.json` or `-F file=@upload.bin` names a file that does not exist or cannot be read.
 
 ```csharp
 try
 {
-    var result = await Curl.ExecuteAsync(command);
+    var result = await Curl.ExecuteAsync("curl -d @missing.json https://httpbin.org/post");
 }
-catch (CurlTimeoutException ex)
+catch (CurlFileCouldntReadException ex)
 {
-    // Handle timeout specifically
-    await RetryWithLongerTimeout();
-}
-catch (CurlCouldntResolveHostException ex)
-{
-    // Handle DNS failure
-    Log.Error($"Unknown host: {ex.Hostname}");
-}
-catch (CurlHttpException ex) when (ex.StatusCode == 429)
-{
-    // Handle rate limiting
-    await Task.Delay(TimeSpan.FromSeconds(60));
-    await RetryRequest();
-}
-catch (CurlException ex)
-{
-    // Handle all other curl errors
-    Log.Error($"Curl error {ex.CurlErrorCode}: {ex.Message}");
+    Console.WriteLine(ex.Message);
 }
 ```
 
-### 2. Use Pattern Matching
+**Fix:** use an absolute path, or a path relative to the process working directory (not the source file).
+
+## Exit Code Table
+
+| curl exit code | Exception thrown by CurlDotNet | Meaning |
+|---------------:|--------------------------------|---------|
+| 1 | `CurlUnsupportedProtocolException` | URL scheme not supported |
+| 3 | `CurlMalformedUrlException` | URL is not valid |
+| 7 | `CurlCouldntConnectException` | DNS failure, connection refused or TLS handshake failed |
+| 28 | `CurlOperationTimeoutException` | `--max-time` exceeded |
+| 37 | `CurlFileCouldntReadException` | `@file` for `-d` or `-F` not readable |
+| 42 | `CurlAbortedByCallbackException` | `CancellationToken` cancelled |
+| 47 | `CurlTooManyRedirectsException` | `--max-redirs` exceeded |
+| none | `CurlInvalidCommandException` | Command could not be parsed (no URL, bad option) |
+| (HTTP status) | `CurlDotNet.Core.CurlHttpException` | Only from `EnsureSuccess()` / `EnsureStatus()` |
+
+The property `CurlException.CurlErrorCode` carries the exit code so that existing scripts keyed on curl numbers keep working.
+
+## Handling Patterns
+
+### Catch specific exceptions first
 
 ```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
+
 try
 {
-    var result = await Curl.ExecuteAsync(command);
+    var result = await Curl.ExecuteAsync("curl -m 15 https://api.github.com");
+    result.EnsureSuccess();
 }
+catch (CurlTimeoutException) { Console.WriteLine("Slow server - try again later"); }
+catch (CurlCouldntConnectException ex) { Console.WriteLine($"Unreachable: {ex.Host}"); }
+catch (CurlDotNet.Core.CurlHttpException ex) when (ex.StatusCode == 429) { Console.WriteLine("Rate limited"); }
+catch (CurlException ex) { Console.WriteLine($"curl error {ex.CurlErrorCode}: {ex.Message}"); }
+```
+
+### Pattern matching
+
+```csharp
 catch (CurlException ex)
 {
     var message = ex switch
     {
         CurlTimeoutException => "The request timed out. Please try again.",
-        CurlCouldntResolveHostException e => $"Could not find {e.Hostname}",
-        CurlSslException => "SSL certificate error. Check your connection.",
-        CurlHttpException { StatusCode: 401 } => "Please log in first.",
-        CurlHttpException { StatusCode: 404 } => "Resource not found.",
+        CurlCouldntConnectException e => $"Could not reach {e.Host}:{e.Port}.",
+        CurlTooManyRedirectsException e => $"Redirect loop ({e.RedirectCount} hops).",
         _ => $"Request failed: {ex.Message}"
     };
-
     Console.WriteLine(message);
 }
 ```
 
-### 3. Access Exception Properties
+### Status codes without exceptions
 
-All CurlDotNet exceptions provide useful properties:
+```csharp
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/401");
+
+var message = result.StatusCode switch
+{
+    200 => "OK",
+    401 => "Please log in first.",
+    403 => "You do not have permission.",
+    404 => "Resource not found.",
+    429 => $"Rate limited - retry after {result.GetHeader("Retry-After") ?? "a moment"}.",
+    >= 500 => "Server error - try again later.",
+    _ => $"HTTP {result.StatusCode}"
+};
+```
+
+### Log everything on the exception
 
 ```csharp
 catch (CurlException ex)
 {
-    Console.WriteLine($"Error code: {ex.CurlErrorCode}");
+    Console.WriteLine($"Code: {ex.CurlErrorCode}");
     Console.WriteLine($"Message: {ex.Message}");
     Console.WriteLine($"Command: {ex.Command}");
-
-    // For HTTP errors
-    if (ex is CurlHttpException httpEx)
-    {
-        Console.WriteLine($"Status: {httpEx.StatusCode}");
-        Console.WriteLine($"Body: {httpEx.ResponseBody}");
-        Console.WriteLine($"Headers: {string.Join(", ", httpEx.ResponseHeaders)}");
-    }
+    Console.WriteLine($"Diagnostics: {ex.DiagnosticInfo}");
 }
 ```
 
-## Related Topics
+## Related Pages
 
-- [Common Issues](common-issues.html) - Solutions to frequent problems
-- [FAQ](faq.html) - Frequently asked questions
-- [Configuration](../getting-started/configuration.html) - Set timeouts and other options
+- [Common Issues](common-issues.html) - solutions to frequent problems
+- [FAQ](faq.html) - frequently asked questions
+- [Exception documentation](../exceptions/index.html) - one page per exception family
+- [Configuration](../getting-started/configuration.html) - timeouts and other defaults
+- [Handling Errors tutorial](../tutorials/06-handling-errors.html)

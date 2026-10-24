@@ -1,683 +1,250 @@
-# Tutorial 14: Debugging Requests
+---
+title: "Debug curl Requests in C# with -v and --trace (CurlDotNet)"
+description: "Debug curl requests in C# with -v, -i, -I, --trace, --trace-ascii and -w '%{http_code}' using CurlDotNet, plus result.Timings, Headers and Curl.Validate."
+---
 
-Learn how to troubleshoot HTTP requests, diagnose issues, and use debugging tools effectively with CurlDotNet.
+# Tutorial 14: debug curl requests in C# with -v and --trace
 
-## Enabling Debug Output
+This tutorial shows how to debug curl requests in C# with -v and --trace using CurlDotNet. The same flags you would reach for on the command line work in the command string: `-v` for a verbose log, `-i` and `-I` for headers, `--trace` and `--trace-ascii` for a full wire dump, and `-w` for a one-line summary. You will also use `result.Timings`, `result.Headers`, `Curl.Validate` and `Curl.ToHttpClient`.
 
-### Basic Debug Logging
+## Verbose Output (-v)
+
+`-v` records the request line, the headers sent, and the status line and headers received. CurlDotNet puts that log at the start of `result.Body`, formatted the way curl prints it (`>` for outgoing, `<` for incoming):
+
 ```csharp
-public class DebugCurl : Curl
+using CurlDotNet;
+
+// Same as: curl -v https://httpbin.org/get
+var result = await Curl.ExecuteAsync("curl -v https://httpbin.org/get");
+
+Console.WriteLine(result.Body);
+// *   Trying httpbin.org...
+// > GET /get HTTP/1.1
+// > Host: httpbin.org
+// >
+// < HTTP/1.1 200 OK
+// < Content-Type: application/json
+// <
+// { "args": {}, ... }
+```
+
+The builder exposes the same switch as `Verbose()`:
+
+```csharp
+using CurlDotNet.Core;
+
+var result = await CurlRequestBuilder
+    .Get("https://httpbin.org/get")
+    .Verbose()
+    .ExecuteAsync();
+```
+
+## Inspecting Headers (-i, -I, result.Headers)
+
+Response headers are always parsed into `result.Headers`, a case-insensitive dictionary, whether or not you ask for them in the body:
+
+```csharp
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
+
+foreach (var h in result.Headers)
+    Console.WriteLine($"{h.Key}: {h.Value}");
+
+Console.WriteLine(result.GetHeader("content-type"));   // application/json
+Console.WriteLine(result.HasHeader("X-Request-Id"));   // false
+```
+
+`-i` prints the header block before the body, as curl does. `-I` sends a HEAD request, so there is no body at all; combine it with `-i` if you want the header text in `Body`:
+
+```csharp
+// -i: status line and headers, blank line, then the body
+var full = await Curl.ExecuteAsync("curl -i https://httpbin.org/get");
+Console.WriteLine(full.Body);
+
+// -I: HEAD request. Headers are in full.Headers; add -i to see them as text
+var head = await Curl.ExecuteAsync("curl -I -i https://httpbin.org/get");
+Console.WriteLine(head.Body);        // HTTP/1.1 200 OK + header lines, no body
+```
+
+The builder's `IncludeHeaders()` corresponds to `-i`, and `CurlRequestBuilder.Head(url)` to `-I`.
+
+## Full Wire Trace (--trace, --trace-ascii)
+
+When `-v` is not enough, `--trace` writes everything, including request and response bodies, to a file:
+
+```csharp
+// Same as: curl --trace trace.txt https://httpbin.org/get
+await Curl.ExecuteAsync("curl --trace trace.txt https://httpbin.org/get");
+Console.WriteLine(File.ReadAllText("trace.txt"));
+
+// --trace-ascii: the same content without the hex column (easier to read)
+await Curl.ExecuteAsync(
+    "curl --trace-ascii trace-ascii.txt -d 'a=1' https://httpbin.org/post");
+```
+
+The trace records connection and proxy selection, TLS verification, redirects and the body bytes. Keep trace files out of version control; they contain any credentials you sent.
+
+## One-Line Summaries (-w)
+
+`-w` appends a formatted line after the body. The supported variables are `%{http_code}`, `%{size_download}`, `%{url_effective}` and `%{content_type}`:
+
+```csharp
+var result = await Curl.ExecuteAsync(
+    "curl -w '%{http_code} %{content_type} %{size_download}' https://httpbin.org/get");
+
+// The formatted line is the last line of Body
+Console.WriteLine(result.Body.Split('\n').Last());   // 200 application/json 2xx
+```
+
+`%{url_effective}` is handy with `-L` to see where a redirect chain ended. For plain status checks you do not need `-w` at all; `result.StatusCode` is already an `int`.
+
+## Timing a Request
+
+`result.Timings` reports milliseconds for the main phases. Because the transport is `HttpClient`, the time to first byte (`StartTransfer`) and the total are measured directly; the DNS, TCP and TLS phases are not broken out separately and read as zero:
+
+```csharp
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/delay/1");
+var t = result.Timings;
+
+Console.WriteLine($"Time to first byte: {t.StartTransfer:F0} ms");
+Console.WriteLine($"Total:              {t.Total:F0} ms");   // a little over 1000
+```
+
+If a request is slow, compare `StartTransfer` with `Total`: a large gap means a slow download, a large `StartTransfer` means the server took long to answer.
+
+## Checking a Command Before Running It
+
+`Curl.Validate` parses the command without sending anything. Use it on user-supplied commands or in unit tests:
+
+```csharp
+var check = Curl.Validate("curl -X POST -H 'Content-Type: application/json' https://httpbin.org/post");
+
+if (!check.IsValid)
 {
-    public bool DebugMode { get; set; } = true;
-
-    public override async Task<CurlResult> GetAsync(string url, CancellationToken ct = default)
-    {
-        if (DebugMode)
-        {
-            Console.WriteLine($"[DEBUG] GET {url}");
-            Console.WriteLine($"[DEBUG] Headers: {string.Join(", ", Headers.Select(h => $"{h.Key}={h.Value}"))}");
-        }
-
-        var stopwatch = Stopwatch.StartNew();
-        var result = await base.GetAsync(url, ct);
-        stopwatch.Stop();
-
-        if (DebugMode)
-        {
-            Console.WriteLine($"[DEBUG] Status: {result.StatusCode}");
-            Console.WriteLine($"[DEBUG] Time: {stopwatch.ElapsedMilliseconds}ms");
-            Console.WriteLine($"[DEBUG] Response size: {result.Data?.Length ?? 0} bytes");
-
-            if (!result.IsSuccess)
-            {
-                Console.WriteLine($"[DEBUG] Error: {result.Error}");
-            }
-        }
-
-        return result;
-    }
+    Console.WriteLine($"Bad command: {check.Error}");   // e.g. "No URL specified"
+    return;
 }
 ```
 
-### Verbose Curl Output
+## Comparing with Hand-Written HttpClient Code
+
+When you want to see what the command does in plain .NET terms, generate the equivalent `HttpClient` code:
+
 ```csharp
-public class VerboseCurl : Curl
-{
-    public VerboseCurl()
-    {
-        // Enable curl's verbose output
-        Options.Verbose = true;
-
-        // Capture debug information
-        OnDebugMessage = message =>
-        {
-            Console.WriteLine($"[CURL] {message}");
-        };
-    }
-
-    public async Task<CurlResult> GetWithFullDebug(string url)
-    {
-        Console.WriteLine("=== REQUEST DEBUG INFO ===");
-        Console.WriteLine($"URL: {url}");
-        Console.WriteLine($"Method: GET");
-        Console.WriteLine($"Timeout: {Timeout}");
-        Console.WriteLine("\nRequest Headers:");
-
-        foreach (var header in Headers)
-        {
-            Console.WriteLine($"  {header.Key}: {header.Value}");
-        }
-
-        var result = await GetAsync(url);
-
-        Console.WriteLine("\n=== RESPONSE DEBUG INFO ===");
-        Console.WriteLine($"Status Code: {result.StatusCode}");
-        Console.WriteLine($"Success: {result.IsSuccess}");
-
-        if (result.Headers != null)
-        {
-            Console.WriteLine("\nResponse Headers:");
-            foreach (var header in result.Headers)
-            {
-                Console.WriteLine($"  {header.Key}: {header.Value}");
-            }
-        }
-
-        if (!string.IsNullOrEmpty(result.Error))
-        {
-            Console.WriteLine($"\nError: {result.Error}");
-        }
-
-        if (!string.IsNullOrEmpty(result.Data))
-        {
-            Console.WriteLine($"\nResponse Body (first 500 chars):");
-            Console.WriteLine(result.Data.Substring(0, Math.Min(500, result.Data.Length)));
-        }
-
-        return result;
-    }
-}
+string code = Curl.ToHttpClient("curl -H 'Accept: application/json' https://httpbin.org/get");
+Console.WriteLine(code);
 ```
 
-## Request/Response Inspection
-
-### HTTP Traffic Logger
-```csharp
-public class HttpTrafficLogger
-{
-    private readonly string _logPath;
-    private readonly Curl _curl;
-
-    public HttpTrafficLogger(string logPath = "http_traffic.log")
-    {
-        _logPath = logPath;
-        _curl = new Curl();
-    }
-
-    public async Task<CurlResult> LoggedRequest(string url, HttpMethod method, string body = null)
-    {
-        var requestId = Guid.NewGuid().ToString("N").Substring(0, 8);
-        var timestamp = DateTime.UtcNow;
-
-        // Log request
-        await LogRequest(requestId, timestamp, url, method, body);
-
-        // Execute request
-        var stopwatch = Stopwatch.StartNew();
-        CurlResult result;
-
-        switch (method.Method)
-        {
-            case "GET":
-                result = await _curl.GetAsync(url);
-                break;
-            case "POST":
-                result = await _curl.PostAsync(url, body);
-                break;
-            default:
-                throw new NotSupportedException($"Method {method} not supported");
-        }
-
-        stopwatch.Stop();
-
-        // Log response
-        await LogResponse(requestId, result, stopwatch.ElapsedMilliseconds);
-
-        return result;
-    }
-
-    private async Task LogRequest(string requestId, DateTime timestamp, string url, HttpMethod method, string body)
-    {
-        var log = new StringBuilder();
-        log.AppendLine($"=== REQUEST {requestId} at {timestamp:yyyy-MM-dd HH:mm:ss.fff} ===");
-        log.AppendLine($"{method} {url}");
-
-        foreach (var header in _curl.Headers)
-        {
-            log.AppendLine($"{header.Key}: {header.Value}");
-        }
-
-        if (!string.IsNullOrEmpty(body))
-        {
-            log.AppendLine();
-            log.AppendLine(body);
-        }
-
-        log.AppendLine();
-
-        await File.AppendAllTextAsync(_logPath, log.ToString());
-    }
-
-    private async Task LogResponse(string requestId, CurlResult result, long elapsedMs)
-    {
-        var log = new StringBuilder();
-        log.AppendLine($"=== RESPONSE {requestId} ({elapsedMs}ms) ===");
-        log.AppendLine($"Status: {result.StatusCode}");
-
-        if (result.Headers != null)
-        {
-            foreach (var header in result.Headers)
-            {
-                log.AppendLine($"{header.Key}: {header.Value}");
-            }
-        }
-
-        if (!string.IsNullOrEmpty(result.Data))
-        {
-            log.AppendLine();
-            log.AppendLine(result.Data);
-        }
-
-        if (!string.IsNullOrEmpty(result.Error))
-        {
-            log.AppendLine($"ERROR: {result.Error}");
-        }
-
-        log.AppendLine();
-        log.AppendLine();
-
-        await File.AppendAllTextAsync(_logPath, log.ToString());
-    }
-}
-```
-
-## Network Diagnostics
-
-### Connection Testing
-```csharp
-public class NetworkDiagnostics
-{
-    private readonly Curl _curl = new Curl();
-
-    public async Task<DiagnosticReport> RunDiagnostics(string url)
-    {
-        var report = new DiagnosticReport { Url = url };
-
-        // Test DNS resolution
-        report.DnsTest = await TestDns(url);
-
-        // Test connection
-        report.ConnectionTest = await TestConnection(url);
-
-        // Test SSL/TLS
-        if (url.StartsWith("https"))
-        {
-            report.SslTest = await TestSsl(url);
-        }
-
-        // Test response time
-        report.ResponseTimeTest = await TestResponseTime(url);
-
-        // Test different methods
-        report.MethodTests = await TestMethods(url);
-
-        return report;
-    }
-
-    private async Task<TestResult> TestDns(string url)
-    {
-        try
-        {
-            var uri = new Uri(url);
-            var addresses = await Dns.GetHostAddressesAsync(uri.Host);
-
-            return new TestResult
-            {
-                Success = true,
-                Message = $"Resolved to {addresses.Length} IP addresses",
-                Details = string.Join(", ", addresses.Select(a => a.ToString()))
-            };
-        }
-        catch (Exception ex)
-        {
-            return new TestResult
-            {
-                Success = false,
-                Message = "DNS resolution failed",
-                Error = ex.Message
-            };
-        }
-    }
-
-    private async Task<TestResult> TestConnection(string url)
-    {
-        var result = await _curl.GetAsync(url);
-
-        return new TestResult
-        {
-            Success = result.IsSuccess,
-            Message = result.IsSuccess ? "Connection successful" : "Connection failed",
-            Error = result.Error,
-            StatusCode = result.StatusCode
-        };
-    }
-
-    private async Task<TestResult> TestSsl(string url)
-    {
-        try
-        {
-            var curl = new Curl { Options = { VerifySsl = true } };
-            var result = await curl.GetAsync(url);
-
-            return new TestResult
-            {
-                Success = result.IsSuccess,
-                Message = "SSL/TLS verification passed",
-                Details = "Certificate is valid and trusted"
-            };
-        }
-        catch (Exception ex)
-        {
-            return new TestResult
-            {
-                Success = false,
-                Message = "SSL/TLS verification failed",
-                Error = ex.Message
-            };
-        }
-    }
-
-    private async Task<ResponseTimeTest> TestResponseTime(string url)
-    {
-        var times = new List<long>();
-
-        for (int i = 0; i < 5; i++)
-        {
-            var sw = Stopwatch.StartNew();
-            await _curl.GetAsync(url);
-            sw.Stop();
-            times.Add(sw.ElapsedMilliseconds);
-        }
-
-        return new ResponseTimeTest
-        {
-            Success = true,
-            AverageMs = times.Average(),
-            MinMs = times.Min(),
-            MaxMs = times.Max(),
-            Samples = times
-        };
-    }
-
-    private async Task<Dictionary<string, TestResult>> TestMethods(string url)
-    {
-        var results = new Dictionary<string, TestResult>();
-
-        // Test GET
-        var getResult = await _curl.GetAsync(url);
-        results["GET"] = new TestResult
-        {
-            Success = getResult.IsSuccess,
-            StatusCode = getResult.StatusCode
-        };
-
-        // Test HEAD
-        var headResult = await _curl.HeadAsync(url);
-        results["HEAD"] = new TestResult
-        {
-            Success = headResult.IsSuccess,
-            StatusCode = headResult.StatusCode
-        };
-
-        // Test OPTIONS
-        var optionsResult = await _curl.OptionsAsync(url);
-        results["OPTIONS"] = new TestResult
-        {
-            Success = optionsResult.IsSuccess,
-            StatusCode = optionsResult.StatusCode,
-            Details = optionsResult.Headers?.GetValueOrDefault("Allow")
-        };
-
-        return results;
-    }
-}
-
-public class DiagnosticReport
-{
-    public string Url { get; set; }
-    public TestResult DnsTest { get; set; }
-    public TestResult ConnectionTest { get; set; }
-    public TestResult SslTest { get; set; }
-    public ResponseTimeTest ResponseTimeTest { get; set; }
-    public Dictionary<string, TestResult> MethodTests { get; set; }
-
-    public void PrintReport()
-    {
-        Console.WriteLine($"\n=== DIAGNOSTIC REPORT FOR {Url} ===\n");
-
-        Console.WriteLine($"DNS Resolution: {(DnsTest.Success ? "✓" : "✗")} {DnsTest.Message}");
-        if (!string.IsNullOrEmpty(DnsTest.Details))
-            Console.WriteLine($"  {DnsTest.Details}");
-
-        Console.WriteLine($"Connection: {(ConnectionTest.Success ? "✓" : "✗")} {ConnectionTest.Message}");
-
-        if (SslTest != null)
-            Console.WriteLine($"SSL/TLS: {(SslTest.Success ? "✓" : "✗")} {SslTest.Message}");
-
-        Console.WriteLine($"\nResponse Times:");
-        Console.WriteLine($"  Average: {ResponseTimeTest.AverageMs:F0}ms");
-        Console.WriteLine($"  Min: {ResponseTimeTest.MinMs}ms, Max: {ResponseTimeTest.MaxMs}ms");
-
-        Console.WriteLine($"\nMethod Support:");
-        foreach (var method in MethodTests)
-        {
-            Console.WriteLine($"  {method.Key}: {(method.Value.Success ? "✓" : "✗")} (HTTP {method.Value.StatusCode})");
-        }
-    }
-}
-
-public class TestResult
-{
-    public bool Success { get; set; }
-    public string Message { get; set; }
-    public string Error { get; set; }
-    public string Details { get; set; }
-    public HttpStatusCode StatusCode { get; set; }
-}
-
-public class ResponseTimeTest : TestResult
-{
-    public double AverageMs { get; set; }
-    public long MinMs { get; set; }
-    public long MaxMs { get; set; }
-    public List<long> Samples { get; set; }
-}
-```
+`Curl.ToFetch`, `Curl.ToPythonRequests` and `Curl.ToPowershellCode` do the same for other languages, which is useful when you are reproducing a problem for someone else's team.
 
 ## Common Issues and Solutions
 
-### Debugging Timeout Issues
+### Timeouts
+
+A timeout throws `CurlOperationTimeoutException`. Every CurlDotNet exception carries the command that ran and a list of suggestions:
+
 ```csharp
-public class TimeoutDebugger
+using CurlDotNet.Exceptions;
+
+try
 {
-    public async Task DebugTimeouts(string url)
-    {
-        Console.WriteLine($"Testing timeouts for {url}\n");
-
-        // Test with different timeout values
-        var timeouts = new[] { 1, 5, 10, 30, 60 };
-
-        foreach (var timeout in timeouts)
-        {
-            var curl = new Curl { Timeout = TimeSpan.FromSeconds(timeout) };
-            var sw = Stopwatch.StartNew();
-
-            try
-            {
-                var result = await curl.GetAsync(url);
-                sw.Stop();
-
-                if (result.IsSuccess)
-                {
-                    Console.WriteLine($"✓ {timeout}s timeout: Success in {sw.ElapsedMilliseconds}ms");
-                    break;
-                }
-                else
-                {
-                    Console.WriteLine($"✗ {timeout}s timeout: Failed - {result.Error}");
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                sw.Stop();
-                Console.WriteLine($"✗ {timeout}s timeout: Timed out after {sw.ElapsedMilliseconds}ms");
-            }
-        }
-    }
+    await Curl.ExecuteAsync("curl -m 10 https://httpbin.org/delay/20");
+}
+catch (CurlOperationTimeoutException ex)
+{
+    Console.WriteLine($"Timed out ({ex.Timeout}). Command: {ex.Command}");
+    foreach (var tip in ex.Suggestions) Console.WriteLine($"  - {tip}");
 }
 ```
 
-### Debugging Authentication Issues
+An unreachable server fails with `CurlCouldntConnectException` instead, so the exception type already tells you whether the server is unreachable or just slow.
+
+### Connection failures
+
+DNS failures, refused connections and TLS handshake errors all surface as `CurlCouldntConnectException` with the host and port attached:
+
 ```csharp
-public class AuthDebugger
+try
 {
-    public async Task DebugAuth(string url, string token)
-    {
-        var curl = new Curl();
-
-        Console.WriteLine("=== AUTHENTICATION DEBUG ===\n");
-
-        // Test without auth
-        Console.WriteLine("1. Testing without authentication:");
-        var noAuthResult = await curl.GetAsync(url);
-        Console.WriteLine($"   Status: {noAuthResult.StatusCode}");
-        if (noAuthResult.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            Console.WriteLine("   ✓ Server correctly requires authentication");
-        }
-
-        // Test with auth
-        Console.WriteLine("\n2. Testing with Bearer token:");
-        curl.Headers["Authorization"] = $"Bearer {token}";
-        var authResult = await curl.GetAsync(url);
-        Console.WriteLine($"   Status: {authResult.StatusCode}");
-
-        if (authResult.IsSuccess)
-        {
-            Console.WriteLine("   ✓ Authentication successful");
-        }
-        else if (authResult.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            Console.WriteLine("   ✗ Token rejected - may be expired or invalid");
-
-            // Try to decode JWT to check expiration
-            try
-            {
-                var parts = token.Split('.');
-                if (parts.Length == 3)
-                {
-                    var payload = Encoding.UTF8.GetString(
-                        Convert.FromBase64String(parts[1] + "==")
-                    );
-                    Console.WriteLine($"   Token payload: {payload}");
-                }
-            }
-            catch
-            {
-                Console.WriteLine("   Could not decode token");
-            }
-        }
-        else if (authResult.StatusCode == HttpStatusCode.Forbidden)
-        {
-            Console.WriteLine("   ✗ Authenticated but not authorized for this resource");
-        }
-    }
+    await Curl.ExecuteAsync("curl https://localhost:9/nothing-listens-here");
+}
+catch (CurlCouldntConnectException ex)
+{
+    Console.WriteLine($"Could not connect to {ex.Host}:{ex.Port}");
+    Console.WriteLine(ex.DiagnosticInfo);
 }
 ```
 
-### Debugging JSON Issues
+### Authentication issues
+
+Compare the anonymous and authenticated responses. A `401` means credentials are missing or wrong; a `403` means they were accepted but do not grant access. The `WWW-Authenticate` header tells you which scheme the server wants:
+
 ```csharp
-public class JsonDebugger
+var anon = await Curl.ExecuteAsync("curl https://httpbin.org/basic-auth/user/passwd");
+Console.WriteLine(anon.StatusCode);                        // 401
+Console.WriteLine(anon.GetHeader("WWW-Authenticate"));     // Basic realm="Fake Realm"
+
+var auth = await Curl.ExecuteAsync(
+    "curl -u user:passwd https://httpbin.org/basic-auth/user/passwd");
+Console.WriteLine(auth.StatusCode);                        // 200
+```
+
+[Tutorial 9](09-authentication-basics.html) covers the authentication flags.
+
+### JSON parsing issues
+
+When `ParseJson<T>` fails, look at the Content-Type and the first part of the body. Error pages and HTML login forms are the usual culprits:
+
+```csharp
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/html");
+
+var contentType = result.GetHeader("Content-Type") ?? "(none)";
+if (!contentType.Contains("json"))
+    Console.WriteLine($"Not JSON: {contentType}");
+
+try   { var data = result.ParseJson<Dictionary<string, object>>(); }
+catch (InvalidOperationException ex)
 {
-    public async Task DebugJsonResponse(string url)
-    {
-        var curl = new Curl();
-        var result = await curl.GetAsync(url);
-
-        Console.WriteLine("=== JSON DEBUG ===\n");
-
-        if (!result.IsSuccess)
-        {
-            Console.WriteLine($"Request failed: {result.Error}");
-            return;
-        }
-
-        // Check Content-Type
-        if (result.Headers.TryGetValue("Content-Type", out var contentType))
-        {
-            Console.WriteLine($"Content-Type: {contentType}");
-
-            if (!contentType.Contains("json"))
-            {
-                Console.WriteLine("⚠ Warning: Content-Type is not JSON");
-            }
-        }
-
-        // Try to parse as JSON
-        try
-        {
-            using var doc = JsonDocument.Parse(result.Data);
-            Console.WriteLine("✓ Valid JSON structure");
-
-            // Pretty print
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            var prettyJson = JsonSerializer.Serialize(doc.RootElement, options);
-            Console.WriteLine("\nFormatted JSON:");
-            Console.WriteLine(prettyJson);
-        }
-        catch (JsonException ex)
-        {
-            Console.WriteLine($"✗ Invalid JSON: {ex.Message}");
-            Console.WriteLine("\nRaw response (first 1000 chars):");
-            Console.WriteLine(result.Data.Substring(0, Math.Min(1000, result.Data.Length)));
-        }
-    }
+    Console.WriteLine(ex.Message);
+    Console.WriteLine(result.Body.Substring(0, Math.Min(200, result.Body.Length)));
 }
 ```
 
-## Performance Profiling
+## Debugging Proxies (Fiddler, Charles, mitmproxy)
 
-### Request Performance Profiler
+Route traffic through a local proxy with `-x`. The proxy re-signs HTTPS, so add `-k` to skip certificate checks while you debug. Never ship `-k` in production code:
+
 ```csharp
-public class PerformanceProfiler
-{
-    private readonly Curl _curl = new Curl();
-
-    public async Task<PerformanceProfile> ProfileRequest(string url)
-    {
-        var profile = new PerformanceProfile { Url = url };
-
-        // DNS lookup time
-        var dnsStart = Stopwatch.StartNew();
-        var addresses = await Dns.GetHostAddressesAsync(new Uri(url).Host);
-        profile.DnsLookupMs = dnsStart.ElapsedMilliseconds;
-
-        // Connection time (approximate)
-        var connectStart = Stopwatch.StartNew();
-        var tcpClient = new TcpClient();
-        try
-        {
-            await tcpClient.ConnectAsync(new Uri(url).Host, new Uri(url).Port);
-            profile.ConnectionMs = connectStart.ElapsedMilliseconds;
-            tcpClient.Close();
-        }
-        catch { }
-
-        // Full request time
-        var requestStart = Stopwatch.StartNew();
-        var result = await _curl.GetAsync(url);
-        profile.TotalMs = requestStart.ElapsedMilliseconds;
-
-        // Response size
-        profile.ResponseBytes = result.Data?.Length ?? 0;
-
-        // Calculate derived metrics
-        profile.TransferMs = profile.TotalMs - profile.ConnectionMs;
-        profile.TransferRateMBps = profile.ResponseBytes / 1024.0 / 1024.0 / (profile.TransferMs / 1000.0);
-
-        return profile;
-    }
-}
-
-public class PerformanceProfile
-{
-    public string Url { get; set; }
-    public long DnsLookupMs { get; set; }
-    public long ConnectionMs { get; set; }
-    public long TransferMs { get; set; }
-    public long TotalMs { get; set; }
-    public int ResponseBytes { get; set; }
-    public double TransferRateMBps { get; set; }
-
-    public void Print()
-    {
-        Console.WriteLine($"\n=== PERFORMANCE PROFILE ===");
-        Console.WriteLine($"URL: {Url}");
-        Console.WriteLine($"DNS Lookup: {DnsLookupMs}ms");
-        Console.WriteLine($"Connection: {ConnectionMs}ms");
-        Console.WriteLine($"Transfer: {TransferMs}ms");
-        Console.WriteLine($"Total: {TotalMs}ms");
-        Console.WriteLine($"Response Size: {ResponseBytes:N0} bytes");
-        Console.WriteLine($"Transfer Rate: {TransferRateMBps:F2} MB/s");
-    }
-}
+// Same as: curl -x http://localhost:8888 -k https://httpbin.org/get
+var result = await Curl.ExecuteAsync(
+    "curl -x http://localhost:8888 -k https://httpbin.org/get");
 ```
 
-## Integration with Debugging Tools
-
-### Fiddler/Charles Proxy Integration
-```csharp
-public class ProxyDebugCurl : Curl
-{
-    public ProxyDebugCurl(bool useDebugProxy = true)
-    {
-        if (useDebugProxy)
-        {
-            // Configure to use local debugging proxy
-            Options.Proxy = "http://localhost:8888";
-
-            // Trust the proxy's certificate (for HTTPS debugging)
-            Options.VerifySsl = false;
-
-            Console.WriteLine("Configured to use debugging proxy at localhost:8888");
-            Console.WriteLine("Make sure Fiddler or Charles Proxy is running");
-        }
-    }
-}
-```
+The builder equivalents are `WithProxy("http://localhost:8888")` and `Insecure()`.
 
 ## Best Practices
 
-1. **Enable debug mode in development** - Not in production
-2. **Log to files** - Console output can be overwhelming
-3. **Include timestamps** - Track when issues occur
-4. **Capture full context** - Headers, body, and metadata
-5. **Use correlation IDs** - Track requests across systems
-6. **Implement structured logging** - Easy to parse and analyze
-7. **Test edge cases** - Timeouts, large responses, auth failures
-8. **Profile performance** - Identify bottlenecks
-9. **Use debugging proxies** - Fiddler, Charles, Wireshark
-10. **Keep sensitive data secure** - Don't log passwords or tokens
+1. **Start with `-v`** - it answers most "what did I actually send?" questions.
+2. **Read `result.Headers` instead of parsing text** when your code needs a header value.
+3. **Use `--trace` for body-level problems** and delete the file afterwards; it contains your credentials.
+4. **Catch the specific exception** - `CurlOperationTimeoutException` and `CurlCouldntConnectException` tell you where the request failed.
+5. **Print `ex.Suggestions`** - the library's hints often name the fix.
+6. **Check Content-Type before parsing JSON.**
+7. **Validate user-supplied commands** with `Curl.Validate` before running them.
+8. **Keep `-k` and debugging proxies out of production.**
 
 ## Summary
 
-Effective debugging is crucial for troubleshooting:
-- Enable verbose output for detailed information
-- Log requests and responses for analysis
-- Run diagnostics to identify issues
-- Profile performance to find bottlenecks
-- Use appropriate tools for different scenarios
+- `-v` prepends a verbose log to `Body`; `-i` adds the header block; `-I` sends HEAD.
+- `--trace` and `--trace-ascii` write a complete wire dump to a file.
+- `-w '%{http_code}'` appends a summary line; `result.Timings` gives time to first byte and total.
+- `Curl.Validate` checks a command without sending it; `Curl.ToHttpClient` shows the equivalent .NET code.
 
-## Congratulations!
+More help: [Common Issues](../troubleshooting/common-issues.html) and the [Error Reference](../troubleshooting/error-reference.html).
 
-You've completed all 14 tutorials! You now have a comprehensive understanding of CurlDotNet and can:
-- Make various types of HTTP requests
-- Handle responses and errors properly
-- Work with different data formats
-- Implement authentication
-- Optimize performance with parallel requests
-- Debug issues effectively
+## Congratulations
+
+You have completed all 14 tutorials. You can now make requests with curl syntax from C#, read results and headers, handle errors and timeouts, send forms, JSON and files, authenticate, cancel and parallelise requests, and debug what goes over the wire. Continue with the [Cookbook](../cookbook/index.html) for task-focused recipes or the [API Guide](../api-guide/README.html) for the full surface.
 
 ---
 
-[← Previous: Parallel Requests](13-parallel-requests.html) | [Back to Tutorials](README.html)
+[Previous: Parallel Requests](13-parallel-requests.html) | [Back to Tutorials](README.html)

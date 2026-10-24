@@ -224,8 +224,8 @@ namespace CurlDotNet.Tests
             // Cancel after a short delay
             cts.CancelAfter(100);
 
-            // Should throw CurlAbortedByCallbackException when cancelled
-            await Assert.ThrowsAsync<CurlAbortedByCallbackException>(async () => await task);
+            // Caller cancellation follows the standard .NET contract: OperationCanceledException
+            await Assert.ThrowsAsync<OperationCanceledException>(async () => await task);
         }
 
         [Fact]

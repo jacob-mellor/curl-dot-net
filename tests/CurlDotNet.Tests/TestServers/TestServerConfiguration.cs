@@ -15,6 +15,19 @@ namespace CurlDotNet.Tests.TestServers
         private static readonly HttpClient HealthCheckClient = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
 
         /// <summary>
+        /// One in-process HttpListener server (random free port) shared by every test in the run.
+        /// It is always preferred: it needs no Docker, no network, and cannot collide with whatever
+        /// owns a fixed port (on macOS, AirPlay listens on :5000 and answers 403 to everything).
+        /// Set CURLDOTNET_TEST_REMOTE=1 to fall back to probing the remote services below instead.
+        /// </summary>
+        private static readonly Lazy<LocalTestHttpServer> InProcessServer = new Lazy<LocalTestHttpServer>(() =>
+        {
+            var server = new LocalTestHttpServer();
+            server.Start();
+            return server;
+        });
+
+        /// <summary>
         /// List of available HTTP echo/test services in order of preference.
         /// These are all publicly available and free to use.
         /// </summary>
@@ -217,6 +230,21 @@ namespace CurlDotNet.Tests.TestServers
         /// </summary>
         public static async Task<TestServerEndpoint> GetBestAvailableServerAsync(TestServerFeatures requiredFeatures = TestServerFeatures.Basic)
         {
+            if (!string.Equals(Environment.GetEnvironmentVariable("CURLDOTNET_TEST_REMOTE"), "1", StringComparison.Ordinal))
+            {
+                var local = InProcessServer.Value;
+                return new TestServerEndpoint
+                {
+                    Name = "In-process LocalTestHttpServer",
+                    BaseUrl = local.BaseUrl,
+                    HealthCheckPath = "/get",
+                    IsLocal = true,
+                    Priority = 0,
+                    Features = TestServerFeatures.All,
+                    Notes = "httpbin-compatible HttpListener started inside the test process"
+                };
+            }
+
             var candidateServers = AvailableServers
                 .Where(s => s.Features.HasFlag(requiredFeatures))
                 .OrderBy(s => s.Priority)

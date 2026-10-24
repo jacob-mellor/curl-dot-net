@@ -1,17 +1,37 @@
 - name: Overview
   href: README.md
+- name: Cookbook Index
+  href: index.md
 - name: Beginner
-  href: beginner/
+  href: beginner/README.md
   items:
-    - name: Simple GET Request
+    - name: curl GET Request in C#
       href: beginner/simple-get.md
-    - name: Send JSON Data
+    - name: curl -X POST JSON in C#
       href: beginner/send-json.md
-    - name: Download Files
-      href: beginner/download-file.md
-    - name: Upload Files
+    - name: curl -d Form Data POST in C#
+      href: beginner/post-form.md
+    - name: curl -F File Upload in C#
       href: beginner/upload-file.md
-    - name: Handle Errors
+    - name: curl Download File in C# (curl -o)
+      href: beginner/download-file.md
+    - name: Handle curl Errors and Exceptions in C#
       href: beginner/handle-errors.md
-    - name: Call APIs
+    - name: Call a REST API with curl in C#
       href: beginner/call-api.md
+- name: One Flag at a Time
+  items:
+    - name: curl Follow Redirects in C# (curl -L)
+      href: follow-redirects.md
+    - name: curl with Cookies in C# (curl -b)
+      href: cookies.md
+    - name: curl Proxy in C# (curl -x and SOCKS5)
+      href: proxy.md
+    - name: curl Timeout in C# (--max-time)
+      href: timeouts.md
+    - name: curl -I HEAD Request in C#
+      href: head-request.md
+    - name: curl PUT, DELETE and PATCH in C#
+      href: http-methods.md
+    - name: curl Digest, NTLM and Basic Auth in C#
+      href: auth-schemes.md

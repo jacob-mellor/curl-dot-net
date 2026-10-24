@@ -106,6 +106,22 @@ namespace CurlDotNet
             return ExecuteAsync(command, settings).GetAwaiter().GetResult();
         }
 
+        /// <summary>
+        /// <para><b>⚠️ SYNCHRONOUS execution of a <see cref="CurlOptions"/> object - blocks the thread.</b></para>
+        /// <para>Nothing is parsed, so data containing quotes or spaces needs no escaping.
+        /// Prefer <see cref="ExecuteAsync(CurlOptions)"/> in async code.</para>
+        /// <code>
+        /// var result = Curl.Execute(new CurlOptions { Url = "https://api.example.com", Method = "DELETE" });
+        /// </code>
+        /// </summary>
+        /// <param name="options">The fully populated request options. <see cref="CurlOptions.Url"/> is required.</param>
+        /// <returns>A <see cref="CurlResult"/> with the response.</returns>
+        public static CurlResult Execute(CurlOptions options)
+        {
+            // This BLOCKS the thread until complete
+            return ExecuteAsync(options).GetAwaiter().GetResult();
+        }
+
         #endregion
 
         #region Quick Helper Methods - Synchronous versions only
@@ -118,7 +134,7 @@ namespace CurlDotNet
         /// </summary>
         public static CurlResult Get(string url)
         {
-            return Execute($"curl {url}");
+            return GetAsync(url).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -126,7 +142,7 @@ namespace CurlDotNet
         /// </summary>
         public static CurlResult Post(string url, string data)
         {
-            return Execute($"curl -X POST -d '{data}' {url}");
+            return PostAsync(url, data).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -134,8 +150,7 @@ namespace CurlDotNet
         /// </summary>
         public static CurlResult PostJson(string url, object data)
         {
-            var json = SerializeJson(data);
-            return Execute($"curl -X POST -H 'Content-Type: application/json' -d '{json}' {url}");
+            return PostJsonAsync(url, data).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -143,8 +158,7 @@ namespace CurlDotNet
         /// </summary>
         public static CurlResult Download(string url, string outputPath)
         {
-            // Quote both values so paths and URLs containing spaces survive parsing
-            return Execute($"curl -o \"{outputPath}\" \"{url}\"");
+            return DownloadAsync(url, outputPath).GetAwaiter().GetResult();
         }
 
         #endregion

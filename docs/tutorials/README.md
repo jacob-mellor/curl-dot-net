@@ -1,97 +1,107 @@
-# 🎓 CurlDotNet Tutorials
+---
+title: "CurlDotNet Tutorials for Beginners: curl in C# and .NET"
+description: "Beginner-friendly CurlDotNet tutorials: 14 lessons that teach curl in C# from scratch, with no prior programming experience assumed."
+---
 
-Welcome! These tutorials are designed for complete beginners. We explain everything in plain English with lots of examples.
+# CurlDotNet Tutorials
 
-## 📚 Tutorial Series
+CurlDotNet tutorials for beginners: learn curl in C# step by step, with no prior programming experience assumed. The 14 tutorials below explain .NET, curl and async/await in plain English, then build up from your first `Curl.ExecuteAsync` request to JSON, headers, authentication, files, cancellation, parallel requests and debugging.
 
-### Foundation (Start Here!)
-1. **[What is .NET and C#?](01-what-is-dotnet.html)** - Understanding the basics
-2. **[What is curl?](02-what-is-curl.html)** - The tool we're bringing to .NET
-3. **[Understanding Async/Await](03-what-is-async.html)** - Why we use `async` and `await`
+## Tutorial Series
+
+### Foundation (Start Here)
+
+1. [What is .NET and C#?](01-what-is-dotnet.html) - Understanding the basics
+2. [What is curl?](02-what-is-curl.html) - The tool CurlDotNet brings to .NET
+3. [Understanding Async/Await](03-what-is-async.html) - Why we use `async` and `await`
 
 ### Getting Started
-4. **[Your First Request](04-your-first-request.html)** - Make your first HTTP request
-5. **[Understanding Results](05-understanding-results.html)** - Working with CurlResult
-6. **[Handling Errors](06-handling-errors.html)** - When things go wrong
+
+4. [Your First Request](04-your-first-request.html) - Make your first HTTP request
+5. [Understanding Results](05-understanding-results.html) - Working with `CurlResult`
+6. [Handling Errors](06-handling-errors.html) - When things go wrong
 
 ### Working with Data
-7. **[JSON for Beginners](07-json-for-beginners.html)** - Understanding JSON responses
-8. **[Headers Explained](08-headers-explained.html)** - What are headers and why use them
-9. **[Authentication Basics](09-authentication-basics.html)** - Logging in and API keys
+
+7. [JSON for Beginners](07-json-for-beginners.html) - Reading and sending JSON
+8. [Headers Explained](08-headers-explained.html) - What headers are and why they matter
+9. [Authentication Basics](09-authentication-basics.html) - Passwords, tokens and API keys
 
 ### Files and Forms
-10. **[Files and Downloads](10-files-and-downloads.html)** - Downloading and uploading
-11. **[Forms and Data](11-forms-and-data.html)** - Submitting forms
+
+10. [Files and Downloads](10-files-and-downloads.html) - Downloading and uploading
+11. [Forms and Data](11-forms-and-data.html) - Submitting forms and request bodies
 
 ### Advanced Concepts
-12. **[Cancellation Tokens](12-cancellation-tokens.html)** - Stopping requests
-13. **[Parallel Requests](13-parallel-requests.html)** - Multiple requests at once
-14. **[Debugging Requests](14-debugging-requests.html)** - Finding and fixing problems
 
-## 🎯 Learning Goals
+12. [Cancellation Tokens](12-cancellation-tokens.html) - Stopping requests
+13. [Parallel Requests](13-parallel-requests.html) - Multiple requests at once
+14. [Debugging Requests](14-debugging-requests.html) - Finding and fixing problems
 
-By the end of these tutorials, you'll understand:
+## Learning Goals
 
-✅ What .NET and C# are
-✅ How to make HTTP requests
-✅ How to handle responses
-✅ How to work with JSON
-✅ How to handle errors properly
-✅ How to authenticate with APIs
-✅ How to upload and download files
-✅ How to debug when things don't work
+By the end of these tutorials you will understand:
 
-## 📖 How to Use These Tutorials
+- What .NET and C# are
+- How to make HTTP requests
+- How to handle responses
+- How to work with JSON
+- How to handle errors properly
+- How to authenticate with APIs
+- How to upload and download files
+- How to debug when things do not work
+
+## How to Use These Tutorials
 
 ### For Complete Beginners
+
 - Start at Tutorial 1 and go in order
-- Don't skip - each builds on the previous
+- Each tutorial builds on the previous one
 - Try every code example yourself
-- Don't worry if you don't understand everything immediately
+- Do not worry if everything does not click immediately
 
 ### For Those with Some Experience
-- You can skip tutorials 1-3 if you know .NET
-- Jump to tutorial 4 for CurlDotNet specifics
-- Use the tutorials as reference
 
-## 💡 Tutorial Format
+- Skip Tutorials 1-3 if you already know .NET
+- Jump to Tutorial 4 for CurlDotNet specifics
+- Use the tutorials as a reference afterwards
 
-Each tutorial follows this structure:
+## Tutorial Format
 
-1. **What You'll Learn** - Clear goals
-2. **Prerequisites** - What you need to know first
-3. **The Concept** - Explained in plain English
-4. **Real-World Analogy** - Relating to everyday things
-5. **Code Examples** - Lots of them!
-6. **Try It Yourself** - Exercises
-7. **Common Mistakes** - What to avoid
-8. **Next Steps** - Where to go next
+Each tutorial follows the same structure:
 
-## 🛠 What You Need
+1. **What You'll Learn** - clear goals
+2. **Prerequisites** - what you need to know first
+3. **The Concept** - explained in plain English
+4. **Code Examples** - lots of them
+5. **Try It Yourself** - exercises
+6. **Common Mistakes** - what to avoid
+7. **Next Steps** - where to go next
+
+## What You Need
 
 ### Required
-- ✅ .NET SDK (free from Microsoft)
-- ✅ A text editor (Visual Studio Code is free)
-- ✅ CurlDotNet package
+
+- .NET SDK (free from Microsoft; see the [installation guide](../getting-started/installation.html))
+- A text editor (Visual Studio Code is free)
+- The CurlDotNet NuGet package
 
 ### Not Required
-- ❌ Prior programming experience
-- ❌ Advanced mathematics
-- ❌ Expensive tools
 
-## 🚀 Ready to Start?
+- Prior programming experience
+- Advanced mathematics
+- Paid tools
 
-Begin with → **[Tutorial 1: What is .NET and C#?](01-what-is-dotnet.html)**
+## Ready to Start?
 
-Or jump to a specific topic from the list above.
+Begin with [Tutorial 1: What is .NET and C#?](01-what-is-dotnet.html), or jump to a specific topic from the list above.
 
-## 🤔 Stuck?
+## Stuck?
 
-- Each tutorial has a "Common Problems" section
-- Check the [Troubleshooting Guide](../troubleshooting/)
+- Each tutorial has a "Common Problems" or "Common Mistakes" section
+- Check the [troubleshooting guide](../troubleshooting/common-issues.html)
 - Ask in [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
 
-Remember: Everyone starts as a beginner. Take your time, try the examples, and have fun!
+Everyone starts as a beginner. Take your time and try the examples.
 
----
-*These tutorials assume no prior programming knowledge. If you already know .NET, you might want to jump straight to the [API Guide](../api-guide/) or [Cookbook](../cookbook/).*
+If you already know .NET you may prefer the [API guide](../api-guide/README.html) or the [cookbook](../cookbook/index.html).

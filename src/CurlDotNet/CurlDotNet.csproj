@@ -13,10 +13,10 @@
     <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' != 'true'">netstandard2.0;net48;net8.0;net9.0;net10.0</TargetFrameworks>
 
     <!-- GitHub Actions Windows (no .NET 10) -->
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">netstandard2.0;net472;net48;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">netstandard2.0;net472;net48;net8.0;net9.0;net10.0</TargetFrameworks>
 
     <!-- GitHub Actions Linux/Mac (no .NET 10, no net48 - Ubuntu doesn't have Mono) -->
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">netstandard2.0;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -31,7 +31,7 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>9.7.0</Version>
+    <Version>9.8.0</Version>
     <AssemblyVersion>9.7.0.0</AssemblyVersion>
     <FileVersion>9.7.0.0</FileVersion>
 
@@ -113,9 +113,6 @@ Documentation: https://jacob-mellor.github.io/curl-dot-net/</PackageReleaseNotes
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
-    <PackageReference Include="Ninject" Version="3.3.6" />
-    <PackageReference Include="Ninject.Extensions.Factory" Version="3.3.3" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
@@ -155,8 +152,8 @@ Documentation: https://jacob-mellor.github.io/curl-dot-net/</PackageReleaseNotes
 
   <ItemGroup>
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
-    <None Include="README.md" Pack="true" PackagePath="\" />
-    <None Include="README.txt" Pack="true" PackagePath="\" />
+    <!-- The NuGet README is the short, absolute-link version kept at the repo root (nuget.org strips HTML and cannot resolve relative links) -->
+    <None Include="..\..\nuget-readme.md" Pack="true" PackagePath="\README.md" />
     <None Include="..\..\THANKS" Pack="true" PackagePath="docs\" Condition="Exists('..\..\THANKS')" />
     <None Include="icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>

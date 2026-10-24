@@ -1,1109 +1,692 @@
-# Common Issues and Solutions
+---
+title: "Common CurlDotNet Issues and Fixes (curl errors in C#)"
+description: "Common CurlDotNet issues and fixes (curl errors in C#): installation, DNS and connection failures, timeouts, TLS, HTTP 4xx/5xx, JSON and build errors."
+---
 
-This guide covers the most common issues you'll encounter when using CurlDotNet and how to solve them.
+# Common CurlDotNet Issues and Fixes (curl errors in C#)
 
-## 📑 Table of Contents
+Common CurlDotNet issues and fixes (curl errors in C#): this page lists the problems people hit most often when running curl commands through CurlDotNet, what causes each one, and the code or command that fixes it. Each section names the exception or status code you will see, then shows the fix.
+
+## Contents
 
 - [Installation Issues](#installation-issues)
-- [DNS Errors](#dns-errors)
+- [DNS and Connection Errors](#dns-and-connection-errors)
 - [Timeout Errors](#timeout-errors)
-- [SSL/TLS Errors](#ssl-errors)
+- [SSL Certificate Errors](#ssl-certificate-errors)
 - [Authentication Errors](#authentication-errors)
 - [HTTP Errors](#http-errors)
-- [Connection Errors](#connection-errors)
 - [JSON Parsing Errors](#json-parsing-errors)
 - [Compilation Errors](#compilation-errors)
 - [Runtime Errors](#runtime-errors)
+- [Error Handling Practices](#error-handling-practices)
 
----
+Remember the one rule that explains most confusion: **transport failures throw, HTTP status codes do not.** A 404 or 500 comes back as a `CurlResult` with `IsSuccess == false`; a DNS failure, refused connection, TLS failure or timeout throws a `CurlException` subclass.
 
 ## Installation Issues
 
-### dotnet: command not found
+### The dotnet command is not found
 
-**Problem:** After installing .NET, the `dotnet` command isn't recognized.
+**Problem:** After installing .NET, `dotnet` is not recognised.
 
-**Cause:** The .NET SDK path isn't in your system's PATH environment variable, or your terminal needs to be restarted.
+**Cause:** The SDK directory is not on `PATH`, or the terminal was opened before the install finished.
 
-**Solution:**
+**Fix on Windows:**
 
-**On Windows:**
 ```powershell
-# 1. Restart your command prompt/PowerShell
+# 1. Close and reopen the terminal
 
-# 2. If still not working, add to PATH manually:
-# Open System Properties > Environment Variables
-# Add to Path: C:\Program Files\dotnet
-
-# 3. Or use PowerShell:
+# 2. Still missing? Add the SDK directory for this session
 $env:Path += ";C:\Program Files\dotnet"
+
+# 3. Make it permanent through System Properties > Environment Variables
 ```
 
-**On macOS/Linux:**
-```bash
-# 1. Restart your terminal
+**Fix on macOS and Linux:**
 
-# 2. If still not working, add to PATH:
+```bash
+# 1. Close and reopen the terminal
+
+# 2. Still missing? Add the SDK directory
 export PATH=$PATH:/usr/local/share/dotnet
 
-# 3. Make permanent (add to ~/.bashrc or ~/.zshrc):
-echo 'export PATH=$PATH:/usr/local/share/dotnet' >> ~/.bashrc
-source ~/.bashrc
+# 3. Make it permanent
+echo 'export PATH=$PATH:/usr/local/share/dotnet' >> ~/.zshrc
 ```
 
-**Prevention:**
-- Always restart your terminal after installing .NET
-- Use the official installer from microsoft.com/dotnet
+### Package CurlDotNet not found
 
----
+**Problem:** `dotnet add package CurlDotNet` reports that the package cannot be found.
 
-### Package 'CurlDotNet' not found
+**Cause:** nuget.org is not configured as a source, or a corporate feed is intercepting the request.
 
-**Problem:** When running `dotnet add package CurlDotNet`, you get "Package 'CurlDotNet' not found".
-
-**Cause:** NuGet sources not configured correctly or network issues.
-
-**Solution:**
+**Fix:**
 
 ```bash
-# 1. Check your NuGet sources
+# 1. List sources
 dotnet nuget list source
 
-# 2. Add nuget.org if missing
+# 2. Add nuget.org if it is missing
 dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org
 
-# 3. Clear cache and retry
+# 3. Clear the cache and retry
 dotnet nuget locals all --clear
-
-# 4. Restore packages
-dotnet restore
-
-# 5. Try again
 dotnet add package CurlDotNet
 ```
 
-**Alternative Solution:**
-
-Edit your `.csproj` file directly:
+Or reference the package in the `.csproj` directly and run `dotnet restore`:
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="CurlDotNet" Version="1.0.0" />
+  <PackageReference Include="CurlDotNet" Version="9.*" />
 </ItemGroup>
 ```
 
-Then run:
+### Target framework not supported
+
+**Problem:** "The target framework 'netX.Y' is not supported" or the package will not restore.
+
+**Cause:** The project targets a framework that is not installed, or one the package does not ship. CurlDotNet ships `net10.0`, `net9.0`, `net8.0`, `net48`, `net472` and `netstandard2.0`.
+
+**Fix:**
+
 ```bash
-dotnet restore
+dotnet --list-sdks
 ```
 
-**Prevention:**
-- Ensure stable internet connection
-- Keep NuGet sources configured correctly
-- Use corporate NuGet servers if behind firewall
+Then pick an installed target in the `.csproj`:
 
----
+```xml
+<!-- Current .NET -->
+<TargetFramework>net10.0</TargetFramework>
 
-### Target Framework Issues
-
-**Problem:** "The target framework 'netX.X' is not supported"
-
-**Cause:** Your project targets a .NET version that's not installed or not compatible.
-
-**Solution:**
-
-```bash
-# 1. Check installed .NET versions
-dotnet --list-sdks
-
-# 2. Edit your .csproj file
-# Change TargetFramework to an installed version:
-
-<!-- Option 1: Use .NET 8 (recommended) -->
-<TargetFramework>net8.0</TargetFramework>
-
-<!-- Option 2: Use .NET Standard 2.0 (maximum compatibility) -->
+<!-- Maximum reach (works from .NET Framework 4.7.2 upwards) -->
 <TargetFramework>netstandard2.0</TargetFramework>
 
-<!-- Option 3: Multi-target -->
-<TargetFrameworks>net8.0;net6.0;netstandard2.0</TargetFrameworks>
+<!-- Several at once -->
+<TargetFrameworks>net10.0;net8.0;netstandard2.0</TargetFrameworks>
 ```
 
-**Prevention:**
-- Use .NET 8.0 or .NET Standard 2.0 for new projects
-- Keep .NET SDK updated
+See [Framework Compatibility](../framework-compatibility.html) and [Installation](../getting-started/installation.html).
 
----
+## DNS and Connection Errors
 
-## DNS Errors
+### Could not resolve host or connection refused
 
-### Could not resolve host
+**Problem:** `CurlCouldntConnectException: Failed to connect to api.example.com:443`
 
-**Problem:** `CurlDnsException: Could not resolve host: example.com`
+**Cause:** The hostname does not resolve (typo, DNS outage), nothing is listening on the port, a firewall blocks the connection, or the TLS handshake failed. All of these surface as `CurlCouldntConnectException` (curl exit code 7).
 
-**Cause:** DNS lookup failed - the hostname doesn't exist, there's a typo, or DNS server issues.
-
-**Solution:**
+**Fix:**
 
 ```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
+
 try
 {
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
+    var result = await Curl.ExecuteAsync("curl -m 5 https://no-such-host.invalid/");
 }
-catch (CurlDnsException ex)
+catch (CurlCouldntConnectException ex)
 {
-    Console.WriteLine($"DNS Error: {ex.Message}");
-    Console.WriteLine($"Hostname: {ex.Hostname}");
-
-    // Troubleshooting steps:
-    // 1. Check spelling of hostname
-    // 2. Try in web browser
-    // 3. Check DNS with: nslookup api.example.com
-    // 4. Try Google DNS: 8.8.8.8
+    Console.WriteLine($"Could not connect to {ex.Host}:{ex.Port}");
+    foreach (var tip in ex.Suggestions)
+        Console.WriteLine($"  - {tip}");
 }
 ```
 
-**Troubleshooting Steps:**
+**Troubleshooting steps:**
 
-1. **Check the URL spelling:**
-   ```csharp
-   // Wrong: api.examplee.com (extra 'e')
-   // Right: api.example.com
-   ```
+```bash
+# Does the name resolve?
+nslookup api.github.com        # Windows
+dig api.github.com             # macOS / Linux
 
-2. **Test DNS resolution:**
-   ```bash
-   # Windows
-   nslookup api.example.com
+# Is the port reachable?
+nc -vz api.github.com 443
 
-   # macOS/Linux
-   dig api.example.com
-   host api.example.com
-   ```
+# Does native curl reach it?
+curl -v https://api.github.com
+```
 
-3. **Try ping:**
-   ```bash
-   ping api.example.com
-   ```
+1. Check the hostname for typos (`api.examplee.com`).
+2. Open the URL in a browser from the same machine; if that works but CurlDotNet does not, look for a proxy that the browser uses and the process does not (`-x http://proxy:8080`).
+3. Confirm the port: `https://` defaults to 443, `http://` to 80.
+4. If DNS is broken but the server is up, test with the IP address directly (testing only).
 
-4. **Check in browser:**
-   - Open the URL in your web browser
-   - If it works there but not in CurlDotNet, there might be a proxy or network configuration issue
+**Retrying transient failures:**
 
-5. **Try with IP address:**
-   ```csharp
-   // If DNS is broken, try direct IP (for testing only)
-   var result = await Curl.ExecuteAsync("curl http://93.184.216.34");
-   ```
+```csharp
+using CurlDotNet.Core;
 
-**Prevention:**
-- Double-check hostnames before making requests
-- Use constants or configuration for frequently used URLs
-- Implement retry logic for transient DNS failures
+async Task<CurlResult> ExecuteWithRetries(string command, int attempts = 3)
+{
+    for (int i = 1; ; i++)
+    {
+        try { return await Curl.ExecuteAsync(command); }
+        catch (CurlCouldntConnectException) when (i < attempts)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i)));
+        }
+    }
+}
+```
 
----
+**Prevention:** keep hostnames in configuration rather than scattered literals; use `-m` so dead hosts fail quickly (`--connect-timeout` is parsed but only `--max-time` is enforced for HTTP today); add a health-check endpoint you can call before the real work.
 
 ## Timeout Errors
 
-### Operation timeout
+### Operation timed out
 
-**Problem:** `CurlTimeoutException: Operation timeout. The specified time has elapsed.`
+**Problem:** `CurlOperationTimeoutException: Operation timed out after 10 seconds`
 
-**Cause:** The server took too long to respond, or network is slow/unstable.
+**Cause:** The server took longer than `-m`/`--max-time` allows, or the network is slow. `CurlOperationTimeoutException` derives from `CurlTimeoutException`; catch the base type to cover every timeout path. By default there is no timeout (`Curl.DefaultMaxTimeSeconds` is 0), so a timeout only happens when you ask for one.
 
-**Solution:**
+**Fix:**
 
 ```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
+
 try
 {
-    // Increase timeout (default is 30 seconds)
-    var result = await Curl.ExecuteAsync(@"
-        curl --connect-timeout 30 \
-             --max-time 120 \
-             https://slow-api.example.com
-    ");
+    var result = await Curl.ExecuteAsync("curl --max-time 120 https://httpbin.org/delay/3");
 }
 catch (CurlTimeoutException ex)
 {
-    Console.WriteLine($"Timeout after {ex.Timeout} seconds");
-
-    // Options:
-    // 1. Increase timeout
-    // 2. Retry the request
-    // 3. Check if server is slow/overloaded
-    // 4. Try different endpoint
+    Console.WriteLine($"Timed out after {ex.Timeout?.TotalSeconds} seconds");
+    // Options: raise --max-time, retry, or check whether the server is overloaded
 }
 ```
 
-**Different Timeout Types:**
+**The two timeout flags:** curl has `--connect-timeout` for the connection phase and `--max-time` for the whole transfer. CurlDotNet parses both, but for HTTP(S) only `--max-time` is enforced today (FTP honours `--connect-timeout`), so always set `-m`:
 
 ```csharp
-// Connection timeout - how long to wait for connection
-var result = await Curl.ExecuteAsync(@"
-    curl --connect-timeout 10 https://api.example.com
-");
+// Total time for the whole transfer, connection included
+await Curl.ExecuteAsync("curl --max-time 60 https://httpbin.org/get");
 
-// Max time - total operation timeout
-var result = await Curl.ExecuteAsync(@"
-    curl --max-time 60 https://api.example.com
-");
-
-// Both together
-var result = await Curl.ExecuteAsync(@"
-    curl --connect-timeout 10 \
-         --max-time 60 \
-         https://api.example.com
-");
+// Without -m, HTTP requests get a 30-second limit; change the default process-wide
+Curl.DefaultMaxTimeSeconds = 15;
 ```
 
-**Implementing Retry Logic:**
+**Same thing with `CurlSettings` or the builder:**
 
 ```csharp
-async Task<CurlResult> RequestWithRetry(string url, int maxRetries = 3)
-{
-    for (int attempt = 1; attempt <= maxRetries; attempt++)
-    {
-        try
-        {
-            return await Curl.ExecuteAsync($"curl --max-time 30 {url}");
-        }
-        catch (CurlTimeoutException)
-        {
-            if (attempt == maxRetries)
-                throw;
+using CurlDotNet.Core;
 
-            // Exponential backoff
-            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
-            Console.WriteLine($"Retry {attempt}/{maxRetries}...");
+var settings = new CurlSettings().WithTimeout(60);
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get", settings);
+
+var result2 = await CurlRequestBuilder.Get("https://httpbin.org/get")
+    .WithTimeout(TimeSpan.FromSeconds(60))
+    .ExecuteAsync();
+```
+
+**Caller-side cancellation:** a `CancellationToken` also stops a request, but it throws `CurlAbortedByCallbackException`, not a timeout exception:
+
+```csharp
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+try
+{
+    var result = await Curl.ExecuteAsync("curl https://httpbin.org/delay/60", cts.Token);
+}
+catch (CurlAbortedByCallbackException)
+{
+    Console.WriteLine("Cancelled");
+}
+```
+
+**Retrying after a timeout:**
+
+```csharp
+using CurlDotNet.Core;
+
+async Task<CurlResult> RetryOnTimeout(string command, int attempts = 3)
+{
+    for (int i = 1; ; i++)
+    {
+        try { return await Curl.ExecuteAsync(command); }
+        catch (CurlTimeoutException) when (i < attempts)
+        {
+            Console.WriteLine($"Timeout, retry {i}/{attempts - 1}");
+            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i)));
         }
     }
-    throw new Exception("Should not reach here");
 }
 ```
 
-**Prevention:**
-- Set reasonable timeouts based on API SLA
-- Implement retry logic for production code
-- Monitor API response times
-- Use cancellation tokens for user-initiated cancellations
+**Prevention:** set `--max-time` from the API's documented latency plus headroom; set `Curl.DefaultMaxTimeSeconds` once at startup so no request can hang forever; pass a `CancellationToken` for user-initiated cancellation. See [Timeout Errors reference](../exceptions/timeout-errors.html).
 
----
-
-## SSL Errors
+## SSL Certificate Errors
 
 ### SSL certificate problem
 
-**Problem:** `CurlSslException: SSL certificate problem: unable to get local issuer certificate`
+**Problem:** A request to an HTTPS endpoint throws `CurlCouldntConnectException` even though the host is up; native curl reports "SSL certificate problem: unable to get local issuer certificate" for the same URL.
 
-**Cause:** SSL/TLS certificate verification failed - self-signed cert, expired cert, or system certificate store issues.
+**Cause:** Certificate verification failed - a self-signed certificate, an expired certificate, a hostname mismatch, or a corporate root CA that is not trusted by the machine. TLS handshake failures are reported as `CurlCouldntConnectException`.
 
-**Solution for Development (NOT for production):**
+**Fix for development only:**
 
 ```csharp
-// WARNING: Only use -k flag in development/testing!
-var result = await Curl.ExecuteAsync("curl -k https://self-signed.example.com");
+// WARNING: -k disables certificate verification. Never ship this.
+var result = await Curl.ExecuteAsync("curl -k https://localhost:5001/api/health");
 ```
 
-**Proper Solutions for Production:**
+`Curl.DefaultInsecure = true` applies the same setting process-wide, which is convenient for local integration tests and dangerous anywhere else.
 
-**1. Update System Certificates:**
+**Fix for production:** make the operating system trust the certificate authority. CurlDotNet uses the system trust store; `--cacert` and `--cert` are not supported yet.
 
-**Windows:**
-```powershell
-certutil -generateSSTFromWU roots.sst
-```
-
-**macOS:**
 ```bash
-# Update certificates
-security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain > /dev/null
+# macOS: trust a CA certificate
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ca.crt
 
-# Or install specific certificate
-sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain mycert.crt
-```
-
-**Linux (Ubuntu/Debian):**
-```bash
-# Update CA certificates
-sudo apt-get update
-sudo apt-get install --reinstall ca-certificates
-
-# Or add specific certificate
-sudo cp mycert.crt /usr/local/share/ca-certificates/
+# Debian / Ubuntu
+sudo cp ca.crt /usr/local/share/ca-certificates/
 sudo update-ca-certificates
 ```
 
-**2. Use Correct Certificate Bundle:**
-
-```csharp
-var result = await Curl.ExecuteAsync(@"
-    curl --cacert /path/to/certificate.pem \
-         https://api.example.com
-");
+```powershell
+# Windows: import into the machine's Trusted Root store
+Import-Certificate -FilePath ca.crt -CertStoreLocation Cert:\LocalMachine\Root
 ```
 
-**3. Specify Client Certificate:**
-
-```csharp
-var result = await Curl.ExecuteAsync(@"
-    curl --cert client-cert.pem \
-         --key client-key.pem \
-         https://api.example.com
-");
-```
-
-**Understanding SSL Error Codes:**
-
-| Error | Meaning | Solution |
-|-------|---------|----------|
-| 35 | SSL connect error | Check SSL/TLS version compatibility |
-| 51 | Peer certificate invalid | Update certificates or check hostname |
-| 53 | Crypto engine not found | Install required crypto libraries |
-| 54 | Set TLS/SSL version failed | Server doesn't support TLS version |
-| 58 | Problem with local certificate | Check client certificate path/permissions |
-| 59 | Could not load certificates | Update system certificate store |
-| 60 | Peer certificate cannot be authenticated | Most common - see solutions above |
-| 77 | Problem with CA cert bundle | Specify correct CA bundle path |
-
-**Debugging SSL Issues:**
+**Diagnose the certificate:**
 
 ```bash
-# Test SSL connection
-openssl s_client -connect api.example.com:443
+# Full handshake and certificate chain
+openssl s_client -connect api.github.com:443 -servername api.github.com
 
-# Check certificate expiration
-echo | openssl s_client -connect api.example.com:443 2>/dev/null | openssl x509 -noout -dates
-
-# View certificate details
-echo | openssl s_client -connect api.example.com:443 2>/dev/null | openssl x509 -noout -text
+# Expiry dates only
+echo | openssl s_client -connect api.github.com:443 2>/dev/null | openssl x509 -noout -dates
 ```
 
-**Prevention:**
-- Never use `-k` in production
-- Keep system certificates updated
-- Monitor certificate expiration
-- Use Let's Encrypt for free valid certificates
-- Test SSL configuration regularly
-
----
+**Prevention:** never use `-k` in production; monitor certificate expiry; keep OS certificate stores updated; use a public CA (for example Let's Encrypt) for internet-facing services. See [SSL Errors reference](../exceptions/ssl-errors.html).
 
 ## Authentication Errors
 
 ### 401 Unauthorized
 
-**Problem:** HTTP 401 - Authentication required or credentials invalid.
+**Problem:** `result.StatusCode` is 401. No exception is thrown.
 
-**Cause:** Missing authentication, invalid credentials, or expired tokens.
+**Cause:** Credentials are missing, wrong, expired, or sent in a form the server does not accept.
 
-**Solution:**
-
-**Basic Authentication:**
+**Fix - basic authentication:**
 
 ```csharp
-// Method 1: Using -u flag
-var result = await Curl.ExecuteAsync(@"
-    curl -u username:password https://api.example.com
-");
+using CurlDotNet;
 
-// Method 2: Using Authorization header
-var credentials = Convert.ToBase64String(
-    System.Text.Encoding.ASCII.GetBytes("username:password")
-);
-var result = await Curl.ExecuteAsync($@"
-    curl -H 'Authorization: Basic {credentials}' \
-         https://api.example.com
-");
+// -u sends an Authorization: Basic header
+var result = await Curl.ExecuteAsync("curl -u username:password https://httpbin.org/basic-auth/username/password");
+Console.WriteLine(result.StatusCode); // 200
+
+// Builder equivalent
+var result2 = await CurlDotNet.Core.CurlRequestBuilder.Get("https://httpbin.org/basic-auth/username/password")
+    .WithBasicAuth("username", "password")
+    .ExecuteAsync();
 ```
 
-**Bearer Token Authentication:**
+**Fix - bearer token and API key:**
 
 ```csharp
-// Get token from environment variable (recommended)
 string token = Environment.GetEnvironmentVariable("API_TOKEN");
+var result = await Curl.ExecuteAsync($"curl -H 'Authorization: Bearer {token}' https://httpbin.org/bearer");
 
-var result = await Curl.ExecuteAsync($@"
-    curl -H 'Authorization: Bearer {token}' \
-         https://api.example.com
-");
-```
-
-**API Key Authentication:**
-
-```csharp
 string apiKey = Environment.GetEnvironmentVariable("API_KEY");
-
-var result = await Curl.ExecuteAsync($@"
-    curl -H 'X-API-Key: {apiKey}' \
-         https://api.example.com
-");
+var result2 = await Curl.ExecuteAsync($"curl -H 'X-API-Key: {apiKey}' https://httpbin.org/headers");
 ```
 
-**OAuth 2.0 Flow:**
+**Fix - OAuth 2.0 client credentials:** two requests, the first to get a token, the second to use it.
 
 ```csharp
-// 1. Get access token
-var tokenResponse = await Curl.ExecuteAsync($@"
-    curl -X POST https://oauth.example.com/token \
-      -d 'grant_type=client_credentials' \
-      -d 'client_id={clientId}' \
-      -d 'client_secret={clientSecret}'
-");
+string clientId = Environment.GetEnvironmentVariable("CLIENT_ID");
+string clientSecret = Environment.GetEnvironmentVariable("CLIENT_SECRET");
+var tokenResponse = await Curl.ExecuteAsync($@"curl -X POST https://oauth.example.com/token \
+    -d 'grant_type=client_credentials' \
+    -d 'client_id={clientId}' \
+    -d 'client_secret={clientSecret}'");
+tokenResponse.EnsureSuccess();
 
 dynamic tokenData = tokenResponse.AsJsonDynamic();
 string accessToken = tokenData.access_token;
 
-// 2. Use access token
-var result = await Curl.ExecuteAsync($@"
-    curl -H 'Authorization: Bearer {accessToken}' \
-         https://api.example.com/protected
-");
+var result = await Curl.ExecuteAsync($"curl -H 'Authorization: Bearer {accessToken}' https://api.example.com/protected");
 ```
 
-**Troubleshooting Authentication:**
+**Diagnosing a 401:**
 
 ```csharp
-try
+string token = Environment.GetEnvironmentVariable("API_TOKEN");
+var result = await Curl.ExecuteAsync($"curl -H 'Authorization: Bearer {token}' https://httpbin.org/bearer");
+if (result.StatusCode == 401)
 {
-    var result = await Curl.ExecuteAsync($@"
-        curl -H 'Authorization: Bearer {token}' \
-             https://api.example.com
-    ");
-}
-catch (CurlHttpReturnedErrorException ex) when (ex.StatusCode == 401)
-{
-    Console.WriteLine("Authentication failed!");
-    Console.WriteLine("Possible causes:");
-    Console.WriteLine("1. Token is invalid");
-    Console.WriteLine("2. Token is expired");
-    Console.WriteLine("3. Wrong authentication method");
-    Console.WriteLine("4. Missing required headers");
-
-    // Check response for hints
-    Console.WriteLine($"Response: {ex.ResponseBody}");
+    // The server says which scheme it wants, e.g. Bearer realm="api"
+    Console.WriteLine(result.GetHeader("WWW-Authenticate"));
+    Console.WriteLine(result.Body);
 }
 ```
 
-**Prevention:**
-- Store credentials in environment variables, not code
-- Implement token refresh logic
-- Handle 401 errors gracefully
-- Monitor token expiration
-- Use secrets management (Azure Key Vault, AWS Secrets Manager, etc.)
+Also check: the token has not expired; the header name is exactly what the API documents (`Authorization` vs `X-API-Key`); the token has no stray quotes or whitespace from the environment variable.
 
----
+**Prevention:** keep credentials in environment variables or a secrets manager, never in source; refresh tokens before they expire; treat 401 as a normal branch, not an exception. See [Authentication Basics](../tutorials/09-authentication-basics.html).
 
 ### 403 Forbidden
 
-**Problem:** HTTP 403 - Server understood request but refuses to authorize it.
+**Problem:** `result.StatusCode` is 403. The server understood the request and refuses it.
 
-**Cause:** Insufficient permissions, IP blocking, or rate limiting.
+**Cause:** The authenticated identity lacks permission, the token is missing a scope, the IP is blocked, or the resource requires a different kind of authentication.
 
-**Solution:**
+**Fix:**
 
 ```csharp
-try
+string token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+var result = await Curl.ExecuteAsync($"curl -H 'Authorization: Bearer {token}' https://api.github.com/user/repos");
+if (result.StatusCode == 403)
 {
-    var result = await Curl.ExecuteAsync("curl https://api.example.com/admin");
-}
-catch (CurlHttpReturnedErrorException ex) when (ex.StatusCode == 403)
-{
-    Console.WriteLine("Access forbidden!");
-
-    // Common causes:
-    // 1. Insufficient permissions
-    // 2. IP address blocked
-    // 3. Rate limiting
-    // 4. Geographic restrictions
-    // 5. Resource requires different authentication
-
-    Console.WriteLine($"Response: {ex.ResponseBody}");
+    Console.WriteLine("Forbidden - check scopes, IP allow-lists and the account's role");
+    Console.WriteLine(result.Body);               // most APIs explain the reason here
+    Console.WriteLine(result.GetHeader("X-RateLimit-Remaining")); // some APIs use 403 for rate limits
 }
 ```
 
-**Checking Permissions:**
-
-```csharp
-// Check if you have the right scope/permissions
-var result = await Curl.ExecuteAsync($@"
-    curl -H 'Authorization: Bearer {token}' \
-         -H 'X-Requested-Scope: admin' \
-         https://api.example.com/admin
-");
-```
-
-**Prevention:**
-- Verify user permissions before making requests
-- Implement proper rate limiting
-- Handle 403 errors with user-friendly messages
-- Check API documentation for required permissions
-
----
+**Prevention:** request only the scopes you need and check the API's permission documentation; log the response body for 403s because it usually names the missing permission.
 
 ## HTTP Errors
 
 ### 404 Not Found
 
-**Problem:** HTTP 404 - The requested resource doesn't exist.
+**Problem:** `result.StatusCode` is 404; `result.IsSuccess` is `false`.
 
-**Cause:** Wrong URL, resource deleted, or incorrect endpoint.
+**Cause:** Wrong path (singular vs plural, missing version segment), deleted resource, or wrong base URL.
 
-**Solution:**
+**Fix:**
 
 ```csharp
-try
-{
-    var result = await Curl.ExecuteAsync("curl https://api.example.com/users/99999");
+using CurlDotNet;
 
-    if (result.StatusCode == 404)
-    {
-        Console.WriteLine("Resource not found");
-        // Handle gracefully - maybe show user-friendly message
-    }
-}
-catch (CurlHttpReturnedErrorException ex) when (ex.StatusCode == 404)
+var result = await Curl.ExecuteAsync("curl https://api.github.com/users/no-such-user-xyz-123");
+if (result.StatusCode == 404)
 {
-    Console.WriteLine($"Not found: {ex.Message}");
+    Console.WriteLine("Resource not found");
+}
+else
+{
+    result.EnsureSuccess(); // throws CurlDotNet.Core.CurlHttpException for any other non-2xx
+    Console.WriteLine(result.Body);
 }
 ```
 
-**Troubleshooting:**
+**Troubleshooting:** compare the path with the API documentation character by character; list the parent collection first (`/users` before `/users/123`); try the URL in a browser or with native curl.
 
-1. **Check the URL:**
-   ```csharp
-   // Wrong: /api/v1/user/123 (singular)
-   // Right: /api/v1/users/123 (plural)
-   ```
-
-2. **Verify endpoint exists:**
-   ```bash
-   # Check API documentation
-   # Try in browser or Postman first
-   ```
-
-3. **Check if resource was deleted:**
-   ```csharp
-   // Try listing all resources first
-   var list = await Curl.ExecuteAsync("curl https://api.example.com/users");
-   ```
-
-**Prevention:**
-- Use constants for API endpoints
-- Validate resource IDs before making requests
-- Implement proper error handling for 404s
-- Show user-friendly "not found" messages
-
----
+**Prevention:** build URLs from constants and validated IDs; handle 404 as an expected outcome in lookups.
 
 ### 429 Too Many Requests
 
-**Problem:** HTTP 429 - Rate limit exceeded.
+**Problem:** `result.StatusCode` is 429.
 
-**Cause:** Making too many requests too quickly.
+**Cause:** You exceeded the API's rate limit.
 
-**Solution:**
+**Fix - honour `Retry-After`:**
 
 ```csharp
-async Task<CurlResult> RequestWithRateLimiting(string url)
-{
-    try
-    {
-        var result = await Curl.ExecuteAsync($"curl {url}");
-        return result;
-    }
-    catch (CurlHttpReturnedErrorException ex) when (ex.StatusCode == 429)
-    {
-        // Check Retry-After header
-        if (result.Headers.TryGetValue("Retry-After", out string retryAfter))
-        {
-            int seconds = int.Parse(retryAfter);
-            Console.WriteLine($"Rate limited. Waiting {seconds} seconds...");
-            await Task.Delay(TimeSpan.FromSeconds(seconds));
+using CurlDotNet.Core;
 
-            // Retry
-            return await Curl.ExecuteAsync($"curl {url}");
-        }
-        throw;
-    }
+async Task<CurlResult> RequestWithBackoff(string command)
+{
+    var result = await Curl.ExecuteAsync(command);
+    if (result.StatusCode != 429) return result;
+
+    var retryAfter = result.GetHeader("Retry-After");
+    int seconds = int.TryParse(retryAfter, out var s) ? s : 60;
+    Console.WriteLine($"Rate limited. Waiting {seconds} s");
+    await Task.Delay(TimeSpan.FromSeconds(seconds));
+    return await Curl.ExecuteAsync(command);
 }
 ```
 
-**Implementing Rate Limiting:**
+**Fix - throttle concurrency with `SemaphoreSlim`:**
 
 ```csharp
-using System.Threading;
+using CurlDotNet.Core;
 
-class RateLimitedClient
+var gate = new SemaphoreSlim(4); // at most 4 requests in flight
+
+async Task<CurlResult> ThrottledRequest(string command)
 {
-    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(10); // 10 concurrent requests
-    private readonly TimeSpan _minInterval = TimeSpan.FromMilliseconds(100);
-    private DateTime _lastRequest = DateTime.MinValue;
-
-    public async Task<CurlResult> ExecuteAsync(string url)
-    {
-        await _semaphore.WaitAsync();
-        try
-        {
-            // Ensure minimum interval between requests
-            var timeSinceLastRequest = DateTime.UtcNow - _lastRequest;
-            if (timeSinceLastRequest < _minInterval)
-            {
-                await Task.Delay(_minInterval - timeSinceLastRequest);
-            }
-
-            _lastRequest = DateTime.UtcNow;
-            return await Curl.ExecuteAsync($"curl {url}");
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
-    }
+    await gate.WaitAsync();
+    try { return await Curl.ExecuteAsync(command); }
+    finally { gate.Release(); }
 }
+
+var urls = new[] { "https://httpbin.org/get", "https://httpbin.org/ip", "https://httpbin.org/uuid" };
+var tasks = urls.Select(u => ThrottledRequest($"curl {u}"));
+var results = await Task.WhenAll(tasks);
 ```
 
-**Prevention:**
-- Implement rate limiting in your application
-- Cache responses when possible
-- Use batch endpoints when available
-- Monitor rate limit headers
-- Implement exponential backoff
-
----
+**Prevention:** read the API's rate-limit headers (`X-RateLimit-Remaining` and similar) and slow down before you hit zero; cache responses; use batch endpoints when the API offers them.
 
 ### 500 Internal Server Error
 
-**Problem:** HTTP 500 - Server encountered an error.
+**Problem:** `result.StatusCode` is 500 (or another 5xx).
 
-**Cause:** Server-side bug, database issue, or temporary problem.
+**Cause:** A bug or outage on the server side; often temporary.
 
-**Solution:**
+**Fix - retry 5xx with exponential backoff:**
 
 ```csharp
-async Task<CurlResult> RequestWithRetry(string url, int maxRetries = 3)
+using CurlDotNet.Core;
+
+async Task<CurlResult> ExecuteWithRetries(string command, int attempts = 3)
 {
-    for (int attempt = 1; attempt <= maxRetries; attempt++)
+    for (int i = 1; ; i++)
     {
-        try
-        {
-            var result = await Curl.ExecuteAsync($"curl {url}");
+        var result = await Curl.ExecuteAsync(command);
+        if (result.StatusCode < 500 || i == attempts) return result;
 
-            if (result.StatusCode >= 500 && result.StatusCode < 600)
-            {
-                if (attempt < maxRetries)
-                {
-                    Console.WriteLine($"Server error {result.StatusCode}. Retry {attempt}/{maxRetries}...");
-                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
-                    continue;
-                }
-            }
-
-            return result;
-        }
-        catch (CurlHttpReturnedErrorException ex) when (ex.StatusCode >= 500)
-        {
-            if (attempt == maxRetries)
-                throw;
-
-            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
-        }
+        Console.WriteLine($"Server error {result.StatusCode}, retry {i}/{attempts - 1}");
+        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i)));
     }
-    throw new Exception("Max retries exceeded");
 }
 ```
 
-**What to do:**
-1. Retry the request (server might be temporarily down)
-2. Check if it's a known outage (check status page)
-3. Contact API support if persistent
-4. Implement fallback logic
-5. Log the error for debugging
+**What to do:** retry a few times; check the provider's status page; log `result.Body` (it may contain a request ID the provider can look up); fall back to cached data where the product allows.
 
-**Prevention:**
-- Implement retry logic for 5xx errors
-- Use circuit breaker pattern
-- Have fallback/cached data
-- Monitor API status pages
-- Set up alerting for persistent failures
-
----
-
-## Connection Errors
-
-### Connection refused
-
-**Problem:** `CurlException: Failed to connect to host: Connection refused`
-
-**Cause:** Server not running, firewall blocking, or wrong port.
-
-**Solution:**
-
-```bash
-# 1. Check if server is running
-curl https://api.example.com
-
-# 2. Check if port is open
-telnet api.example.com 443
-
-# 3. Try with different port
-curl https://api.example.com:8080
-
-# 4. Check firewall rules
-# Windows: Check Windows Firewall
-# macOS: System Preferences > Security > Firewall
-# Linux: sudo iptables -L
-```
-
-**In Code:**
-
-```csharp
-try
-{
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
-}
-catch (CurlException ex) when (ex.Message.Contains("Connection refused"))
-{
-    Console.WriteLine("Cannot connect to server");
-    Console.WriteLine("Possible causes:");
-    Console.WriteLine("1. Server is down");
-    Console.WriteLine("2. Firewall is blocking");
-    Console.WriteLine("3. Wrong URL or port");
-    Console.WriteLine("4. Network connectivity issues");
-}
-```
-
-**Prevention:**
-- Verify server is running before deploying
-- Test connectivity from deployment environment
-- Document required ports
-- Set up health check endpoints
-
----
+**Prevention:** retry only idempotent requests (GET, PUT, DELETE) automatically; add a circuit breaker so a failing dependency does not take your service down with it.
 
 ## JSON Parsing Errors
 
 ### Invalid JSON
 
-**Problem:** Exception when parsing JSON response.
+**Problem:** `ParseJson<T>()` throws, or returns an object with every property null.
 
-**Cause:** Response isn't valid JSON, empty response, or wrong Content-Type.
+**Cause:** The response is not JSON (an HTML error page, an empty body, plain text), or the property names do not match the type.
 
-**Solution:**
+**Fix - check the content type and body first:**
+
+```csharp
+using CurlDotNet;
+
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/json");
+var contentType = result.GetHeader("Content-Type") ?? "";
+
+if (!result.IsSuccess)
+    Console.WriteLine($"HTTP {result.StatusCode}: {result.Body}");
+else if (!contentType.Contains("json"))
+    Console.WriteLine($"Not JSON ({contentType}): {result.Body}");
+else if (string.IsNullOrWhiteSpace(result.Body))
+    Console.WriteLine("Empty body");
+else
+    Console.WriteLine(result.ParseJson<Slideshow>().slideshow.title);
+```
+
+`Slideshow` here is your own class matching the response shape; the same applies to `MyType` below.
+
+**Fix - catch the parser exception:**
 
 ```csharp
 try
 {
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
-
-    // Check Content-Type first
-    if (!result.ContentType.Contains("application/json"))
-    {
-        Console.WriteLine($"Warning: Response is {result.ContentType}, not JSON");
-        Console.WriteLine($"Body: {result.Body}");
-        return;
-    }
-
-    // Check if response is empty
-    if (string.IsNullOrWhiteSpace(result.Body))
-    {
-        Console.WriteLine("Empty response");
-        return;
-    }
-
-    // Try parsing
     var data = result.ParseJson<MyType>();
 }
 catch (System.Text.Json.JsonException ex)
 {
     Console.WriteLine($"Invalid JSON: {ex.Message}");
-    Console.WriteLine($"Response was: {result.Body}");
-
-    // Maybe it's HTML error page?
-    if (result.Body.StartsWith("<"))
-    {
-        Console.WriteLine("Server returned HTML instead of JSON");
-    }
+    if (result.Body.TrimStart().StartsWith("<"))
+        Console.WriteLine("The server returned HTML, probably an error page");
 }
 ```
 
-**Validating JSON Before Parsing:**
+On the `netstandard2.0` build, `ParseJson<T>` uses Newtonsoft.Json, so catch `Newtonsoft.Json.JsonException` there (or catch `Exception`).
+
+**Fix - explore the shape with `AsJsonDynamic()`:** when you are not sure what the server returns, inspect it before writing a class.
 
 ```csharp
-bool IsValidJson(string json)
-{
-    try
-    {
-        using var doc = System.Text.Json.JsonDocument.Parse(json);
-        return true;
-    }
-    catch
-    {
-        return false;
-    }
-}
-
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
-if (IsValidJson(result.Body))
-{
-    var data = result.ParseJson<MyType>();
-}
-else
-{
-    Console.WriteLine("Invalid JSON response");
-}
+dynamic json = result.AsJsonDynamic();
+Console.WriteLine(json.slideshow.title);
 ```
 
-**Handling Different Response Types:**
-
-```csharp
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
-
-if (result.ContentType.Contains("application/json"))
-{
-    var data = result.ParseJson<MyType>();
-}
-else if (result.ContentType.Contains("text/html"))
-{
-    Console.WriteLine("Received HTML:");
-    Console.WriteLine(result.Body);
-}
-else if (result.ContentType.Contains("text/plain"))
-{
-    Console.WriteLine("Plain text response:");
-    Console.WriteLine(result.Body);
-}
-else
-{
-    Console.WriteLine($"Unknown content type: {result.ContentType}");
-}
-```
-
-**Prevention:**
-- Always check Content-Type header
-- Validate JSON before parsing
-- Handle empty responses
-- Use try-catch around JSON parsing
-- Have fallback for non-JSON responses
-
----
+**Prevention:** check `IsSuccess` before parsing (error pages are rarely JSON); send `-H 'Accept: application/json'` so the server knows what you want; match property names, or add `[JsonPropertyName]` attributes.
 
 ## Compilation Errors
 
 ### Cannot implicitly convert type 'Task<CurlResult>' to 'CurlResult'
 
-**Problem:** Compiler error about Task conversion.
-
-**Cause:** Forgot to use `await` keyword.
-
-**Solution:**
+**Cause:** Missing `await`, or the method is not `async`.
 
 ```csharp
-// Wrong - missing await
-var result = Curl.ExecuteAsync("curl https://api.example.com");
+// Wrong: missing await
+var result = Curl.ExecuteAsync("curl https://httpbin.org/get");
 
-// Right - with await
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
-```
+// Right
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
 
-**Make sure your method is async:**
-
-```csharp
-// Wrong - method not async
-void MyMethod()
-{
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
-}
-
-// Right - method is async
+// The enclosing method must be async
 async Task MyMethod()
 {
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
+    var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
 }
 ```
 
----
+If you cannot use `async`, the synchronous methods exist: `Curl.Execute(command)`, `Curl.Get(url)`, `Curl.PostJson(url, body)`.
 
-### 'Curl' does not exist in the current context
+### The name 'Curl' does not exist in the current context
 
-**Problem:** Compiler can't find Curl class.
-
-**Cause:** Missing `using CurlDotNet;` statement.
-
-**Solution:**
+**Cause:** Missing `using CurlDotNet;`.
 
 ```csharp
-// Add this at the top of your file
-using CurlDotNet;
+using CurlDotNet;              // Curl, static entry point
+using CurlDotNet.Core;         // CurlResult, CurlSettings, CurlRequestBuilder
+using CurlDotNet.Exceptions;   // CurlException and subclasses
 
-class Program
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
+```
+
+### 'CurlHttpException' is an ambiguous reference (CS0104)
+
+**Cause:** A type named `CurlHttpException` exists in both `CurlDotNet.Core` and `CurlDotNet.Exceptions`, and the file imports both namespaces.
+
+**Fix:** qualify the one you mean. `result.EnsureSuccess()` throws the `CurlDotNet.Core` type:
+
+```csharp
+catch (CurlDotNet.Core.CurlHttpException ex)
 {
-    static async Task Main()
-    {
-        var result = await Curl.ExecuteAsync("curl https://api.example.com");
-    }
+    Console.WriteLine($"HTTP {ex.StatusCode}: {ex.ResponseBody}");
 }
 ```
 
----
+### 'CurlResult' could not be found
+
+**Cause:** `CurlResult` lives in `CurlDotNet.Core`. Add `using CurlDotNet.Core;` whenever you name the type explicitly (for example as a method return type).
 
 ## Runtime Errors
 
 ### NullReferenceException
 
-**Problem:** Null reference exception when accessing result properties.
+**Problem:** `NullReferenceException` when reading a header or a parsed property.
 
-**Cause:** Not checking if result is null or if properties exist.
+**Cause:** `GetHeader(name)` returns `null` when the header is absent; `ParseJson<T>()` leaves properties `null` when names do not match; `Body` can be empty for `-o` downloads and `HEAD` requests.
 
-**Solution:**
+**Fix:**
 
 ```csharp
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
 
-// Always check IsSuccess first
-if (result.IsSuccess)
-{
-    // Safe to use result.Body
-    Console.WriteLine(result.Body);
-}
-else
+if (!result.IsSuccess)
 {
     Console.WriteLine($"Request failed: {result.StatusCode}");
+    return;
 }
 
-// Check headers before accessing
-if (result.Headers.ContainsKey("Content-Type"))
-{
-    var contentType = result.Headers["Content-Type"];
-}
+if (result.HasHeader("X-Custom-Header"))
+    Console.WriteLine(result.GetHeader("X-Custom-Header"));
 
-// Or use TryGetValue
-if (result.Headers.TryGetValue("X-Custom-Header", out string customHeader))
-{
-    Console.WriteLine($"Custom header: {customHeader}");
-}
+var contentType = result.GetHeader("Content-Type") ?? "unknown";
 ```
 
-**Prevention:**
-- Always check `result.IsSuccess`
-- Use null-conditional operators: `result?.Body`
-- Check dictionary keys before accessing
-- Use TryGetValue for dictionaries
+`result.Headers` is a case-insensitive dictionary, so `result.Headers.TryGetValue("content-type", out var ct)` also works.
 
----
+**Prevention:** check `IsSuccess` first; use `?? ""` or `HasHeader` for optional headers; assert on parsed objects in tests so renamed JSON properties are caught early.
 
-## 🎓 Best Practices for Error Handling
+### Request runs forever
 
-### 1. Use Specific Exception Types
+**Cause:** There is no default timeout (`Curl.DefaultMaxTimeSeconds` is 0).
+
+**Fix:** set `Curl.DefaultMaxTimeSeconds = 30;` at startup, or pass `--max-time` on each command, or pass a `CancellationToken`. See [Timeout Errors](#timeout-errors).
+
+## Error Handling Practices
+
+### Catch specific exceptions, then the base
 
 ```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
+
 try
 {
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
+    var result = await Curl.ExecuteAsync("curl -m 15 https://api.github.com");
+    result.EnsureSuccess();
 }
-catch (CurlDnsException ex)
-{
-    // Handle DNS errors specifically
-}
-catch (CurlTimeoutException ex)
-{
-    // Handle timeout errors specifically
-}
-catch (CurlSslException ex)
-{
-    // Handle SSL errors specifically
-}
-catch (CurlHttpReturnedErrorException ex)
-{
-    // Handle HTTP errors specifically
-}
-catch (CurlException ex)
-{
-    // Handle all other curl errors
-}
-catch (Exception ex)
-{
-    // Handle unexpected errors
-}
+catch (CurlCouldntConnectException ex) { Console.WriteLine($"Unreachable: {ex.Host}:{ex.Port}"); }
+catch (CurlTimeoutException ex) { Console.WriteLine($"Timeout: {ex.Timeout}"); }
+catch (CurlTooManyRedirectsException ex) { Console.WriteLine($"Redirect loop after {ex.RedirectCount}"); }
+catch (CurlDotNet.Core.CurlHttpException ex) { Console.WriteLine($"HTTP {ex.StatusCode}"); }
+catch (CurlException ex) { Console.WriteLine($"curl error {ex.CurlErrorCode}: {ex.Message}"); }
 ```
 
-### 2. Check Result Status
+### Check the status before using the body
 
 ```csharp
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/json");
 
 if (!result.IsSuccess)
 {
     Console.WriteLine($"Request failed with status {result.StatusCode}");
-    Console.WriteLine($"Response: {result.Body}");
+    Console.WriteLine(result.Body);
     return;
 }
 
-// Proceed with successful result
-var data = result.ParseJson<MyType>();
+var data = result.ParseJson<Slideshow>();
 ```
 
-### 3. Implement Retry Logic
+### Retry only what is safe to retry
+
+Retry timeouts, connection failures and 5xx responses on idempotent requests (GET, PUT, DELETE). Do not blindly retry POSTs that create records. The `ExecuteWithRetries` and `RetryOnTimeout` helpers above show the pattern; combine them with `--max-time` so each attempt is bounded.
+
+### Log the whole exception
 
 ```csharp
-async Task<CurlResult> ExecuteWithRetry(string url, int maxRetries = 3)
-{
-    Exception lastException = null;
-
-    for (int i = 0; i < maxRetries; i++)
-    {
-        try
-        {
-            return await Curl.ExecuteAsync($"curl {url}");
-        }
-        catch (CurlTimeoutException ex)
-        {
-            lastException = ex;
-            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i)));
-        }
-        catch (CurlException ex) when (ex.ErrorCode == 7) // Connection failed
-        {
-            lastException = ex;
-            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i)));
-        }
-    }
-
-    throw lastException;
-}
-```
-
-### 4. Log All Errors
-
-```csharp
-try
-{
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
-}
 catch (CurlException ex)
 {
-    // Log with context
-    logger.LogError(ex, "Curl request failed. URL: {Url}, ErrorCode: {ErrorCode}",
-        "https://api.example.com", ex.ErrorCode);
+    logger.LogError(ex, "curl request failed. Command: {Command}, Code: {Code}, Diagnostics: {Diag}",
+        ex.Command, ex.CurlErrorCode, ex.DiagnosticInfo);
     throw;
 }
 ```
 
----
+See [Logging and Observability](../guides/logging-observability.html) for structured logging of requests and timings (`result.Timings`).
 
-## 🆘 Still Need Help?
+## Still Need Help?
 
-If this guide doesn't solve your issue:
+1. Check [known issues](https://github.com/jacob-mellor/curl-dot-net/issues).
+2. Ask in [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions).
+3. [Open a new issue](https://github.com/jacob-mellor/curl-dot-net/issues/new) with: CurlDotNet version, .NET version, operating system, the smallest code that reproduces the problem, the full error message, and whether native curl behaves differently.
 
-1. **Check if it's a known issue:** [GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues)
-2. **Ask the community:** [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
-3. **Report a bug:** [Create new issue](https://github.com/jacob-mellor/curl-dot-net/issues/new)
-
-When reporting issues, include:
-- CurlDotNet version
-- .NET version
-- Operating system
-- Minimal code to reproduce
-- Full error message
-- What you expected vs what happened
-
----
-
-**Back to:** [Troubleshooting Guide](README.html) | [Documentation Home](../)
+Back to the [Troubleshooting hub](README.html), the [Error Reference](error-reference.html) or the [FAQ](faq.html).

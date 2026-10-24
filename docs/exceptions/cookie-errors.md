@@ -1,255 +1,109 @@
-# Cookie Handling Errors
+---
+title: "curl Cookie Errors in C#: Sending Cookies with CurlDotNet"
+description: "Fix curl cookie errors in C#: send cookies with -b 'name=value' or WithCookie in CurlDotNet, read Set-Cookie, and see what cookie-jar support is coming."
+---
 
-## Overview
+# curl Cookie Errors in C# (-b and WithCookie)
 
-Cookie-related errors occur when CurlDotNet has problems managing HTTP cookies, including reading from or writing to cookie jar files, parsing cookie data, or handling cookie headers.
+curl cookie errors in C# are almost always about how the cookie was supplied. CurlDotNet currently supports sending cookies as a string with `-b 'name=value; other=value'` (or the builder's `WithCookie("a=1")`) and reading `Set-Cookie` from the response. Cookie jar files (`-c`, and `-b` with a file name) are not implemented yet, so a page that relies on them will fail; this page shows what works today.
 
-## Common Error Scenarios
+## What Works Today
 
-### 1. Cookie Jar File Access Issues
-
-**Problem:** Cannot read or write to the specified cookie jar file.
-
-**Common Causes:**
-- File permissions are too restrictive
-- Directory doesn't exist
-- Disk is full
-- Invalid file path
-
-**Solutions:**
+### Sending a Cookie String (-b)
 
 ```csharp
-// Ensure directory exists
-var cookieJarPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "myapp", "cookies.txt");
-Directory.CreateDirectory(Path.GetDirectoryName(cookieJarPath));
+using CurlDotNet;
 
-// Use the cookie jar with proper error handling
-try
-{
-    var result = await curl.ExecuteAsync($"curl --cookie-jar {cookieJarPath} --cookie {cookieJarPath} https://example.com");
-}
-catch (CurlCookieException ex)
-{
-    // Check if it's a file access issue
-    if (!string.IsNullOrEmpty(ex.CookieJarPath))
-    {
-        Console.WriteLine($"Cookie jar issue with: {ex.CookieJarPath}");
-
-        // Try alternative location
-        var tempCookieJar = Path.GetTempFileName();
-        result = await curl.ExecuteAsync($"curl --cookie-jar {tempCookieJar} https://example.com");
-    }
-}
+var result = await Curl.ExecuteAsync("curl -b 'session=abc123; theme=dark' https://httpbin.org/cookies");
+Console.WriteLine(result.Body); // {"cookies": {"session": "abc123", "theme": "dark"}}
 ```
 
-### 2. Malformed Cookie Data
+`--cookie 'name=value'` is the long form of the same option.
 
-**Problem:** Cookie data in the jar file or from the server is malformed.
-
-**Common Causes:**
-- Corrupted cookie jar file
-- Invalid cookie format from server
-- Manual editing of cookie jar file
-
-**Solutions:**
+### Builder Equivalent
 
 ```csharp
-// Clear and recreate cookie jar if corrupted
-if (File.Exists(cookieJarPath))
-{
-    File.Delete(cookieJarPath);
-}
+using CurlDotNet.Core;
 
-// Start fresh with new cookies
-var result = await curl.ExecuteAsync($"curl --cookie-jar {cookieJarPath} https://example.com");
+var result = await CurlRequestBuilder
+    .Get("https://httpbin.org/cookies")
+    .WithCookie("session=abc123; theme=dark")
+    .ExecuteAsync();
 ```
 
-### 3. Cookie Security Issues
+### Sending the Header Directly
 
-**Problem:** Cookies are rejected due to security policies.
-
-**Common Causes:**
-- Secure cookie on non-HTTPS connection
-- HttpOnly cookie access attempt from JavaScript
-- SameSite policy violations
-
-**Solutions:**
+A cookie is just a request header, so `-H` works too:
 
 ```csharp
-// Ensure HTTPS for secure cookies
-var url = "https://secure.example.com";  // Use HTTPS, not HTTP
-
-// Handle cookie policies
-var result = await curl.ExecuteAsync($"curl --cookie-jar {cookieJarPath} {url}");
+var result = await Curl.ExecuteAsync("curl -H 'Cookie: session=abc123' https://httpbin.org/cookies");
 ```
 
-## Best Practices
-
-### 1. Cookie Jar Management
+### Reading Set-Cookie from a Response
 
 ```csharp
-public class CookieManager
-{
-    private readonly string _cookieJarPath;
-
-    public CookieManager(string appName)
-    {
-        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var cookieDir = Path.Combine(appData, appName);
-        Directory.CreateDirectory(cookieDir);
-        _cookieJarPath = Path.Combine(cookieDir, "cookies.txt");
-    }
-
-    public async Task<CurlResult> ExecuteWithCookies(string url)
-    {
-        var curl = new Curl();
-        return await curl.ExecuteAsync($"curl --cookie-jar {_cookieJarPath} --cookie {_cookieJarPath} {url}");
-    }
-
-    public void ClearCookies()
-    {
-        if (File.Exists(_cookieJarPath))
-        {
-            File.Delete(_cookieJarPath);
-        }
-    }
-}
+var login = await Curl.ExecuteAsync("curl https://httpbin.org/cookies/set/session/abc123");
+var setCookie = login.GetHeader("Set-Cookie");   // null if the server sent none
+Console.WriteLine(setCookie);
 ```
 
-### 2. Session Management
+To carry a cookie into the next request, take the `name=value` part of `Set-Cookie` and pass it with `-b`:
 
 ```csharp
-// Maintain session across requests
-public class SessionManager
-{
-    private readonly string _sessionCookieJar;
-
-    public SessionManager()
-    {
-        _sessionCookieJar = Path.GetTempFileName();
-    }
-
-    public async Task<CurlResult> Login(string username, string password)
-    {
-        var curl = new Curl();
-        var loginData = $"username={Uri.EscapeDataString(username)}&password={Uri.EscapeDataString(password)}";
-
-        return await curl.ExecuteAsync(
-            $"curl --cookie-jar {_sessionCookieJar} " +
-            $"--data \"{loginData}\" " +
-            $"https://example.com/login"
-        );
-    }
-
-    public async Task<CurlResult> AuthenticatedRequest(string url)
-    {
-        var curl = new Curl();
-        return await curl.ExecuteAsync(
-            $"curl --cookie {_sessionCookieJar} {url}"
-        );
-    }
-
-    public void Logout()
-    {
-        if (File.Exists(_sessionCookieJar))
-        {
-            File.Delete(_sessionCookieJar);
-        }
-    }
-}
+var pair = setCookie?.Split(';')[0];   // "session=abc123"
+var next = await Curl.ExecuteAsync($"curl -b '{pair}' https://httpbin.org/cookies");
 ```
 
-## Debugging Tips
+## Not Yet Supported: Cookie Jars
 
-### 1. Inspect Cookie Jar Contents
+The following curl features are not implemented in the current release, so do not rely on them:
+
+- `-c <file>` / `--cookie-jar <file>` (write cookies to a file)
+- `-b <file>` where the value is a file name instead of `name=value`
+- Automatic cookie persistence across separate `Curl.ExecuteAsync` calls
+
+Cookie jar support is planned. Until then, forward cookies manually as shown above, or keep them in your own `CookieContainer` and pass the string with `-b`.
+
+## Common Mistakes
+
+### Passing a File Name to -b
+
+CurlDotNet sends the `-b` value verbatim as the `Cookie` request header. Command-line curl treats a value without `=` as a cookie file, but CurlDotNet does not read files here yet, so a file name would be sent as a meaningless cookie header. Always pass `name=value` pairs:
 
 ```csharp
-// Read and display cookie jar contents for debugging
-if (File.Exists(cookieJarPath))
-{
-    var cookies = File.ReadAllLines(cookieJarPath);
-    Console.WriteLine("Current cookies:");
-    foreach (var cookie in cookies)
-    {
-        if (!cookie.StartsWith("#"))
-        {
-            Console.WriteLine(cookie);
-        }
-    }
-}
+// Wrong - "cookies.txt" is sent literally as the Cookie header
+var r1 = await Curl.ExecuteAsync("curl -b cookies.txt https://httpbin.org/cookies");
+
+// Right - name=value
+var r2 = await Curl.ExecuteAsync("curl -b 'session=abc123' https://httpbin.org/cookies");
 ```
 
-### 2. Enable Verbose Mode
+### Spaces Without Quotes
+
+Multiple cookies are separated by `; `, which includes a space, so quote the whole value:
 
 ```csharp
-// Use verbose mode to see cookie handling
-var result = await curl.ExecuteAsync($"curl -v --cookie-jar {cookieJarPath} https://example.com");
-Console.WriteLine(result.StdErr); // Contains verbose output including cookie operations
+var result = await Curl.ExecuteAsync("curl -b 'a=1; b=2' https://httpbin.org/cookies");
 ```
 
-### 3. Test Cookie Handling
+### Expecting Cookies to Persist
+
+Each `Curl.ExecuteAsync` call is independent. If the second request needs the first request's cookie, pass it explicitly with `-b`.
+
+## Debugging Cookies
+
+`-v` writes the outgoing request headers, including `Cookie:`, at the start of `result.Body`:
 
 ```csharp
-// Test basic cookie functionality
-public async Task<bool> TestCookieHandling()
-{
-    var testCookieJar = Path.GetTempFileName();
-    try
-    {
-        var curl = new Curl();
-
-        // Test writing cookies
-        var writeResult = await curl.ExecuteAsync(
-            $"curl --cookie-jar {testCookieJar} https://httpbin.org/cookies/set?test=value"
-        );
-
-        // Test reading cookies
-        var readResult = await curl.ExecuteAsync(
-            $"curl --cookie {testCookieJar} https://httpbin.org/cookies"
-        );
-
-        // Verify cookie was preserved
-        return readResult.StdOut.Contains("test") && readResult.StdOut.Contains("value");
-    }
-    finally
-    {
-        if (File.Exists(testCookieJar))
-        {
-            File.Delete(testCookieJar);
-        }
-    }
-}
+var result = await Curl.ExecuteAsync("curl -v -b 'session=abc123' https://httpbin.org/cookies");
+Console.WriteLine(result.Body);
 ```
 
-## Common Cookie Jar Format
-
-The cookie jar file follows the Netscape cookie format:
-
-```
-# Netscape HTTP Cookie File
-# This is a generated file! Do not edit.
-
-.example.com	TRUE	/	FALSE	1234567890	sessionid	abc123def456
-.example.com	TRUE	/	TRUE	1234567890	secure_token	xyz789
-```
-
-Format: `domain flag path secure expiry name value`
+`https://httpbin.org/cookies` echoes back the cookies it received, which makes it a convenient test endpoint.
 
 ## Related Documentation
 
-- [HTTP Error Handling](http-errors.html)
-- [Authentication Errors](auth-errors.html)
-- [CurlDotNet Cookie API Reference](/api/CurlDotNet.Exceptions.CurlCookieException.html)
-
-## Error Prevention Checklist
-
-- [ ] Ensure cookie jar directory exists before use
-- [ ] Check file permissions on cookie jar
-- [ ] Use absolute paths for cookie jar files
-- [ ] Clean up temporary cookie jars after use
-- [ ] Handle cookie jar corruption gracefully
-- [ ] Use HTTPS for secure cookies
-- [ ] Implement proper session management
-- [ ] Clear cookies on logout
-- [ ] Validate cookie data format
-- [ ] Test cookie persistence across requests
+- [Tutorial 8: Headers Explained](../tutorials/08-headers-explained.html) (includes sending cookies)
+- [Cookbook](../cookbook/index.html)
+- [Authentication errors](auth-errors.html)
+- [Exception reference](index.html)

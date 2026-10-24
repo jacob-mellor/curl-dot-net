@@ -20,12 +20,19 @@ namespace CurlDotNet.Core
     /// <para>This class contains all options extracted from a curl command string.</para>
     /// <para>AI-Usage: This is the intermediate representation between curl syntax and HTTP operations.</para>
     /// </remarks>
-    public class CurlOptions
+    public partial class CurlOptions
     {
         /// <summary>
         /// The target URL.
         /// </summary>
         public string Url { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Options on the command line that CurlDotNet did not recognise. Execution ignores them
+        /// (curl itself would exit with code 2), and <see cref="CurlEngine.Validate(string)"/> reports
+        /// them so typos such as <c>--hedaer</c> are caught before a request is made.
+        /// </summary>
+        public List<string> UnknownOptions { get; } = new List<string>();
 
         /// <summary>
         /// HTTP method (GET, POST, PUT, DELETE, etc.).
@@ -35,7 +42,7 @@ namespace CurlDotNet.Core
         /// <summary>
         /// Request headers.
         /// </summary>
-        public Dictionary<string, string> Headers { get; set; } = new Dictionary<string, string>();
+        public Dictionary<string, string> Headers { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Request body data.
@@ -231,12 +238,12 @@ namespace CurlDotNet.Core
         /// <summary>
         /// Maximum time in seconds (--max-time).
         /// </summary>
-        public int? MaxTime { get; set; }
+        public double? MaxTime { get; set; }
 
         /// <summary>
         /// Connection timeout in seconds (--connect-timeout).
         /// </summary>
-        public int? ConnectTimeout { get; set; }
+        public double? ConnectTimeout { get; set; }
 
         /// <summary>
         /// Speed limit in bytes per second (--limit-rate).
@@ -370,7 +377,18 @@ namespace CurlDotNet.Core
         /// <summary>
         /// Retry delay in seconds (--retry-delay).
         /// </summary>
-        public int RetryDelay { get; set; }
+        public double RetryDelay { get; set; }
+
+        /// <summary>
+        /// <c>--retry-all-errors</c>: retry on every failure, not only on the transient ones curl
+        /// retries by default (timeouts and HTTP 408/429/500/502/503/504).
+        /// </summary>
+        public bool RetryAllErrors { get; set; }
+
+        /// <summary>
+        /// <c>--retry-connrefused</c>: also treat "connection refused" as a transient error worth retrying.
+        /// </summary>
+        public bool RetryConnRefused { get; set; }
 
         /// <summary>
         /// Maximum retry time (--retry-max-time).

@@ -34,6 +34,12 @@ jobs:
         dotnet-version: '9.0.x'
         dotnet-quality: 'ga'  # Use stable GA release
 
+    - name: Setup .NET SDK 10.0.x
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+        dotnet-quality: 'ga'
+
     # Step 3: Restore dependencies
     - name: Restore dependencies
       run: dotnet restore

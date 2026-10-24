@@ -1,233 +1,237 @@
-# 📘 CurlDotNet API Guide
-
-Complete reference guide with examples for every feature of CurlDotNet.
-
-## 🎯 The Three APIs
-
-CurlDotNet offers three different ways to make HTTP requests:
-
-### 1. Curl String API (Simplest)
-```csharp
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
-```
-**Best for**: Copy-pasting curl commands, quick scripts, prototyping
-
-### 2. CurlRequestBuilder API (Type-Safe)
-```csharp
-var result = await new CurlRequestBuilder()
-    .WithUrl("https://api.example.com")
-    .WithBearerToken("token123")
-    .ExecuteAsync();
-```
-**Best for**: Building requests programmatically, compile-time safety
-
-### 3. LibCurl API (Reusable)
-```csharp
-var curl = new LibCurl()
-    .WithBearerToken("token123");
-
-var result = await curl.GetAsync("https://api.example.com");
-```
-**Best for**: Reusable clients, dependency injection, shared configuration
-
-## 📚 Complete API Reference
-
-### Core Classes
-
-#### Curl Class
-The main entry point for executing curl commands
-- `ExecuteAsync()` - Execute any curl command
-- `Get()` - Quick GET request
-- `Post()` - Quick POST request
-- `Download()` - Download files
-- `Upload()` - Upload files
-- `ExecuteMany()` - Parallel execution
-
-#### CurlResult Class
-The response object returned from all requests
-- **Properties**: `Body`, `StatusCode`, `Headers`, `IsSuccess`
-- **JSON Operations**: `ParseJson<T>()`, `AsJson<T>()`, `AsJsonDynamic()`
-- **Validation**: `EnsureSuccess()`, `EnsureStatus()`
-
-#### CurlRequestBuilder Class
-Fluent API for building requests
-- **HTTP Methods**: `Get()`, `Post()`, `Put()`, `Delete()`
-- **Headers**: `WithHeader()`, `WithHeaders()`
-- **Body**: `WithData()`, `WithJson()`, `WithFormData()`
-- **Auth**: `WithBasicAuth()`, `WithBearerToken()`
-- **Options**: `WithTimeout()`, `WithFollowRedirects()`
-
-#### LibCurl Class
-Stateful client for reusable configuration
-- **HTTP Verbs**: `GetAsync()`, `PostAsync()`, `PutAsync()`
-- **Configuration**: `WithHeader()`, `WithTimeout()`, `WithProxy()`
-- **Reusability**: Building client classes
-
-### Exception Classes
-
-All CurlDotNet exceptions inherit from `CurlException`. See [Troubleshooting](../troubleshooting/) for details.
-
-Common exceptions:
-- `CurlHttpException` - HTTP errors (4xx, 5xx)
-- `CurlTimeoutException` - Request timeout
-- `CurlConnectionException` - Connection failures
-- `CurlSslException` - SSL/TLS errors
-- `CurlAuthenticationException` - Auth failures
-
-## 🚀 Quick Examples
-
-### Basic GET Request
-
-```csharp
-// String API
-var result = await Curl.ExecuteAsync("curl https://api.github.com");
-
-// Builder API
-var result = await new CurlRequestBuilder()
-    .WithUrl("https://api.github.com")
-    .ExecuteAsync();
-
-// LibCurl API
-using var curl = new LibCurl();
-var result = await curl.GetAsync("https://api.github.com");
-```
-
-### POST with JSON
-
-```csharp
-// String API
-var result = await Curl.ExecuteAsync(@"
-    curl -X POST https://api.example.com/users \
-    -H 'Content-Type: application/json' \
-    -d '{""name"": ""John"", ""email"": ""john@example.com""}'
-");
-
-// Builder API
-var result = await new CurlRequestBuilder()
-    .WithUrl("https://api.example.com/users")
-    .WithMethod(HttpMethod.Post)
-    .WithJson(new { name = "John", email = "john@example.com" })
-    .ExecuteAsync();
-
-// LibCurl API
-using var curl = new LibCurl();
-var result = await curl.PostAsync(
-    "https://api.example.com/users",
-    new { name = "John", email = "john@example.com" }
-);
-```
-
-### With Authentication
-
-```csharp
-// String API
-var result = await Curl.ExecuteAsync(@"
-    curl https://api.example.com \
-    -H 'Authorization: Bearer token123'
-");
-
-// Builder API
-var result = await new CurlRequestBuilder()
-    .WithUrl("https://api.example.com")
-    .WithBearerToken("token123")
-    .ExecuteAsync();
-
-// LibCurl API
-using var curl = new LibCurl()
-    .WithBearerToken("token123");
-var result = await curl.GetAsync("https://api.example.com");
-```
-
-### Error Handling
-
-```csharp
-try
-{
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
-    result.EnsureSuccess();  // Throws if not 2xx
-
-    var data = result.ParseJson<MyData>();
-}
-catch (CurlHttpException ex)
-{
-    Console.WriteLine($"HTTP error {ex.StatusCode}: {ex.Message}");
-}
-catch (CurlTimeoutException ex)
-{
-    Console.WriteLine($"Request timed out: {ex.Message}");
-}
-catch (CurlException ex)
-{
-    Console.WriteLine($"Curl error: {ex.Message}");
-}
-```
-
-## 🎯 Which API Should You Use?
-
-### Use String API When:
-- ✅ You have existing curl commands
-- ✅ You're prototyping or testing
-- ✅ You're migrating from shell scripts
-- ✅ You need maximum curl compatibility
-
-### Use Builder API When:
-- ✅ You're building requests programmatically
-- ✅ You want compile-time safety
-- ✅ You need IntelliSense support
-- ✅ You're building dynamic requests
-
-### Use LibCurl API When:
-- ✅ You need a reusable client
-- ✅ You're using dependency injection
-- ✅ You have shared configuration
-- ✅ You're building service classes
-
-## 📊 Feature Comparison
-
-| Feature | String API | Builder API | LibCurl API |
-|---------|------------|-------------|-------------|
-| Copy-paste curl | ✅ Perfect | ❌ Must convert | ❌ Must convert |
-| Type safety | ❌ Runtime | ✅ Compile-time | ✅ Compile-time |
-| IntelliSense | ❌ No | ✅ Full | ✅ Full |
-| Reusable config | ❌ No | ❌ No | ✅ Yes |
-| DI-friendly | ⚠️ Static | ⚠️ Per-request | ✅ Injectable |
-| Learning curve | 🟢 Easy | 🟡 Medium | 🟡 Medium |
-
-## 🔧 Advanced Features
-
-### Parallel Requests
-```csharp
-var results = await Curl.ExecuteMany(
-    "curl https://api1.example.com",
-    "curl https://api2.example.com",
-    "curl https://api3.example.com"
-);
-```
-
-### Custom HTTP Clients
-```csharp
-var httpClient = new HttpClient();
-var result = await Curl.ExecuteAsync(
-    "curl https://api.example.com",
-    httpClient
-);
-```
-
-## 📚 Learning Path
-
-1. **Beginners**: Start with the Curl String API examples above
-2. **Type Safety**: Move to CurlRequestBuilder API
-3. **Reusability**: Graduate to LibCurl API
-4. **Advanced**: Explore parallel requests and custom HTTP clients
-
-## 🔗 Related Documentation
-
-- [Tutorials](../tutorials/) - Learn the basics
-- [Cookbook](../cookbook/) - Ready-to-use recipes
-- [Troubleshooting](../troubleshooting/) - Fix common issues
-
+---
+title: "CurlDotNet API Guide - curl Commands and Builder in C#"
+description: "CurlDotNet API guide for C#: the static Curl string API, the CurlRequestBuilder fluent API, the LibCurl client, CurlResult, CurlSettings and exceptions."
 ---
 
-**Ready to dive in?** Check out the examples above to get started!
+# CurlDotNet API guide: curl commands, fluent builder and LibCurl in C#
 
-*All APIs support the same 300+ curl options and work on .NET Framework 4.7.2+, .NET Core 2.0+, and .NET 5-10*
+This CurlDotNet API guide covers the three ways to make requests in C#: the static `Curl` string API that runs curl commands, the `CurlRequestBuilder` fluent API, and the reusable `LibCurl` client. All three return the same `CurlResult`.
+
+## The three APIs
+
+### Curl string API
+
+```csharp
+using CurlDotNet;
+
+var result = await Curl.ExecuteAsync("curl -A 'MyApp/1.0' -H 'Accept: application/json' https://api.github.com/repos/curl/curl");
+```
+
+Best for copy-pasting commands from API docs, shell scripts and Stack Overflow. The leading `curl` is optional and multi-line commands with `\` continuations are accepted.
+
+### CurlRequestBuilder fluent API
+
+```csharp
+using CurlDotNet.Core;
+
+var result = await CurlRequestBuilder.Get("https://api.github.com/repos/curl/curl")
+    .WithUserAgent("MyApp/1.0")
+    .WithHeader("Accept", "application/json")
+    .WithBearerToken("token123")
+    .ExecuteAsync();
+```
+
+Best for building requests programmatically with IntelliSense and compile-time checking. `ToCurlCommand()` gives you back the equivalent curl string for logging or bug reports.
+
+### LibCurl reusable client
+
+```csharp
+using CurlDotNet.Lib;
+
+using var curl = new LibCurl()
+    .WithUserAgent("MyApp/1.0")
+    .WithBearerToken("token123")
+    .WithTimeout(TimeSpan.FromSeconds(30));
+
+var result = await curl.GetAsync("https://api.github.com/user");
+```
+
+Best for shared configuration and dependency injection. `LibCurl` is `IDisposable`; register one instance as a singleton.
+
+## Which API should you use?
+
+| Need | Use |
+|------|-----|
+| Run an existing curl command unchanged | String API |
+| IntelliSense, refactoring, dynamic requests | `CurlRequestBuilder` |
+| Shared headers, auth and timeouts across many calls, DI | `LibCurl` |
+| Thin wrapper around one REST base URL | `CurlApiClient` (below) |
+
+## Curl static class
+
+| Member | Purpose |
+|--------|---------|
+| `ExecuteAsync(string)` / `Execute(string)` | Run a curl command string |
+| `ExecuteAsync(string, CancellationToken)` | Same, cancellable |
+| `ExecuteAsync(string, CurlSettings)` | Same, with per-call settings (timeout, retries, redirects) |
+| `ExecuteAsync(CurlOptions)` / `Execute(CurlOptions)` | Run from a pre-built options object |
+| `GetAsync(url)` / `Get(url)` | Shorthand for `curl <url>` |
+| `PostAsync(url, data)` / `Post(url, data)` | Shorthand for `curl -d <data> <url>` |
+| `PostJsonAsync(url, object)` / `PostJson(url, object)` | Serialize an object and POST it as JSON |
+| `DownloadAsync(url, path)` / `Download(url, path)` | Shorthand for `curl -o <path> <url>` |
+| `ExecuteManyAsync(params string[])` | Run several commands concurrently |
+| `Validate(cmd)` | Parse a command without executing it |
+| `ToHttpClient(cmd)`, `ToFetch(cmd)`, `ToPythonRequests(cmd)`, `ToPowershellCode(cmd)` | Generate equivalent code in other stacks |
+| `DefaultMaxTimeSeconds`, `DefaultConnectTimeoutSeconds`, `DefaultFollowRedirects`, `DefaultInsecure` | Process-wide defaults applied when a command does not specify them |
+
+```csharp
+Curl.DefaultMaxTimeSeconds = 30;
+Curl.DefaultFollowRedirects = true;
+
+var result = await Curl.ExecuteAsync("https://httpbin.org/redirect/1");  // follows, 30 s cap
+```
+
+## CurlResult
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `StatusCode` | `int` | HTTP status code |
+| `IsSuccess` | `bool` | `true` for 2xx |
+| `Body` | `string` | Response body as text |
+| `Headers` | `Dictionary<string,string>` | Response headers, case-insensitive keys |
+| `BinaryData` | `byte[]` | Response bytes for binary content |
+| `IsBinary` | `bool` | `true` when `BinaryData` is populated |
+| `Timings` | `CurlTimings` | `NameLookup`, `Connect`, `AppConnect`, `PreTransfer`, `Redirect`, `StartTransfer`, `Total` in milliseconds |
+| `OutputFiles` | `List<string>` | Files written by `-o` / `-O` |
+| `Exception` | `Exception` | Set when a request completed with an error that was not thrown |
+| `ParseJson<T>()` / `AsJson<T>()` | `T` | Deserialize the body |
+| `AsJsonDynamic()` | `dynamic` | Deserialize without a type |
+| `GetHeader(name)` / `HasHeader(name)` | | Case-insensitive header lookup |
+| `EnsureSuccess()` | `CurlResult` | Throw `CurlDotNet.Core.CurlHttpException` when not 2xx |
+| `SaveToFile(path)` | `CurlResult` | Write body or bytes to disk |
+| `ToStream()` | `Stream` | Body as a stream |
+
+```csharp
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/json");
+
+result.EnsureSuccess();
+var slideshow = result.AsJsonDynamic();
+Console.WriteLine(result.GetHeader("content-type"));
+Console.WriteLine($"{result.Timings.Total:F0} ms total");
+```
+
+## CurlSettings
+
+Per-call settings that apply on top of the command string.
+
+```csharp
+using CurlDotNet.Core;
+
+var settings = new CurlSettings()
+    .WithTimeout(30)
+    .WithFollowRedirects(true)
+    .WithRetries(count: 3, delayMs: 1000);
+
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/503", settings);
+```
+
+Also available: `WithConnectTimeout(seconds)`, `WithInsecure()`, `WithHeader(key, value)`, `WithHeaders(dict)`, `WithProgress(callback)`, `WithCancellation(token)`.
+
+## CurlRequestBuilder reference
+
+| Group | Methods |
+|-------|---------|
+| Create | `Get`, `Post`, `Put`, `Delete`, `Patch`, `Head`, `Request(method, url)` |
+| Headers | `WithHeader`, `WithHeaders`, `WithUserAgent`, `WithReferer` |
+| Body | `WithData(string)`, `WithJson(object)`, `WithFormData(dict)`, `WithMultipartForm(fields, files)`, `WithFile(field, path)`, `WithBinaryData(byte[])` |
+| Auth | `WithBasicAuth(user, pass)`, `WithBearerToken(token)`, `WithAuth(headerValue)` |
+| Timing | `WithTimeout(TimeSpan)`, `WithConnectTimeout(TimeSpan)` |
+| Redirects | `FollowRedirects(bool = true)`, `WithMaxRedirects(int)` |
+| SSL and proxy | `Insecure(bool = true)`, `WithProxy(url)`, `WithProxy(url, user, pass)` |
+| Cookies | `WithCookie(string)` |
+| Output | `WithOutput(path)`, `IncludeHeaders()`, `Verbose()`, `Compressed()`, `WithRange(range)`, `AsBinary()` |
+| Run | `Execute()`, `ExecuteAsync(CancellationToken = default)`, `ToCurlCommand()` |
+
+```csharp
+var builder = CurlRequestBuilder.Post("https://httpbin.org/post")
+    .WithMultipartForm(
+        fields: new Dictionary<string, string> { ["title"] = "Report" },
+        files:  new Dictionary<string, string> { ["file"] = "report.pdf" });
+
+Console.WriteLine(builder.ToCurlCommand());   // curl -X POST -F 'title=Report' -F 'file=@report.pdf' ...
+var result = await builder.ExecuteAsync();
+```
+
+## LibCurl reference
+
+Instance methods: `GetAsync`, `PostAsync`, `PutAsync`, `PatchAsync`, `DeleteAsync`, `HeadAsync`, each taking `(url, Action<CurlOptions>? configure = null, CancellationToken ct = default)`; `PostAsync`, `PutAsync` and `PatchAsync` also take a `data` object.
+
+Configuration (chainable, applies to every request): `WithHeader`, `WithBearerToken`, `WithBasicAuth`, `WithTimeout`, `WithConnectTimeout`, `WithFollowRedirects(maxRedirects)`, `WithInsecureSsl()`, `WithProxy(url, user?, pass?)`, `WithUserAgent`, `WithOutputFile`, `WithVerbose()`.
+
+```csharp
+// Program.cs
+builder.Services.AddSingleton(_ => new LibCurl()
+    .WithHeader("User-Agent", "MyApp/1.0")
+    .WithTimeout(TimeSpan.FromSeconds(15)));
+
+// a service
+public class GitHubService(LibCurl curl)
+{
+    public Task<CurlResult> GetUserAsync(string login) =>
+        curl.GetAsync($"https://api.github.com/users/{login}");
+}
+```
+
+## CurlApiClient
+
+A small wrapper for one REST base URL in the `CurlDotNet` namespace.
+
+```csharp
+using CurlDotNet;
+
+var api = new CurlApiClient("https://httpbin.org");
+var created = await api.PostJsonAsync("/post", new { name = "Ada" });
+var fetched = await api.GetAsync("/get");
+var deleted = await api.DeleteAsync("/delete");
+```
+
+Also: `PutJsonAsync(path, object)`, `PatchJsonAsync(path, object)`.
+
+## String extension methods
+
+In `CurlDotNet.Extensions`:
+
+```csharp
+using CurlDotNet.Extensions;
+
+var r1 = await "curl https://httpbin.org/get".CurlAsync();
+var r2 = await "https://httpbin.org/get".CurlGetAsync();
+var r3 = await "https://httpbin.org/image/png".CurlDownloadAsync("image.png");
+```
+
+## Code generation and validation
+
+```csharp
+var cmd = "curl -A 'MyApp/1.0' -H 'Accept: application/json' https://api.github.com/users/octocat";
+
+Console.WriteLine(Curl.ToHttpClient(cmd));      // C# HttpClient code
+Console.WriteLine(Curl.ToFetch(cmd));           // JavaScript fetch
+Console.WriteLine(Curl.ToPythonRequests(cmd));  // Python requests
+Console.WriteLine(Curl.ToPowershellCode(cmd));  // PowerShell Invoke-RestMethod
+
+var validation = Curl.Validate(cmd);            // parse only, no network
+```
+
+## Exceptions
+
+All network-level failures throw a subclass of `CurlDotNet.Exceptions.CurlException`, which carries `CurlErrorCode` (curl's exit code), `Command` and a `Suggestions` list. HTTP 4xx/5xx responses do not throw unless you call `EnsureSuccess()` or pass `-f`.
+
+| Exception | When |
+|-----------|------|
+| `CurlTimeoutException` | `-m` / `--max-time` or connect timeout exceeded |
+| `CurlConnectionException`, `CurlCouldntConnectException` | Connection refused, reset or unreachable |
+| `CurlDnsException`, `CurlCouldntResolveHostException` | Host name could not be resolved |
+| `CurlSslException` | Certificate or TLS handshake failure |
+| `CurlAuthenticationException` | Authentication could not be performed |
+| `CurlProxyException` | Proxy could not be reached or rejected the request |
+| `CurlMalformedUrlException`, `CurlUnsupportedProtocolException` | Bad URL or unsupported scheme |
+| `CurlInvalidCommandException` | The command string could not be parsed |
+
+Full list with fixes: [Exceptions](../exceptions/index.html).
+
+## Related
+
+- [Quick start](../getting-started/quickstart.html)
+- [Advanced guide](../guides/advanced.html)
+- [curl CLI compatibility](../reference/curl-cli-compatibility.html)
+- [Generated API reference](../api/index.html)

@@ -1,0 +1,2 @@
+# curl test numbers that CurlDotNet does not pass yet. One per line, optional "# reason".
+# A listed test that starts passing fails the suite until it is removed, so this list stays honest.

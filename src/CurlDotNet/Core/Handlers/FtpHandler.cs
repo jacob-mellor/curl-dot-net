@@ -73,7 +73,7 @@ namespace CurlDotNet.Core
 
                 if (options.ConnectTimeout.HasValue && options.ConnectTimeout.Value > 0)
                 {
-                    request.Timeout = options.ConnectTimeout.Value * 1000;
+                    request.Timeout = (int)(options.ConnectTimeout.Value * 1000);
                 }
 
                 // Set proxy if specified

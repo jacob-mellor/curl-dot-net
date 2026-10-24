@@ -85,6 +85,14 @@ namespace CurlDotNet.Tests.TestServers
                 {
                     await HandleDelete(request, response);
                 }
+                else if (path == "/patch")
+                {
+                    await HandlePut(request, response); // httpbin's /patch echoes exactly like /put
+                }
+                else if (path.StartsWith("/bytes/"))
+                {
+                    await HandleBytes(request, response, path);
+                }
                 else if (path == "/headers")
                 {
                     await HandleHeaders(request, response);
@@ -96,6 +104,10 @@ namespace CurlDotNet.Tests.TestServers
                 else if (path == "/bearer")
                 {
                     await HandleBearer(request, response);
+                }
+                else if (path.StartsWith("/basic-auth/"))
+                {
+                    await HandleBasicAuth(request, response, path);
                 }
                 else if (path == "/user-agent")
                 {
@@ -171,7 +183,7 @@ namespace CurlDotNet.Tests.TestServers
             if (request.ContentType?.Contains("application/x-www-form-urlencoded") == true)
             {
                 result["form"] = ParseQueryString(body);
-                result["data"] = "";
+                // keep the raw body in "data" as well so tests can verify exactly what was sent
             }
 
             await SendJsonResponse(response, result);
@@ -350,6 +362,59 @@ namespace CurlDotNet.Tests.TestServers
             await SendJsonResponse(response, result);
         }
 
+        /// <summary>httpbin-style /bytes/{n}: n deterministic pseudo-random bytes as application/octet-stream.</summary>
+        private async Task HandleBytes(HttpListenerRequest request, HttpListenerResponse response, string path)
+        {
+            var countText = path.Substring("/bytes/".Length);
+            if (!int.TryParse(countText, out var count) || count < 0 || count > 10 * 1024 * 1024)
+            {
+                response.StatusCode = 400;
+                return;
+            }
+            var bytes = new byte[count];
+            new Random(count).NextBytes(bytes);
+            response.ContentType = "application/octet-stream";
+            response.ContentLength64 = bytes.Length;
+            await response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+        }
+
+        /// <summary>httpbin-style /basic-auth/{user}/{password}: 200 when the Basic credentials match, else 401.</summary>
+        private async Task HandleBasicAuth(HttpListenerRequest request, HttpListenerResponse response, string path)
+        {
+            var parts = path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries); // basic-auth, user, password
+            var expectedUser = parts.Length > 1 ? Uri.UnescapeDataString(parts[1]) : string.Empty;
+            var expectedPassword = parts.Length > 2 ? Uri.UnescapeDataString(parts[2]) : string.Empty;
+
+            var authHeader = request.Headers["Authorization"];
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(authHeader.Substring(6).Trim()));
+                    var colon = decoded.IndexOf(':');
+                    var user = colon >= 0 ? decoded.Substring(0, colon) : decoded;
+                    var password = colon >= 0 ? decoded.Substring(colon + 1) : string.Empty;
+                    if (string.Equals(user, expectedUser, StringComparison.OrdinalIgnoreCase) && password == expectedPassword)
+                    {
+                        await SendJsonResponse(response, new Dictionary<string, object>
+                        {
+                            ["authenticated"] = true,
+                            ["user"] = user
+                        });
+                        return;
+                    }
+                }
+                catch (FormatException)
+                {
+                    // fall through to 401
+                }
+            }
+
+            response.StatusCode = 401;
+            response.StatusDescription = "Unauthorized";
+            response.Headers["WWW-Authenticate"] = "Basic realm=\"Fake Realm\"";
+        }
+
         private async Task HandleUserAgent(HttpListenerRequest request, HttpListenerResponse response)
         {
             var userAgent = request.Headers["User-Agent"] ?? "";
@@ -474,31 +539,35 @@ namespace CurlDotNet.Tests.TestServers
 
         private int FindAvailablePort()
         {
-            // Try to find an available port starting from 5001
-            for (int port = 5001; port <= 5100; port++)
-            {
-                try
-                {
-                    var listener = new HttpListener();
-                    listener.Prefixes.Add($"http://localhost:{port}/");
-                    listener.Start();
-                    listener.Stop();
-                    return port;
-                }
-                catch
-                {
-                    // Port is in use, try next one
-                }
-            }
-            throw new InvalidOperationException("Could not find an available port");
+            // Ask the OS for an ephemeral port instead of scanning a fixed range: a probe HttpListener
+            // leaves its prefix registered in-process, so scanning made later servers collide with it.
+            var probe = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+            probe.Start();
+            var port = ((System.Net.IPEndPoint)probe.LocalEndpoint).Port;
+            probe.Stop();
+            return port;
         }
 
         public void Dispose()
         {
             _isRunning = false;
-            _listener?.Stop();
-            _listener?.Close();
-            _listenerTask?.Wait(TimeSpan.FromSeconds(2));
+            try
+            {
+                _listener?.Stop();
+                _listener?.Close();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already disposed by an earlier call; Dispose must be idempotent.
+            }
+            try
+            {
+                _listenerTask?.Wait(TimeSpan.FromSeconds(2));
+            }
+            catch (AggregateException)
+            {
+                // The accept loop ends with an ObjectDisposedException/HttpListenerException once stopped.
+            }
         }
     }
 

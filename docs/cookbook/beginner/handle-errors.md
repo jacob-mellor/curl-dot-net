@@ -1,784 +1,183 @@
-# Recipe: Handle Errors
+---
+title: "Handle curl Errors and Exceptions in C# with CurlDotNet"
+description: "How to handle curl errors and exceptions in C#: HTTP 4xx/5xx results, EnsureSuccess, timeouts, connection failures, redirects, cancellation and retries."
+---
 
-## 🎯 What You'll Build
+# Handle curl errors and exceptions in C#
 
-Robust applications that gracefully handle network errors, API failures, and unexpected responses.
+This recipe shows how to handle curl errors and exceptions in C# with CurlDotNet. There are two kinds of failure: HTTP errors (the server answered, but with 4xx or 5xx) come back as a normal result you inspect, while transport errors (timeout, DNS, refused connection, TLS, too many redirects, cancellation) are thrown as typed exceptions you catch.
 
-## 🥘 Ingredients
+## The problem
 
-- CurlDotNet package
-- Understanding of try-catch
-- 15 minutes
+A request can fail in many different ways and you want code that tells them apart: retry a 503, give up on a 404, report a timeout, and never swallow a bad URL silently.
 
-## 📖 The Recipe
+## Solution 1: check the result for HTTP errors
 
-### Step 1: Basic Error Handling
+`Curl.ExecuteAsync` does not throw for HTTP 4xx/5xx. You get a `CurlResult` with `IsSuccess == false` and the real `StatusCode`, body and headers.
 
 ```csharp
-using System;
-using System.Threading.Tasks;
 using CurlDotNet;
 
-class Program
-{
-    static async Task Main()
-    {
-        try
-        {
-            var result = await Curl.ExecuteAsync("curl https://api.example.com");
-
-            if (result.IsSuccess)
-            {
-                Console.WriteLine("✓ Request successful!");
-                Console.WriteLine(result.Body);
-            }
-            else
-            {
-                Console.WriteLine($"✗ Request failed with status {result.StatusCode}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"✗ Error: {ex.Message}");
-        }
-    }
-}
-```
-
-### Step 2: Specific Exception Handling
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
-
-class RobustErrorHandling
-{
-    static async Task Main()
-    {
-        try
-        {
-            var result = await Curl.ExecuteAsync("curl https://api.example.com");
-            Console.WriteLine("Success!");
-        }
-        catch (CurlDnsException ex)
-        {
-            Console.WriteLine($"DNS Error: Could not resolve hostname");
-            Console.WriteLine($"Details: {ex.Message}");
-            // Link: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/common-issues.md#dns-errors
-        }
-        catch (CurlTimeoutException ex)
-        {
-            Console.WriteLine($"Timeout: Request took too long");
-            Console.WriteLine($"Details: {ex.Message}");
-            // Link: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/common-issues.md#timeout-errors
-        }
-        catch (CurlSslException ex)
-        {
-            Console.WriteLine($"SSL Error: Certificate problem");
-            Console.WriteLine($"Details: {ex.Message}");
-            // Link: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/common-issues.md#ssl-errors
-        }
-        catch (CurlException ex)
-        {
-            Console.WriteLine($"Curl Error: {ex.Message}");
-            Console.WriteLine($"Error Code: {ex.ErrorCode}");
-        }
-    }
-}
-```
-
-## 🍳 Complete Examples
-
-### Example 1: Retry on Failure
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
-
-class RetryExample
-{
-    static async Task<CurlResult> ExecuteWithRetry(
-        string url,
-        int maxRetries = 3,
-        int delaySeconds = 2)
-    {
-        Exception lastException = null;
-
-        for (int attempt = 1; attempt <= maxRetries; attempt++)
-        {
-            try
-            {
-                Console.WriteLine($"Attempt {attempt}/{maxRetries}...");
-
-                var result = await Curl.ExecuteAsync($"curl {url}");
-
-                if (result.IsSuccess)
-                {
-                    Console.WriteLine("✓ Request succeeded");
-                    return result;
-                }
-
-                // Retry on 5xx errors (server errors)
-                if (result.StatusCode >= 500 && attempt < maxRetries)
-                {
-                    Console.WriteLine($"Server error {result.StatusCode}, retrying...");
-                    await Task.Delay(TimeSpan.FromSeconds(delaySeconds * attempt));
-                    continue;
-                }
-
-                return result;
-            }
-            catch (CurlTimeoutException ex)
-            {
-                lastException = ex;
-                Console.WriteLine($"Timeout on attempt {attempt}");
-
-                if (attempt < maxRetries)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(delaySeconds * attempt));
-                }
-            }
-            catch (CurlException ex) when (ex.ErrorCode == 7) // Connection failed
-            {
-                lastException = ex;
-                Console.WriteLine($"Connection failed on attempt {attempt}");
-
-                if (attempt < maxRetries)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(delaySeconds * attempt));
-                }
-            }
-        }
-
-        throw lastException ?? new Exception("All retry attempts failed");
-    }
-
-    static async Task Main()
-    {
-        try
-        {
-            var result = await ExecuteWithRetry(
-                "https://api.example.com/unstable-endpoint",
-                maxRetries: 3,
-                delaySeconds: 2
-            );
-
-            Console.WriteLine($"Final result: {result.StatusCode}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed after all retries: {ex.Message}");
-        }
-    }
-}
-```
-
-### Example 2: Comprehensive Error Handler
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
-
-class ComprehensiveErrorHandler
-{
-    static async Task<bool> MakeRequest(string url)
-    {
-        try
-        {
-            var result = await Curl.ExecuteAsync($"curl {url}");
-
-            // Check HTTP status codes
-            if (result.StatusCode == 200)
-            {
-                Console.WriteLine("✓ Success!");
-                return true;
-            }
-            else if (result.StatusCode == 401)
-            {
-                Console.WriteLine("✗ Unauthorized - check your credentials");
-                return false;
-            }
-            else if (result.StatusCode == 403)
-            {
-                Console.WriteLine("✗ Forbidden - you don't have permission");
-                return false;
-            }
-            else if (result.StatusCode == 404)
-            {
-                Console.WriteLine("✗ Not Found - resource doesn't exist");
-                return false;
-            }
-            else if (result.StatusCode == 429)
-            {
-                Console.WriteLine("✗ Rate Limited - too many requests");
-
-                // Check Retry-After header
-                if (result.Headers.TryGetValue("Retry-After", out string retryAfter))
-                {
-                    Console.WriteLine($"Retry after {retryAfter} seconds");
-                }
-                return false;
-            }
-            else if (result.StatusCode >= 500)
-            {
-                Console.WriteLine($"✗ Server Error {result.StatusCode} - try again later");
-                return false;
-            }
-            else
-            {
-                Console.WriteLine($"✗ Unexpected status: {result.StatusCode}");
-                return false;
-            }
-        }
-        catch (CurlDnsException ex)
-        {
-            Console.WriteLine("✗ DNS Error: Could not resolve hostname");
-            Console.WriteLine("  Check your internet connection and URL spelling");
-            Console.WriteLine($"  Hostname: {ex.Hostname}");
-            return false;
-        }
-        catch (CurlTimeoutException ex)
-        {
-            Console.WriteLine("✗ Timeout: Request took too long");
-            Console.WriteLine("  The server may be slow or not responding");
-            Console.WriteLine($"  Timeout: {ex.Timeout}");
-            return false;
-        }
-        catch (CurlSslException ex)
-        {
-            Console.WriteLine("✗ SSL Error: Certificate problem");
-            Console.WriteLine("  The server's SSL certificate could not be verified");
-            Console.WriteLine($"  Details: {ex.CertificateError}");
-            return false;
-        }
-        catch (CurlHttpReturnedErrorException ex)
-        {
-            Console.WriteLine($"✗ HTTP Error {ex.StatusCode}");
-            Console.WriteLine($"  Response: {ex.ResponseBody}");
-            return false;
-        }
-        catch (CurlException ex)
-        {
-            Console.WriteLine($"✗ Curl Error {ex.ErrorCode}: {ex.Message}");
-            return false;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"✗ Unexpected Error: {ex.Message}");
-            Console.WriteLine($"  Type: {ex.GetType().Name}");
-            return false;
-        }
-    }
-
-    static async Task Main()
-    {
-        bool success = await MakeRequest("https://api.example.com");
-
-        if (success)
-        {
-            Console.WriteLine("\nContinuing with normal flow...");
-        }
-        else
-        {
-            Console.WriteLine("\nHandling failure case...");
-        }
-    }
-}
-```
-
-### Example 3: Circuit Breaker Pattern
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
-
-class CircuitBreaker
-{
-    private int _failureCount = 0;
-    private DateTime _lastFailureTime = DateTime.MinValue;
-    private readonly int _failureThreshold;
-    private readonly TimeSpan _timeout;
-
-    public CircuitBreaker(int failureThreshold = 5, TimeSpan? timeout = null)
-    {
-        _failureThreshold = failureThreshold;
-        _timeout = timeout ?? TimeSpan.FromMinutes(1);
-    }
-
-    public async Task<CurlResult> ExecuteAsync(string url)
-    {
-        // Check if circuit is open
-        if (_failureCount >= _failureThreshold)
-        {
-            var timeSinceLastFailure = DateTime.UtcNow - _lastFailureTime;
-
-            if (timeSinceLastFailure < _timeout)
-            {
-                throw new Exception(
-                    $"Circuit breaker is open. Too many failures. " +
-                    $"Retry after {(_timeout - timeSinceLastFailure).TotalSeconds:F0} seconds"
-                );
-            }
-
-            // Reset after timeout
-            Console.WriteLine("Circuit breaker attempting reset...");
-            _failureCount = 0;
-        }
-
-        try
-        {
-            var result = await Curl.ExecuteAsync($"curl {url}");
-
-            if (result.IsSuccess)
-            {
-                _failureCount = 0; // Reset on success
-                return result;
-            }
-
-            // Count 5xx errors as failures
-            if (result.StatusCode >= 500)
-            {
-                _failureCount++;
-                _lastFailureTime = DateTime.UtcNow;
-                Console.WriteLine($"Failure {_failureCount}/{_failureThreshold}");
-            }
-
-            return result;
-        }
-        catch (CurlException)
-        {
-            _failureCount++;
-            _lastFailureTime = DateTime.UtcNow;
-            Console.WriteLine($"Failure {_failureCount}/{_failureThreshold}");
-            throw;
-        }
-    }
-}
-
-class CircuitBreakerExample
-{
-    static async Task Main()
-    {
-        var circuitBreaker = new CircuitBreaker(
-            failureThreshold: 3,
-            timeout: TimeSpan.FromSeconds(30)
-        );
-
-        // Simulate multiple requests
-        for (int i = 1; i <= 10; i++)
-        {
-            try
-            {
-                Console.WriteLine($"\nRequest {i}:");
-                var result = await circuitBreaker.ExecuteAsync(
-                    "https://httpbin.org/status/500" // Always fails
-                );
-                Console.WriteLine($"Status: {result.StatusCode}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
-            }
-
-            await Task.Delay(1000); // Wait 1 second between requests
-        }
-    }
-}
-```
-
-### Example 4: Fallback Pattern
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
-
-class FallbackPattern
-{
-    static async Task<string> GetDataWithFallback()
-    {
-        // Try primary endpoint
-        try
-        {
-            Console.WriteLine("Trying primary endpoint...");
-            var result = await Curl.ExecuteAsync("curl https://api.primary.com/data");
-
-            if (result.IsSuccess)
-            {
-                Console.WriteLine("✓ Got data from primary");
-                return result.Body;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Primary failed: {ex.Message}");
-        }
-
-        // Try secondary endpoint
-        try
-        {
-            Console.WriteLine("Trying secondary endpoint...");
-            var result = await Curl.ExecuteAsync("curl https://api.secondary.com/data");
-
-            if (result.IsSuccess)
-            {
-                Console.WriteLine("✓ Got data from secondary");
-                return result.Body;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Secondary failed: {ex.Message}");
-        }
-
-        // Try cache
-        try
-        {
-            Console.WriteLine("Trying cache...");
-            if (System.IO.File.Exists("cache.json"))
-            {
-                string cached = await System.IO.File.ReadAllTextAsync("cache.json");
-                Console.WriteLine("✓ Got data from cache");
-                return cached;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Cache failed: {ex.Message}");
-        }
-
-        // Return default data
-        Console.WriteLine("⚠ Returning default data");
-        return "{\"data\": [], \"error\": \"All sources unavailable\"}";
-    }
-
-    static async Task Main()
-    {
-        string data = await GetDataWithFallback();
-        Console.WriteLine($"\nFinal data: {data}");
-    }
-}
-```
-
-### Example 5: Logging and Monitoring
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
-
-class ErrorLogging
-{
-    static void LogError(string level, string message, Exception ex = null)
-    {
-        string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
-        string logMessage = $"[{timestamp}] {level}: {message}";
-
-        if (ex != null)
-        {
-            logMessage += $"\n  Exception: {ex.GetType().Name}";
-            logMessage += $"\n  Message: {ex.Message}";
-
-            if (ex is CurlException curlEx)
-            {
-                logMessage += $"\n  ErrorCode: {curlEx.ErrorCode}";
-            }
-
-            if (ex.StackTrace != null)
-            {
-                logMessage += $"\n  StackTrace: {ex.StackTrace}";
-            }
-        }
-
-        Console.WriteLine(logMessage);
-
-        // Also write to file
-        System.IO.File.AppendAllText("errors.log", logMessage + "\n\n");
-    }
-
-    static async Task<CurlResult> MakeRequestWithLogging(string url)
-    {
-        try
-        {
-            LogError("INFO", $"Making request to {url}");
-
-            var result = await Curl.ExecuteAsync($"curl {url}");
-
-            if (result.IsSuccess)
-            {
-                LogError("INFO", $"Request successful: {result.StatusCode}");
-            }
-            else
-            {
-                LogError("WARNING", $"Request failed: {result.StatusCode}");
-            }
-
-            return result;
-        }
-        catch (CurlDnsException ex)
-        {
-            LogError("ERROR", "DNS resolution failed", ex);
-            throw;
-        }
-        catch (CurlTimeoutException ex)
-        {
-            LogError("ERROR", "Request timed out", ex);
-            throw;
-        }
-        catch (CurlSslException ex)
-        {
-            LogError("ERROR", "SSL certificate error", ex);
-            throw;
-        }
-        catch (CurlException ex)
-        {
-            LogError("ERROR", "Curl error occurred", ex);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            LogError("CRITICAL", "Unexpected error", ex);
-            throw;
-        }
-    }
-
-    static async Task Main()
-    {
-        try
-        {
-            await MakeRequestWithLogging("https://api.example.com");
-        }
-        catch
-        {
-            Console.WriteLine("\nCheck errors.log for details");
-        }
-    }
-}
-```
-
-### Example 6: Validation and Defensive Programming
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
-
-class DefensiveProgramming
-{
-    static bool ValidateUrl(string url)
-    {
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            Console.WriteLine("Error: URL is empty");
-            return false;
-        }
-
-        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
-        {
-            Console.WriteLine("Error: Invalid URL format");
-            return false;
-        }
-
-        if (uri.Scheme != "https" && uri.Scheme != "http")
-        {
-            Console.WriteLine("Error: URL must be HTTP or HTTPS");
-            return false;
-        }
-
-        return true;
-    }
-
-    static async Task<CurlResult> SafeRequest(string url)
-    {
-        // Validate input
-        if (!ValidateUrl(url))
-        {
-            throw new ArgumentException("Invalid URL", nameof(url));
-        }
-
-        try
-        {
-            var result = await Curl.ExecuteAsync($"curl {url}");
-
-            // Validate response
-            if (result == null)
-            {
-                throw new Exception("Result is null");
-            }
-
-            if (result.Body == null)
-            {
-                Console.WriteLine("Warning: Response body is null");
-            }
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Request failed: {ex.Message}");
-            throw;
-        }
-    }
-
-    static async Task Main()
-    {
-        string[] urls = {
-            "https://api.example.com",     // Valid
-            "",                             // Empty
-            "not-a-url",                   // Invalid
-            "ftp://example.com",           // Wrong protocol
-            "https://api.github.com"       // Valid
-        };
-
-        foreach (var url in urls)
-        {
-            Console.WriteLine($"\nTesting: {url}");
-            try
-            {
-                var result = await SafeRequest(url);
-                Console.WriteLine($"✓ Success: {result.StatusCode}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"✗ Failed: {ex.Message}");
-            }
-        }
-    }
-}
-```
-
-## 🎓 Error Handling Best Practices
-
-### 1. Always Use Try-Catch
-
-```csharp
-// Never do this
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
-
-// Always do this
-try
-{
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"Error: {ex.Message}");
-}
-```
-
-### 2. Handle Specific Exceptions First
-
-```csharp
-try
-{
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
-}
-catch (CurlDnsException ex)
-{
-    // Handle DNS errors
-}
-catch (CurlTimeoutException ex)
-{
-    // Handle timeouts
-}
-catch (CurlException ex)
-{
-    // Handle all other curl errors
-}
-catch (Exception ex)
-{
-    // Handle unexpected errors
-}
-```
-
-### 3. Provide Actionable Error Messages
-
-```csharp
-catch (CurlDnsException ex)
-{
-    Console.WriteLine("Could not connect to the server.");
-    Console.WriteLine("Please check:");
-    Console.WriteLine("1. Your internet connection");
-    Console.WriteLine("2. The URL spelling");
-    Console.WriteLine("3. Your DNS settings");
-    Console.WriteLine($"\nTechnical details: {ex.Message}");
-    Console.WriteLine($"Documentation: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/common-issues.md#dns-errors");
-}
-```
-
-### 4. Check Status Codes
-
-```csharp
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/404");
 
 if (!result.IsSuccess)
 {
-    if (result.StatusCode == 404)
+    Console.WriteLine($"HTTP {result.StatusCode}");   // HTTP 404
+    Console.WriteLine(result.Body);                   // error body, if any
+}
+```
+
+`IsSuccess` is true for any 2xx status. For a specific code use `result.StatusCode == 201` or `result.EnsureStatus(201)`.
+
+### Turn HTTP errors into exceptions with EnsureSuccess
+
+When a non-2xx answer should abort, call `EnsureSuccess()`. It throws `CurlDotNet.Core.CurlHttpException` carrying `StatusCode`, `ResponseBody` and `ResponseHeaders`, and returns the result otherwise so you can chain.
+
+```csharp
+using CurlDotNet;
+using CurlDotNet.Core;
+
+try
+{
+    var user = (await Curl.ExecuteAsync("curl https://api.github.com/users/octocat"))
+        .EnsureSuccess()
+        .AsJsonDynamic();
+    Console.WriteLine(user.login);
+}
+catch (CurlHttpException ex)
+{
+    Console.WriteLine($"Server answered {ex.StatusCode}: {ex.ResponseBody}");
+}
+```
+
+A `CurlHttpException` type also exists in `CurlDotNet.Exceptions`. If a file has both `using CurlDotNet.Core;` and `using CurlDotNet.Exceptions;`, write `catch (CurlDotNet.Core.CurlHttpException ex)` to avoid an ambiguous-reference compile error.
+
+## Solution 2: catch transport exceptions
+
+Everything the library throws derives from `CurlDotNet.Exceptions.CurlException`. Catch the specific types first and the base type last.
+
+```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
+
+try
+{
+    var result = await Curl.ExecuteAsync("curl -m 5 -L https://httpbin.org/delay/10");
+}
+catch (CurlOperationTimeoutException ex) { Console.WriteLine($"Timed out after {ex.Timeout}"); }
+catch (CurlCouldntConnectException ex)   { Console.WriteLine($"Cannot reach {ex.Host}:{ex.Port}"); }
+catch (CurlTooManyRedirectsException ex) { Console.WriteLine($"{ex.RedirectCount} redirects"); }
+catch (CurlMalformedUrlException ex)     { Console.WriteLine($"Bad URL: {ex.MalformedUrl}"); }
+catch (CurlException ex)                 { Console.WriteLine($"curl error {ex.CurlErrorCode}: {ex.Message}"); }
+```
+
+What each one means:
+
+| Exception | When it is thrown |
+|-----------|-------------------|
+| `CurlOperationTimeoutException` | `-m` / `--max-time` expired. Derives from `CurlTimeoutException` (`Timeout` property). |
+| `CurlCouldntConnectException` | DNS lookup failed, connection refused, or the TLS handshake failed. Has `Host` and `Port`. |
+| `CurlTooManyRedirectsException` | `-L` followed more redirects than `--max-redirs` allows. Has `RedirectCount`. |
+| `CurlMalformedUrlException` | The URL could not be parsed. Has `MalformedUrl`. |
+| `CurlInvalidCommandException` | The command string is not valid curl, for example no URL. Has `InvalidPart`. |
+| `CurlFileCouldntReadException` | `-d @file` or `--data-binary @file` points at a file that does not exist. |
+| `CurlAbortedByCallbackException` | Your `CancellationToken` was cancelled. |
+
+### Use the Suggestions on the exception
+
+Every `CurlException` carries a `Suggestions` list and a `DiagnosticInfo` string meant for logs and error pages, plus the `Command` that failed and the curl exit code in `CurlErrorCode`.
+
+```csharp
+catch (CurlException ex)
+{
+    Console.WriteLine(ex.Message);
+    foreach (var tip in ex.Suggestions)
+        Console.WriteLine($"  - {tip}");
+    Console.WriteLine(ex.DiagnosticInfo);
+}
+```
+
+### Cancellation
+
+Pass a `CancellationToken`. When it fires you get `CurlAbortedByCallbackException`, not `OperationCanceledException`.
+
+```csharp
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+
+try
+{
+    await Curl.ExecuteAsync("curl https://httpbin.org/delay/10", cts.Token);
+}
+catch (CurlAbortedByCallbackException)
+{
+    Console.WriteLine("Cancelled by the caller");
+}
+```
+
+See the [cancellation tokens tutorial](../../tutorials/12-cancellation-tokens.html).
+
+## Retrying transient failures
+
+curl's `--retry` flag is not implemented yet, and `CurlSettings.WithRetries` is accepted but not acted on in the current release, so write the retry loop yourself. That also gives you control over which failures retry (for example only 5xx and timeouts):
+
+```csharp
+static async Task<CurlResult> ExecuteWithRetries(string command, int attempts = 3)
+{
+    for (var i = 1; ; i++)
     {
-        Console.WriteLine("Resource not found");
-    }
-    else if (result.StatusCode == 401)
-    {
-        Console.WriteLine("Authentication required");
-    }
-    else if (result.StatusCode >= 500)
-    {
-        Console.WriteLine("Server error - try again later");
+        try
+        {
+            var result = await Curl.ExecuteAsync(command);
+            if (result.IsSuccess || result.StatusCode < 500 || i == attempts) return result;
+        }
+        catch (CurlOperationTimeoutException) when (i < attempts) { }
+        catch (CurlCouldntConnectException) when (i < attempts) { }
+        await Task.Delay(TimeSpan.FromMilliseconds(500 * Math.Pow(2, i - 1)));
     }
 }
 ```
 
-### 5. Implement Retry Logic for Transient Errors
+Do not retry 4xx responses: the request itself is wrong and will fail the same way again.
+
+## Builder variant
+
+The request builder returns the same `CurlResult` and throws the same exceptions.
 
 ```csharp
-// Retry on network errors and 5xx server errors
-// Don't retry on 4xx client errors
+using CurlDotNet.Core;
+using CurlDotNet.Exceptions;
+
+try
+{
+    var result = await CurlRequestBuilder
+        .Get("https://httpbin.org/status/500")
+        .WithTimeout(TimeSpan.FromSeconds(10))
+        .ExecuteAsync();
+    result.EnsureSuccess();
+}
+catch (CurlDotNet.Core.CurlHttpException ex) { Console.WriteLine($"HTTP {ex.StatusCode}"); }
+catch (CurlException ex)                      { Console.WriteLine(ex.Message); }
 ```
 
-## 📊 Common Error Scenarios
+## Troubleshooting
 
-| Error Type | When It Happens | How to Handle |
-|------------|----------------|---------------|
-| CurlDnsException | Hostname can't be resolved | Check URL, internet connection |
-| CurlTimeoutException | Request takes too long | Increase timeout, check network |
-| CurlSslException | SSL certificate problem | Update certificates, check server |
-| HTTP 401 | Authentication failed | Check credentials, refresh token |
-| HTTP 403 | No permission | Check permissions, contact admin |
-| HTTP 404 | Resource not found | Verify URL, check if resource exists |
-| HTTP 429 | Rate limited | Implement rate limiting, wait and retry |
-| HTTP 500 | Server error | Retry with backoff, contact support |
+**My `catch (CurlHttpException)` never runs on a 404.** HTTP errors are results, not exceptions, unless you call `EnsureSuccess()` or `EnsureStatus()`.
 
-## 🚀 Next Steps
+**`catch (OperationCanceledException)` never runs.** Cancellation surfaces as `CurlAbortedByCallbackException`. Catch that, or the base `CurlException`.
 
-Now that you can handle errors:
+**Ambiguous reference `CurlHttpException`.** Both `CurlDotNet.Core` and `CurlDotNet.Exceptions` define one. Qualify the type: `catch (CurlDotNet.Core.CurlHttpException ex)`.
 
-1. Build [Robust API Client](call-api.html)
-2. Learn [Simple GET](simple-get.html) with error handling
-3. Explore [Send JSON](send-json.html) with validation
-4. Check [Troubleshooting Guide](../../troubleshooting/)
+**A self-signed certificate fails with `CurlCouldntConnectException`.** TLS handshake failures map to this type. For development only, add `-k` (or `.Insecure()` on the builder).
 
-## 📚 Related Recipes
+**I want to validate the command before running it.** `Curl.Validate("curl ...")` returns a `ValidationResult` with `IsValid` and `Error` without sending anything.
 
-- [Simple GET](simple-get.html) - Basic requests with error handling
-- [Call API](call-api.html) - Building robust API clients
-- [Send JSON](send-json.html) - JSON requests with validation
+## Related recipes
 
-## 🎓 Key Takeaways
-
-- Always use try-catch for network requests
-- Handle specific exception types for better error messages
-- Check HTTP status codes
-- Implement retry logic for transient errors
-- Use circuit breaker pattern to prevent cascading failures
-- Provide fallback options when possible
-- Log errors for debugging
-- Give users actionable error messages
-- Validate inputs before making requests
-
----
-
-**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.html) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+- [Simple GET request](simple-get.html)
+- [Call a REST API](call-api.html)
+- [Timeouts](../timeouts.html)
+- [Follow redirects](../follow-redirects.html)
+- [Cookbook index](../index.html)
+- Reference: [Exceptions overview](../../exceptions/index.html), [HTTP errors](../../exceptions/http-errors.html), [Timeout errors](../../exceptions/timeout-errors.html), [Redirect errors](../../exceptions/redirect-errors.html), [URL errors](../../exceptions/url-errors.html)
+- [Troubleshooting: common issues](../../troubleshooting/common-issues.html) and [error reference](../../troubleshooting/error-reference.html)
+- Tutorial: [Handling errors](../../tutorials/06-handling-errors.html)

@@ -1,131 +1,152 @@
-# New to curl? Start Here!
+---
+title: "New to curl? How to run curl commands in C#"
+description: "New to curl? Learn what a curl command is, how to read its flags, and how to run curl commands in C# and .NET with CurlDotNet, a pure-C# curl."
+---
 
-Welcome! If you're new to curl or HTTP clients in general, you're in the right place. This guide will help you understand what curl is, why CurlDotNet exists, and how to get started with making HTTP requests in .NET.
+# New to curl? How to run curl commands in C#
+
+New to curl? This page explains what curl is, how to read a curl command, and how to run curl commands in C# with CurlDotNet. If you have ever copied a `curl ...` line from API documentation and wondered how to turn it into .NET code, this is the answer: you do not have to translate it. You run it.
 
 ## What is curl?
 
-curl (pronounced "curl" or "see-URL") is one of the most widely used command-line tools and libraries for transferring data with URLs. Created in 1996, it's battle-tested, incredibly reliable, and installed on billions of devices worldwide.
+curl is a command-line tool for transferring data over URLs. It has been developed continuously since 1996, ships with Windows 10+, macOS and most Linux distributions, and is the format almost every REST API uses to document its endpoints. A curl command is a complete, precise description of an HTTP request: method, URL, headers, body and options.
 
-### Why curl matters:
-- **Universal**: Pre-installed on macOS, Linux, and Windows 10+
-- **Reliable**: 25+ years of development and testing
-- **Powerful**: Supports 20+ protocols (HTTP, HTTPS, FTP, SFTP, etc.)
-- **Trusted**: Used by NASA, Fortune 500 companies, and millions of developers
+## How to read a curl command
+
+```bash
+curl -X POST https://httpbin.org/post \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer token123" \
+     -d '{"name":"Ada"}'
+```
+
+| Part | Meaning |
+|------|---------|
+| `curl` | The tool. Optional in CurlDotNet. |
+| `-X POST` | HTTP method. GET is the default. |
+| `https://httpbin.org/post` | The URL. |
+| `-H "Name: value"` | A request header. Repeat for each header. |
+| `-d '...'` | The request body. Implies POST if no `-X` is given. |
+| `\` | Shell line continuation. CurlDotNet accepts multi-line strings with or without it. |
+
+Other flags you will see constantly: `-u user:pass` (basic auth), `-L` (follow redirects), `-k` (ignore SSL certificate errors), `-o file` (save to file), `-F field=value` (multipart form), `-m 30` (timeout in seconds), `-x proxy` (use a proxy), `-v` (verbose output).
 
 ## What is CurlDotNet?
 
-CurlDotNet brings the power and reliability of curl to .NET developers through a pure C# implementation. Unlike other .NET HTTP clients that have their own implementations, CurlDotNet provides curl's exact behavior and features.
+CurlDotNet is a pure-C# reimplementation of curl for .NET. It parses a curl command string and performs the request with .NET's own networking stack. There is no native libcurl dependency and no external process is started, so it runs anywhere .NET runs: Windows, macOS, Linux, containers and Azure Functions, on .NET 8, 9 and 10 and on .NET Framework 4.7.2+.
 
-### Key Benefits:
-- **100% Pure C#**: No native dependencies or P/Invoke
-- **Cross-platform**: Works everywhere .NET runs
-- **Familiar**: If you know curl commands, you know CurlDotNet
-- **Modern**: Full async/await support with .NET best practices
+## Run your first curl command in C#
 
-## Your First Request
+Install the package, then paste the command into `Curl.ExecuteAsync`.
 
-Making an HTTP request with CurlDotNet is simple:
+```bash
+dotnet add package CurlDotNet
+```
 
 ```csharp
 using CurlDotNet;
 
-// Create a GET request
-var curl = new Curl();
-var result = await curl.GetAsync("https://api.github.com/users/github");
+var result = await Curl.ExecuteAsync("curl -A 'MyApp/1.0' https://api.github.com/users/octocat");
 
-// Check if successful
-if (result.IsSuccess)
+Console.WriteLine(result.StatusCode);  // 200
+Console.WriteLine(result.Body);        // the JSON response
+```
+
+The same request with the fluent builder, if you prefer typed C# over a command string:
+
+```csharp
+using CurlDotNet.Core;
+
+var result = await CurlRequestBuilder.Get("https://api.github.com/users/octocat")
+    .WithUserAgent("MyApp/1.0")
+    .ExecuteAsync();
+```
+
+## Reading the result
+
+Every call returns a `CurlResult`:
+
+| Member | What it holds |
+|--------|---------------|
+| `StatusCode` | HTTP status as an `int`, e.g. `200`, `404` |
+| `IsSuccess` | `true` when the status is 2xx |
+| `Body` | Response body as a string |
+| `Headers` | Response headers (case-insensitive dictionary) |
+| `BinaryData` | Response bytes when the content is binary (images, PDFs, zips) |
+| `ParseJson<T>()` | Deserialize the body into your own class |
+
+```csharp
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
+
+if (!result.IsSuccess)
 {
-    Console.WriteLine(result.Data);  // JSON response
+    Console.WriteLine($"Request failed with HTTP {result.StatusCode}");
+    return;
 }
-else
+
+Console.WriteLine(result.GetHeader("Content-Type"));
+```
+
+## Common curl commands in C#
+
+### curl -X POST JSON in C#
+
+```csharp
+var result = await Curl.ExecuteAsync(@"curl -X POST https://httpbin.org/post
+    -H 'Content-Type: application/json'
+    -d '{""name"":""Ada"",""language"":""C#""}'");
+```
+
+Or let CurlDotNet serialize an object for you:
+
+```csharp
+var result = await Curl.PostJsonAsync("https://httpbin.org/post",
+    new { name = "Ada", language = "C#" });
+```
+
+### curl bearer token in C#
+
+```csharp
+var result = await Curl.ExecuteAsync(
+    "curl -H 'Authorization: Bearer token123' https://httpbin.org/bearer");
+```
+
+### curl download file in C#
+
+```csharp
+var result = await Curl.ExecuteAsync("curl -o logo.png https://httpbin.org/image/png");
+Console.WriteLine(result.OutputFiles[0]);   // logo.png
+```
+
+### curl basic auth in C#
+
+```csharp
+var result = await Curl.ExecuteAsync("curl -u user:passwd https://httpbin.org/basic-auth/user/passwd");
+```
+
+## What happens when something goes wrong
+
+An HTTP error such as 404 or 500 does not throw. The call returns normally with `IsSuccess == false` and the status code and body available, exactly as curl would print them. Network-level failures (DNS lookup failed, connection refused, timeout) throw a `CurlException` from the `CurlDotNet.Exceptions` namespace, with a `CurlErrorCode` matching curl's exit codes and a `Suggestions` list describing how to fix the problem.
+
+```csharp
+using CurlDotNet.Exceptions;
+
+try
 {
-    Console.WriteLine($"Error: {result.Error}");
+    var result = await Curl.ExecuteAsync("curl -m 5 https://httpbin.org/delay/10");
+}
+catch (CurlTimeoutException ex)
+{
+    Console.WriteLine($"Timed out: {ex.Message}");
 }
 ```
 
-## Common Use Cases
+## Next steps
 
-### 1. Fetching Data from APIs
-```csharp
-var curl = new Curl();
-var weather = await curl.GetAsync("https://api.weather.gov/gridpoints/TOP/31,80");
-```
+1. [Install CurlDotNet](getting-started/installation.html)
+2. [Quick start: your first curl command in C# in 2 minutes](getting-started/quickstart.html)
+3. [Tutorial: what is curl?](tutorials/02-what-is-curl.html) for a slower, fuller introduction
+4. [Cookbook](cookbook/index.html) for copy-paste recipes
+5. [Which curl flags are supported](reference/curl-cli-compatibility.html)
 
-### 2. Submitting Forms
-```csharp
-var formData = new FormUrlEncodedContent(new Dictionary<string, string>
-{
-    ["username"] = "user@example.com",
-    ["password"] = "secure123"
-});
-
-var result = await curl.PostAsync("https://example.com/login", formData);
-```
-
-### 3. Downloading Files
-```csharp
-await curl.DownloadFileAsync(
-    "https://example.com/document.pdf",
-    "/path/to/save/document.pdf"
-);
-```
-
-## Key Concepts
-
-### The Curl Object
-The `Curl` class is your main interface to the library. Create one instance and reuse it for multiple requests:
-
-```csharp
-var curl = new Curl();  // Create once, use many times
-```
-
-### Results and Error Handling
-Every operation returns a `CurlResult` with:
-- `IsSuccess`: Did the request complete successfully?
-- `Data`: The response body (if successful)
-- `StatusCode`: HTTP status code
-- `Error`: Error message (if failed)
-- `Headers`: Response headers
-
-### Async by Default
-CurlDotNet is built for modern .NET with async/await:
-```csharp
-// All operations are async
-await curl.GetAsync(url);
-await curl.PostAsync(url, data);
-await curl.PutAsync(url, data);
-await curl.DeleteAsync(url);
-```
-
-## Next Steps
-
-Now that you understand the basics:
-
-1. **[Install CurlDotNet](getting-started/installation.html)** - Add it to your project
-2. **[Follow the Tutorials](tutorials/01-what-is-dotnet.html)** - Step-by-step learning path
-3. **[Try the Cookbook](cookbook/index.html)** - Copy-paste solutions for common tasks
-4. **[Explore Examples](https://github.com/jacob-mellor/curl-dot-net/tree/master/examples)** - Complete working applications
-
-## Getting Help
-
-- **Documentation**: You're already here!
-- **Examples**: Check the [examples directory](https://github.com/jacob-mellor/curl-dot-net/tree/master/examples)
-- **Issues**: [Report bugs or ask questions](https://github.com/jacob-mellor/curl-dot-net/issues)
-- **Cookbook**: [Common recipes and patterns](cookbook/index.html)
-
-## Why Choose CurlDotNet?
-
-If you're wondering why to use CurlDotNet over HttpClient or RestSharp:
-
-- **Consistency**: Same behavior as curl command-line tool
-- **Simplicity**: Minimal API surface, easy to learn
-- **Reliability**: Built on curl's proven foundation
-- **Performance**: Optimized for real-world usage
-- **Support**: Active development and community
-
-Ready to start? [Install CurlDotNet](getting-started/installation.html) and make your first request in minutes!
-
----
-
-*CurlDotNet is the .NET binding for the world's most trusted HTTP client. Join millions of developers who rely on curl every day.*
+Questions or bugs: [GitHub issues](https://github.com/jacob-mellor/curl-dot-net/issues).

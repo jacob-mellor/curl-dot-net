@@ -382,8 +382,10 @@ namespace CurlDotNet.Tests
             await _handler.ExecuteAsync(options, CancellationToken.None);
 
             // Assert
+            // HttpHeaders splits "gzip, deflate" into separate parsed values; the wire header is "Accept-Encoding: gzip, deflate"
             capturedRequest.Headers.TryGetValues("Accept-Encoding", out var values).Should().BeTrue();
-            values.Should().Contain(v => v.Contains("gzip") && v.Contains("deflate"));
+            values.Should().Contain(v => v.Contains("gzip"));
+            values.Should().Contain(v => v.Contains("deflate"));
         }
 
         [Fact]

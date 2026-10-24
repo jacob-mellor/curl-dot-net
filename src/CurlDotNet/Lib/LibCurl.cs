@@ -116,7 +116,7 @@ namespace CurlDotNet.Lib
             var options = new CurlOptions { Url = url, Method = "GET" };
             MergeDefaults(options);
             configure?.Invoke(options);
-            return await _engine.ExecuteAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken);
         }
 
         /// <summary>
@@ -152,7 +152,7 @@ namespace CurlDotNet.Lib
             };
             MergeDefaults(options);
             configure?.Invoke(options);
-            return await _engine.ExecuteAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken);
         }
 
         /// <summary>
@@ -173,7 +173,7 @@ namespace CurlDotNet.Lib
             };
             MergeDefaults(options);
             configure?.Invoke(options);
-            return await _engine.ExecuteAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken);
         }
 
         /// <summary>
@@ -194,7 +194,7 @@ namespace CurlDotNet.Lib
             };
             MergeDefaults(options);
             configure?.Invoke(options);
-            return await _engine.ExecuteAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken);
         }
 
         /// <summary>
@@ -209,7 +209,7 @@ namespace CurlDotNet.Lib
             var options = new CurlOptions { Url = url, Method = "DELETE" };
             MergeDefaults(options);
             configure?.Invoke(options);
-            return await _engine.ExecuteAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken);
         }
 
         /// <summary>
@@ -224,7 +224,7 @@ namespace CurlDotNet.Lib
             var options = new CurlOptions { Url = url, Method = "HEAD", HeadOnly = true };
             MergeDefaults(options);
             configure?.Invoke(options);
-            return await _engine.ExecuteAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken);
         }
 
         /// <summary>
@@ -236,7 +236,7 @@ namespace CurlDotNet.Lib
         public async Task<CurlResult> PerformAsync(CurlOptions options, CancellationToken cancellationToken = default)
         {
             MergeDefaults(options);
-            return await _engine.ExecuteAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken);
         }
 
         #endregion
@@ -296,7 +296,7 @@ namespace CurlDotNet.Lib
         /// <returns>This instance for method chaining</returns>
         public LibCurl WithTimeout(TimeSpan timeout)
         {
-            _defaultOptions.MaxTime = (int)timeout.TotalSeconds;
+            _defaultOptions.MaxTime = timeout.TotalSeconds;
             return this;
         }
 
@@ -307,7 +307,7 @@ namespace CurlDotNet.Lib
         /// <returns>This instance for method chaining</returns>
         public LibCurl WithConnectTimeout(TimeSpan timeout)
         {
-            _defaultOptions.ConnectTimeout = (int)timeout.TotalSeconds;
+            _defaultOptions.ConnectTimeout = timeout.TotalSeconds;
             return this;
         }
 
@@ -479,6 +479,38 @@ namespace CurlDotNet.Lib
         }
 
         #endregion
+
+        /// <summary>
+        /// Runs the request and, like libcurl's <c>CURLcode</c> model, reports transfer failures
+        /// through <see cref="CurlResult.Exception"/> instead of throwing. Caller cancellation is
+        /// the one exception: it surfaces as <see cref="OperationCanceledException"/> so it composes
+        /// with normal .NET cancellation handling.
+        /// </summary>
+        private async Task<CurlResult> RunAsync(CurlOptions options, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await _engine.ExecuteAsync(options, cancellationToken);
+            }
+            catch (CurlDotNet.Exceptions.CurlAbortedByCallbackException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException("The curl request was cancelled.", cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (CurlDotNet.Exceptions.CurlException ex)
+            {
+                return new CurlResult
+                {
+                    StatusCode = 0,
+                    Body = string.Empty,
+                    Command = options.OriginalCommand,
+                    Exception = ex,
+                };
+            }
+        }
 
         /// <summary>
         /// Dispose resources.

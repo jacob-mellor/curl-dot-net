@@ -294,7 +294,7 @@ namespace CurlDotNet.Core
 #if NETSTANDARD2_0
             _options.Data = Newtonsoft.Json.JsonConvert.SerializeObject(data);
 #else
-            _options.Data = System.Text.Json.JsonSerializer.Serialize(data);
+            _options.Data = Curl.SerializeJson(data);
 #endif
             _options.Headers["Content-Type"] = "application/json";
             if (string.IsNullOrEmpty(_options.Method) || _options.Method == "GET")
@@ -396,7 +396,7 @@ namespace CurlDotNet.Core
         /// </summary>
         public CurlRequestBuilder WithTimeout(TimeSpan timeout)
         {
-            _options.MaxTime = (int)timeout.TotalSeconds;
+            _options.MaxTime = timeout.TotalSeconds;
             return this;
         }
 
@@ -405,7 +405,7 @@ namespace CurlDotNet.Core
         /// </summary>
         public CurlRequestBuilder WithConnectTimeout(TimeSpan timeout)
         {
-            _options.ConnectTimeout = (int)timeout.TotalSeconds;
+            _options.ConnectTimeout = timeout.TotalSeconds;
             return this;
         }
 
@@ -764,25 +764,25 @@ namespace CurlDotNet.Core
             // Headers
             foreach (var header in _options.Headers)
             {
-                parts.Add($"-H '{header.Key}: {header.Value}'");
+                parts.Add("-H " + CommandParser.ShellQuote($"{header.Key}: {header.Value}"));
             }
 
             // User-Agent
             if (!string.IsNullOrEmpty(_options.UserAgent))
             {
-                parts.Add($"-A '{_options.UserAgent}'");
+                parts.Add("-A " + CommandParser.ShellQuote(_options.UserAgent));
             }
 
             // Referer
             if (!string.IsNullOrEmpty(_options.Referer))
             {
-                parts.Add($"-e '{_options.Referer}'");
+                parts.Add("-e " + CommandParser.ShellQuote(_options.Referer));
             }
 
             // Data
             if (!string.IsNullOrEmpty(_options.Data))
             {
-                parts.Add($"-d '{_options.Data}'");
+                parts.Add("-d " + CommandParser.ShellQuote(_options.Data));
             }
 
             // Form data
@@ -790,7 +790,7 @@ namespace CurlDotNet.Core
             {
                 foreach (var field in _options.FormData)
                 {
-                    parts.Add($"-F '{field.Key}={field.Value}'");
+                    parts.Add("-F " + CommandParser.ShellQuote($"{field.Key}={field.Value}"));
                 }
             }
 
@@ -799,14 +799,14 @@ namespace CurlDotNet.Core
             {
                 foreach (var file in _options.Files)
                 {
-                    parts.Add($"-F '{file.Key}=@{file.Value}'");
+                    parts.Add("-F " + CommandParser.ShellQuote($"{file.Key}=@{file.Value}"));
                 }
             }
 
             // Authentication
             if (_options.Credentials != null)
             {
-                parts.Add($"-u '{_options.Credentials.UserName}:{_options.Credentials.Password}'");
+                parts.Add("-u " + CommandParser.ShellQuote($"{_options.Credentials.UserName}:{_options.Credentials.Password}"));
             }
 
             // Options
@@ -826,27 +826,27 @@ namespace CurlDotNet.Core
                 parts.Add("--compressed");
 
             if (_options.MaxTime.HasValue && _options.MaxTime.Value > 0)
-                parts.Add($"--max-time {_options.MaxTime.Value}");
+                parts.Add($"--max-time {_options.MaxTime.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
             if (_options.ConnectTimeout.HasValue && _options.ConnectTimeout.Value > 0)
-                parts.Add($"--connect-timeout {_options.ConnectTimeout.Value}");
+                parts.Add($"--connect-timeout {_options.ConnectTimeout.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
             if (_options.MaxRedirects > 0 && _options.MaxRedirects != 50)
                 parts.Add($"--max-redirs {_options.MaxRedirects}");
 
             if (!string.IsNullOrEmpty(_options.Proxy))
-                parts.Add($"-x {_options.Proxy}");
+                parts.Add("-x " + CommandParser.ShellQuoteIfNeeded(_options.Proxy));
 
             if (!string.IsNullOrEmpty(_options.Cookie))
-                parts.Add($"-b '{_options.Cookie}'");
+                parts.Add("-b " + CommandParser.ShellQuote(_options.Cookie));
             if (!string.IsNullOrEmpty(_options.CookieJar))
-                parts.Add($"-c {_options.CookieJar}");
+                parts.Add("-c " + CommandParser.ShellQuoteIfNeeded(_options.CookieJar));
 
             if (!string.IsNullOrEmpty(_options.OutputFile))
-                parts.Add($"-o {_options.OutputFile}");
+                parts.Add("-o " + CommandParser.ShellQuoteIfNeeded(_options.OutputFile));
             if (_options.UseRemoteFileName)
                 parts.Add("-O");
 
             // URL goes last
-            parts.Add(_options.Url);
+            parts.Add(CommandParser.ShellQuoteIfNeeded(_options.Url));
 
             return string.Join(" ", parts);
         }

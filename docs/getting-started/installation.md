@@ -1,612 +1,153 @@
-# Installation Guide
+---
+title: "Install CurlDotNet: curl for .NET 8, 9, 10 and .NET 4.7.2+"
+description: "Install CurlDotNet, curl for .NET 8, 9, 10 and .NET Framework 4.7.2+, from NuGet. Supported target frameworks, verification and troubleshooting."
+---
 
-## 🎯 What You'll Learn
+# Install CurlDotNet: curl for .NET 8, 9, 10 and .NET Framework 4.7.2+
 
-- How to install .NET SDK
-- How to install CurlDotNet
-- How to verify your installation
-- Platform-specific setup instructions
+Install CurlDotNet, curl for .NET 8, 9, 10 and .NET Framework 4.7.2+, from NuGet with a single command. CurlDotNet is pure C# with no native dependencies, so there is nothing else to install: no libcurl, no curl binary, no platform-specific packages.
 
-## 📚 Prerequisites
+## Install from NuGet
 
-- A computer running Windows, macOS, or Linux
-- Internet connection
-- 10-15 minutes
-
-## 🚀 Quick Start
-
-If you already have .NET installed, getting CurlDotNet is just one command:
+.NET CLI:
 
 ```bash
 dotnet add package CurlDotNet
 ```
 
-That's it! Jump to [Verify Installation](#verify-installation) to confirm everything works.
-
-## 📦 Step-by-Step Installation
-
-### Step 1: Install .NET SDK
-
-CurlDotNet requires .NET. Here's how to install it on your platform:
-
-#### Windows
-
-**Option 1: Official Installer (Recommended)**
-
-1. Visit [dotnet.microsoft.com/download](https://dotnet.microsoft.com/download)
-2. Download the .NET SDK (not just the runtime)
-3. Run the installer
-4. Click through the wizard (defaults are fine)
-5. Restart your terminal/command prompt
-
-**Option 2: Windows Package Manager (winget)**
-
-```powershell
-winget install Microsoft.DotNet.SDK.8
-```
-
-**Option 3: Chocolatey**
-
-```powershell
-choco install dotnet-sdk
-```
-
-#### macOS
-
-**Option 1: Official Installer (Recommended)**
-
-1. Visit [dotnet.microsoft.com/download](https://dotnet.microsoft.com/download)
-2. Download the .NET SDK for macOS
-3. Open the .pkg file
-4. Follow the installation wizard
-5. Restart your terminal
-
-**Option 2: Homebrew**
-
-```bash
-brew install --cask dotnet-sdk
-```
-
-#### Linux (Ubuntu/Debian)
-
-```bash
-# Add Microsoft package repository
-wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-sudo dpkg -i packages-microsoft-prod.deb
-rm packages-microsoft-prod.deb
-
-# Install .NET SDK
-sudo apt-get update
-sudo apt-get install -y dotnet-sdk-8.0
-```
-
-#### Linux (Fedora/RHEL/CentOS)
-
-```bash
-# Add Microsoft package repository
-sudo dnf install dotnet-sdk-8.0
-```
-
-#### Linux (Arch)
-
-```bash
-sudo pacman -S dotnet-sdk
-```
-
-#### Linux (Other Distributions)
-
-See the [official .NET installation guide](https://docs.microsoft.com/dotnet/core/install/linux) for your specific distribution.
-
-### Step 2: Verify .NET Installation
-
-Open a terminal/command prompt and run:
-
-```bash
-dotnet --version
-```
-
-You should see a version number like `8.0.100` or `10.0.0`. If you get an error, restart your terminal or check the [.NET installation troubleshooting guide](https://docs.microsoft.com/dotnet/core/install/).
-
-### Step 3: Create a New Project
-
-```bash
-# Create a directory for your project
-mkdir MyCurlApp
-cd MyCurlApp
-
-# Create a new console application
-dotnet new console
-
-# Verify the project was created
-ls
-```
-
-You should see:
-- `MyCurlApp.csproj` - Project file
-- `Program.cs` - Your code file
-- `obj/` directory - Build artifacts
-
-### Step 4: Install CurlDotNet Package
-
-Now install CurlDotNet using one of these methods:
-
-#### Option 1: .NET CLI (Recommended)
-
-```bash
-dotnet add package CurlDotNet
-```
-
-#### Option 2: NuGet Package Manager (Visual Studio)
-
-1. Right-click on your project in Solution Explorer
-2. Select "Manage NuGet Packages"
-3. Search for "CurlDotNet"
-4. Click "Install"
-
-#### Option 3: Package Manager Console (Visual Studio)
+Package Manager Console (Visual Studio):
 
 ```powershell
 Install-Package CurlDotNet
 ```
 
-#### Option 4: Manual PackageReference
-
-Edit your `.csproj` file and add:
+PackageReference in your `.csproj`:
 
 ```xml
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="CurlDotNet" Version="1.0.0" />
-  </ItemGroup>
-</Project>
+<ItemGroup>
+  <PackageReference Include="CurlDotNet" Version="9.*" />
+</ItemGroup>
 ```
 
-Then run:
+Visual Studio UI: right-click the project, choose **Manage NuGet Packages**, search for `CurlDotNet` and click **Install**.
+
+Package page: [nuget.org/packages/CurlDotNet](https://www.nuget.org/packages/CurlDotNet/)
+
+## Supported target frameworks
+
+| Your project targets | CurlDotNet build used | Notes |
+|----------------------|-----------------------|-------|
+| .NET 10.0 | `net10.0` | Current release |
+| .NET 9.0 | `net9.0` | |
+| .NET 8.0 | `net8.0` | LTS |
+| .NET Framework 4.8 | `net48` | |
+| .NET Framework 4.7.2 | `net472` | Oldest supported .NET Framework |
+| .NET 6 / 7, Mono, Unity, Xamarin | `netstandard2.0` | Anything that implements .NET Standard 2.0 |
+
+On .NET Standard 2.0 and .NET Framework, JSON parsing uses Newtonsoft.Json; on .NET 8+ it uses `System.Text.Json`. The public API is identical. See [framework compatibility](../framework-compatibility.html) for details.
+
+## Prerequisites: the .NET SDK
+
+Check what you have:
 
 ```bash
-dotnet restore
+dotnet --version
 ```
 
-### Step 5: Verify CurlDotNet Installation
+If the command is not found, install the SDK (not just the runtime) from [dotnet.microsoft.com/download](https://dotnet.microsoft.com/download), or with a package manager:
 
-Create a simple test file to verify everything works:
+```powershell
+# Windows
+winget install Microsoft.DotNet.SDK.10
+```
+
+```bash
+# macOS
+brew install --cask dotnet-sdk
+```
+
+```bash
+# Ubuntu / Debian
+sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
+```
+
+Restart your terminal after installing. For other Linux distributions follow Microsoft's [Linux install guide](https://learn.microsoft.com/dotnet/core/install/linux).
+
+## Verify the installation
+
+Create a console app, add the package and run one request.
+
+```bash
+dotnet new console -n CurlDotNetCheck
+cd CurlDotNetCheck
+dotnet add package CurlDotNet
+```
+
+Replace `Program.cs`:
 
 ```csharp
-using System;
-using System.Threading.Tasks;
 using CurlDotNet;
 
-class Program
-{
-    static async Task Main(string[] args)
-    {
-        Console.WriteLine("Testing CurlDotNet installation...\n");
-
-        try
-        {
-            var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/200");
-
-            if (result.IsSuccess)
-            {
-                Console.WriteLine("✓ CurlDotNet is working correctly!");
-                Console.WriteLine($"✓ Status Code: {result.StatusCode}");
-                Console.WriteLine($"✓ .NET Version: {Environment.Version}");
-            }
-            else
-            {
-                Console.WriteLine($"✗ Unexpected status: {result.StatusCode}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"✗ Error: {ex.Message}");
-        }
-    }
-}
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
+Console.WriteLine($"CurlDotNet works. HTTP {result.StatusCode}");
 ```
-
-Run it:
 
 ```bash
 dotnet run
 ```
 
-You should see:
+Expected output: `CurlDotNet works. HTTP 200`.
 
-```
-Testing CurlDotNet installation...
+## Install CurlDotNet in a .NET Framework project
 
-✓ CurlDotNet is working correctly!
-✓ Status Code: 200
-✓ .NET Version: 8.0.0
-```
+CurlDotNet ships `net472` and `net48` builds. Install the same NuGet package; no extra configuration is needed. If your project still uses `packages.config`, Visual Studio will offer to migrate to PackageReference, which is recommended. The static `Curl.ExecuteAsync` API and the `CurlRequestBuilder` are available on .NET Framework exactly as on modern .NET.
 
-If you see this, congratulations! CurlDotNet is installed and working.
+## Docker
 
-## 🔧 IDE and Editor Setup
-
-### Visual Studio 2022 (Windows/Mac)
-
-**Installation:**
-1. Download from [visualstudio.microsoft.com](https://visualstudio.microsoft.com/)
-2. During installation, select ".NET desktop development" workload
-3. Install CurlDotNet via NuGet Package Manager
-
-**Creating a project:**
-1. File → New → Project
-2. Select "Console App (.NET)"
-3. Name your project
-4. Right-click project → Manage NuGet Packages
-5. Search "CurlDotNet" and install
-
-### Visual Studio Code (Cross-Platform)
-
-**Installation:**
-1. Download from [code.visualstudio.com](https://code.visualstudio.com/)
-2. Install the C# extension (by Microsoft)
-3. Install the C# Dev Kit extension (optional but recommended)
-
-**Creating a project:**
-```bash
-dotnet new console -n MyCurlApp
-cd MyCurlApp
-dotnet add package CurlDotNet
-code .
-```
-
-**Running in VS Code:**
-- Press `F5` to debug
-- Or use the terminal: `dotnet run`
-
-### JetBrains Rider (Cross-Platform)
-
-**Installation:**
-1. Download from [jetbrains.com/rider](https://www.jetbrains.com/rider/)
-2. Install and open Rider
-3. Create new solution or open existing
-
-**Adding CurlDotNet:**
-1. Right-click project → Manage NuGet Packages
-2. Search "CurlDotNet"
-3. Click Install
-
-### Command Line / Terminal Only
-
-You don't need an IDE! You can use any text editor:
-
-```bash
-# Create project
-dotnet new console
-dotnet add package CurlDotNet
-
-# Edit with your favorite editor
-nano Program.cs
-# or
-vim Program.cs
-# or
-code Program.cs
-
-# Build and run
-dotnet run
-```
-
-## 🎯 Platform-Specific Notes
-
-### Windows
-
-**Supported Versions:**
-- Windows 10 (1607+)
-- Windows 11
-- Windows Server 2012 R2+
-
-**Requirements:**
-- .NET SDK 8.0 or later (or .NET Standard 2.0 compatible runtime)
-- PowerShell 5.1+ or PowerShell Core 7+
-- Windows Terminal recommended for best experience
-
-**Common Issues:**
-- If `dotnet` command not found, restart your terminal
-- If SSL errors occur, ensure Windows is updated
-- For Windows 7/8, use .NET Framework 4.7.2+
-
-### macOS
-
-**Supported Versions:**
-- macOS 10.15 (Catalina) or later
-- macOS 11 (Big Sur)
-- macOS 12 (Monterey)
-- macOS 13 (Ventura)
-- macOS 14 (Sonoma)
-
-**Requirements:**
-- .NET SDK 8.0 or later
-- Xcode Command Line Tools (install with: `xcode-select --install`)
-
-**Common Issues:**
-- If you get permission errors, check your Gatekeeper settings
-- For M1/M2 Macs, use ARM64 version of .NET
-- SSL certificates: use `security find-certificate -a` to verify system certs
-
-### Linux
-
-**Supported Distributions:**
-- Ubuntu 20.04, 22.04, 24.04
-- Debian 10, 11, 12
-- Fedora 37+
-- RHEL/CentOS 7, 8, 9
-- Arch Linux (rolling)
-- Alpine Linux 3.16+
-- Many others via .NET Standard 2.0
-
-**Requirements:**
-- .NET SDK 8.0 or later
-- OpenSSL 1.1 or 3.0
-- ca-certificates package
-
-**Common Issues:**
-- If SSL errors occur: `sudo apt-get install ca-certificates` (Ubuntu/Debian)
-- For permission issues: ensure user is in required groups
-- Some distros need: `sudo apt-get install libicu-dev`
-
-### Docker / Containers
-
-**Dockerfile example:**
+CurlDotNet has no native dependencies, so it runs in the standard Microsoft images including the Alpine and chiseled variants.
 
 ```dockerfile
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+COPY . .
+RUN dotnet publish -c Release -o /app
+
+FROM mcr.microsoft.com/dotnet/runtime:10.0
 WORKDIR /app
-
-# Copy and restore
-COPY *.csproj ./
-RUN dotnet restore
-
-# Copy everything and build
-COPY . ./
-RUN dotnet publish -c Release -o out
-
-# Build runtime image
-FROM mcr.microsoft.com/dotnet/runtime:8.0
-WORKDIR /app
-COPY --from=build /app/out .
-ENTRYPOINT ["dotnet", "MyCurlApp.dll"]
+COPY --from=build /app .
+ENTRYPOINT ["dotnet", "MyApp.dll"]
 ```
 
-**Building and running:**
+## Troubleshooting
+
+### Package 'CurlDotNet' not found
+
+Make sure nuget.org is a configured source, then clear the cache and retry.
 
 ```bash
-docker build -t mycurlapp .
-docker run mycurlapp
-```
-
-### Azure Functions / App Service
-
-**Installation via portal:**
-1. Create Azure Function or App Service
-2. Select .NET 8.0 runtime
-3. Add CurlDotNet to your project dependencies
-
-**Local development:**
-
-```bash
-# Install Azure Functions Core Tools
-npm install -g azure-functions-core-tools@4
-
-# Create function app
-func init MyFunctionApp --dotnet
-cd MyFunctionApp
-dotnet add package CurlDotNet
-
-# Create function
-func new --name MyHttpTrigger --template "HTTP trigger"
-
-# Run locally
-func start
-```
-
-## 📋 Version Compatibility
-
-### .NET Target Frameworks
-
-CurlDotNet supports these .NET versions:
-
-| Target Framework | Support Status | Recommended |
-|------------------|----------------|-------------|
-| .NET 10.0 | ✅ Fully Supported | Yes |
-| .NET 8.0 (LTS) | ✅ Fully Supported | **Best Choice** |
-| .NET 6.0 (LTS) | ✅ Fully Supported | Yes |
-| .NET 5.0 | ✅ Supported | No (EOL) |
-| .NET Core 3.1 | ✅ Supported | No (EOL) |
-| .NET Core 2.0+ | ✅ Via .NET Standard 2.0 | Legacy only |
-| .NET Framework 4.7.2+ | ✅ Via .NET Standard 2.0 | Windows only |
-| .NET Standard 2.0 | ✅ Fully Supported | Maximum compatibility |
-
-**Recommendation:** Use .NET 8.0 (current LTS) for new projects.
-
-### CurlDotNet Versions
-
-```bash
-# Install latest version (recommended)
-dotnet add package CurlDotNet
-
-# Install specific version
-dotnet add package CurlDotNet --version 1.0.0
-
-# Update to latest
-dotnet add package CurlDotNet
-```
-
-**Version History:**
-- `1.0.0` - Initial stable release
-- `1.0.1` - Bug fixes and improvements (upcoming)
-
-## 🔍 Troubleshooting Installation
-
-### Problem: "dotnet: command not found"
-
-**On Windows:**
-1. Restart your command prompt/terminal
-2. Check if .NET is in PATH: `echo %PATH%`
-3. Manually add to PATH if needed: `C:\Program Files\dotnet`
-
-**On macOS/Linux:**
-1. Restart your terminal
-2. Check PATH: `echo $PATH`
-3. Add to PATH: `export PATH=$PATH:/usr/local/share/dotnet`
-4. Add to shell profile: `echo 'export PATH=$PATH:/usr/local/share/dotnet' >> ~/.bashrc`
-
-For more details, see the [troubleshooting guide](../troubleshooting/).
-
-### Problem: "Package 'CurlDotNet' not found"
-
-**Solution:**
-```bash
-# Update NuGet sources
 dotnet nuget list source
-
-# Add NuGet.org if missing
 dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org
-
-# Clear cache and retry
 dotnet nuget locals all --clear
-dotnet restore
 dotnet add package CurlDotNet
 ```
 
-For more details, see the [troubleshooting guide](../troubleshooting/).
+### The target framework is not supported
 
-### Problem: "The target framework 'netX.X' is not supported"
+CurlDotNet supports .NET 8+, .NET Framework 4.7.2+ and .NET Standard 2.0. If your project targets .NET 6 or 7 it will use the `netstandard2.0` build, which works but misses `System.Text.Json`-based features. Upgrading the `<TargetFramework>` to `net8.0` or later is recommended.
 
-**Solution:**
-```bash
-# Check your .NET version
-dotnet --version
+### dotnet: command not found
 
-# Update your project's target framework in .csproj
-# Change from:
-<TargetFramework>net5.0</TargetFramework>
-# To:
-<TargetFramework>net8.0</TargetFramework>
+The SDK is not on your `PATH`. Reinstall from [dotnet.microsoft.com/download](https://dotnet.microsoft.com/download) and open a new terminal.
 
-# Or for maximum compatibility:
-<TargetFramework>netstandard2.0</TargetFramework>
-```
+### SSL or certificate errors on first run
 
-### Problem: "SDK not found" or "A compatible SDK version was not found"
+CurlDotNet uses the operating system's certificate store through .NET. Make sure the OS root certificates are up to date (`sudo apt-get install ca-certificates` on Debian/Ubuntu). For development servers with self-signed certificates you can pass `-k` (see [curl ignore SSL certificate in C#](../guides/advanced.html#curl-ignore-ssl-certificate-in-c)); do not use it in production.
 
-**Solution:**
-1. Install .NET SDK (not just runtime)
-2. Check installed SDKs: `dotnet --list-sdks`
-3. If empty, reinstall .NET SDK from [dotnet.microsoft.com](https://dotnet.microsoft.com/)
+More: [Troubleshooting](../troubleshooting/README.html) and [Common issues](../troubleshooting/common-issues.html).
 
-For more details, see the [troubleshooting guide](../troubleshooting/).
+## Next steps
 
-### Problem: SSL/TLS Errors on First Run
-
-**On Windows:**
-```bash
-# Update certificates
-certutil -generateSSTFromWU roots.sst
-```
-
-**On macOS:**
-```bash
-# Update certificates
-security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain > /dev/null
-```
-
-**On Linux:**
-```bash
-# Update CA certificates
-sudo apt-get update
-sudo apt-get install --reinstall ca-certificates
-```
-
-For more details, see the [troubleshooting guide](../troubleshooting/).
-
-### Problem: Permission Errors
-
-**On Windows:**
-Run terminal as Administrator
-
-**On macOS/Linux:**
-```bash
-# Don't use sudo for dotnet commands
-# Instead, fix permissions:
-sudo chown -R $USER ~/.dotnet
-sudo chown -R $USER ~/.nuget
-```
-
-## 🎓 Next Steps
-
-Now that CurlDotNet is installed:
-
-1. **Try it out** → [Your First Request](../tutorials/04-your-first-request.html)
-2. **Learn the basics** → [Tutorials](../tutorials/)
-3. **Explore recipes** → [Cookbook](../cookbook/)
-4. **Read API docs** → [API Guide](../api-guide/)
-
-## 📚 Additional Resources
-
-### Official Documentation
-
-- [CurlDotNet Documentation](https://jacob-mellor.github.io/curl-dot-net/)
-- [.NET Documentation](https://docs.microsoft.com/dotnet/)
-- [NuGet Package Page](https://www.nuget.org/packages/CurlDotNet/)
-
-### Getting Help
-
-- [GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues) - Bug reports
-- [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions) - Questions
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/curldotnet) - Community help
-
-### Learning Resources
-
-- [Tutorial Series](../tutorials/) - Step-by-step learning
-- [Cookbook Recipes](../cookbook/) - Ready-to-use samples
-- [API Reference](../api-guide/) - Complete API reference
-
-## 🎯 Quick Reference
-
-```bash
-# Install .NET SDK
-# Visit: https://dotnet.microsoft.com/download
-
-# Verify installation
-dotnet --version
-
-# Create new project
-dotnet new console -n MyCurlApp
-cd MyCurlApp
-
-# Add CurlDotNet
-dotnet add package CurlDotNet
-
-# Run your app
-dotnet run
-
-# Build for production
-dotnet publish -c Release
-```
-
-## ✅ Installation Checklist
-
-Before continuing, make sure:
-
-- [ ] .NET SDK is installed (`dotnet --version` works)
-- [ ] CurlDotNet package is added to your project
-- [ ] Test program runs successfully
-- [ ] Your IDE/editor is set up (optional)
-- [ ] You can make a simple HTTP request
-
-If all boxes are checked, you're ready to start building with CurlDotNet!
-
----
-
-**Ready to make your first request?** → [Your First Request](../tutorials/04-your-first-request.html)
-
-**Need help?** Check the [Troubleshooting Guide](../troubleshooting/common-issues.html) or ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+- [Quick start: run your first curl command in C# in 2 minutes](quickstart.html)
+- [Your first request, explained](first-request.html)
+- [Configuration](configuration.html)
+- [New to curl?](../new-to-curl.html)

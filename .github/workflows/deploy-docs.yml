@@ -25,6 +25,10 @@ jobs:
         publish_dir: ./docs
         publish_branch: gh-pages
         force_orphan: true
+        # Let GitHub Pages run Jekyll so every Markdown page is served as HTML (with the
+        # theme, <title>/<meta description> from front matter, a sitemap and .md -> .html links).
+        # Without this the action writes .nojekyll and the site serves raw Markdown.
+        enable_jekyll: true
         user_name: 'github-actions[bot]'
         user_email: 'github-actions[bot]@users.noreply.github.com'
         commit_message: |

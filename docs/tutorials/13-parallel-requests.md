@@ -1,10 +1,18 @@
-# Tutorial 13: Parallel Requests
+---
+title: "Parallel curl Requests in C# with Task.WhenAll (CurlDotNet)"
+description: "Run parallel curl requests in C# with Task.WhenAll, Curl.ExecuteManyAsync and SemaphoreSlim throttling. Handle partial failures, rate limits and progress."
+---
 
-Learn how to execute multiple HTTP requests concurrently to improve performance and reduce overall execution time with CurlDotNet.
+# Tutorial 13: parallel curl requests in C# with Task.WhenAll
+
+This tutorial shows how to run parallel curl requests in C# with Task.WhenAll and CurlDotNet: start many `Curl.ExecuteAsync` calls at once, use the `Curl.ExecuteManyAsync` shortcut, cap concurrency with `SemaphoreSlim`, and handle the failures that happen when some requests succeed and others do not.
+
+`Curl` is a static class. There is nothing to construct, pool or dispose; call it from as many tasks as you like.
 
 ## Why Parallel Requests?
 
-Sequential requests waste time waiting:
+Sequential requests wait for each other:
+
 ```
 Request 1: [====] 200ms
 Request 2:       [====] 200ms
@@ -12,7 +20,8 @@ Request 3:             [====] 200ms
 Total: 600ms
 ```
 
-Parallel requests save time:
+Parallel requests overlap:
+
 ```
 Request 1: [====] 200ms
 Request 2: [====] 200ms
@@ -23,568 +32,236 @@ Total: 200ms
 ## Basic Parallel Requests
 
 ### Using Task.WhenAll
+
+Start every request first, then await all of them together. The key is to not `await` inside the `Select`:
+
 ```csharp
-public async Task BasicParallelRequests()
+using CurlDotNet;
+
+var urls = new[]
 {
-    var curl = new Curl();
-    var urls = new[]
-    {
-        "https://api.example.com/users/1",
-        "https://api.example.com/users/2",
-        "https://api.example.com/users/3"
-    };
+    "https://httpbin.org/get?id=1",
+    "https://httpbin.org/get?id=2",
+    "https://httpbin.org/get?id=3"
+};
 
-    // Start all requests simultaneously
-    var tasks = urls.Select(url => curl.GetAsync(url)).ToArray();
+var tasks = urls.Select(u => Curl.ExecuteAsync($"curl '{u}'"));
+var results = await Task.WhenAll(tasks);
 
-    // Wait for all to complete
-    var results = await Task.WhenAll(tasks);
-
-    // Process results
-    for (int i = 0; i < results.Length; i++)
-    {
-        if (results[i].IsSuccess)
-        {
-            Console.WriteLine($"User {i + 1}: {results[i].Data}");
-        }
-    }
-}
+foreach (var r in results)
+    Console.WriteLine($"{r.StatusCode} in {r.Timings.Total:F0} ms");
 ```
 
-### Parallel.ForEachAsync (.NET 6+)
+### Curl.ExecuteManyAsync
+
+When you already have the command strings, `ExecuteManyAsync` does the `Task.WhenAll` for you. Three one-second delays finish in about one second, not three:
+
 ```csharp
-public async Task ModernParallelRequests()
+using System.Diagnostics;
+
+var sw = Stopwatch.StartNew();
+var results = await Curl.ExecuteManyAsync(
+    "curl https://httpbin.org/delay/1",
+    "curl https://httpbin.org/delay/1",
+    "curl https://httpbin.org/delay/1");
+sw.Stop();
+
+Console.WriteLine($"{results.Length} requests in {sw.ElapsedMilliseconds} ms");   // ~1000
+```
+
+### Parallel.ForEachAsync
+
+`Parallel.ForEachAsync` runs a body per item with a built-in concurrency cap and a cancellation token for each iteration:
+
+```csharp
+using System.Collections.Concurrent;
+
+var bodies = new ConcurrentBag<string>();
+
+await Parallel.ForEachAsync(Enumerable.Range(1, 20),
+    new ParallelOptions { MaxDegreeOfParallelism = 4 },
+    async (id, ct) =>
 {
-    var curl = new Curl();
-    var userIds = Enumerable.Range(1, 100).ToList();
-    var results = new ConcurrentBag<User>();
+    var r = await Curl.ExecuteAsync($"curl 'https://httpbin.org/get?id={id}'", ct);
+    if (r.IsSuccess) bodies.Add(r.Body);
+});
 
-    await Parallel.ForEachAsync(userIds, async (userId, ct) =>
-    {
-        var result = await curl.GetAsync($"https://api.example.com/users/{userId}", ct);
-
-        if (result.IsSuccess)
-        {
-            var user = JsonSerializer.Deserialize<User>(result.Data);
-            results.Add(user);
-        }
-    });
-
-    Console.WriteLine($"Retrieved {results.Count} users");
-}
+Console.WriteLine($"Fetched {bodies.Count} of 20");
 ```
 
 ## Controlling Concurrency
 
-### Limited Parallelism
+### Limiting parallelism with SemaphoreSlim
+
+Firing a thousand requests at once is rude to the server and slow for you. A `SemaphoreSlim` lets only N requests run at a time while the rest queue:
+
 ```csharp
-public async Task LimitedConcurrency()
+using CurlDotNet.Core;
+
+var gate = new SemaphoreSlim(5);   // at most 5 in flight
+
+async Task<CurlResult> Throttled(string url)
 {
-    var curl = new Curl();
-    var urls = GetManyUrls(); // Assume 1000 URLs
+    await gate.WaitAsync();
+    try { return await Curl.ExecuteAsync($"curl '{url}'"); }
+    finally { gate.Release(); }
+}
 
-    // Limit to 5 concurrent requests
-    var semaphore = new SemaphoreSlim(5);
-    var tasks = new List<Task<CurlResult>>();
+var results = await Task.WhenAll(urls.Select(Throttled));
+Console.WriteLine($"Completed {results.Length} requests");
+```
 
-    foreach (var url in urls)
-    {
-        await semaphore.WaitAsync();
+### Processing in batches
 
-        var task = Task.Run(async () =>
-        {
-            try
-            {
-                return await curl.GetAsync(url);
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-        });
+Batches are a simpler alternative when you also want a pause between groups:
 
-        tasks.Add(task);
-    }
+```csharp
+const int batchSize = 10;
 
-    var results = await Task.WhenAll(tasks);
-    Console.WriteLine($"Completed {results.Length} requests");
+for (int i = 0; i < urls.Length; i += batchSize)
+{
+    var batch = urls.Skip(i).Take(batchSize)
+                    .Select(u => Curl.ExecuteAsync($"curl '{u}'"));
+    var results = await Task.WhenAll(batch);
+
+    Console.WriteLine($"Batch {i / batchSize + 1}: {results.Count(r => r.IsSuccess)} ok");
+    await Task.Delay(200);   // breathing room for the server
 }
 ```
 
-### Using Channels for Producer-Consumer
+## Aggregating Results from Different Sources
+
+Different endpoints can run side by side too. Start each task, wait for all, then read them individually:
+
 ```csharp
-public class RequestProcessor
-{
-    private readonly Channel<string> _urlChannel;
-    private readonly Curl _curl = new Curl();
+var repoTask = Curl.ExecuteAsync("curl https://api.github.com/repos/curl/curl");
+var userTask = Curl.ExecuteAsync("curl https://api.github.com/users/bagder");
+var ipTask   = Curl.ExecuteAsync("curl https://httpbin.org/ip");
 
-    public RequestProcessor(int maxConcurrency = 10)
-    {
-        _urlChannel = Channel.CreateUnbounded<string>();
+await Task.WhenAll(repoTask, userTask, ipTask);
 
-        // Start consumer tasks
-        for (int i = 0; i < maxConcurrency; i++)
-        {
-            _ = Task.Run(ProcessRequests);
-        }
-    }
-
-    public async Task AddUrl(string url)
-    {
-        await _urlChannel.Writer.WriteAsync(url);
-    }
-
-    private async Task ProcessRequests()
-    {
-        await foreach (var url in _urlChannel.Reader.ReadAllAsync())
-        {
-            try
-            {
-                var result = await _curl.GetAsync(url);
-                if (result.IsSuccess)
-                {
-                    await ProcessResult(result);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error processing {url}: {ex.Message}");
-            }
-        }
-    }
-
-    private async Task ProcessResult(CurlResult result)
-    {
-        // Process the result
-        await Task.Delay(10); // Simulate processing
-    }
-
-    public void Complete()
-    {
-        _urlChannel.Writer.Complete();
-    }
-}
-```
-
-## Batch Processing
-
-### Processing in Batches
-```csharp
-public async Task ProcessInBatches<T>(List<string> urls, int batchSize = 10)
-{
-    var curl = new Curl();
-    var allResults = new List<T>();
-
-    for (int i = 0; i < urls.Count; i += batchSize)
-    {
-        var batch = urls.Skip(i).Take(batchSize);
-        Console.WriteLine($"Processing batch {i / batchSize + 1}...");
-
-        var tasks = batch.Select(url => curl.GetAsync(url));
-        var results = await Task.WhenAll(tasks);
-
-        foreach (var result in results.Where(r => r.IsSuccess))
-        {
-            var data = JsonSerializer.Deserialize<T>(result.Data);
-            allResults.Add(data);
-        }
-
-        // Optional: Add delay between batches to avoid overwhelming the server
-        if (i + batchSize < urls.Count)
-        {
-            await Task.Delay(100);
-        }
-    }
-
-    return allResults;
-}
-```
-
-## Aggregating Results
-
-### Collecting All Results
-```csharp
-public class ParallelAggregator
-{
-    private readonly Curl _curl = new Curl();
-
-    public async Task<AggregatedData> AggregateDataFromMultipleSources()
-    {
-        // Define different data sources
-        var weatherTask = GetWeatherDataAsync();
-        var newsTask = GetNewsDataAsync();
-        var stockTask = GetStockDataAsync();
-        var trafficTask = GetTrafficDataAsync();
-
-        // Wait for all tasks to complete
-        await Task.WhenAll(weatherTask, newsTask, stockTask, trafficTask);
-
-        // Aggregate results
-        return new AggregatedData
-        {
-            Weather = await weatherTask,
-            News = await newsTask,
-            Stocks = await stockTask,
-            Traffic = await trafficTask,
-            Timestamp = DateTime.UtcNow
-        };
-    }
-
-    private async Task<WeatherData> GetWeatherDataAsync()
-    {
-        var result = await _curl.GetAsync("https://api.weather.com/current");
-        return result.IsSuccess
-            ? JsonSerializer.Deserialize<WeatherData>(result.Data)
-            : null;
-    }
-
-    private async Task<List<NewsItem>> GetNewsDataAsync()
-    {
-        var result = await _curl.GetAsync("https://api.news.com/latest");
-        return result.IsSuccess
-            ? JsonSerializer.Deserialize<List<NewsItem>>(result.Data)
-            : new List<NewsItem>();
-    }
-
-    private async Task<StockData> GetStockDataAsync()
-    {
-        var result = await _curl.GetAsync("https://api.stocks.com/quotes");
-        return result.IsSuccess
-            ? JsonSerializer.Deserialize<StockData>(result.Data)
-            : null;
-    }
-
-    private async Task<TrafficData> GetTrafficDataAsync()
-    {
-        var result = await _curl.GetAsync("https://api.traffic.com/conditions");
-        return result.IsSuccess
-            ? JsonSerializer.Deserialize<TrafficData>(result.Data)
-            : null;
-    }
-}
+var repo = await repoTask;   // already finished; this just unwraps the result
+Console.WriteLine($"GitHub repo: HTTP {repo.StatusCode}, {repo.Body.Length} chars");
+Console.WriteLine($"Public IP:   {(await ipTask).Body.Trim()}");
 ```
 
 ## Error Handling in Parallel Operations
 
-### Handling Partial Failures
+Two kinds of failure show up in a batch. HTTP 4xx/5xx responses come back as normal results with `IsSuccess == false`. Network failures (DNS, refused connection, timeout) throw, and `Task.WhenAll` surfaces only the first exception. Wrap each request so nothing is lost:
+
 ```csharp
-public async Task<BatchResult<T>> ProcessWithErrorHandling<T>(List<string> urls)
+using CurlDotNet.Exceptions;
+
+async Task<(string Url, CurlResult Result, Exception Error)> TryFetch(string url)
 {
-    var curl = new Curl();
-    var successful = new ConcurrentBag<T>();
-    var failed = new ConcurrentBag<FailedRequest>();
-
-    var tasks = urls.Select(async url =>
-    {
-        try
-        {
-            var result = await curl.GetAsync(url);
-
-            if (result.IsSuccess)
-            {
-                var data = JsonSerializer.Deserialize<T>(result.Data);
-                successful.Add(data);
-            }
-            else
-            {
-                failed.Add(new FailedRequest
-                {
-                    Url = url,
-                    Error = result.Error,
-                    StatusCode = result.StatusCode
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            failed.Add(new FailedRequest
-            {
-                Url = url,
-                Error = ex.Message,
-                Exception = ex
-            });
-        }
-    });
-
-    await Task.WhenAll(tasks);
-
-    return new BatchResult<T>
-    {
-        Successful = successful.ToList(),
-        Failed = failed.ToList(),
-        SuccessRate = (double)successful.Count / urls.Count
-    };
+    try { return (url, await Curl.ExecuteAsync($"curl '{url}'"), null); }
+    catch (CurlException ex) { return (url, null, ex); }
 }
 
-public class BatchResult<T>
+foreach (var o in await Task.WhenAll(urls.Select(TryFetch)))
 {
-    public List<T> Successful { get; set; }
-    public List<FailedRequest> Failed { get; set; }
-    public double SuccessRate { get; set; }
-}
-
-public class FailedRequest
-{
-    public string Url { get; set; }
-    public string Error { get; set; }
-    public HttpStatusCode StatusCode { get; set; }
-    public Exception Exception { get; set; }
+    if (o.Error != null)          Console.WriteLine($"{o.Url}: {o.Error.GetType().Name}");
+    else if (!o.Result.IsSuccess) Console.WriteLine($"{o.Url}: HTTP {o.Result.StatusCode}");
+    else                          Console.WriteLine($"{o.Url}: ok");
 }
 ```
 
-## Performance Optimization
+See [Tutorial 6](06-handling-errors.html) for the exception types you may encounter.
 
-### Connection Pooling
+## Respecting Rate Limits
+
+Many APIs tell you how much budget is left in response headers. Read them and back off when the server asks:
+
 ```csharp
-public class OptimizedParallelClient
+var result = await Curl.ExecuteAsync("curl https://api.github.com/rate_limit");
+
+Console.WriteLine($"Remaining calls: {result.GetHeader("X-RateLimit-Remaining")}");
+
+if (result.StatusCode == 429 || result.StatusCode == 403)
 {
-    // Reuse Curl instances for better connection pooling
-    private readonly ConcurrentBag<Curl> _curlPool = new();
-    private readonly int _poolSize;
-
-    public OptimizedParallelClient(int poolSize = 10)
-    {
-        _poolSize = poolSize;
-
-        // Pre-create Curl instances
-        for (int i = 0; i < poolSize; i++)
-        {
-            _curlPool.Add(new Curl());
-        }
-    }
-
-    public async Task<CurlResult> ExecuteAsync(string url)
-    {
-        Curl curl = null;
-
-        try
-        {
-            // Get a Curl instance from the pool
-            if (!_curlPool.TryTake(out curl))
-            {
-                // Pool is empty, create a new instance
-                curl = new Curl();
-            }
-
-            return await curl.GetAsync(url);
-        }
-        finally
-        {
-            // Return to pool if we haven't exceeded the size
-            if (curl != null && _curlPool.Count < _poolSize)
-            {
-                _curlPool.Add(curl);
-            }
-        }
-    }
-
-    public async Task<List<CurlResult>> ExecuteManyAsync(List<string> urls)
-    {
-        var tasks = urls.Select(ExecuteAsync);
-        var results = await Task.WhenAll(tasks);
-        return results.ToList();
-    }
+    var retryAfter = result.GetHeader("Retry-After") ?? "a while";
+    Console.WriteLine($"Rate limited; wait {retryAfter}");
 }
 ```
 
-## Rate Limiting
+To stay under a fixed requests-per-second budget, space out the starts:
 
-### Respecting API Rate Limits
 ```csharp
-public class RateLimitedParallelClient
+var pace = TimeSpan.FromMilliseconds(200);   // 5 requests per second
+var starter = new SemaphoreSlim(1, 1);
+
+async Task<CurlResult> Paced(string url)
 {
-    private readonly SemaphoreSlim _rateLimiter;
-    private readonly Timer _resetTimer;
-    private readonly Curl _curl = new Curl();
-    private int _requestsRemaining;
+    await starter.WaitAsync();
+    try { await Task.Delay(pace); }
+    finally { starter.Release(); }
 
-    public RateLimitedParallelClient(int requestsPerMinute)
-    {
-        _requestsRemaining = requestsPerMinute;
-        _rateLimiter = new SemaphoreSlim(requestsPerMinute);
-
-        // Reset the limit every minute
-        _resetTimer = new Timer(_ => ResetLimit(requestsPerMinute),
-            null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
-    }
-
-    private void ResetLimit(int limit)
-    {
-        _requestsRemaining = limit;
-
-        // Release all waiting requests up to the limit
-        var toRelease = Math.Min(limit, _rateLimiter.CurrentCount);
-        if (toRelease > 0)
-        {
-            _rateLimiter.Release(toRelease);
-        }
-    }
-
-    public async Task<CurlResult> ExecuteAsync(string url)
-    {
-        await _rateLimiter.WaitAsync();
-
-        try
-        {
-            Interlocked.Decrement(ref _requestsRemaining);
-            var result = await _curl.GetAsync(url);
-
-            // Check rate limit headers
-            if (result.Headers.TryGetValue("X-RateLimit-Remaining", out var remaining))
-            {
-                _requestsRemaining = int.Parse(remaining);
-            }
-
-            return result;
-        }
-        finally
-        {
-            if (_requestsRemaining > 0)
-            {
-                _rateLimiter.Release();
-            }
-        }
-    }
+    return await Curl.ExecuteAsync($"curl '{url}'");
 }
+
+var results = await Task.WhenAll(urls.Select(Paced));
 ```
 
 ## Progress Tracking
 
-### Tracking Parallel Progress
+Thread-safe counters give you a live progress line without any extra classes:
+
 ```csharp
-public class ParallelProgressTracker
+int done = 0, failed = 0;
+
+var tasks = urls.Select(async url =>
 {
-    private int _completed = 0;
-    private int _failed = 0;
-    private readonly int _total;
-    private readonly IProgress<ProgressReport> _progress;
+    var r = await Curl.ExecuteAsync($"curl '{url}'");
+    if (r.IsSuccess) Interlocked.Increment(ref done);
+    else Interlocked.Increment(ref failed);
+    Console.Write($"\r{done + failed}/{urls.Length} complete");
+});
 
-    public ParallelProgressTracker(int total, IProgress<ProgressReport> progress)
-    {
-        _total = total;
-        _progress = progress;
-    }
+await Task.WhenAll(tasks);
+Console.WriteLine($"\n{done} ok, {failed} failed");
+```
 
-    public async Task ProcessUrls(List<string> urls)
-    {
-        var curl = new Curl();
-        var tasks = new List<Task>();
+## Cancelling a Whole Batch
 
-        foreach (var url in urls)
-        {
-            var task = ProcessSingleUrl(curl, url);
-            tasks.Add(task);
-        }
+Pass one token to every request and cancel the source once. Each cancelled request throws `CurlAbortedByCallbackException`:
 
-        await Task.WhenAll(tasks);
+```csharp
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
-        // Final report
-        _progress.Report(new ProgressReport
-        {
-            Completed = _completed,
-            Failed = _failed,
-            Total = _total,
-            IsComplete = true
-        });
-    }
+var tasks = urls.Select(u => Curl.ExecuteAsync($"curl '{u}'", cts.Token));
 
-    private async Task ProcessSingleUrl(Curl curl, string url)
-    {
-        try
-        {
-            var result = await curl.GetAsync(url);
-
-            if (result.IsSuccess)
-            {
-                Interlocked.Increment(ref _completed);
-            }
-            else
-            {
-                Interlocked.Increment(ref _failed);
-            }
-
-            // Report progress
-            _progress.Report(new ProgressReport
-            {
-                Completed = _completed,
-                Failed = _failed,
-                Total = _total,
-                PercentComplete = (_completed + _failed) * 100.0 / _total
-            });
-        }
-        catch
-        {
-            Interlocked.Increment(ref _failed);
-        }
-    }
+try
+{
+    var results = await Task.WhenAll(tasks);
 }
-
-public class ProgressReport
+catch (CurlAbortedByCallbackException)
 {
-    public int Completed { get; set; }
-    public int Failed { get; set; }
-    public int Total { get; set; }
-    public double PercentComplete { get; set; }
-    public bool IsComplete { get; set; }
+    Console.WriteLine("Batch cancelled before every request finished");
 }
 ```
 
-## Testing Parallel Operations
-
-### Unit Testing
-```csharp
-[TestClass]
-public class ParallelRequestTests
-{
-    [TestMethod]
-    public async Task TestParallelExecution()
-    {
-        // Arrange
-        var curl = new Mock<ICurl>();
-        var urls = Enumerable.Range(1, 10).Select(i => $"https://api.example.com/{i}").ToList();
-
-        curl.Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CurlResult { IsSuccess = true, Data = "test" });
-
-        // Act
-        var sw = Stopwatch.StartNew();
-        var tasks = urls.Select(url => curl.Object.GetAsync(url));
-        var results = await Task.WhenAll(tasks);
-        sw.Stop();
-
-        // Assert
-        Assert.AreEqual(10, results.Length);
-        Assert.IsTrue(sw.ElapsedMilliseconds < 1000); // Should be fast due to parallelism
-    }
-}
-```
+[Tutorial 12](12-cancellation-tokens.html) covers cancellation in depth.
 
 ## Best Practices
 
-1. **Limit concurrency** - Don't overwhelm servers with too many parallel requests
-2. **Handle errors gracefully** - Some requests may fail in a batch
-3. **Use connection pooling** - Reuse HTTP connections when possible
-4. **Respect rate limits** - Implement proper rate limiting
-5. **Monitor progress** - Provide feedback for long-running operations
-6. **Consider server capacity** - Be a good API citizen
-7. **Use cancellation tokens** - Allow operations to be cancelled
-8. **Aggregate results properly** - Handle partial successes
-9. **Test parallel behavior** - Ensure correctness under concurrent load
-10. **Log appropriately** - Track success/failure rates
+1. **Start tasks before awaiting them** - `await` inside `Select` turns parallel code back into sequential code.
+2. **Cap concurrency** - `SemaphoreSlim` or `MaxDegreeOfParallelism`; five to ten in flight is plenty for most APIs.
+3. **Wrap each request when failures are expected** - `Task.WhenAll` only rethrows the first exception.
+4. **Remember that HTTP errors do not throw** - check `IsSuccess` on every result.
+5. **Read rate-limit headers** and honour `Retry-After`.
+6. **Use one cancellation token for the batch** so a shutdown stops everything at once.
+7. **Quote URLs** in the command string when they contain `?` or `&`.
 
 ## Summary
 
-Parallel requests can dramatically improve performance:
-- Use Task.WhenAll for simple scenarios
-- Control concurrency with semaphores
-- Handle partial failures gracefully
-- Implement rate limiting when needed
-- Track progress for user feedback
+- `Task.WhenAll` over `Curl.ExecuteAsync` runs requests concurrently; `Curl.ExecuteManyAsync` is the shorthand.
+- `SemaphoreSlim`, batches and `Parallel.ForEachAsync` limit how many run at once.
+- Wrap requests to capture every failure, and read `IsSuccess` for HTTP errors.
 
 ## What's Next?
 
-Learn about [debugging requests](14-debugging-requests.html) to troubleshoot issues effectively.
+Learn about [debugging requests](14-debugging-requests.html) to see exactly what goes over the wire.
 
 ---
 
-[← Previous: Cancellation Tokens](12-cancellation-tokens.html) | [Next: Debugging Requests →](14-debugging-requests.html)
+[Previous: Cancellation Tokens](12-cancellation-tokens.html) | [Next: Debugging Requests](14-debugging-requests.html)

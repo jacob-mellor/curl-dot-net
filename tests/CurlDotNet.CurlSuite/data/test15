@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP GET
+--write-out
+</keywords>
+</info>
+<reply>
+<data crlf="headers" nocheck="yes">
+HTTP/1.1 200 OK
+Fake: yes
+Fake: yes
+Fake: yes
+Content-Length: 26
+
+Repeated nonsense-headers
+</data>
+</reply>
+
+<client>
+<server>
+http
+</server>
+<name>
+--write-out test
+</name>
+<command>
+http://%HOSTIP:%HTTPPORT/want/%TESTNUMBER --write-out "%{url_effective} %{http_code} %{size_download}\n"
+</command>
+</client>
+
+<verify>
+<stdout crlf="headers">
+HTTP/1.1 200 OK
+Fake: yes
+Fake: yes
+Fake: yes
+Content-Length: 26
+
+Repeated nonsense-headers
+http://%HOSTIP:%HTTPPORT/want/%TESTNUMBER 200 26
+</stdout>
+<protocol crlf="headers">
+GET /want/%TESTNUMBER HTTP/1.1
+Host: %HOSTIP:%HTTPPORT
+User-Agent: curl/%VERSION
+Accept: */*
+
+</protocol>
+</verify>
+</testcase>

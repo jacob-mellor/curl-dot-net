@@ -65,6 +65,61 @@ namespace CurlDotNet.Core
 
         public async Task<CurlResult> ExecuteAsync(CurlOptions options, CancellationToken cancellationToken)
         {
+            if (options.Retry <= 0)
+            {
+                return await ExecuteAttemptAsync(options, cancellationToken);
+            }
+
+            // curl --retry: transient errors are timeouts and HTTP 408/429/500/502/503/504; the wait
+            // doubles from 1 s up to 10 minutes unless --retry-delay fixes it; --retry-max-time caps it all.
+            var retryStarted = DateTime.UtcNow;
+            for (var attempt = 0; ; attempt++)
+            {
+                var retriesLeft = options.Retry - attempt;
+                CurlResult? result = null;
+                string? reason = null;
+                try
+                {
+                    result = await ExecuteAttemptAsync(options, cancellationToken);
+                    if (retriesLeft > 0 && IsTransientStatus(result.StatusCode))
+                    {
+                        reason = $"HTTP {result.StatusCode}";
+                    }
+                }
+                catch (CurlOperationTimeoutException) when (retriesLeft > 0)
+                {
+                    reason = "timeout";
+                }
+                catch (CurlCouldntConnectException) when (retriesLeft > 0 && (options.RetryAllErrors || options.RetryConnRefused))
+                {
+                    reason = "connection failed";
+                }
+                catch (CurlException) when (retriesLeft > 0 && options.RetryAllErrors)
+                {
+                    reason = "error";
+                }
+
+                if (reason == null)
+                {
+                    return result!;
+                }
+
+                var delaySeconds = options.RetryDelay > 0 ? options.RetryDelay : Math.Min(Math.Pow(2, attempt), 600);
+                if (options.RetryMaxTime > 0 && (DateTime.UtcNow - retryStarted).TotalSeconds + delaySeconds > options.RetryMaxTime)
+                {
+                    return result ?? throw new CurlOperationTimeoutException(options.RetryMaxTime, options.OriginalCommand);
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken);
+            }
+        }
+
+        /// <summary>curl's "transient" HTTP responses for --retry.</summary>
+        private static bool IsTransientStatus(int statusCode) =>
+            statusCode == 408 || statusCode == 429 || statusCode == 500 || statusCode == 502 || statusCode == 503 || statusCode == 504;
+
+        private async Task<CurlResult> ExecuteAttemptAsync(CurlOptions options, CancellationToken cancellationToken)
+        {
             var request = CreateRequest(options);
             var startTime = DateTime.UtcNow;
             var timings = new CurlTimings();
@@ -77,7 +132,7 @@ namespace CurlDotNet.Core
             var client = _httpClient;
             var redirectHandler = _redirectHandler;
             HttpClient? perRequestClient = null;
-            if (NeedsCustomTransport(options))
+            if (_ownsHttpClient && NeedsCustomTransport(options))
             {
                 perRequestClient = CreateConfiguredClient(options);
                 client = perRequestClient;
@@ -86,13 +141,14 @@ namespace CurlDotNet.Core
 
             try
             {
-                // Configure timeout
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                // Configure timeout. Without --max-time the caller's token is used as-is.
                 var timeoutSeconds = GetTimeoutSeconds(options);
-                if (timeoutSeconds > 0)
+                using var cts = timeoutSeconds > 0 ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken) : null;
+                if (cts != null)
                 {
                     cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
                 }
+                var token = cts?.Token ?? cancellationToken;
 
                 if (trace != null)
                 {
@@ -118,17 +174,31 @@ namespace CurlDotNet.Core
 
                 // Send request
                 timings.PreTransfer = (DateTime.UtcNow - startTime).TotalMilliseconds;
-                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
                 timings.StartTransfer = (DateTime.UtcNow - startTime).TotalMilliseconds;
                 AppendVerboseResponseHeaders(verboseLog, response);
 
                 // Handle redirects manually if needed
+                List<string>? redirectHeaderBlocks = null;
                 if (options.FollowLocation && redirectHandler.IsRedirect(response.StatusCode))
                 {
                     trace?.Info($"Received HTTP {(int)response.StatusCode}; following redirect (-L)");
+                    if (options.IncludeHeaders)
+                    {
+                        // curl -iL prints the header block of every hop, not just the final one
+                        redirectHeaderBlocks = new List<string>();
+                    }
+
+                    var hops = redirectHeaderBlocks;
+                    Action<HttpResponseMessage>? onHop = null;
+                    if (hops != null)
+                    {
+                        onHop = hop => hops.Add(BuildHeaderBlock(hop));
+                    }
+
                     var redirectResult = await redirectHandler.HandleRedirectAsync(
-                        response, request, options, cts.Token, timings, startTime, verboseLog,
-                        CreateRequest, AppendVerboseRequest, AppendVerboseResponseHeaders);
+                        response, request, options, token, timings, startTime, verboseLog,
+                        CreateRequest, AppendVerboseRequest, AppendVerboseResponseHeaders, onHop);
 
                     response = redirectResult.Response;
                     request = redirectResult.Request;
@@ -136,13 +206,20 @@ namespace CurlDotNet.Core
 
                 trace?.RecvHeaders(response);
 
-                return await BuildResultAsync(request, response, options, timings, startTime, cts.Token, verboseLog, trace);
+                return await BuildResultAsync(request, response, options, timings, startTime, token, verboseLog, trace, redirectHeaderBlocks);
             }
             catch (TaskCanceledException)
             {
-                trace?.Error("Request timed out or was canceled before a response was received.");
-                // Re-throw to let CurlEngine handle it
-                throw;
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    trace?.Error("Request was canceled by the caller before a response was received.");
+                    throw new CurlAbortedByCallbackException(options.OriginalCommand);
+                }
+
+                // Only our own linked token can have fired: this is --max-time (exit code 28), like curl
+                var timeoutSeconds = GetTimeoutSeconds(options);
+                trace?.Error($"Operation timed out after {timeoutSeconds} seconds.");
+                throw new CurlOperationTimeoutException(timeoutSeconds, options.OriginalCommand);
             }
             catch (HttpRequestException ex)
             {
@@ -205,7 +282,7 @@ namespace CurlDotNet.Core
             var handler = new HttpClientHandler
             {
                 AllowAutoRedirect = false, // We handle redirects manually like curl
-                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                AutomaticDecompression = DecompressionMethods.None, // decoded in CreateResult when --compressed
                 // curl only engages a cookie engine when -b/-c is given; with UseCookies=true
                 // the container would also swallow manually supplied Cookie headers (issue #41)
                 UseCookies = false
@@ -326,22 +403,50 @@ namespace CurlDotNet.Core
             var method = GetHttpMethod(options);
             var request = new HttpRequestMessage(method, options.Url);
 
-            // Add headers
+            // Add headers. An empty value (-H "Accept:") means "do not send this header at all",
+            // exactly as in curl, which also suppresses our defaults below.
+            var suppressed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var header in options.Headers)
             {
+                if (header.Key.StartsWith("@", StringComparison.Ordinal))
+                {
+                    continue; // unresolved -H @file reference
+                }
+
+                if (string.IsNullOrEmpty(header.Value))
+                {
+                    suppressed.Add(header.Key);
+                    continue;
+                }
+
                 if (IsContentHeader(header.Key))
                 {
                     // Will be added with content
                     continue;
                 }
 
+                if (header.Key.Equals("User-Agent", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(options.UserAgent))
+                {
+                    continue; // -A / -H "User-Agent:" both land in options.UserAgent; add it once below
+                }
+
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
-            // Set user agent
+            // User-Agent: -A wins, then any -H value, then curl's default (curl/8.7.1)
             if (!string.IsNullOrEmpty(options.UserAgent))
             {
-                request.Headers.UserAgent.ParseAdd(options.UserAgent);
+                request.Headers.TryAddWithoutValidation("User-Agent", options.UserAgent);
+            }
+            else if (!suppressed.Contains("User-Agent") && !request.Headers.Contains("User-Agent") && !string.IsNullOrEmpty(Curl.DefaultUserAgent))
+            {
+                request.Headers.TryAddWithoutValidation("User-Agent", Curl.DefaultUserAgent);
+            }
+
+            // curl always sends Accept: */* unless the command sets or suppresses it
+            if (!suppressed.Contains("Accept") && !request.Headers.Contains("Accept"))
+            {
+                request.Headers.TryAddWithoutValidation("Accept", "*/*");
             }
 
             // Set referer
@@ -378,12 +483,15 @@ namespace CurlDotNet.Core
                 request.Headers.Range = ParseRange(options.Range);
             }
 
-            // Set compression acceptance (--compressed flag)
-            if (options.Compressed)
+            // Set compression acceptance (--compressed flag). Decoding happens in CreateResult so the
+            // headers curl would show (Content-Encoding, Content-Length) stay intact for -i.
+            if (options.Compressed && !suppressed.Contains("Accept-Encoding") && !request.Headers.Contains("Accept-Encoding"))
             {
-                // Tell server we accept compressed content
-                // HttpClient will automatically decompress when AutomaticDecompression is set
+#if NETSTANDARD2_0 || NET472 || NET48
                 request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
+#else
+                request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate, br");
+#endif
             }
 
             // Add content
@@ -421,10 +529,11 @@ namespace CurlDotNet.Core
             return request;
         }
 
-        private static int GetTimeoutSeconds(CurlOptions options)
+        private static double GetTimeoutSeconds(CurlOptions options)
         {
+            // Like curl, no --max-time means no transfer timeout (HttpClient's own 100 s cap still applies)
             var timeout = options.MaxTime ?? Curl.DefaultMaxTimeSeconds;
-            return timeout > 0 ? timeout : 30;
+            return timeout > 0 ? timeout : 0;
         }
 
         private HttpMethod GetHttpMethod(CurlOptions options)
@@ -569,9 +678,17 @@ namespace CurlDotNet.Core
                 // Read body. Always read raw bytes first so binary data served under a
                 // lying text Content-Type (e.g. an .xlsx sent as text/plain) is never
                 // corrupted by string decoding; curl writes wire bytes verbatim.
-                if (!options.HeadOnly)
+                // HEAD (-I or -X HEAD) never has a body to print, even if a misbehaving server sends one
+                var isHead = options.HeadOnly
+                    || string.Equals(options.Method, "HEAD", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(options.CustomMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
+                if (!isHead)
                 {
                     var bodyBytes = await response.Content.ReadAsByteArrayAsync();
+                    if (options.Compressed)
+                    {
+                        bodyBytes = DecodeContentEncoding(bodyBytes, response.Content.Headers.ContentEncoding);
+                    }
                     var charset = response.Content.Headers.ContentType?.CharSet;
 
                     if (IsTextContent(response.Content, options)
@@ -590,7 +707,8 @@ namespace CurlDotNet.Core
         }
 
         private async Task<CurlResult> BuildResultAsync(HttpRequestMessage request, HttpResponseMessage response, CurlOptions options,
-            CurlTimings timings, DateTime startTime, CancellationToken cancellationToken, StringBuilder? verboseLog, TraceWriter? trace = null)
+            CurlTimings timings, DateTime startTime, CancellationToken cancellationToken, StringBuilder? verboseLog, TraceWriter? trace = null,
+            IReadOnlyList<string>? redirectHeaderBlocks = null)
         {
             var (result, responseText, responseBinary) = await CreateResult(response, options, timings, startTime);
             var downloadSize = responseBinary?.Length ?? (responseText != null ? Encoding.UTF8.GetByteCount(responseText) : 0);
@@ -608,26 +726,41 @@ namespace CurlDotNet.Core
                 trace.Info($"Transfer complete: HTTP {result.StatusCode}, {downloadSize} bytes received.");
             }
 
-            await HandleOutputFilesAsync(options, result, responseText, responseBinary, cancellationToken);
+            var includedHeaders = options.IncludeHeaders ? BuildIncludedHeaderText(response, redirectHeaderBlocks) : null;
+            await HandleOutputFilesAsync(options, result, responseText, responseBinary, includedHeaders, cancellationToken);
 
-            result.Body = BuildFinalBody(options, request, response, responseText, verboseLog, downloadSize);
+            result.Body = BuildFinalBody(options, request, response, responseText, verboseLog, downloadSize, redirectHeaderBlocks);
             timings.Total = (DateTime.UtcNow - startTime).TotalMilliseconds;
             result.Timings = timings;
 
             return result;
         }
 
-        private async Task HandleOutputFilesAsync(CurlOptions options, CurlResult result, string? responseText, byte[]? responseBinary, CancellationToken cancellationToken)
+        private async Task HandleOutputFilesAsync(CurlOptions options, CurlResult result, string? responseText, byte[]? responseBinary, string? includedHeaders, CancellationToken cancellationToken)
         {
+            var fileText = responseText;
+            var fileBinary = responseBinary;
+            if (!string.IsNullOrEmpty(includedHeaders) && (!string.IsNullOrEmpty(options.OutputFile) || options.UseRemoteFileName))
+            {
+                // curl -i -o file writes the header block into the file ahead of the body
+                var headerBytes = Encoding.UTF8.GetBytes(includedHeaders);
+                var bodyBytes = responseBinary ?? Encoding.UTF8.GetBytes(responseText ?? string.Empty);
+                var combined = new byte[headerBytes.Length + bodyBytes.Length];
+                Buffer.BlockCopy(headerBytes, 0, combined, 0, headerBytes.Length);
+                Buffer.BlockCopy(bodyBytes, 0, combined, headerBytes.Length, bodyBytes.Length);
+                fileBinary = combined;
+                fileText = null;
+            }
+
             if (!string.IsNullOrEmpty(options.OutputFile))
             {
-                await WriteOutputFile(options.OutputFile, responseText, responseBinary, cancellationToken);
+                await WriteOutputFile(options.OutputFile, fileText, fileBinary, cancellationToken);
                 result.OutputFiles.Add(options.OutputFile);
             }
             else if (options.UseRemoteFileName)
             {
                 var remoteFile = DetermineRemoteFileName(options);
-                await WriteOutputFile(remoteFile, responseText, responseBinary, cancellationToken);
+                await WriteOutputFile(remoteFile, fileText, fileBinary, cancellationToken);
                 result.OutputFiles.Add(remoteFile);
             }
 
@@ -654,7 +787,8 @@ namespace CurlDotNet.Core
             }
         }
 
-        private string BuildFinalBody(CurlOptions options, HttpRequestMessage request, HttpResponseMessage response, string? responseText, StringBuilder? verboseLog, int downloadSize)
+        private string BuildFinalBody(CurlOptions options, HttpRequestMessage request, HttpResponseMessage response, string? responseText, StringBuilder? verboseLog, int downloadSize,
+            IReadOnlyList<string>? redirectHeaderBlocks = null)
         {
             var builder = new StringBuilder();
 
@@ -663,20 +797,18 @@ namespace CurlDotNet.Core
                 builder.AppendLine(verboseLog.ToString().TrimEnd());
             }
 
-            // Include headers BEFORE body when -i flag is used (like curl)
-            if (options.IncludeHeaders)
+            // Include headers BEFORE body when -i flag is used (like curl); with -o they are in the file instead
+            if (options.IncludeHeaders && string.IsNullOrEmpty(options.OutputFile) && !options.UseRemoteFileName)
             {
                 if (builder.Length > 0)
                     builder.AppendLine();
-                builder.AppendLine(BuildHeaderBlock(response));
-                // Add empty line between headers and body
-                if (!string.IsNullOrEmpty(responseText))
-                {
-                    builder.AppendLine();
-                }
+
+                builder.Append(BuildIncludedHeaderText(response, redirectHeaderBlocks));
             }
 
-            if (!string.IsNullOrEmpty(responseText))
+            // With -o/-O the body (and -i headers) went to the file; like curl, stdout gets only -w output
+            var wroteToFile = !string.IsNullOrEmpty(options.OutputFile) || options.UseRemoteFileName;
+            if (!string.IsNullOrEmpty(responseText) && !wroteToFile)
             {
                 if (!options.IncludeHeaders && builder.Length > 0)
                     builder.AppendLine();
@@ -694,33 +826,136 @@ namespace CurlDotNet.Core
                 }
             }
 
-            return builder.Length > 0
-                ? builder.ToString()
-                : responseText ?? string.Empty;
+            if (builder.Length > 0)
+                return builder.ToString();
+            return wroteToFile ? string.Empty : responseText ?? string.Empty;
         }
 
+        /// <summary>
+        /// Rebuilds the response header block the way curl -i prints it: status line, one header per
+        /// line, CRLF line endings, no trailing blank line.
+        /// </summary>
         private string BuildHeaderBlock(HttpResponseMessage response)
         {
             var builder = new StringBuilder();
-            builder.AppendLine(BuildStatusLine(response));
+            builder.Append(BuildStatusLine(response)).Append("\r\n");
+#if NET6_0_OR_GREATER
+            // NonValidated hands back the header lines as received instead of re-joined parsed tokens
+            // ("Server: test-server/fake swsclose" would otherwise print as "test-server/fake, swsclose").
+            foreach (var header in response.Headers.NonValidated)
+            {
+                foreach (var value in header.Value)
+                {
+                    builder.Append(header.Key).Append(": ").Append(value).Append("\r\n");
+                }
+            }
+            if (response.Content != null)
+            {
+                foreach (var header in response.Content.Headers.NonValidated)
+                {
+                    foreach (var value in header.Value)
+                    {
+                        builder.Append(header.Key).Append(": ").Append(value).Append("\r\n");
+                    }
+                }
+            }
+#else
             foreach (var header in response.Headers)
             {
-                builder.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
+                builder.Append(header.Key).Append(": ").Append(string.Join(", ", header.Value)).Append("\r\n");
             }
             if (response.Content != null)
             {
                 foreach (var header in response.Content.Headers)
                 {
-                    builder.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
+                    builder.Append(header.Key).Append(": ").Append(string.Join(", ", header.Value)).Append("\r\n");
                 }
             }
+#endif
             return builder.ToString().TrimEnd();
+        }
+
+        /// <summary>
+        /// The complete header text curl -i emits before the body: every redirect hop's block
+        /// (with -L), then the final block, each followed by an empty line.
+        /// </summary>
+        private string BuildIncludedHeaderText(HttpResponseMessage response, IReadOnlyList<string>? redirectHeaderBlocks)
+        {
+            var builder = new StringBuilder();
+            if (redirectHeaderBlocks != null)
+            {
+                foreach (var hop in redirectHeaderBlocks)
+                {
+                    builder.Append(hop).Append("\r\n\r\n");
+                }
+            }
+            builder.Append(BuildHeaderBlock(response)).Append("\r\n\r\n");
+            return builder.ToString();
+        }
+
+        /// <summary>
+        /// Decodes gzip, deflate (zlib or raw) and, where the framework supports it, Brotli bodies
+        /// for --compressed. Unknown or identity encodings are returned untouched.
+        /// </summary>
+        private static byte[] DecodeContentEncoding(byte[] body, ICollection<string> encodings)
+        {
+            if (body.Length == 0 || encodings == null || encodings.Count == 0)
+            {
+                return body;
+            }
+
+            // Encodings are listed in the order applied; undo them in reverse.
+            foreach (var encoding in encodings.Reverse())
+            {
+                switch (encoding.ToLowerInvariant())
+                {
+                    case "gzip":
+                    case "x-gzip":
+                        body = Inflate(body, s => new System.IO.Compression.GZipStream(s, System.IO.Compression.CompressionMode.Decompress));
+                        break;
+                    case "deflate":
+                        // RFC 7230 says zlib-wrapped; some servers send raw deflate. Try zlib first.
+                        try
+                        {
+                            body = Inflate(body, s =>
+                            {
+                                s.ReadByte(); s.ReadByte(); // skip the 2-byte zlib header
+                                return new System.IO.Compression.DeflateStream(s, System.IO.Compression.CompressionMode.Decompress);
+                            });
+                        }
+                        catch (System.IO.InvalidDataException)
+                        {
+                            body = Inflate(body, s => new System.IO.Compression.DeflateStream(s, System.IO.Compression.CompressionMode.Decompress));
+                        }
+                        break;
+#if !NETSTANDARD2_0 && !NET472 && !NET48
+                    case "br":
+                        body = Inflate(body, s => new System.IO.Compression.BrotliStream(s, System.IO.Compression.CompressionMode.Decompress));
+                        break;
+#endif
+                    default:
+                        break; // identity or unknown: leave as-is, like curl
+                }
+            }
+            return body;
+        }
+
+        private static byte[] Inflate(byte[] body, Func<Stream, Stream> open)
+        {
+            using var input = new MemoryStream(body);
+            using var decoder = open(input);
+            using var output = new MemoryStream();
+            decoder.CopyTo(output);
+            return output.ToArray();
         }
 
         private string BuildStatusLine(HttpResponseMessage response)
         {
             var version = response.Version != null ? $"{response.Version.Major}.{response.Version.Minor}" : "1.1";
-            return $"HTTP/{version} {(int)response.StatusCode} {response.ReasonPhrase}";
+            var reason = response.ReasonPhrase;
+            return string.IsNullOrEmpty(reason)
+                ? $"HTTP/{version} {(int)response.StatusCode}"
+                : $"HTTP/{version} {(int)response.StatusCode} {reason}";
         }
 
         private void AppendVerboseRequest(StringBuilder? verboseLog, HttpRequestMessage request)
@@ -1139,7 +1374,7 @@ namespace CurlDotNet.Core
             var handler = new HttpClientHandler
             {
                 AllowAutoRedirect = false, // We handle redirects manually
-                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+                AutomaticDecompression = DecompressionMethods.None, // decoded in CreateResult when --compressed
                 // curl only engages a cookie engine when -b/-c is given; with UseCookies=true
                 // the shared container would swallow manual Cookie headers and leak session
                 // cookies across unrelated Curl.Execute calls (issue #41)

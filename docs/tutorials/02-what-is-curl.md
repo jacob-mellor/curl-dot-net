@@ -1,40 +1,48 @@
+---
+title: "What is curl? How curl Commands Work in C# with CurlDotNet"
+description: "What curl is, how curl commands work, and how to run curl commands in C# with CurlDotNet without translating them to HttpClient."
+---
+
 # Tutorial 2: What is curl?
 
-## 🎯 What You'll Learn
+What is curl and how do curl commands work in C#? curl is the command-line tool that almost every API's documentation uses for its examples, and CurlDotNet lets you run those same curl commands from C# with `Curl.ExecuteAsync`. This tutorial explains the tool, its most common options, and how it maps to CurlDotNet.
 
-- What curl is and why it's everywhere
+## What You'll Learn
+
+- What curl is and why it is everywhere
 - How curl relates to everyday web browsing
-- Why developers love curl
+- Why developers rely on curl
 - How CurlDotNet brings curl to C#
 
-## 📚 Prerequisites
+## Prerequisites
 
 - [Tutorial 1: What is .NET and C#?](01-what-is-dotnet.html)
 
-## 🌍 The Big Picture
+## The Big Picture
 
 ### What is curl?
 
-**curl** (pronounced "curl" or "see-url") is a command-line tool that developers use to transfer data to and from servers. Think of it as a web browser without the graphics - it's the tool that powers billions of API calls every day.
+**curl** is a command-line tool for transferring data to and from servers. Think of it as a web browser without the graphics: you type a URL (plus options) and it prints what the server sent back.
 
 ### Real-World Analogy
 
-Imagine you want to order a pizza:
+Imagine ordering a pizza:
 
-- **Web Browser** = Going to the pizza shop, looking at their menu, placing your order, and seeing everything happen visually
-- **curl** = Calling the pizza shop on the phone with exact instructions: "One large pepperoni, thin crust, deliver to 123 Main St"
+- **Web browser** = walking into the pizza shop, looking at the menu, pointing at what you want
+- **curl** = phoning the shop with exact instructions: "One large pepperoni, thin crust, deliver to 123 Main St"
 
 curl is:
-- Faster (no graphics to load)
-- More precise (you say exactly what you want)
+
+- Fast (no graphics to load)
+- Precise (you say exactly what you want)
 - Scriptable (you can automate it)
-- Universal (works everywhere)
+- Available on Linux, macOS, Windows 10 and later, and most containers
 
-## 🔍 Why curl is Everywhere
+## Why curl is Everywhere
 
-### 1. Every API Documentation Uses curl
+### 1. API Documentation Uses curl
 
-When you look at API documentation from GitHub, Stripe, Twitter, or any major service, you'll see curl commands:
+When you read API documentation from GitHub, Stripe, or almost any web service, the examples are curl commands:
 
 ```bash
 # GitHub API
@@ -44,10 +52,6 @@ curl https://api.github.com/users/octocat
 curl https://api.stripe.com/v1/charges \
   -u sk_test_KEY: \
   -d amount=2000
-
-# Twitter API
-curl -X POST https://api.twitter.com/2/tweets \
-  -H "Authorization: Bearer TOKEN"
 ```
 
 ### 2. Developers Use It Every Day
@@ -55,24 +59,14 @@ curl -X POST https://api.twitter.com/2/tweets \
 - Testing APIs while building them
 - Debugging network issues
 - Quick checks of website status
-- Automating tasks
-- CI/CD pipelines
+- Automating tasks in scripts and CI pipelines
 
-### 3. It's on Every Computer
+## Understanding curl Commands
 
-curl comes pre-installed on:
-- All Linux systems
-- All Mac computers
-- Windows 10 and newer
-- Most cloud servers
-- Docker containers
-
-## 📖 Understanding curl Commands
-
-Let's break down a typical curl command:
+A typical curl command:
 
 ```bash
-curl -X POST https://api.example.com/users \
+curl -X POST https://httpbin.org/post \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer token123" \
   -d '{"name":"Alice","email":"alice@example.com"}'
@@ -83,14 +77,12 @@ curl -X POST https://api.example.com/users \
 | Part | What It Does |
 |------|--------------|
 | `curl` | The command name |
-| `-X POST` | Use POST method (like submitting a form) |
-| `https://api.example.com/users` | Where to send the request |
+| `-X POST` | Use the POST method (like submitting a form) |
+| `https://httpbin.org/post` | Where to send the request |
 | `-H "..."` | Add a header (extra information) |
 | `-d '...'` | The data to send |
 
-### curl Options Explained
-
-Here are the most common curl options you'll see:
+### Common curl Options
 
 | Option | What It Does | Example |
 |--------|--------------|---------|
@@ -98,21 +90,23 @@ Here are the most common curl options you'll see:
 | `-H` | Add header | `-H "Authorization: Bearer token"` |
 | `-d` | Send data | `-d '{"key":"value"}'` |
 | `-o` | Save output to file | `-o result.json` |
-| `-u` | Username/password | `-u user:pass` |
+| `-u` | Username and password | `-u user:pass` |
 | `-L` | Follow redirects | `-L` |
 | `-v` | Verbose (show details) | `-v` |
-| `-k` | Skip SSL verification | `-k` (only for testing!) |
-| `-i` | Include headers in output | `-i` |
+| `-k` | Skip SSL verification | `-k` (testing only) |
+| `-i` | Include response headers in output | `-i` |
 
-## 💡 Common curl Examples
+All of these options work in CurlDotNet. See the [curl CLI compatibility reference](../reference/curl-cli-compatibility.html) for the full list.
 
-### Example 1: Get a Webpage
+## Common curl Examples
+
+### Example 1: Get a Web Page
 
 ```bash
-curl https://example.com
+curl https://httpbin.org/html
 ```
 
-This fetches the HTML of example.com - like viewing the page source in your browser.
+Fetches the HTML, like viewing a page's source in your browser.
 
 ### Example 2: Get JSON Data
 
@@ -120,7 +114,7 @@ This fetches the HTML of example.com - like viewing the page source in your brow
 curl https://api.github.com/users/octocat
 ```
 
-This gets user data in JSON format - exactly what mobile apps do behind the scenes.
+Gets user data in JSON format, which is what mobile apps do behind the scenes.
 
 ### Example 3: Send Data to an API
 
@@ -130,152 +124,118 @@ curl -X POST https://httpbin.org/post \
   -d '{"message":"Hello World"}'
 ```
 
-This sends data to a server - like submitting a form but faster and more precise.
-
 ### Example 4: Download a File
 
 ```bash
-curl -o image.jpg https://example.com/image.jpg
+curl -o image.png https://httpbin.org/image/png
 ```
 
-This downloads a file - like right-clicking and "Save As" in a browser.
+Like right-clicking and choosing "Save As" in a browser.
 
 ### Example 5: Authentication
 
 ```bash
-curl -u username:password https://api.example.com/private
+curl -u username:password https://httpbin.org/basic-auth/username/password
 ```
 
-This authenticates with username and password - like logging into a website.
+Sends a username and password using HTTP Basic authentication.
 
-## 🎨 Why Developers Love curl
-
-### 1. It's Fast
-
-No waiting for browsers to load graphics, JavaScript, or CSS. Just get the data you need instantly.
-
-### 2. It's Precise
-
-You control exactly what gets sent:
-- Which HTTP method
-- Which headers
-- What data
-- How to handle responses
-
-### 3. It's Reproducible
-
-Copy a curl command, send it to a colleague, and they get the exact same result. No "works on my machine" problems.
-
-### 4. It's Automatable
-
-Put curl commands in scripts, run them on schedules, chain them together - endless possibilities.
-
-### 5. It's Universal
-
-The same curl command works on Mac, Windows, Linux, in Docker, in CI/CD, everywhere.
-
-## 🚀 From curl to CurlDotNet
+## From curl to CurlDotNet
 
 ### The Problem
 
-You find a perfect curl command in API documentation:
+You find the right curl command in API documentation:
 
 ```bash
-curl -X POST https://api.example.com/users \
+curl -X POST https://httpbin.org/post \
   -H "Authorization: Bearer token123" \
   -d '{"name":"Alice"}'
 ```
 
-But you're writing a C# application. Traditionally, you'd have to:
-
-1. Understand what the curl command does
-2. Translate it to C# HttpClient syntax
-3. Handle headers, data, authentication separately
-4. Test that your translation works the same way
-
-This is time-consuming and error-prone.
+But you are writing a C# application. Traditionally you would have to understand what the command does, translate it to `HttpClient` calls, wire up headers and data separately, and then test that your translation behaves the same way.
 
 ### The Solution: CurlDotNet
 
-With CurlDotNet, you paste the curl command directly into C#:
+With CurlDotNet you paste the curl command into C#:
 
 ```csharp
 using CurlDotNet;
 
 var result = await Curl.ExecuteAsync(@"
-    curl -X POST https://api.example.com/users \
+    curl -X POST https://httpbin.org/post \
       -H 'Authorization: Bearer token123' \
       -d '{""name"":""Alice""}'
 ");
+
+Console.WriteLine(result.StatusCode);
 ```
 
-**That's it!** No translation. No interpretation. Just paste and run.
+No translation step. The leading `curl` word is optional and backslash line continuations are fine.
 
-## 🔧 How CurlDotNet Works
+## How CurlDotNet Works
 
 ### Not a Wrapper
 
-CurlDotNet is **not** a wrapper around the curl binary. It doesn't execute curl.exe behind the scenes.
+CurlDotNet does not run `curl.exe` behind the scenes and does not need curl installed.
 
 ### Pure .NET Implementation
 
-CurlDotNet is a complete C# implementation that:
-1. Parses curl command syntax
-2. Translates curl options to HTTP operations
-3. Executes requests using native .NET
-4. Returns results in a C#-friendly format
+CurlDotNet is written in C#. It:
 
-### Same Behavior, Better Integration
+1. Parses the curl command syntax
+2. Maps curl options to HTTP settings
+3. Sends the request with .NET's own HTTP stack
+4. Returns a `CurlResult` with the status code, headers, and body
 
-You get:
-- Exact same behavior as native curl
-- Full async/await support
-- Strong typing and IntelliSense
-- Exception handling
+### What You Get
+
+- `async`/`await` support
+- Strong typing and IntelliSense on the result
+- Typed exceptions for network failures (see the [exception reference](../exceptions/index.html))
 - No external dependencies
-- Cross-platform compatibility
+- Cross-platform: Windows, macOS, and Linux
 
-## 📊 curl vs CurlDotNet Comparison
+## curl vs CurlDotNet Comparison
 
-| Feature | curl (command-line) | CurlDotNet |
+| Feature | curl (command line) | CurlDotNet |
 |---------|---------------------|------------|
-| Parse responses | Manual | Automatic (JSON, XML) |
-| Error handling | Exit codes | C# exceptions |
-| Type safety | None | Full C# types |
-| IntelliSense | None | Full support |
-| Debugging | Limited | Full Visual Studio support |
-| Integration | Shell scripts only | Full .NET integration |
-| Async support | No | Yes (async/await) |
-| Object mapping | Manual parsing | Automatic deserialization |
+| Parse responses | Manual | `result.ParseJson<T>()` |
+| Error handling | Exit codes | C# exceptions and `result.StatusCode` |
+| Type safety | None | C# types |
+| IntelliSense | None | Yes |
+| Integration | Shell scripts | Any .NET application |
+| Async support | No | `async`/`await` |
 
-## 🎯 Real-World Scenarios
+## Real-World Scenarios
 
 ### Scenario 1: Testing an API
 
-**With curl:**
+With curl:
+
 ```bash
-curl -X POST https://api.example.com/test \
+curl -X POST https://httpbin.org/post \
   -H "Content-Type: application/json" \
   -d '{"test":true}'
 ```
 
-**With CurlDotNet in C#:**
+With CurlDotNet in a C# test:
+
 ```csharp
 var result = await Curl.ExecuteAsync(@"
-    curl -X POST https://api.example.com/test \
+    curl -X POST https://httpbin.org/post \
       -H 'Content-Type: application/json' \
       -d '{""test"":true}'
 ");
 
-// Now you can easily check the result
 Assert.Equal(200, result.StatusCode);
-var data = result.ParseJson<TestResponse>();
-Assert.True(data.Success);
+dynamic echo = result.AsJsonDynamic();
+Assert.Equal(true, (bool)echo.json.test);
 ```
 
 ### Scenario 2: Building an Integration
 
-**Found in API docs (Stripe example):**
+Found in API docs (Stripe example):
+
 ```bash
 curl https://api.stripe.com/v1/charges \
   -u sk_test_KEY: \
@@ -283,7 +243,8 @@ curl https://api.stripe.com/v1/charges \
   -d currency=usd
 ```
 
-**Use directly in your C# app:**
+Used in your C# app with values filled in:
+
 ```csharp
 var charge = await Curl.ExecuteAsync($@"
     curl https://api.stripe.com/v1/charges \
@@ -294,92 +255,87 @@ var charge = await Curl.ExecuteAsync($@"
 
 if (charge.IsSuccess)
 {
-    var chargeData = charge.ParseJson<StripeCharge>();
-    // Process the charge...
+    dynamic data = charge.AsJsonDynamic();
+    Console.WriteLine($"Charge id: {data.id}");
 }
 ```
 
 ### Scenario 3: Migrating Bash Scripts
 
-**Old bash script:**
+Old bash script:
+
 ```bash
 #!/bin/bash
 for user in $(cat users.txt); do
-  curl -X POST https://api.example.com/notify \
-    -d "user=$user"
+  curl -X POST https://httpbin.org/post -d "user=$user"
 done
 ```
 
-**New C# version:**
+New C# version:
+
 ```csharp
 var users = await File.ReadAllLinesAsync("users.txt");
 
 foreach (var user in users)
 {
-    await Curl.ExecuteAsync($@"
-        curl -X POST https://api.example.com/notify \
-          -d 'user={user}'
-    ");
+    await Curl.ExecuteAsync($"curl -X POST https://httpbin.org/post -d 'user={user}'");
 }
 ```
 
-## 🔍 Understanding curl Options in Depth
+## Understanding curl Options in Depth
 
 ### HTTP Methods
 
 ```bash
-curl -X GET https://api.example.com/users      # Read data
-curl -X POST https://api.example.com/users     # Create new
-curl -X PUT https://api.example.com/users/1    # Update entire
-curl -X PATCH https://api.example.com/users/1  # Update partial
-curl -X DELETE https://api.example.com/users/1 # Delete
+curl -X GET https://httpbin.org/get           # Read data
+curl -X POST https://httpbin.org/post         # Create new
+curl -X PUT https://httpbin.org/put           # Update entire
+curl -X PATCH https://httpbin.org/patch       # Update partial
+curl -X DELETE https://httpbin.org/delete     # Delete
 ```
 
 ### Headers
 
-Headers are like the envelope of a letter - they contain metadata about your request:
+Headers are like the envelope of a letter: metadata about the request.
 
 ```bash
-# Tell server what format you want back
-curl -H "Accept: application/json" https://api.example.com
+# Tell the server what format you want back
+curl -H "Accept: application/json" https://httpbin.org/get
 
-# Tell server what format you're sending
-curl -H "Content-Type: application/json" \
-  -d '{"key":"value"}' https://api.example.com
+# Tell the server what format you are sending
+curl -H "Content-Type: application/json" -d '{"key":"value"}' https://httpbin.org/post
 
 # Authentication
-curl -H "Authorization: Bearer token123" https://api.example.com
+curl -H "Authorization: Bearer token123" https://httpbin.org/bearer
 
 # Custom headers
-curl -H "X-API-Key: key123" \
-  -H "X-Request-ID: unique-id" \
-  https://api.example.com
+curl -H "X-API-Key: key123" -H "X-Request-ID: unique-id" https://httpbin.org/headers
 ```
 
-### Data Sending
+### Sending Data
 
 ```bash
 # JSON data
-curl -d '{"name":"Alice"}' https://api.example.com
+curl -d '{"name":"Alice"}' -H "Content-Type: application/json" https://httpbin.org/post
 
 # Form data
-curl -d "name=Alice&age=30" https://api.example.com
+curl -d "name=Alice&age=30" https://httpbin.org/post
 
-# File upload
-curl -F "file=@document.pdf" https://api.example.com
+# File upload (multipart form)
+curl -F "file=@document.pdf" https://httpbin.org/post
 
-# Data from file
-curl -d @data.json https://api.example.com
+# Request body read from a file
+curl -d @data.json https://httpbin.org/post
 ```
 
-## 💻 Try It Yourself
+## Try It Yourself
 
 ### Exercise 1: Understand This curl Command
 
-Look at this command and identify each part:
+Identify each part:
 
 ```bash
-curl -X POST https://api.example.com/users \
+curl -X POST https://httpbin.org/post \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer abc123" \
   -d '{"name":"John","email":"john@example.com"}'
@@ -388,145 +344,121 @@ curl -X POST https://api.example.com/users \
 <details>
 <summary>Click for Answer</summary>
 
-- `-X POST` = Use POST method (creating something new)
-- URL = Send to https://api.example.com/users
-- First `-H` = Tell server we're sending JSON
-- Second `-H` = Provide authentication token
-- `-d` = Send user data (name and email)
+- `-X POST` = use the POST method (creating something new)
+- URL = send to https://httpbin.org/post
+- First `-H` = tell the server we are sending JSON
+- Second `-H` = provide an authentication token
+- `-d` = the user data (name and email)
 
 </details>
 
 ### Exercise 2: Translate to CurlDotNet
 
-Convert the above curl command to CurlDotNet C# code.
+Convert the command above to CurlDotNet C# code.
 
 <details>
 <summary>Click for Answer</summary>
 
 ```csharp
 var result = await Curl.ExecuteAsync(@"
-    curl -X POST https://api.example.com/users \
+    curl -X POST https://httpbin.org/post \
       -H 'Content-Type: application/json' \
       -H 'Authorization: Bearer abc123' \
       -d '{""name"":""John"",""email"":""john@example.com""}'
 ");
 ```
 
-Note: Change double quotes inside the string to `""` to escape them in C#.
+Inside a C# verbatim string (`@"..."`), write each double quote as `""`.
 
 </details>
 
 ### Exercise 3: Real API Test
 
-Try this with a real API that's made for testing:
+httpbin.org is a free service that echoes back whatever you send it:
 
 ```csharp
 using System;
-using System.Threading.Tasks;
 using CurlDotNet;
 
-class Program
-{
-    static async Task Main()
-    {
-        // httpbin.org is a free API for testing
-        var result = await Curl.ExecuteAsync(@"
-            curl -X POST https://httpbin.org/post \
-              -H 'Content-Type: application/json' \
-              -d '{""message"":""Hello from CurlDotNet!""}'
-        ");
+var result = await Curl.ExecuteAsync(@"
+    curl -X POST https://httpbin.org/post \
+      -H 'Content-Type: application/json' \
+      -d '{""message"":""Hello from CurlDotNet!""}'
+");
 
-        Console.WriteLine($"Status: {result.StatusCode}");
-        Console.WriteLine($"Response: {result.Body}");
-    }
-}
+Console.WriteLine($"Status: {result.StatusCode}");
+Console.WriteLine($"Response: {result.Body}");
 ```
 
-## ❌ Common Mistakes
+## Common Mistakes
 
 ### Mistake 1: Forgetting to Escape Quotes
 
 ```csharp
-// Wrong - will cause syntax error
-var result = await Curl.ExecuteAsync("curl -d '{"name":"Alice"}'");
+// Wrong - the inner double quotes end the C# string early
+var result = await Curl.ExecuteAsync("curl -d '{"name":"Alice"}' https://httpbin.org/post");
 
-// Right - escape inner quotes
-var result = await Curl.ExecuteAsync(@"curl -d '{""name"":""Alice""}'");
+// Right - verbatim string with doubled quotes
+var result = await Curl.ExecuteAsync(@"curl -d '{""name"":""Alice""}' https://httpbin.org/post");
 ```
 
-### Mistake 2: Using curl Binary Instead of CurlDotNet
+### Mistake 2: Launching the curl Binary Instead of CurlDotNet
 
 ```csharp
-// Wrong - this runs curl.exe if installed
-Process.Start("curl", "https://api.example.com");
+// Wrong - starts an external curl process (if one is installed)
+Process.Start("curl", "https://httpbin.org/get");
 
-// Right - uses CurlDotNet
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
+// Right - runs inside your .NET process
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
 ```
 
 ### Mistake 3: Forgetting async/await
 
 ```csharp
 // Wrong - missing await
-var result = Curl.ExecuteAsync("curl https://api.example.com");
+var result = Curl.ExecuteAsync("curl https://httpbin.org/get");
 
 // Right - with await
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
 ```
 
-## 📚 curl Resources
+## curl Resources
 
 Want to learn more about curl itself?
 
-- [Official curl Website](https://curl.se/) - The source of all curl knowledge
-- [curl Documentation](https://curl.se/docs/) - Complete reference
-- [curl Tutorial](https://curl.se/docs/tutorial.html) - Learn curl basics
-- [curl Man Page](https://curl.se/docs/manpage.html) - All options explained
+- [Official curl website](https://curl.se/)
+- [curl documentation](https://curl.se/docs/)
+- [curl tutorial](https://curl.se/docs/tutorial.html)
+- [curl man page](https://curl.se/docs/manpage.html)
 
-For CurlDotNet-specific information, see our [troubleshooting guide](../troubleshooting/common-issues.html) for links to documentation with detailed error explanations.
+For CurlDotNet-specific help see the [troubleshooting guide](../troubleshooting/common-issues.html).
 
-## 🎓 Key Takeaways
+## Key Takeaways
 
 - curl is a command-line tool for transferring data
-- It's used in billions of API calls every day
-- Every API documentation includes curl examples
-- curl is fast, precise, reproducible, and universal
-- CurlDotNet lets you use curl commands directly in C#
-- No translation needed - paste and run
-- Get all the benefits of curl with C# integration
+- Most API documentation shows curl examples
+- curl is fast, precise, reproducible, and scriptable
+- CurlDotNet lets you run curl commands directly in C#
+- No translation needed: paste the command and run it
 
-## 🚀 Next Steps
-
-Now that you understand curl:
-
-1. **Next Tutorial** → [Understanding Async/Await](03-what-is-async.html)
-2. **Try curl yourself** - Open a terminal and run `curl https://api.github.com`
-3. **Look at API docs** - Notice how they all use curl
-4. **Experiment** - Try different curl options
-
-## 🤔 Questions You Might Have
+## Questions You Might Have
 
 **Q: Do I need to install curl to use CurlDotNet?**
-A: No! CurlDotNet is a pure .NET implementation. You don't need curl installed.
+A: No. CurlDotNet is a pure .NET implementation.
 
 **Q: Can I use curl commands I find online directly?**
-A: Yes! That's the whole point of CurlDotNet. Copy, paste, and run.
+A: Yes, that is the point of the library. See the [compatibility reference](../reference/curl-cli-compatibility.html) for the supported options.
 
 **Q: What if I don't know curl syntax?**
-A: That's okay! CurlDotNet also has a fluent API for building requests programmatically. But knowing curl is useful since most API docs use it.
-
-**Q: Is CurlDotNet as powerful as native curl?**
-A: Yes! CurlDotNet supports 300+ curl options and aims for complete compatibility.
+A: CurlDotNet also has a fluent builder (`CurlRequestBuilder`) for building requests in code. Knowing curl is still useful because most API docs use it.
 
 **Q: Why not just use HttpClient?**
-A: You can! But CurlDotNet is easier when you have curl commands from API documentation. No translation needed.
+A: You can. CurlDotNet is handy when you already have curl commands from API documentation. See [migrating from HttpClient](../migration/httpclient.html).
 
-## 📚 Summary
+## Summary
 
-curl is a universal tool that developers use to interact with web services. CurlDotNet brings curl's simplicity and universality to C#, letting you paste curl commands directly into your code without translation. This eliminates the friction between reading API documentation and implementing it in your applications.
+curl is the common language developers use to talk to web services. CurlDotNet brings that language to C#: you paste a curl command into `Curl.ExecuteAsync` and get a typed `CurlResult` back, which removes the friction between reading API documentation and implementing it.
 
----
+**Next tutorial:** [Understanding Async/Await](03-what-is-async.html)
 
-**Ready for the next tutorial?** → [Understanding Async/Await](03-what-is-async.html)
-
-**Need help?** Check the [Troubleshooting Guide](../troubleshooting/common-issues.html) or ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+**Need help?** Check the [troubleshooting guide](../troubleshooting/common-issues.html) or ask in [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions).

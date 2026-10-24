@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using CurlDotNet.Core;
 using CurlDotNet.Exceptions;
@@ -232,16 +233,17 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
-        public void Parse_HandlesEscapeSequences()
+        public void Parse_DoubleQuotedBackslashSequences_ArePreservedLikeCurl()
         {
-            // Arrange
-            var command = @"curl -d ""line1\nline2\ttab"" https://api.example.com";
+            // Arrange - neither a POSIX shell nor curl turns \n or \t into control characters.
+            // Interpreting them would turn valid JSON ("line1\nline2") into invalid JSON with a raw newline.
+            var command = @"curl -d ""{\""text\"":\""line1\nline2\ttab\""}"" https://api.example.com";
 
             // Act
             var options = _parser.Parse(command);
 
             // Assert
-            options.Data.Should().Be("line1\nline2\ttab"); // With actual newline and tab characters
+            options.Data.Should().Be("{\"text\":\"line1\\nline2\\ttab\"}");
         }
 
         #endregion
@@ -259,6 +261,45 @@ namespace CurlDotNet.Tests
 
             // Assert
             options.Data.Should().Be("name=John%20Doe");
+        }
+
+        [Theory]
+        [InlineData("hello world & more", "hello%20world%20%26%20more")]          // content
+        [InlineData("=a b=c", "a%20b%3Dc")]                                       // =content keeps the '=' in content encoded
+        [InlineData("comment=café/ümlaut", "comment=caf%C3%A9%2F%C3%BCmlaut")]   // name=content, UTF-8
+        [InlineData("keep-._~=keep-._~", "keep-._~=keep-._~")]                   // unreserved chars untouched
+        public void Parse_DataUrlEncode_MatchesCurlEscaping(string argument, string expected)
+        {
+            var options = _parser.Parse($"curl --data-urlencode {CommandParser.ShellQuote(argument)} https://api.example.com");
+
+            options.Data.Should().Be(expected);
+            options.Method.Should().Be("POST");
+        }
+
+        [Fact]
+        public void Parse_DataUrlEncode_NameAtFile_EncodesFileContents()
+        {
+            var path = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(path, "line one\nline two");
+
+                var options = _parser.Parse($"curl --data-urlencode body@{CommandParser.ShellQuote(path)} https://api.example.com");
+
+                options.Data.Should().Be("body=line%20one%0Aline%20two");
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void Parse_DataUrlEncode_MultipleArguments_AreJoinedWithAmpersand()
+        {
+            var options = _parser.Parse("curl --data-urlencode 'a=1 2' --data-urlencode 'b=3&4' -d plain=5 https://api.example.com");
+
+            options.Data.Should().Be("a=1%202&b=3%264&plain=5");
         }
 
         [Fact]

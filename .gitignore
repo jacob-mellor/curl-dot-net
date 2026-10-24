@@ -121,3 +121,9 @@ build_output.txt
 docs/articles/tutorials-code-only.md
 dev.to.md
 dev.to.md
+
+# Build artifacts that must never be committed
+nupkg/
+gh-pages/
+_site/
+tests/CurlDotNet.CurlSuite/curl-suite-report.md

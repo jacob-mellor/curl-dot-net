@@ -1,659 +1,168 @@
-# Recipe: Simple GET Request
+---
+title: "curl GET Request in C# - CurlDotNet Recipe"
+description: "Make a curl GET request in C# with CurlDotNet: run the curl command string, check the status code, read headers, parse JSON and save the body to a file."
+---
 
-## 🎯 What You'll Build
+# curl GET request in C#
 
-A program that fetches data from a web API using a GET request - the most common HTTP operation using **CurlDotNet**, the pure .NET implementation of curl.
+A curl GET request in C# is one line with CurlDotNet: pass the same `curl` command you would type in a terminal to `Curl.ExecuteAsync`, then read `result.StatusCode` and `result.Body`. This recipe covers the plain GET, adding headers and query parameters, parsing the JSON reply, saving the body to a file, and the errors you are most likely to hit.
 
-## 🥘 Ingredients
+## The problem
 
-- CurlDotNet package - Install from [NuGet](https://www.nuget.org/packages/CurlDotNet/): `dotnet add package CurlDotNet`
-- 5 minutes
-- Internet connection
+You want to fetch a URL (a JSON API, a web page, a file) from a .NET application without translating curl options into `HttpClient` calls.
 
-## 📖 What is a GET Request?
-
-A GET request is how you ask a server to send you data. Think of it like:
-- Opening a webpage in your browser
-- Asking a librarian for a book
-- Looking up a word in a dictionary
-
-GET requests:
-- **Don't change anything** on the server (read-only)
-- **Can be bookmarked** and shared
-- **Can be cached** by browsers and proxies
-- **Are the default** HTTP method
-
-## 🍳 The Recipe
-
-### Step 1: Simplest Possible GET
+## Solution 1: run the curl command string
 
 ```csharp
 using System;
 using System.Threading.Tasks;
 using CurlDotNet;
 
-class Program
-{
-    static async Task Main()
-    {
-        // Just fetch a URL
-        var result = await Curl.ExecuteAsync("https://api.github.com");
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
 
-        Console.WriteLine(result.Body);
-    }
-}
+Console.WriteLine(result.StatusCode);   // 200
+Console.WriteLine(result.Body);         // the response body as a string
 ```
 
-That's it! The simplest GET request possible.
-
-### Step 2: GET with Status Check
+The leading `curl ` is optional. HTTP error statuses (4xx, 5xx) do not throw; check `result.IsSuccess` (true for 2xx) or `result.StatusCode`.
 
 ```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
+var result = await Curl.GetAsync("https://httpbin.org/get");
 
-class Program
-{
-    static async Task Main()
-    {
-        var result = await Curl.ExecuteAsync("curl https://api.github.com");
-
-        if (result.IsSuccess)
-        {
-            Console.WriteLine("Success!");
-            Console.WriteLine(result.Body);
-        }
-        else
-        {
-            Console.WriteLine($"Failed with status: {result.StatusCode}");
-        }
-    }
-}
+if (!result.IsSuccess)
+    Console.WriteLine($"Request failed with HTTP {result.StatusCode}");
 ```
 
-### Step 3: GET with Headers
+`Curl.GetAsync(url)` is a shortcut for the same thing. Add `-i` to the command if you also want the response headers printed into `result.Body`, or use `result.Headers` as shown below.
 
-```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
+## Solution 2: the fluent builder
 
-class Program
-{
-    static async Task Main()
-    {
-        // Add custom headers
-        var result = await Curl.ExecuteAsync(@"
-            curl https://api.github.com \
-              -H 'Accept: application/json' \
-              -H 'User-Agent: MyApp/1.0'
-        ");
-
-        if (result.IsSuccess)
-        {
-            Console.WriteLine($"Content-Type: {result.ContentType}");
-            Console.WriteLine($"Response Length: {result.Body.Length}");
-        }
-    }
-}
-```
-
-## 🎨 Complete Examples
-
-### Example 1: Fetch User Data
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
-
-class FetchUser
-{
-    static async Task Main()
-    {
-        Console.WriteLine("Fetching user data from GitHub...\n");
-
-        // GET request to GitHub API
-        var result = await Curl.ExecuteAsync(
-            "curl https://api.github.com/users/octocat"
-        );
-
-        if (result.IsSuccess)
-        {
-            // Parse JSON response
-            dynamic user = result.AsJsonDynamic();
-
-            Console.WriteLine($"Username: {user.login}");
-            Console.WriteLine($"Name: {user.name}");
-            Console.WriteLine($"Location: {user.location}");
-            Console.WriteLine($"Public Repos: {user.public_repos}");
-            Console.WriteLine($"Followers: {user.followers}");
-            Console.WriteLine($"Following: {user.following}");
-        }
-        else
-        {
-            Console.WriteLine($"Error: {result.StatusCode}");
-        }
-    }
-}
-```
-
-### Example 2: Fetch List of Items
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using System.Text.Json;
-using CurlDotNet;
-
-public class Post
-{
-    public int UserId { get; set; }
-    public int Id { get; set; }
-    public string Title { get; set; }
-    public string Body { get; set; }
-}
-
-class FetchPosts
-{
-    static async Task Main()
-    {
-        Console.WriteLine("Fetching posts...\n");
-
-        // GET request to JSONPlaceholder API
-        var result = await Curl.ExecuteAsync(
-            "curl https://jsonplaceholder.typicode.com/posts"
-        );
-
-        if (result.IsSuccess)
-        {
-            // Parse JSON array
-            var posts = result.ParseJson<Post[]>();
-
-            Console.WriteLine($"Retrieved {posts.Length} posts:\n");
-
-            // Show first 5 posts
-            foreach (var post in posts.Take(5))
-            {
-                Console.WriteLine($"#{post.Id}: {post.Title}");
-                Console.WriteLine($"   {post.Body.Substring(0, 60)}...\n");
-            }
-        }
-    }
-}
-```
-
-### Example 3: GET with Query Parameters
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
-
-class SearchExample
-{
-    static async Task Main()
-    {
-        // Search with query parameters
-        string searchTerm = "dotnet";
-        int page = 1;
-        int perPage = 10;
-
-        // Build URL with query parameters
-        string url = $"https://api.github.com/search/repositories?q={searchTerm}&page={page}&per_page={perPage}";
-
-        Console.WriteLine($"Searching for '{searchTerm}'...\n");
-
-        var result = await Curl.ExecuteAsync($"curl '{url}'");
-
-        if (result.IsSuccess)
-        {
-            dynamic data = result.AsJsonDynamic();
-
-            Console.WriteLine($"Found {data.total_count} repositories:\n");
-
-            foreach (var repo in data.items)
-            {
-                Console.WriteLine($"{repo.full_name}");
-                Console.WriteLine($"  ⭐ {repo.stargazers_count} stars");
-                Console.WriteLine($"  {repo.description}");
-                Console.WriteLine();
-            }
-        }
-    }
-}
-```
-
-### Example 4: GET with Authentication
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
-
-class AuthenticatedGet
-{
-    static async Task Main()
-    {
-        // Your API token (keep this secret!)
-        string apiToken = Environment.GetEnvironmentVariable("GITHUB_TOKEN")
-                          ?? "your-token-here";
-
-        Console.WriteLine("Fetching authenticated user data...\n");
-
-        // GET with Bearer token authentication
-        var result = await Curl.ExecuteAsync($@"
-            curl https://api.github.com/user \
-              -H 'Authorization: Bearer {apiToken}' \
-              -H 'Accept: application/vnd.github.v3+json'
-        ");
-
-        if (result.IsSuccess)
-        {
-            dynamic user = result.AsJsonDynamic();
-            Console.WriteLine($"Hello, {user.name}!");
-            Console.WriteLine($"Email: {user.email}");
-            Console.WriteLine($"Private repos: {user.total_private_repos}");
-        }
-        else if (result.StatusCode == 401)
-        {
-            Console.WriteLine("Authentication failed. Check your token.");
-        }
-        else
-        {
-            Console.WriteLine($"Error: {result.StatusCode}");
-        }
-    }
-}
-```
-
-### Example 5: Multiple GET Requests
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
-
-class MultipleRequests
-{
-    static async Task Main()
-    {
-        Console.WriteLine("Checking multiple services...\n");
-
-        string[] endpoints = {
-            "https://api.github.com",
-            "https://httpbin.org/status/200",
-            "https://jsonplaceholder.typicode.com/posts/1"
-        };
-
-        foreach (var endpoint in endpoints)
-        {
-            try
-            {
-                var result = await Curl.ExecuteAsync($"curl {endpoint}");
-
-                Console.WriteLine($"✓ {endpoint}");
-                Console.WriteLine($"  Status: {result.StatusCode}");
-                Console.WriteLine($"  Size: {result.Body.Length} bytes");
-                Console.WriteLine();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"✗ {endpoint}");
-                Console.WriteLine($"  Error: {ex.Message}");
-                Console.WriteLine();
-            }
-        }
-    }
-}
-```
-
-## 🎨 Variations
-
-### Using Fluent API
+If you would rather not write a command string, `CurlRequestBuilder` builds the same request and produces the same `CurlResult`.
 
 ```csharp
 using CurlDotNet.Core;
 
-// Instead of curl string
 var result = await CurlRequestBuilder
-    .Get("https://api.github.com/users/octocat")
-    .WithHeader("Accept", "application/json")
-    .WithHeader("User-Agent", "MyApp/1.0")
+    .Get("https://api.github.com/repos/curl/curl")
+    .WithHeader("Accept", "application/vnd.github+json")
+    .WithUserAgent("CurlDotNet-Recipe")
     .ExecuteAsync();
+
+Console.WriteLine(result.StatusCode);
+Console.WriteLine(result.GetHeader("Content-Type"));
 ```
 
-### GET with Timeout
+`ToCurlCommand()` on the builder returns the equivalent curl string, which is handy for logging or for pasting into a terminal.
+
+## Variations
+
+### Send request headers (-H, -A)
 
 ```csharp
-// Set a 10-second timeout
 var result = await Curl.ExecuteAsync(@"
-    curl --connect-timeout 10 \
-         --max-time 30 \
-         https://api.example.com
-");
+    curl https://api.github.com/repos/curl/curl \
+      -H 'Accept: application/vnd.github+json' \
+      -A 'CurlDotNet-Recipe'");
+
+Console.WriteLine(result.StatusCode);
 ```
 
-### GET with Redirect Following
+Multi-line verbatim strings with backslash continuations are parsed exactly like a shell would parse them.
+
+### Read response headers
 
 ```csharp
-// Follow redirects automatically
-var result = await Curl.ExecuteAsync(@"
-    curl -L https://bit.ly/some-shortened-url
-");
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
+
+string contentType = result.GetHeader("Content-Type");  // "application/json"
+bool hasEtag = result.HasHeader("ETag");
+
+foreach (var header in result.Headers)                 // case-insensitive dictionary
+    Console.WriteLine($"{header.Key}: {header.Value}");
 ```
 
-### GET and Save to File
+### Add query parameters
+
+Build the URL yourself and escape each value. Quote the URL if it contains `&`.
 
 ```csharp
-// Save directly to file
-var result = await Curl.ExecuteAsync(@"
-    curl -o data.json https://api.example.com/data
-");
+string search = Uri.EscapeDataString("curl dot net");
+string url = $"https://httpbin.org/get?q={search}&page=1";
 
-// Or save after fetching
-var result = await Curl.ExecuteAsync("curl https://api.example.com/data");
-result.SaveToFile("data.json");
+var result = await Curl.ExecuteAsync($"curl '{url}'");
+Console.WriteLine(result.Body);   // httpbin echoes the "args" it received
 ```
 
-## 🔧 Working with Different Response Types
-
-### JSON Response
+### Parse the JSON reply
 
 ```csharp
-var result = await Curl.ExecuteAsync("curl https://api.github.com");
+using System.Text.Json.Serialization;
 
-// Method 1: Parse to dynamic
-dynamic data = result.AsJsonDynamic();
-Console.WriteLine(data.current_user_url);
-
-// Method 2: Parse to strongly-typed object
-var apiInfo = result.ParseJson<GitHubApiInfo>();
-Console.WriteLine(apiInfo.CurrentUserUrl);
-```
-
-### XML Response
-
-```csharp
-var result = await Curl.ExecuteAsync("curl https://example.com/data.xml");
-string xml = result.Body;
-
-// Parse using your preferred XML library
-var doc = System.Xml.Linq.XDocument.Parse(xml);
-```
-
-### Plain Text Response
-
-```csharp
-var result = await Curl.ExecuteAsync("curl https://example.com/readme.txt");
-string text = result.Body;
-Console.WriteLine(text);
-```
-
-### Binary Response
-
-```csharp
-var result = await Curl.ExecuteAsync("curl https://example.com/image.jpg");
-
-// Save binary data
-await File.WriteAllBytesAsync("image.jpg",
-    System.Text.Encoding.UTF8.GetBytes(result.Body));
-```
-
-## 🐛 Troubleshooting
-
-### Problem: "404 Not Found"
-
-**Cause:** The URL doesn't exist or is wrong.
-
-**Solution:**
-```csharp
-var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
-
-if (result.StatusCode == 404)
+public class HttpBinGet
 {
-    Console.WriteLine("User not found. Check the username.");
+    [JsonPropertyName("url")] public string Url { get; set; }
+    [JsonPropertyName("origin")] public string Origin { get; set; }
 }
+
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
+var data = result.ParseJson<HttpBinGet>();
+Console.WriteLine($"{data.Url} from {data.Origin}");
 ```
 
-For more details, see our [HTTP error troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.md#http-errors).
+`ParseJson<T>()` uses `System.Text.Json` (Newtonsoft.Json on .NET Standard 2.0), so property names must match the JSON unless you add `[JsonPropertyName]`. For a quick look without a class, `result.AsJsonDynamic()` returns a `dynamic`.
 
-### Problem: "403 Forbidden"
+### Save the body to a file (-o)
 
-**Cause:** You need authentication or don't have permission.
-
-**Solution:**
 ```csharp
-// Add authentication
-var result = await Curl.ExecuteAsync(@"
-    curl https://api.github.com/user \
-      -H 'Authorization: Bearer YOUR_TOKEN'
-");
+var result = await Curl.ExecuteAsync("curl -o repo.json https://api.github.com/repos/curl/curl -A CurlDotNet");
+
+Console.WriteLine(result.OutputFiles[0]);   // "repo.json"
+
+// or decide after the fact:
+var page = await Curl.ExecuteAsync("curl https://httpbin.org/html");
+await page.SaveToFileAsync("page.html");
 ```
 
-For more details, see our [authentication troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.md#authentication-errors).
+Binary responses (images, zips) are detected from the Content-Type and land in `result.BinaryData` with `result.IsBinary == true`. See [Download a File](download-file.html).
 
-### Problem: Response is Empty
+### Set a timeout (-m)
 
-**Cause:** The endpoint might not return data, or there's an error.
-
-**Solution:**
 ```csharp
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
+using CurlDotNet.Exceptions;
 
-if (string.IsNullOrEmpty(result.Body))
-{
-    Console.WriteLine("Empty response received");
-    Console.WriteLine($"Status: {result.StatusCode}");
-    Console.WriteLine($"Headers: {string.Join(", ", result.Headers.Keys)}");
-}
-```
-
-### Problem: Invalid JSON
-
-**Cause:** The response isn't valid JSON.
-
-**Solution:**
-```csharp
 try
 {
-    var data = result.ParseJson<MyType>();
+    var result = await Curl.ExecuteAsync("curl -m 10 https://httpbin.org/delay/2");
+    Console.WriteLine(result.StatusCode);
 }
-catch (System.Text.Json.JsonException ex)
+catch (CurlOperationTimeoutException ex)
 {
-    Console.WriteLine("Response is not valid JSON:");
-    Console.WriteLine(result.Body);
-}
-```
-
-For more details, see our [JSON troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.md#json-parsing-errors).
-
-### Problem: Timeout
-
-**Cause:** Server is slow or not responding.
-
-**Solution:**
-```csharp
-// Increase timeout
-var result = await Curl.ExecuteAsync(@"
-    curl --connect-timeout 30 \
-         --max-time 60 \
-         https://slow-api.example.com
-");
-```
-
-For more details, see our [timeout troubleshooting guide](https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.md#timeout-errors).
-
-## 📊 Query Parameters Guide
-
-### Building URLs with Parameters
-
-```csharp
-// Method 1: Manual string building
-string url = $"https://api.example.com/search?q={searchTerm}&limit={limit}";
-
-// Method 2: Uri.EscapeDataString for special characters
-string safeSearch = Uri.EscapeDataString("C# programming");
-string url = $"https://api.example.com/search?q={safeSearch}";
-
-// Method 3: Using query builder
-var queryParams = new Dictionary<string, string>
-{
-    ["q"] = "dotnet",
-    ["page"] = "1",
-    ["per_page"] = "20",
-    ["sort"] = "stars"
-};
-
-string query = string.Join("&", queryParams.Select(p => $"{p.Key}={Uri.EscapeDataString(p.Value)}"));
-string url = $"https://api.example.com/search?{query}";
-```
-
-### Common Query Parameters
-
-| Parameter | Purpose | Example |
-|-----------|---------|---------|
-| `q` | Search query | `?q=dotnet` |
-| `page` | Pagination page number | `?page=2` |
-| `per_page` / `limit` | Items per page | `?per_page=20` |
-| `sort` | Sort order | `?sort=created` |
-| `order` | Ascending/descending | `?order=desc` |
-| `filter` | Filter results | `?filter=active` |
-
-## 🎓 Best Practices
-
-### 1. Always Check Status
-
-```csharp
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
-
-if (!result.IsSuccess)
-{
-    Console.WriteLine($"Request failed: {result.StatusCode}");
-    return;
-}
-
-// Proceed with result.Body
-```
-
-### 2. Use Strong Types
-
-```csharp
-// Define your model
-public class User
-{
-    public string Login { get; set; }
-    public string Name { get; set; }
-    public int PublicRepos { get; set; }
-}
-
-// Parse to strong type
-var user = result.ParseJson<User>();
-Console.WriteLine(user.Name); // IntelliSense works!
-```
-
-### 3. Handle Exceptions
-
-```csharp
-try
-{
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
-    // Process result
-}
-catch (CurlDnsException ex)
-{
-    Console.WriteLine($"DNS error: {ex.Message}");
-    // See: https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.md#dns-errors
-}
-catch (CurlTimeoutException ex)
-{
-    Console.WriteLine($"Timeout: {ex.Message}");
-    // See: https://jacob-mellor.github.io/curl-dot-net/troubleshooting/common-issues.md#timeout-errors
-}
-catch (CurlException ex)
-{
-    Console.WriteLine($"Curl error: {ex.Message}");
-    // See: https://jacob-mellor.github.io/curl-dot-net/troubleshooting/
+    Console.WriteLine($"Timed out after {ex.Timeout}");
 }
 ```
 
-### 4. Set Appropriate Headers
+More in the [timeouts recipe](../timeouts.html).
 
-```csharp
-var result = await Curl.ExecuteAsync(@"
-    curl https://api.example.com \
-      -H 'Accept: application/json' \
-      -H 'User-Agent: MyApp/1.0' \
-      -H 'Accept-Language: en-US'
-");
-```
+## Troubleshooting
 
-### 5. Use Environment Variables for Secrets
+**403 Forbidden from api.github.com.** GitHub rejects requests without a `User-Agent`. CurlDotNet does not add one automatically, so pass `-A 'MyApp'` or `.WithUserAgent("MyApp")`.
 
-```csharp
-// Never hardcode tokens!
-string apiKey = Environment.GetEnvironmentVariable("API_KEY");
+**404 Not Found.** Check the URL for typos and remember that `result.Body` usually contains the server's own error message; print it.
 
-var result = await Curl.ExecuteAsync($@"
-    curl https://api.example.com \
-      -H 'Authorization: Bearer {apiKey}'
-");
-```
+**Empty `result.Body`.** A 204 No Content reply, a `HEAD` request (`-I`), or a binary response (`result.IsBinary`, body in `result.BinaryData`) all leave `Body` empty. Check `result.StatusCode` and `result.GetHeader("Content-Type")`.
 
-## 🚀 Next Steps
+**`ParseJson<T>()` throws `InvalidOperationException`.** The body is empty or not JSON (often an HTML error page). Check `result.IsSuccess` first and inspect `result.Body`.
 
-Now that you can make GET requests:
+**`CurlCouldntConnectException`.** DNS failure, connection refused, or a TLS handshake failure. Check the host name, your network, and whether a proxy is required ([proxy recipe](../proxy.html)).
 
-1. Learn to [Send JSON Data](send-json.html) with POST requests
-2. Try [Downloading Files](download-file.html)
-3. Explore [Handling Errors](handle-errors.html)
-4. Build an [API Client](call-api.html)
+**The server redirected and I got a 301/302.** curl does not follow redirects unless you pass `-L`. See [Follow Redirects](../follow-redirects.html).
 
-## 📚 Related Recipes
+## Related
 
-- [Call an API](call-api.html) - Building a complete API client
-- [Send JSON](send-json.html) - POST requests with JSON
-- [Handle Errors](handle-errors.html) - Robust error handling
-- [Download Files](download-file.html) - Saving files from URLs
-
-## 🎓 Key Takeaways
-
-- GET is for reading data (doesn't change anything)
-- Simplest form: `Curl.ExecuteAsync(url)`
-- Always check `result.IsSuccess` before using data
-- Use query parameters for filtering and pagination
-- Add headers for authentication and content negotiation
-- Parse JSON with `ParseJson<T>()` or `AsJsonDynamic()`
-- Handle exceptions for robust applications
-
-## 📖 Quick Reference
-
-```csharp
-// Basic GET
-var result = await Curl.ExecuteAsync("https://api.example.com");
-
-// GET with headers
-var result = await Curl.ExecuteAsync(@"
-    curl https://api.example.com \
-      -H 'Accept: application/json' \
-      -H 'Authorization: Bearer token'
-");
-
-// GET with query parameters
-var result = await Curl.ExecuteAsync(
-    "curl 'https://api.example.com/search?q=test&limit=10'"
-);
-
-// Parse response
-if (result.IsSuccess)
-{
-    var data = result.ParseJson<MyType>();
-    // or
-    dynamic data = result.AsJsonDynamic();
-}
-```
-
----
-
-**Need help?** Check [Troubleshooting](../../troubleshooting/common-issues.html) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+- [Call a REST API](call-api.html) - GET/POST/PUT/DELETE with a bearer token
+- [Send JSON](send-json.html) - `curl -X POST` with a JSON body
+- [Download a File](download-file.html) - `-o`, `-O` and binary responses
+- [Handle Errors](handle-errors.html) - status codes versus exceptions
+- [HEAD requests](../head-request.html) - `-I` for headers only
+- [Tutorial: Understanding Results](../../tutorials/05-understanding-results.html)
+- [Cookbook index](../index.html)

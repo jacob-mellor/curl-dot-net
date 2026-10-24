@@ -78,7 +78,7 @@ namespace CurlDotNet.Core
     /// - Handles Windows, PowerShell, Bash, ZSH syntax differences
     /// </ai-patterns>
     /// </remarks>
-    internal class CommandParser : ICommandParser
+    internal partial class CommandParser : ICommandParser
     {
         private static readonly Dictionary<string, string> ShortToLongOptions = new Dictionary<string, string>
         {
@@ -187,6 +187,8 @@ namespace CurlDotNet.Core
             {
                 throw new CurlInvalidCommandException("No URL specified in command.", "URL", options.OriginalCommand);
             }
+
+            options.Url = NormalizeUrl(options.Url);
 
             if (!methodExplicitlySet && string.Equals(options.Method, "GET", StringComparison.OrdinalIgnoreCase))
             {
@@ -337,6 +339,123 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
+        /// Adds the scheme curl would guess for a URL given without one: <c>ftp.example.com</c>
+        /// becomes <c>ftp://ftp.example.com</c>, anything else becomes <c>http://...</c>.
+        /// URLs that already carry a scheme are returned unchanged.
+        /// </summary>
+        /// <param name="url">The URL as typed on the command line.</param>
+        /// <returns>A URL with a scheme.</returns>
+        public static string NormalizeUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                return url;
+            }
+
+            var trimmed = url.Trim();
+            if (Regex.IsMatch(trimmed, @"^[A-Za-z][A-Za-z0-9+.-]*://"))
+            {
+                return trimmed;
+            }
+
+            if (trimmed.StartsWith("ftp.", StringComparison.OrdinalIgnoreCase))
+            {
+                return "ftp://" + trimmed;
+            }
+
+            return "http://" + trimmed;
+        }
+
+        /// <summary>
+        /// Wraps a value in single quotes so it survives a round-trip through <see cref="Parse(string)"/>
+        /// (and through a real POSIX shell) unchanged, even when it contains spaces, double quotes,
+        /// backslashes or single quotes. Embedded single quotes use the standard <c>'\''</c> idiom.
+        /// </summary>
+        /// <param name="value">Raw value such as a JSON body, header or URL.</param>
+        /// <returns>The single-quoted, shell-safe representation; <c>''</c> for null or empty input.</returns>
+        /// <example>
+        /// <code language="csharp">
+        /// var body = "{\"name\":\"O'Brien\"}";
+        /// var cmd = $"curl -d {CommandParser.ShellQuote(body)} https://api.example.com/users";
+        /// // curl -d '{"name":"O'\''Brien"}' https://api.example.com/users
+        /// </code>
+        /// </example>
+        public static string ShellQuote(string? value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return "''";
+            }
+
+            return "'" + value!.Replace("'", "'\\''") + "'";
+        }
+
+        /// <summary>
+        /// Like <see cref="ShellQuote(string)"/> but leaves values that contain only
+        /// shell-safe characters (letters, digits and <c>- _ . / : = @ % ? &amp; + ~ , # ;</c>)
+        /// unquoted, which keeps generated commands readable for URLs and file names.
+        /// </summary>
+        /// <param name="value">Raw value such as a URL or output path.</param>
+        /// <returns>The value, quoted only when it needs to be.</returns>
+        public static string ShellQuoteIfNeeded(string? value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return "''";
+            }
+
+            foreach (var c in value!)
+            {
+                if (char.IsLetterOrDigit(c) || "-_./:=@%?&+~,#;".IndexOf(c) >= 0)
+                {
+                    continue;
+                }
+
+                return ShellQuote(value);
+            }
+
+            return value;
+        }
+
+        /// <summary>
+        /// Rewrites a just-closed single-quoted segment that was written for Windows.
+        /// </summary>
+        /// <remarks>
+        /// On Windows the C runtime that curl.exe uses to split its command line treats
+        /// <c>\"</c> as a literal double quote even when PowerShell passed the text through
+        /// single quotes, so Windows documentation and Stack Overflow answers are full of
+        /// <c>-d '{\"key\":\"value\"}'</c>. A POSIX shell would send the backslashes verbatim,
+        /// which is never what the author meant. If a single-quoted segment contains
+        /// <c>\"</c> and no bare <c>"</c> at all, every <c>\"</c> is unescaped. A segment with
+        /// any bare double quote is treated as genuine JSON (where <c>\"</c> is a real escape
+        /// inside a string literal) and left untouched.
+        /// </remarks>
+        private static void UnescapeWindowsStyleQuotes(StringBuilder current, int start)
+        {
+            if (start < 0 || start >= current.Length)
+            {
+                return;
+            }
+
+            var segment = current.ToString(start, current.Length - start);
+            if (segment.IndexOf("\\\"", StringComparison.Ordinal) < 0)
+            {
+                return;
+            }
+
+            for (var k = 0; k < segment.Length; k++)
+            {
+                if (segment[k] == '"' && (k == 0 || segment[k - 1] != '\\'))
+                {
+                    return;
+                }
+            }
+
+            current.Length = start;
+            current.Append(segment.Replace("\\\"", "\""));
+        }
+
+        /// <summary>
         /// Parses arguments from command string, handling quotes from all shells.
         /// Supports:
         /// - Single quotes: 'text'
@@ -349,6 +468,8 @@ namespace CurlDotNet.Core
             var current = new StringBuilder();
             var inQuote = false;
             var quoteChar = ' ';
+            var quoteStart = 0;
+            var sawQuotes = false; // '' or "" must yield an empty argument, not vanish
             var escape = false;
             var i = 0;
 
@@ -359,35 +480,25 @@ namespace CurlDotNet.Core
 
                 if (escape)
                 {
-                    // Handle escape sequences - but only in double quotes!
+                    // `escape` is only set when the backslash precedes a quote or another backslash.
+                    // Like a POSIX shell (and unlike C), \n or \t are never turned into control
+                    // characters: curl -d "{\"a\":\"x\ny\"}" must stay valid JSON on the wire.
                     if (inQuote && quoteChar == '"')
                     {
-                        // In double quotes, process escape sequences
-                        if (c == 'n') current.Append('\n');
-                        else if (c == 't') current.Append('\t');
-                        else if (c == 'r') current.Append('\r');
-                        else if (c == '\\') current.Append('\\');
-                        else if (c == '"') current.Append('"');
-                        else current.Append(c);
+                        // Inside double quotes a backslash only escapes " and \ ; \' stays literal.
+                        if (c == '\'') current.Append('\\');
+                        current.Append(c);
                     }
                     else if (inQuote && quoteChar == '\'')
                     {
-                        // In single quotes, escapes are literal except for \'
-                        if (c == '\'') current.Append('\'');
-                        else
-                        {
-                            current.Append('\\'); // Keep the backslash
-                            current.Append(c);
-                        }
+                        // Inside single quotes everything is literal except the \' convenience.
+                        if (c != '\'') current.Append('\\');
+                        current.Append(c);
                     }
                     else
                     {
-                        // Outside quotes, handle as needed
-                        if (c == 'n') current.Append('\n');
-                        else if (c == 't') current.Append('\t');
-                        else if (c == 'r') current.Append('\r');
-                        else if (c == '\\') current.Append('\\');
-                        else current.Append(c);
+                        // Outside quotes \" \' and \\ yield the bare character.
+                        current.Append(c);
                     }
 
                     escape = false;
@@ -424,12 +535,19 @@ namespace CurlDotNet.Core
                 {
                     inQuote = true;
                     quoteChar = c;
+                    quoteStart = current.Length;
+                    sawQuotes = true;
                     i++;
                     continue;
                 }
 
                 if (inQuote && c == quoteChar)
                 {
+                    if (quoteChar == '\'')
+                    {
+                        UnescapeWindowsStyleQuotes(current, quoteStart);
+                    }
+
                     inQuote = false;
                     quoteChar = ' ';
                     i++;
@@ -439,10 +557,11 @@ namespace CurlDotNet.Core
                 // Whitespace handling
                 if (!inQuote && char.IsWhiteSpace(c))
                 {
-                    if (current.Length > 0)
+                    if (current.Length > 0 || sawQuotes)
                     {
                         args.Add(current.ToString());
                         current.Clear();
+                        sawQuotes = false;
                     }
                     i++;
                     continue;
@@ -452,7 +571,7 @@ namespace CurlDotNet.Core
                 i++;
             }
 
-            if (current.Length > 0)
+            if (current.Length > 0 || sawQuotes)
             {
                 args.Add(current.ToString());
             }
@@ -524,7 +643,8 @@ namespace CurlDotNet.Core
 
                         if (!ProcessOption(optionName, value, options, ref methodSpecified))
                         {
-                            // Unknown option - ignore but do not consume URL arguments
+                            // Unknown option: remember it for Validate(), do not consume URL arguments
+                            options.UnknownOptions.Add(optionName);
                         }
                     }
                 }
@@ -567,7 +687,7 @@ namespace CurlDotNet.Core
 
         private bool NeedsValue(string option)
         {
-            return OptionsRequiringValue.Contains(option);
+            return OptionsRequiringValue.Contains(option) || TransportOptionsRequiringValue.Contains(option);
         }
 
         private bool ProcessOption(string option, string value, CurlOptions options, ref bool methodSpecified)
@@ -618,8 +738,8 @@ namespace CurlDotNet.Core
 
                 case "--data-urlencode":
                     options.DataUrlEncode = true;
-                    // Store the data as-is; encoding should happen when the request is sent
-                    AppendData(options, value);
+                    // Encode now, exactly like curl's tool_getparam.c does, so Data is wire-ready
+                    AppendData(options, UrlEncodeDataArgument(value));
                     if (string.IsNullOrEmpty(options.Method) || options.Method == "GET")
                     {
                         options.Method = "POST";
@@ -769,12 +889,13 @@ namespace CurlDotNet.Core
 
                 case "--max-time":
                 case "-m":
-                    if (int.TryParse(value, out var maxTime))
+                    // curl accepts decimal seconds here (e.g. --max-time 2.5)
+                    if (double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var maxTime))
                         options.MaxTime = maxTime;
                     return true;
 
                 case "--connect-timeout":
-                    if (int.TryParse(value, out var connectTimeout))
+                    if (double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var connectTimeout))
                         options.ConnectTimeout = connectTimeout;
                     return true;
 
@@ -899,8 +1020,16 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--retry-delay":
-                    if (int.TryParse(value, out var retryDelay))
+                    if (double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var retryDelay))
                         options.RetryDelay = retryDelay;
+                    return true;
+
+                case "--retry-all-errors":
+                    options.RetryAllErrors = true;
+                    return true;
+
+                case "--retry-connrefused":
+                    options.RetryConnRefused = true;
                     return true;
 
                 case "--retry-max-time":
@@ -917,7 +1046,8 @@ namespace CurlDotNet.Core
                     return true;
             }
 
-            return false;
+            // Transport-side options (proxy, cookies, output files, write-out...) live in CommandParser.Transport.cs
+            return ProcessTransportOption(option, value, options, ref methodSpecified);
         }
 
         private void ParseHeader(string header, CurlOptions options)
@@ -1033,14 +1163,92 @@ namespace CurlDotNet.Core
             return 0;
         }
 
-        private void AppendData(CurlOptions options, string value)
+        /// <summary>
+        /// Applies curl's <c>--data-urlencode</c> rules to one argument:
+        /// <c>content</c>, <c>=content</c>, <c>name=content</c>, <c>@file</c> and <c>name@file</c>.
+        /// Only the content part is percent-encoded; the name and the <c>=</c> separator are kept.
+        /// </summary>
+        /// <param name="value">The raw argument following <c>--data-urlencode</c>.</param>
+        /// <returns>The encoded <c>name=value</c> pair (or bare encoded content).</returns>
+        /// <exception cref="CurlException">Thrown with exit code 26 when a referenced file cannot be read.</exception>
+        private static string UrlEncodeDataArgument(string value)
         {
             if (string.IsNullOrEmpty(value))
+            {
+                return value;
+            }
+
+            // curl looks for '=' first; only when there is none does '@' mean "read a file".
+            var eq = value.IndexOf('=');
+            if (eq >= 0)
+            {
+                var name = value.Substring(0, eq);
+                var content = value.Substring(eq + 1);
+                return name.Length > 0 ? name + "=" + PercentEncode(content) : PercentEncode(content);
+            }
+
+            var at = value.IndexOf('@');
+            if (at >= 0)
+            {
+                var name = value.Substring(0, at);
+                var path = value.Substring(at + 1);
+                string fileContent;
+                try
+                {
+                    fileContent = System.IO.File.ReadAllText(path);
+                }
+                catch (Exception ex)
+                {
+                    throw new CurlException($"Failed to open {path}: {ex.Message}", 26);
+                }
+
+                return name.Length > 0 ? name + "=" + PercentEncode(fileContent) : PercentEncode(fileContent);
+            }
+
+            return PercentEncode(value);
+        }
+
+        /// <summary>
+        /// Percent-encodes a string the way curl's <c>curl_easy_escape</c> does: UTF-8 bytes, with only
+        /// ASCII letters, digits and <c>- . _ ~</c> left as-is. Spaces become <c>%20</c>, never <c>+</c>.
+        /// </summary>
+        /// <param name="value">The text to encode.</param>
+        /// <returns>The percent-encoded text.</returns>
+        public static string PercentEncode(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(value);
+            var sb = new StringBuilder(bytes.Length * 3);
+            foreach (var b in bytes)
+            {
+                var c = (char)b;
+                if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+                    c == '-' || c == '.' || c == '_' || c == '~')
+                {
+                    sb.Append(c);
+                }
+                else
+                {
+                    sb.Append('%').Append(b.ToString("X2"));
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private void AppendData(CurlOptions options, string value)
+        {
+            if (value == null)
             {
                 return;
             }
 
-            if (string.IsNullOrEmpty(options.Data))
+            // -d '' is a POST with an empty body (Content-Length: 0), so an empty string still counts.
+            if (options.Data == null)
             {
                 options.Data = value;
             }

@@ -1,89 +1,106 @@
-# SSL/TLS Certificate Errors
+---
+title: "curl SSL Certificate Errors in C#: -k and Insecure()"
+description: "Fix curl SSL certificate errors in C#: CurlDotNet throws CurlCouldntConnectException on a failed TLS handshake; when -k / Insecure() is OK, and real fixes."
+---
 
-## Overview
+# curl SSL Certificate Errors in C# (TLS Handshake Failures)
 
-SSL/TLS errors occur when there are issues with secure connections, including certificate validation, cipher negotiation, and protocol mismatches.
+curl SSL certificate errors in C# happen when the TLS handshake fails: the server's certificate is self-signed, expired, issued for a different host name, or signed by a CA your machine does not trust. In CurlDotNet the failure surfaces as `CurlCouldntConnectException` (the connection could not be established), and `-k`/`--insecure` or the builder's `Insecure()` skips verification for development. This page explains how to recognise the error, when skipping verification is acceptable, and how to fix the root cause.
 
-## Common SSL Error Scenarios
+## What Is Thrown
 
-### 1. Invalid Certificate
+.NET reports a certificate failure as an `HttpRequestException` during the handshake, which CurlDotNet maps to `CurlCouldntConnectException`:
 
 ```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
+
 try
 {
-    var result = await curl.ExecuteAsync("curl https://self-signed.example.com");
+    var result = await Curl.ExecuteAsync("curl https://self-signed.badssl.com/");
 }
-catch (CurlSslException ex)
+catch (CurlCouldntConnectException ex)
 {
-    // For development/testing only - skip certificate verification
-    var result = await curl.ExecuteAsync("curl -k https://self-signed.example.com");
+    Console.WriteLine($"TLS connection to {ex.Host}:{ex.Port} failed");
 }
 ```
 
-### 2. Certificate Chain Issues
+`CurlSslException`, `CurlPeerFailedVerificationException` and `CurlSslCertificateProblemException` exist as types in `CurlDotNet.Exceptions`, but the current HTTP engine does not raise them for a failed handshake; catch `CurlCouldntConnectException`.
+
+## Telling It Apart from a Network Failure
+
+A plain connection failure and a certificate failure throw the same exception type. To tell them apart:
+
+- Open the same URL in a browser: a certificate warning confirms a TLS problem
+- Run `curl -v https://host/` in a terminal and read the `SSL certificate problem` line
+- Retry with `-k`: if it now succeeds, the certificate was the issue
 
 ```csharp
-// Provide CA bundle for verification
-var result = await curl.ExecuteAsync(
-    "curl --cacert /path/to/ca-bundle.crt https://example.com"
-);
+var insecure = await Curl.ExecuteAsync("curl -k https://self-signed.badssl.com/");
+Console.WriteLine(insecure.StatusCode);   // 200: so the certificate, not the network, was the problem
 ```
 
-### 3. Expired Certificates
+## Skipping Verification (Development Only)
+
+`-k` disables certificate validation. Anyone on the network path can then impersonate the server, so never ship it in production code.
+
+### -k / --insecure
 
 ```csharp
-public async Task<bool> CheckCertificateExpiry(string url)
-{
-    var result = await curl.ExecuteAsync($"curl -v {url}");
-    // Parse certificate info from verbose output
-    return !result.StdErr.Contains("certificate has expired");
-}
+// WARNING: development and testing only
+var result = await Curl.ExecuteAsync("curl -k https://localhost:5001/api/health");
 ```
 
-## Solutions
-
-### Development Environment
+### Builder: Insecure()
 
 ```csharp
-// WARNING: Only for development/testing
-public class DevCurlClient
-{
-    public async Task<CurlResult> ExecuteInsecure(string url)
-    {
-        return await curl.ExecuteAsync($"curl --insecure {url}");
-    }
-}
+using CurlDotNet.Core;
+
+var result = await CurlRequestBuilder
+    .Get("https://localhost:5001/api/health")
+    .Insecure()
+    .ExecuteAsync();
 ```
 
-### Production Environment
+### Process-Wide Default
 
 ```csharp
-public class SecureCurlClient
-{
-    private readonly string _caBundlePath;
-
-    public SecureCurlClient(string caBundlePath)
-    {
-        _caBundlePath = caBundlePath;
-    }
-
-    public async Task<CurlResult> Execute(string url)
-    {
-        return await curl.ExecuteAsync($"curl --cacert {_caBundlePath} {url}");
-    }
-}
+#if DEBUG
+Curl.DefaultInsecure = true;   // applies to every command in this process
+#endif
 ```
 
-## Certificate Pinning
+`CurlSettings` also has `.WithInsecure()` for a single call.
 
-```csharp
-// Pin specific certificate
-var pinnedCert = "sha256//AbC123...";
-var result = await curl.ExecuteAsync(
-    $"curl --pinnedpubkey {pinnedCert} https://example.com"
-);
+## Fixing the Root Cause
+
+### Self-Signed Certificate on Your Own Server
+
+Trust the certificate on the machine running your code. For local ASP.NET Core development:
+
+```bash
+dotnet dev-certs https --trust
 ```
+
+### Private or Corporate CA
+
+Install the CA's root certificate in the operating system trust store (Windows certificate manager, macOS Keychain, or `/usr/local/share/ca-certificates` plus `update-ca-certificates` on Debian/Ubuntu). .NET's `HttpClient`, and therefore CurlDotNet, uses the system store.
+
+### Expired or Wrong-Host Certificate
+
+This is a server-side problem. Renew the certificate or request the host name that matches it. Browsers will show the same error.
+
+### Missing Intermediate Certificates
+
+Some servers send only the leaf certificate. Configure the server to send the full chain; test with an online TLS checker.
+
+## Not Supported Yet
+
+Command-line curl's `--cacert`, `--cert`, `--key` and `--pinnedpubkey` options are not implemented in CurlDotNet at this time. Use the operating system trust store as described above.
 
 ## Related Documentation
-- [Authentication Errors](auth-errors.html)
-- [Security Best Practices](/guides/security.html)
+
+- [DNS and connection errors](dns-errors.html)
+- [Authentication errors](auth-errors.html)
+- [Troubleshooting: common issues](../troubleshooting/common-issues.html)
+- [Exception reference](index.html)

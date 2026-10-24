@@ -275,6 +275,15 @@ namespace CurlDotNet.Core
         #region JSON Operations - Working with JSON responses
 
         /// <summary>
+        /// JSON APIs are overwhelmingly camelCase while C# properties are PascalCase, so property
+        /// matching is case-insensitive by default (the same as Newtonsoft on netstandard2.0).
+        /// </summary>
+        private static readonly System.Text.Json.JsonSerializerOptions JsonOptionsForParsing = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+        };
+
+        /// <summary>
         /// <para><b>Parse the JSON response into your C# class.</b></para>
         ///
         /// <para>The most common operation - turning JSON into objects. This method uses <see cref="System.Text.Json.JsonSerializer"/> 
@@ -304,7 +313,7 @@ namespace CurlDotNet.Core
         /// </summary>
         /// <typeparam name="T">The type to deserialize to. Must match the JSON structure. Can be a class, struct, or collection type like <see cref="List{T}"/> or <see cref="Dictionary{TKey, TValue}"/>.</typeparam>
         /// <returns>An instance of <typeparamref name="T"/> with data from the JSON <see cref="Body"/>.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <see cref="Body"/> is null or empty.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when <see cref="Body"/> is null or empty.</exception>
         /// <exception cref="InvalidOperationException">Thrown when JSON deserialization fails or JSON doesn't match type <typeparamref name="T"/>.</exception>
         /// <exception cref="System.Exception">Thrown when the JSON syntax is invalid. See <see cref="Exception.InnerException"/> for details.</exception>
         /// <remarks>
@@ -325,7 +334,7 @@ namespace CurlDotNet.Core
 #if NETSTANDARD2_0
                 return Newtonsoft.Json.JsonConvert.DeserializeObject<T>(Body);
 #else
-                return System.Text.Json.JsonSerializer.Deserialize<T>(Body);
+                return System.Text.Json.JsonSerializer.Deserialize<T>(Body, JsonOptionsForParsing);
 #endif
             }
             catch (Exception ex)
@@ -345,7 +354,7 @@ namespace CurlDotNet.Core
         /// </summary>
         /// <typeparam name="T">The type to deserialize to. See <see cref="ParseJson{T}"/> for details.</typeparam>
         /// <returns>An instance of <typeparamref name="T"/> with data from the JSON <see cref="Body"/>.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <see cref="Body"/> is null or empty.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when <see cref="Body"/> is null or empty.</exception>
         /// <exception cref="InvalidOperationException">Thrown when JSON deserialization fails.</exception>
         /// <exception cref="System.Exception">Thrown when the JSON syntax is invalid.</exception>
         /// <remarks>
@@ -380,7 +389,7 @@ namespace CurlDotNet.Core
         /// In .NET Standard 2.0, this is a <c>JObject</c> from Newtonsoft.Json.</para>
         /// <para>Access properties like: <c>dynamicObj.propertyName</c> or <c>dynamicObj["propertyName"]</c></para>
         /// </returns>
-        /// <exception cref="ArgumentNullException">Thrown when <see cref="Body"/> is null or empty.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when <see cref="Body"/> is null or empty.</exception>
         /// <exception cref="System.Exception">Thrown when the JSON syntax is invalid.</exception>
         /// <remarks>
         /// <para><b>⚠️ Warning:</b> No compile-time checking! If a property doesn't exist, you'll get a runtime exception.</para>
@@ -657,7 +666,20 @@ namespace CurlDotNet.Core
         /// <seealso cref="Headers">Access all headers as dictionary</seealso>
         public string GetHeader(string headerName)
         {
-            return Headers.TryGetValue(headerName, out var value) ? value : null;
+            if (Headers == null || string.IsNullOrEmpty(headerName))
+                return null;
+
+            if (Headers.TryGetValue(headerName, out var value))
+                return value;
+
+            // Headers assigned by callers may use a case-sensitive dictionary; HTTP header names are not
+            foreach (var header in Headers)
+            {
+                if (string.Equals(header.Key, headerName, StringComparison.OrdinalIgnoreCase))
+                    return header.Value;
+            }
+
+            return null;
         }
 
         /// <summary>

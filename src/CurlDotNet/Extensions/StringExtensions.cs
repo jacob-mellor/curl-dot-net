@@ -57,8 +57,16 @@ namespace CurlDotNet.Extensions
         /// </example>
         public static async Task<CurlResult> CurlPostJsonAsync(this string url, string json)
         {
-            var command = $@"curl -X POST -H 'Content-Type: application/json' -d '{json}' {url}";
-            return await CurlDotNet.Curl.ExecuteAsync(command);
+            // Build options directly so JSON containing apostrophes or spaces needs no shell quoting
+            var options = new CurlDotNet.Core.CurlOptions
+            {
+                Url = url,
+                Method = "POST",
+                Data = json ?? string.Empty,
+                OriginalCommand = $"curl -X POST -H 'Content-Type: application/json' -d {CurlDotNet.Core.CommandParser.ShellQuote(json)} {CurlDotNet.Core.CommandParser.ShellQuoteIfNeeded(url)}"
+            };
+            options.Headers["Content-Type"] = "application/json";
+            return await CurlDotNet.Curl.ExecuteAsync(options);
         }
 
         /// <summary>
@@ -72,8 +80,7 @@ namespace CurlDotNet.Extensions
         /// </example>
         public static async Task<CurlResult> CurlDownloadAsync(this string url, string outputFile)
         {
-            var command = $"curl -o {outputFile} {url}";
-            return await CurlDotNet.Curl.ExecuteAsync(command);
+            return await CurlDotNet.Curl.DownloadAsync(url, outputFile);
         }
 
         /// <summary>
