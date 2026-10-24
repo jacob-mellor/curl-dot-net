@@ -1,5 +1,6 @@
 /***************************************************************************
- * RequestVariables - curl's --variable and --expand-OPTION
+ * RequestVariables - curl's --variable and --expand-OPTION, and the shell
+ * variable syntax of each CurlFlavor ($VAR, ${VAR}, $env:VAR, %VAR%)
  *
  * Part of CommandParser. Follows curl's src/var.c: --variable name=content, name@file,
  * %ENVNAME (with optional =default / @file), byte ranges name[5-15]=..., and {{name}} /
@@ -267,5 +268,178 @@ namespace CurlDotNet.Core
         {
             return new CurlException(message + " See " + RequestShaping.DocsBase + "index.md", 2, command);
         }
+
+        #region Shell variables (per CurlFlavor)
+
+        /// <summary>
+        /// Length of a shell variable name (a letter or underscore, then letters, digits and underscores)
+        /// starting at <paramref name="start"/>; 0 when there is none.
+        /// </summary>
+        internal static int ShellVariableNameLength(string text, int start)
+        {
+            var i = start;
+            if (i >= text.Length || !(IsAsciiLetter(text[i]) || text[i] == '_'))
+            {
+                return 0;
+            }
+
+            while (i < text.Length && (IsAsciiLetter(text[i]) || (text[i] >= '0' && text[i] <= '9') || text[i] == '_'))
+            {
+                i++;
+            }
+
+            return i - start;
+        }
+
+        private static bool IsAsciiLetter(char c) => (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+
+        /// <summary>
+        /// bash/zsh: expands <c>$NAME</c> or <c>${NAME}</c> at <paramref name="index"/> (which holds the
+        /// <c>$</c>) from the process environment. Returns false, leaving the text as typed, when there is
+        /// no variable reference there or the variable is not set.
+        /// </summary>
+        internal static bool TryExpandPosixVariable(string text, int index, out string value, out int consumed)
+        {
+            value = string.Empty;
+            consumed = 0;
+            if (index + 1 >= text.Length)
+            {
+                return false;
+            }
+
+            string name;
+            int length;
+            if (text[index + 1] == '{')
+            {
+                length = ShellVariableNameLength(text, index + 2);
+                if (length == 0 || index + 2 + length >= text.Length || text[index + 2 + length] != '}')
+                {
+                    return false;
+                }
+
+                name = text.Substring(index + 2, length);
+                length += 3;
+            }
+            else
+            {
+                length = ShellVariableNameLength(text, index + 1);
+                if (length == 0)
+                {
+                    return false;
+                }
+
+                name = text.Substring(index + 1, length);
+                length += 1;
+            }
+
+            var found = Environment.GetEnvironmentVariable(name);
+            if (found == null)
+            {
+                return false;
+            }
+
+            value = found;
+            consumed = length;
+            return true;
+        }
+
+        /// <summary>
+        /// PowerShell: expands <c>$env:NAME</c>, <c>${env:NAME}</c>, <c>${NAME}</c> or <c>$NAME</c> at
+        /// <paramref name="index"/> from the process environment (PowerShell session variables are not visible
+        /// to .NET, so a plain <c>$NAME</c> is looked up as an environment variable). Returns false, leaving the
+        /// text as typed, when there is no reference there or the variable is not set.
+        /// </summary>
+        internal static bool TryExpandPowerShellVariable(string text, int index, out string value, out int consumed)
+        {
+            value = string.Empty;
+            consumed = 0;
+            if (index + 1 >= text.Length)
+            {
+                return false;
+            }
+
+            string name;
+            int length;
+            if (text[index + 1] == '{')
+            {
+                var close = text.IndexOf('}', index + 2);
+                if (close < 0)
+                {
+                    return false;
+                }
+
+                name = text.Substring(index + 2, close - index - 2);
+                if (name.StartsWith("env:", StringComparison.OrdinalIgnoreCase))
+                {
+                    name = name.Substring(4);
+                }
+
+                length = close - index + 1;
+            }
+            else
+            {
+                var start = index + 1;
+                if (string.Compare(text, start, "env:", 0, 4, StringComparison.OrdinalIgnoreCase) == 0)
+                {
+                    start += 4;
+                }
+
+                var nameLength = ShellVariableNameLength(text, start);
+                if (nameLength == 0)
+                {
+                    return false;
+                }
+
+                name = text.Substring(start, nameLength);
+                length = start + nameLength - index;
+            }
+
+            var found = name.Length == 0 ? null : Environment.GetEnvironmentVariable(name);
+            if (found == null)
+            {
+                return false;
+            }
+
+            value = found;
+            consumed = length;
+            return true;
+        }
+
+        /// <summary>
+        /// cmd.exe: expands <c>%NAME%</c> at <paramref name="index"/> (which holds the first <c>%</c>) when the
+        /// environment variable is set. An unset variable stays as typed, like an interactive cmd.exe prompt, and
+        /// so do percent-encoded URL bytes such as <c>%20</c>, which never name a set variable.
+        /// </summary>
+        internal static bool TryExpandCmdVariable(string text, int index, out string value, out int consumed)
+        {
+            value = string.Empty;
+            consumed = 0;
+            var close = text.IndexOf('%', index + 1);
+            if (close <= index + 1)
+            {
+                return false;
+            }
+
+            var name = text.Substring(index + 1, close - index - 1);
+            foreach (var c in name)
+            {
+                if (char.IsWhiteSpace(c) || c == '"' || c == '\'' || c == '^' || c == '=')
+                {
+                    return false;
+                }
+            }
+
+            var found = Environment.GetEnvironmentVariable(name);
+            if (found == null)
+            {
+                return false;
+            }
+
+            value = found;
+            consumed = close - index + 1;
+            return true;
+        }
+
+        #endregion
     }
 }

@@ -508,7 +508,18 @@ namespace CurlDotNet.Core
         /// </summary>
         /// <param name="command">The command, with or without the leading <c>curl</c>.</param>
         /// <returns>The parsed options.</returns>
+        /// <remarks>The text is read with <see cref="Curl.DefaultFlavor"/> (normally <see cref="CurlFlavor.Auto"/>);
+        /// see <see cref="Parse(string, CurlFlavor)"/>.</remarks>
         public CurlOptions Parse(string command)
+        {
+            return Parse(command, Curl.DefaultFlavor);
+        }
+
+        /// <summary>
+        /// The permissive reader <see cref="CurlFlavor.Auto"/> uses: accepts bash, cmd.exe and PowerShell quoting,
+        /// escapes, continuations and variables at the same time (see <see cref="CurlFlavor.Auto"/>).
+        /// </summary>
+        private CurlOptions ParsePermissive(string command)
         {
             if (string.IsNullOrWhiteSpace(command))
                 throw new ArgumentNullException(nameof(command));

@@ -111,6 +111,46 @@ namespace CurlDotNet
         /// </code>
         /// </summary>
         public static string DefaultUserAgent { get; set; } = "curl/" + CurlCompatVersion;
+
+        private static volatile CurlFlavor _defaultFlavor = CurlFlavor.Auto;
+
+        /// <summary>
+        /// <para><b>The shell flavor used to read command strings when a call does not name one.</b></para>
+        /// <para>A pasted curl command is shell text: bash, Windows cmd.exe and PowerShell quote, escape,
+        /// continue lines and expand variables differently, so the same text can mean different bytes (see
+        /// <see cref="CurlFlavor"/> for every rule). The default, <see cref="CurlFlavor.Auto"/>, recognises the
+        /// shell from telltales such as backtick or caret line continuations, <c>$env:</c>, <c>%VAR%</c> or
+        /// <c>-Uri</c>, and otherwise reads the command permissively as bash. Set this once at start-up when every
+        /// command your application runs comes from one place, for example
+        /// <c>Curl.DefaultFlavor = CurlFlavor.WindowsCmd;</c> for commands typed by Windows users, or
+        /// <c>Curl.DefaultFlavor = CurlFlavor.Posix;</c> to get exact bash behaviour with no Windows conveniences.</para>
+        /// <para>Applies to <see cref="ExecuteAsync(string)"/>, <see cref="Execute(string)"/>,
+        /// <see cref="Validate(string)"/>, the code converters and every other method that takes a command string
+        /// without a flavor. A flavor passed to <see cref="ExecuteAsync(string, CurlFlavor)"/> or set with
+        /// <see cref="Core.CurlSettings.WithFlavor(CurlFlavor)"/> wins over it. It is process-wide and read at the
+        /// start of each call; reads and writes are thread-safe.</para>
+        /// </summary>
+        /// <value>One of the <see cref="CurlFlavor"/> values. Default is <see cref="CurlFlavor.Auto"/>.</value>
+        /// <exception cref="ArgumentOutOfRangeException">The value is not a defined <see cref="CurlFlavor"/>.</exception>
+        /// <seealso cref="DetectFlavor(string)"/>
+        /// <seealso cref="Core.CurlOptions.Flavor"/>
+        /// <seealso href="https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md">curl flavors guide</seealso>
+        public static CurlFlavor DefaultFlavor
+        {
+            get => _defaultFlavor;
+            set
+            {
+                if (value < CurlFlavor.Auto || value > CurlFlavor.InvokeWebRequest)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), value,
+                        "Curl.DefaultFlavor must be CurlFlavor.Auto, Posix, WindowsCmd, PowerShell or InvokeWebRequest. " +
+                        "See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md");
+                }
+
+                _defaultFlavor = value;
+            }
+        }
+
         private static volatile int _defaultConnectTimeoutSeconds = 0;
         private static volatile bool _defaultFollowRedirects = false;
         private static volatile bool _defaultInsecure = false;
@@ -552,6 +592,99 @@ namespace CurlDotNet
         public static async Task<CurlResult> ExecuteAsync(string command, CancellationToken cancellationToken)
         {
             return await _engine.ExecuteAsync(command, cancellationToken);
+        }
+
+        /// <summary>
+        /// Executes a curl command that was copied from a specific shell, reading its quotes, escapes, line
+        /// continuations and variables the way that shell would.
+        /// </summary>
+        /// <param name="command">The command exactly as it was pasted, with or without the leading <c>curl</c>,
+        /// <c>curl.exe</c> or (for <see cref="CurlFlavor.InvokeWebRequest"/>) <c>Invoke-WebRequest</c>.</param>
+        /// <param name="flavor">
+        /// Where the command came from: <see cref="CurlFlavor.Posix"/> for bash/zsh (macOS, Linux, Git Bash, WSL);
+        /// <see cref="CurlFlavor.WindowsCmd"/> for <c>curl.exe</c> in the Windows Command Prompt;
+        /// <see cref="CurlFlavor.PowerShell"/> for <c>curl.exe</c> in PowerShell;
+        /// <see cref="CurlFlavor.InvokeWebRequest"/> for PowerShell's <c>Invoke-WebRequest</c> / <c>Invoke-RestMethod</c>
+        /// syntax (also the <c>curl</c>, <c>iwr</c> and <c>irm</c> aliases); <see cref="CurlFlavor.Auto"/> to detect it.
+        /// Overrides <see cref="DefaultFlavor"/> for this call.
+        /// </param>
+        /// <returns>The <see cref="CurlResult"/> of the request. To see which flavor and which parsed values a command
+        /// produces before sending it, use <see cref="Validate(string, CurlFlavor)"/> and read
+        /// <see cref="Core.CurlOptions.Flavor"/> on its <c>ParsedOptions</c>.</returns>
+        /// <exception cref="ArgumentException">The command is null or empty.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">The flavor is not a defined <see cref="CurlFlavor"/>.</exception>
+        /// <exception cref="Exceptions.CurlInvalidCommandException">The text breaks the flavor's rules (for example an
+        /// unterminated quote), or uses an <c>Invoke-WebRequest</c> parameter that cannot be translated, such as
+        /// <c>-Credential</c>. The message says how to rewrite it.</exception>
+        /// <exception cref="Exceptions.CurlException">The request itself fails, exactly as for <see cref="ExecuteAsync(string)"/>.</exception>
+        /// <remarks>
+        /// <para>The same characters mean different bytes in different shells. With
+        /// <c>-d '{\"a\":1}'</c>, <see cref="CurlFlavor.PowerShell"/> sends <c>{"a":1}</c> (the Windows C runtime turns
+        /// <c>\"</c> into a quote) while <see cref="CurlFlavor.Posix"/> sends <c>{\"a\":1}</c> with the backslashes.
+        /// With <c>"%TOKEN%"</c>, <see cref="CurlFlavor.WindowsCmd"/> substitutes the environment variable and the
+        /// other flavors do not.</para>
+        /// <para>Example: <c>var result = await Curl.ExecuteAsync("curl.exe -H 'Content-Type: application/json' -d '{\"a\":1}' https://api.example.com", CurlFlavor.PowerShell);</c></para>
+        /// <para>Example: <c>var result = await Curl.ExecuteAsync("Invoke-RestMethod -Uri https://api.example.com -Method Post -Body '{\"a\":1}' -ContentType 'application/json'", CurlFlavor.InvokeWebRequest);</c></para>
+        /// <para>Use <see cref="DetectFlavor(string)"/> to see what <see cref="CurlFlavor.Auto"/> would choose, and
+        /// <see cref="Validate(string, CurlFlavor)"/> to check a command without sending it.</para>
+        /// </remarks>
+        /// <seealso cref="Execute(string, CurlFlavor)">Blocking version</seealso>
+        /// <seealso cref="ExecuteAsync(string, CurlFlavor, CancellationToken)">With cancellation</seealso>
+        /// <seealso cref="DefaultFlavor"/>
+        /// <seealso cref="Core.CurlSettings.WithFlavor(CurlFlavor)"/>
+        /// <seealso href="https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md">curl flavors guide</seealso>
+        public static async Task<CurlResult> ExecuteAsync(string command, CurlFlavor flavor)
+        {
+            return await _engine.ExecuteAsync(command, flavor, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Executes a curl command copied from a specific shell, with cancellation support.
+        /// </summary>
+        /// <param name="command">The command exactly as it was pasted.</param>
+        /// <param name="flavor">The shell it was written for; see <see cref="ExecuteAsync(string, CurlFlavor)"/> for
+        /// the choices. Overrides <see cref="DefaultFlavor"/> for this call.</param>
+        /// <param name="cancellationToken">Cancels the request; an <see cref="OperationCanceledException"/> is thrown.</param>
+        /// <returns>The <see cref="CurlResult"/>.</returns>
+        /// <exception cref="OperationCanceledException">The token was cancelled.</exception>
+        /// <exception cref="Exceptions.CurlInvalidCommandException">The text breaks the flavor's rules or uses an
+        /// untranslatable <c>Invoke-WebRequest</c> parameter.</exception>
+        /// <remarks>
+        /// <para>Example: <c>using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        /// var result = await Curl.ExecuteAsync(pasted, CurlFlavor.WindowsCmd, cts.Token);</c></para>
+        /// </remarks>
+        /// <seealso cref="ExecuteAsync(string, CurlFlavor)"/>
+        /// <seealso cref="Execute(string, CurlFlavor)"/>
+        public static async Task<CurlResult> ExecuteAsync(string command, CurlFlavor flavor, CancellationToken cancellationToken)
+        {
+            return await _engine.ExecuteAsync(command, flavor, cancellationToken);
+        }
+
+        /// <summary>
+        /// Returns the shell flavor <see cref="CurlFlavor.Auto"/> would read <paramref name="command"/> with, without
+        /// parsing or sending anything.
+        /// </summary>
+        /// <param name="command">The command text as pasted. Null or empty text returns <see cref="CurlFlavor.Posix"/>.</param>
+        /// <returns>
+        /// <see cref="CurlFlavor.InvokeWebRequest"/> when it starts with <c>Invoke-WebRequest</c>,
+        /// <c>Invoke-RestMethod</c>, <c>iwr</c>, <c>irm</c> or <c>wget</c>, or is a <c>curl</c> command using cmdlet
+        /// parameters such as <c>-Uri</c>, <c>-Method</c> or <c>-Headers @{...}</c>;
+        /// <see cref="CurlFlavor.PowerShell"/> when a line ends in a backtick or it contains <c>$env:</c>,
+        /// <c>`"</c> or <c>--%</c>; <see cref="CurlFlavor.WindowsCmd"/> when a line ends in <c>^</c> or it contains
+        /// <c>^"</c> or <c>%NAME%</c> naming a set environment variable; otherwise <see cref="CurlFlavor.Posix"/>.
+        /// Never returns <see cref="CurlFlavor.Auto"/>.
+        /// </returns>
+        /// <remarks>
+        /// <para>Use it in diagnostics, for example
+        /// <c>logger.LogDebug("Running {Flavor} command {Command}", Curl.DetectFlavor(pasted), pasted);</c>, or to
+        /// show users which shell rules their command will be read with before running it. When the guess is wrong,
+        /// pass the right flavor to <see cref="ExecuteAsync(string, CurlFlavor)"/>.</para>
+        /// </remarks>
+        /// <seealso cref="DefaultFlavor"/>
+        /// <seealso cref="Core.CurlOptions.Flavor"/>
+        public static CurlFlavor DetectFlavor(string command)
+        {
+            return string.IsNullOrWhiteSpace(command) ? CurlFlavor.Posix : CommandParser.DetectFlavor(command);
         }
 
         /// <summary>
@@ -1030,6 +1163,33 @@ namespace CurlDotNet
         public static ValidationResult Validate(string command)
         {
             return _engine.Validate(command);
+        }
+
+        /// <summary>
+        /// Checks a curl command copied from a specific shell without executing it, reading it with that shell's
+        /// quoting, escaping, line-continuation and variable rules.
+        /// </summary>
+        /// <param name="command">The command exactly as pasted.</param>
+        /// <param name="flavor">The shell it was written for (<see cref="CurlFlavor.Auto"/> detects it); overrides
+        /// <see cref="DefaultFlavor"/> for this call.</param>
+        /// <returns>
+        /// A <see cref="ValidationResult"/>: <c>IsValid</c>, <c>Error</c> (for example an unterminated quote, an unknown
+        /// option or an untranslatable <c>Invoke-WebRequest</c> parameter, with the fix in the text) and
+        /// <c>ParsedOptions</c>, whose <see cref="Core.CurlOptions.Flavor"/> is the flavor that was used and whose
+        /// <c>Data</c>, <c>Headers</c> and <c>Url</c> show exactly what would be sent. Never throws for bad input.
+        /// </returns>
+        /// <remarks>
+        /// <para>Example: <c>var v = Curl.Validate("curl -d '{\"a\":1}' https://x.example", CurlFlavor.Posix);</c>
+        /// gives <c>v.ParsedOptions.Data == "{\\\"a\\\":1}"</c> (backslashes kept), while the same text with
+        /// <see cref="CurlFlavor.PowerShell"/> gives <c>{"a":1}</c>. Comparing the two is the quickest way to explain
+        /// why a command behaves differently on another machine.</para>
+        /// </remarks>
+        /// <seealso cref="Validate(string)"/>
+        /// <seealso cref="ExecuteAsync(string, CurlFlavor)"/>
+        /// <seealso cref="DetectFlavor(string)"/>
+        public static ValidationResult Validate(string command, CurlFlavor flavor)
+        {
+            return _engine.Validate(command, flavor);
         }
 
         /// <summary>
