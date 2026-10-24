@@ -60,7 +60,7 @@ namespace CurlDotNet.Core
         private static readonly long MaxAgeCap = 400L * 24 * 3600; // RFC 6265bis: at most 400 days
 
         private readonly List<StoredCookie> _cookies = new List<StoredCookie>();
-        private readonly string? _jarPath;
+        private string? _jarPath;
         private long _counter;
 
         private CookieEngine(string? jarPath)
@@ -75,16 +75,35 @@ namespace CurlDotNet.Core
         public static CookieEngine? Create(CurlOptions options)
         {
             var cookie = options.Cookie;
-            var isFile = cookie != null && cookie.IndexOf('=') < 0;
-            if (!isFile && string.IsNullOrEmpty(options.CookieJar))
+            var files = new List<string>(options.CookieFiles);
+            if (cookie != null && cookie.IndexOf('=') < 0)
+            {
+                files.Add(cookie);
+            }
+            if (files.Count == 0 && string.IsNullOrEmpty(options.CookieJar))
             {
                 return null;
             }
 
-            var engine = new CookieEngine(options.CookieJar);
-            if (isFile && cookie!.Length > 0)
+            // Every transfer of one command line shares one cookie store (curl's share handle), so a
+            // cookie set by the first URL is sent to the second; each transfer reads its -b files again.
+            var session = options.Session;
+            var engine = session?.Cookies ?? new CookieEngine(options.CookieJar);
+            if (session != null)
             {
-                engine.Load(cookie, options.JunkSessionCookies);
+                session.Cookies = engine;
+                if (!string.IsNullOrEmpty(options.CookieJar))
+                {
+                    engine._jarPath = options.CookieJar;
+                }
+            }
+
+            foreach (var file in files)
+            {
+                if (file.Length > 0)
+                {
+                    engine.Load(file, options.JunkSessionCookies);
+                }
             }
             return engine;
         }

@@ -75,6 +75,51 @@ namespace CurlDotNet.Exceptions
         public int? CurlErrorCode { get; }
 
         /// <summary>
+        /// Key in <see cref="Exception.Data"/> under which a failed command keeps the text curl would
+        /// already have printed to standard output.
+        /// </summary>
+        /// <remarks>
+        /// <para>curl writes as it goes: with <c>-i</c> the headers of a <c>-f</c> failure are on screen,
+        /// <c>--fail-with-body</c> prints the error page, <c>-w</c> still expands for a failed transfer, and
+        /// with several URLs (<c>url1 url2</c>, globs, <c>--next</c>) the output of every transfer that ran
+        /// before the failure is there. CurlDotNet throws instead of returning a result, so that text
+        /// travels on the exception under this key (a <see cref="string"/>). It is the complete standard
+        /// output, <c>-w</c> text included; <see cref="WriteOutDataKey"/> holds only the <c>-w</c> part.</para>
+        /// <para>Usage: <c>catch (CurlException ex) { Console.Write(ex.StandardOutput); }</c> reproduces what
+        /// the curl tool would have shown before it exited with <see cref="CurlErrorCode"/>.</para>
+        /// </remarks>
+        /// <seealso cref="StandardOutput"/>
+        /// <seealso cref="WriteOutDataKey"/>
+        public const string StandardOutputDataKey = "CurlDotNet.Stdout";
+
+        /// <summary>
+        /// Key in <see cref="Exception.Data"/> holding the standard-output part of <c>-w</c>/<c>--write-out</c>
+        /// for a failed transfer.
+        /// </summary>
+        /// <remarks>
+        /// <para>curl expands <c>-w</c> even when a transfer fails, so <c>%{exitcode}</c>, <c>%{errormsg}</c>
+        /// and <c>%{onerror}</c> are useful. The expanded text (without <c>%{stderr}</c> parts) is stored
+        /// under this key as a <see cref="string"/>; it is also included in <see cref="StandardOutput"/>.</para>
+        /// <para>Usage: <c>curl -w '%{exitcode} %{errormsg}' URL</c>, then read
+        /// <c>ex.Data[CurlException.WriteOutDataKey]</c> in the <c>catch</c> block.</para>
+        /// </remarks>
+        /// <seealso cref="StandardOutputDataKey"/>
+        public const string WriteOutDataKey = "CurlDotNet.WriteOut";
+
+        /// <summary>
+        /// The text curl would have written to standard output before this failure, or null when nothing was written.
+        /// </summary>
+        /// <value>Response headers (<c>-i</c>), bodies, <c>-w</c> output and the output of earlier transfers of
+        /// the same command, exactly as the curl tool prints them.</value>
+        /// <remarks>
+        /// <para>Usage: run <c>curl -i -f URL</c>; on a 404 the <see cref="CurlHttpReturnedErrorException"/>
+        /// has <c>StandardOutput</c> set to the response headers, just like the terminal output of curl.
+        /// With <c>curl URL1 URL2</c> where the second fails, it holds the body of the first.</para>
+        /// </remarks>
+        /// <seealso cref="StandardOutputDataKey"/>
+        public string StandardOutput => Data[StandardOutputDataKey] as string;
+
+        /// <summary>
         /// Gets additional context information added via fluent methods.
         /// </summary>
         public Dictionary<string, object> Context { get; } = new Dictionary<string, object>();

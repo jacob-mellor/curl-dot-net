@@ -791,6 +791,18 @@ namespace CurlDotNet.Core
         /// <summary>The scheme <c>--proto-default</c> gives URLs written without one.</summary>
         internal string? DefaultProtocol { get; set; }
 
+        /// <summary>
+        /// Cookie files from earlier <c>-b FILE</c> options; <see cref="Cookie"/> holds the last file or the
+        /// joined <c>-b name=value</c> strings. curl reads every file and sends every string.
+        /// </summary>
+        internal List<string> CookieFiles { get; set; } = new List<string>();
+
+        /// <summary>
+        /// State shared by every transfer of one command line (curl's share handle): the cookie engine.
+        /// Null when the options run on their own.
+        /// </summary>
+        internal TransferSession? Session { get; set; }
+
         /// <summary><c>--url-query</c> arguments, applied to <see cref="Url"/> when the transfer is finished.</summary>
         internal List<string> UrlQueryParts { get; } = new List<string>();
 
@@ -845,6 +857,7 @@ namespace CurlDotNet.Core
             clone.DataParts.AddRange(DataParts);
             clone.UrlQueryParts.AddRange(UrlQueryParts);
             clone.DefaultProtocol = DefaultProtocol;
+            clone.CookieFiles = new List<string>(CookieFiles);
             clone.ProxyTunnelRequested = ProxyTunnelRequested;
             clone.NoProxyHosts = NoProxyHosts;
             clone.ProxyHeaderLines.AddRange(ProxyHeaderLines);

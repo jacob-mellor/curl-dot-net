@@ -70,6 +70,7 @@ namespace CurlDotNet.Core.Handlers
 
                 if (options.MaxRedirects >= 0 && transfer.RedirectCount >= options.MaxRedirects)
                 {
+                    transfer.RedirectUrl = target.AbsoluteUri; // %{redirect_url}: where the next hop would have gone
                     throw new CurlTooManyRedirectsException(transfer.RedirectCount, options.MaxRedirects, options.OriginalCommand);
                 }
 

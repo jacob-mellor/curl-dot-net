@@ -1482,7 +1482,7 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--cookie":
-                    options.Cookie = value;
+                    AddCookieArgument(options, value);
                     return true;
 
                 case "--cookie-jar":
@@ -2066,6 +2066,44 @@ namespace CurlDotNet.Core
         /// Applies curl's <c>-e</c> rules: <c>URL</c> sends that Referer, <c>URL;auto</c> also updates it on
         /// redirects and <c>;auto</c> alone sends none on the first request.
         /// </summary>
+        /// <summary>
+        /// <c>-b</c> can be repeated: every <c>name=value</c> string is sent, joined with <c>"; "</c>, and
+        /// every file (an argument without <c>=</c>) is read into the cookie engine, like curl.
+        /// </summary>
+        private static void AddCookieArgument(CurlOptions options, string value)
+        {
+            var current = options.Cookie;
+            var isLiteral = value.IndexOf('=') >= 0;
+            if (current == null)
+            {
+                options.Cookie = value;
+                return;
+            }
+
+            var currentIsLiteral = current.IndexOf('=') >= 0;
+            if (isLiteral)
+            {
+                if (currentIsLiteral)
+                {
+                    options.Cookie = current + "; " + value;
+                }
+                else
+                {
+                    options.CookieFiles.Add(current);
+                    options.Cookie = value;
+                }
+            }
+            else if (currentIsLiteral)
+            {
+                options.CookieFiles.Add(value);
+            }
+            else
+            {
+                options.CookieFiles.Add(current);
+                options.Cookie = value;
+            }
+        }
+
         private static void ParseReferer(string value, CurlOptions options)
         {
             var auto = value.IndexOf(";auto", StringComparison.Ordinal);

@@ -140,6 +140,85 @@ namespace CurlDotNet.Core
             if (_disposed)
                 throw new ObjectDisposedException(nameof(CurlEngine));
 
+            if (options.AdditionalTransfers.Count == 0)
+            {
+                return await ExecuteTransferAsync(options, cancellationToken);
+            }
+
+            return await ExecuteTransfersAsync(options, cancellationToken);
+        }
+
+        /// <summary>
+        /// Runs every transfer of a command line in order, like curl's serial transfer loop: several
+        /// URLs, glob matches and <c>--next</c> groups. Standard output is the concatenation of every
+        /// transfer's output; status, headers and binary data come from the last transfer that
+        /// succeeded; output files of all transfers are listed.
+        /// </summary>
+        /// <remarks>
+        /// A failed transfer does not stop the others (unless <c>--fail-early</c> was given or the error is
+        /// one curl treats as fatal), and a later success does not clear an earlier failure: after all
+        /// transfers ran, the last failure is thrown with the complete standard output in
+        /// <see cref="CurlException.StandardOutputDataKey"/>.
+        /// </remarks>
+        private async Task<CurlResult> ExecuteTransfersAsync(CurlOptions first, CancellationToken cancellationToken)
+        {
+            var transfers = new List<CurlOptions> { first };
+            transfers.AddRange(first.AdditionalTransfers);
+
+            var session = new TransferSession();
+            var stdout = new StringBuilder();
+            var outputFiles = new List<string>();
+            CurlResult? last = null;
+            CurlException? lastError = null;
+
+            foreach (var transfer in transfers)
+            {
+                if (transfer.Session == null)
+                {
+                    transfer.Session = session;
+                }
+
+                try
+                {
+                    var result = await ExecuteTransferAsync(transfer, cancellationToken);
+                    stdout.Append(result.Body);
+                    outputFiles.AddRange(result.OutputFiles);
+                    last = result;
+                }
+                catch (CurlException ex)
+                {
+                    stdout.Append(TransferStdout.Get(ex));
+                    lastError = ex;
+                    if (transfer.FailEarly || IsFatalError(ex.CurlErrorCode))
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (lastError != null)
+            {
+                TransferStdout.Set(lastError, stdout.ToString());
+                throw lastError;
+            }
+
+            var combined = last!;
+            combined.Body = stdout.ToString();
+            combined.OutputFiles = outputFiles;
+            combined.Command = first.OriginalCommand;
+            return combined;
+        }
+
+        /// <summary>
+        /// curl's is_fatal_error(): failures that stop the remaining transfers of a command line
+        /// (failed init, out of memory, unknown option, function not found, bad function argument).
+        /// </summary>
+        private static bool IsFatalError(int? code) =>
+            code == 2 || code == 27 || code == 41 || code == 43 || code == 48;
+
+        /// <summary>Runs one transfer through the handler of its URL scheme.</summary>
+        private async Task<CurlResult> ExecuteTransferAsync(CurlOptions options, CancellationToken cancellationToken)
+        {
             if (string.IsNullOrEmpty(options.Url))
                 throw new CurlException("No URL specified", 3);
 

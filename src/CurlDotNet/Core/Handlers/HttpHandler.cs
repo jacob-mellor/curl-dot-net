@@ -64,7 +64,7 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>Key in <see cref="Exception.Data"/> holding the standard-output part of -w for a failed transfer.</summary>
-        internal const string WriteOutDataKey = "CurlDotNet.WriteOut";
+        internal const string WriteOutDataKey = CurlException.WriteOutDataKey;
 
         public async Task<CurlResult> ExecuteAsync(CurlOptions options, CancellationToken cancellationToken)
         {
@@ -72,27 +72,12 @@ namespace CurlDotNet.Core
             {
                 return await ExecuteWithRetryAsync(options, cancellationToken);
             }
-            catch (CurlException ex) when (!string.IsNullOrEmpty(options.WriteOut))
+            catch (CurlException ex)
             {
                 // curl expands -w for failed transfers too (%{exitcode}, %{errormsg}, %{onerror}): the
-                // %{stderr} part goes to --stderr, the stdout part travels on the exception
-                var message = ex.Message;
-                var newline = message.IndexOf('\n');
-                var context = new WriteOutContext
-                {
-                    ExitCode = ex.CurlErrorCode ?? 1,
-                    ErrorMessage = newline < 0 ? message : message.Substring(0, newline),
-                    ResponseCode = ex is CurlDotNet.Exceptions.CurlHttpException http ? http.StatusCode : 0,
-                    Url = options.Url,
-                    UrlEffective = options.Url,
-                    Method = (options.CustomMethod ?? options.Method ?? "GET").ToUpperInvariant(),
-                };
-                var expanded = WriteOutFormatter.Format(options.WriteOut!, context);
-                WriteStderr(options, expanded.Stderr);
-                if (expanded.Stdout.Length > 0)
-                {
-                    ex.Data[WriteOutDataKey] = expanded.Stdout;
-                }
+                // %{stderr} part goes to --stderr, the stdout part travels on the exception (failures
+                // after a response arrived were already handled with the full transfer context)
+                AttachFailureOutput(ex, null, null, null, null, options);
                 throw;
             }
         }
@@ -129,22 +114,42 @@ namespace CurlDotNet.Core
                         retryAfter = RetryAfter(result.Headers);
                     }
                 }
-                catch (CurlOperationTimeoutException) when (retriesLeft > 0)
+                catch (CurlException ex)
                 {
-                    reason = "timeout";
-                }
-                catch (CurlHttpReturnedErrorException ex) when (retriesLeft > 0 && (IsTransientStatus(ex.StatusCode) || options.RetryAllErrors))
-                {
-                    reason = $"HTTP {ex.StatusCode}";
-                    retryAfter = RetryAfter(ex.ResponseHeaders);
-                }
-                catch (CurlCouldntConnectException) when (retriesLeft > 0 && (options.RetryAllErrors || options.RetryConnRefused))
-                {
-                    reason = "connection failed";
-                }
-                catch (CurlException) when (retriesLeft > 0 && options.RetryAllErrors)
-                {
-                    reason = "error";
+                    if (retriesLeft > 0)
+                    {
+                        if (ex is CurlOperationTimeoutException)
+                        {
+                            reason = "timeout";
+                        }
+                        else if (ex is CurlHttpReturnedErrorException http && (IsTransientStatus(http.StatusCode) || options.RetryAllErrors))
+                        {
+                            reason = $"HTTP {http.StatusCode}";
+                            retryAfter = RetryAfter(http.ResponseHeaders);
+                        }
+                        else if (ex is CurlCouldntConnectException && (options.RetryAllErrors || options.RetryConnRefused))
+                        {
+                            reason = "connection failed";
+                        }
+                        else if (options.RetryAllErrors)
+                        {
+                            reason = "error";
+                        }
+                    }
+
+                    if (reason == null)
+                    {
+                        // the last attempt failed: what earlier attempts printed comes first
+                        TransferStdout.Prepend(ex, earlierStdout.ToString());
+                        throw;
+                    }
+
+                    // a failed attempt that is retried has printed its headers / --fail-with-body page
+                    // (curl expands -w only once, after the last attempt)
+                    if (toStdout && FailureOutputAttached.TryGetValue(ex, out var attached))
+                    {
+                        earlierStdout.Append(((FailureOutput)attached).BeforeWriteOut);
+                    }
                 }
 
                 if (reason == null)
@@ -322,8 +327,18 @@ namespace CurlDotNet.Core
                 readingBody = true;
                 return await FinishTransferAsync(transfer, request, response, token, verboseLog, trace, attempt);
             }
-            catch (CurlException)
+            catch (CurlException ex)
             {
+                if (!readingBody && (ex is CurlTooManyRedirectsException || ex is CurlUnsupportedProtocolException || ex is CurlMalformedUrlException))
+                {
+                    // a redirect could not be followed: curl has already printed the -i headers it received
+                    var includeHeaders = options.IncludeHeaders || (options.HeadOnly && !string.IsNullOrEmpty(options.OriginalCommand));
+                    var toStdout = string.IsNullOrEmpty(options.OutputFile) && !options.UseRemoteFileName;
+                    var headers = includeHeaders && toStdout && transfer.Transcript.HasRecording
+                        ? string.Concat(transfer.Transcript.AllHeads.Select(h => h.Text))
+                        : null;
+                    AttachFailureOutput(ex, transfer, headers, null, null);
+                }
                 throw;
             }
             catch (OperationCanceledException)
@@ -964,23 +979,156 @@ namespace CurlDotNet.Core
 
             var jarText = SaveCookies(transfer);
 
-            if (failure != null)
+            if (failure == null && failOnHttp)
             {
-                throw failure;
-            }
-
-            if (failOnHttp)
-            {
-                throw new CurlHttpReturnedErrorException(status, finalHead?.ReasonPhrase ?? response.ReasonPhrase, responseText,
+                failure = new CurlHttpReturnedErrorException(status, finalHead?.ReasonPhrase ?? response.ReasonPhrase, responseText,
                     effectiveUrl, options.FailWithBody, command)
                 {
                     ResponseHeaders = result.Headers
                 };
             }
 
+            // Standard output: -v log, -D - headers, -i/-I headers, body, -w text. A failed transfer has
+            // written all but the -w text by now (-f never writes the error body; --fail-with-body does).
+            var stdoutText = BuildStdoutText(options, verboseLog, headerText, etag, includeHeaders, outputPath,
+                failOnHttp && !options.FailWithBody ? null : responseText, finalHead?.Trailers);
+
+            if (failure != null)
+            {
+                var failureContext = string.IsNullOrEmpty(options.WriteOut)
+                    ? null
+                    : BuildWriteOutContext(transfer, request, response, finalHead, result, rawBody.Length, writtenPath);
+                AttachFailureOutput(failure, transfer, stdoutText, failureContext, jarText);
+                throw failure;
+            }
+
             result.BinaryData = responseBinary;
 
-            // Standard output: -v log, -D - headers, -i/-I headers, body, -w text
+            var builder = new StringBuilder(stdoutText);
+
+            if (!string.IsNullOrEmpty(options.WriteOut))
+            {
+                var context = BuildWriteOutContext(transfer, request, response, finalHead, result, rawBody.Length, writtenPath);
+                var expanded = WriteOutFormatter.Format(options.WriteOut!, context);
+                builder.Append(expanded.Stdout);
+                WriteStderr(options, expanded.Stderr);
+            }
+
+            if (jarText != null)
+            {
+                builder.Append(jarText);
+            }
+
+            result.Body = builder.ToString();
+            return result;
+        }
+
+        /// <summary>What a failed transfer printed before its -w text.</summary>
+        private sealed class FailureOutput
+        {
+            public string BeforeWriteOut = string.Empty;
+        }
+
+        /// <summary>Marks exceptions whose standard output and -w text were already attached.</summary>
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Exception, object> FailureOutputAttached =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<Exception, object>();
+
+        /// <summary>
+        /// Puts what curl would have printed before failing on the exception: <paramref name="stdoutSoFar"/>
+        /// (headers, body), the -w text expanded with <c>%{exitcode}</c>/<c>%{errormsg}</c> (its
+        /// <c>%{stderr}</c> part goes to --stderr), and the <c>-c -</c> cookie jar. Runs once per exception.
+        /// </summary>
+        private static void AttachFailureOutput(CurlException failure, HttpTransfer? transfer, string? stdoutSoFar,
+            WriteOutContext? context, string? jarText, CurlOptions? options = null)
+        {
+            if (FailureOutputAttached.TryGetValue(failure, out _))
+            {
+                return;
+            }
+            var record = new FailureOutput { BeforeWriteOut = stdoutSoFar ?? string.Empty };
+            FailureOutputAttached.Add(failure, record);
+
+            options ??= transfer?.Options;
+            if (options == null)
+            {
+                return;
+            }
+
+            var text = new StringBuilder(stdoutSoFar ?? string.Empty);
+            if (!string.IsNullOrEmpty(options.WriteOut))
+            {
+                context ??= transfer != null ? BuildFailureWriteOutContext(transfer) : null;
+                context ??= new WriteOutContext
+                {
+                    Url = options.Url,
+                    UrlEffective = options.Url,
+                    Method = (options.CustomMethod ?? options.Method ?? "GET").ToUpperInvariant(),
+                };
+                if (failure is CurlDotNet.Exceptions.CurlHttpException http && context.ResponseCode == 0)
+                {
+                    context.ResponseCode = http.StatusCode;
+                }
+                var message = failure.Message;
+                var newline = message.IndexOf('\n');
+                context.ExitCode = failure.CurlErrorCode ?? 1;
+                context.ErrorMessage = newline < 0 ? message : message.Substring(0, newline);
+                var expanded = WriteOutFormatter.Format(options.WriteOut!, context);
+                WriteStderr(options, expanded.Stderr);
+                if (expanded.Stdout.Length > 0)
+                {
+                    failure.Data[WriteOutDataKey] = expanded.Stdout;
+                    text.Append(expanded.Stdout);
+                }
+            }
+
+            text.Append(jarText);
+            TransferStdout.Append(failure, text.ToString());
+        }
+
+        /// <summary>
+        /// The -w context of a transfer that failed before a final response was read (too many redirects,
+        /// a connection that broke): what the last recorded response head and request say.
+        /// </summary>
+        private static WriteOutContext BuildFailureWriteOutContext(HttpTransfer transfer)
+        {
+            var options = transfer.Options;
+            var head = transfer.FinalHead;
+            var uri = transfer.CurrentRequest?.RequestUri;
+            var ctx = new WriteOutContext
+            {
+                ResponseCode = head?.StatusCode ?? 0,
+                HttpVersion = head == null ? "0" : (head.HttpVersion == "2.0" ? "2" : head.HttpVersion),
+                ContentType = head?.GetHeader("Content-Type"),
+                Url = transfer.OriginalUrl,
+                UrlEffective = uri?.AbsoluteUri ?? options.Url,
+                RedirectUrl = transfer.RedirectUrl ?? string.Empty,
+                Method = transfer.CurrentRequest?.Method.Method ?? (options.CustomMethod ?? options.Method ?? "GET").ToUpperInvariant(),
+                Scheme = uri?.Scheme.ToLowerInvariant() ?? string.Empty,
+                NumRedirects = transfer.RedirectCount,
+                ProxyUsed = transfer.CurrentViaProxy,
+                NumConnects = transfer.Transcript.HasRecording ? transfer.Transcript.NewConnections : 0,
+            };
+            if (head != null)
+            {
+                ctx.Headers = head.Headers;
+                ctx.NumHeaders = head.Headers.Count;
+            }
+            if (transfer.Transcript.HasRecording)
+            {
+                ctx.SizeHeader = transfer.Transcript.HeaderBytes;
+            }
+            ctx.TimeTotal = (DateTime.UtcNow - transfer.StartTime).TotalSeconds;
+            return ctx;
+        }
+
+        /// <summary>
+        /// Standard output of one transfer without the -w text, in curl's order: -v log, <c>-D -</c>
+        /// headers, <c>--etag-save -</c>, <c>-i</c> headers, body, trailers. Headers and body only go
+        /// to standard output when there is no output file.
+        /// </summary>
+        private static string BuildStdoutText(CurlOptions options, StringBuilder? verboseLog, string headerText, string? etag,
+            bool includeHeaders, string? outputPath, string? responseText, string? trailers)
+        {
             var builder = new StringBuilder();
             if (options.Verbose && verboseLog != null)
             {
@@ -1011,26 +1159,12 @@ namespace CurlDotNet.Core
                 builder.Append(responseText);
             }
 
-            if (outputPath == null && (includeHeaders || options.DumpHeaderFile == "-") && finalHead?.Trailers != null)
+            if (outputPath == null && (includeHeaders || options.DumpHeaderFile == "-") && trailers != null)
             {
-                builder.Append(finalHead.Trailers);
+                builder.Append(trailers);
             }
 
-            if (!string.IsNullOrEmpty(options.WriteOut))
-            {
-                var context = BuildWriteOutContext(transfer, request, response, finalHead, result, rawBody.Length, writtenPath);
-                var expanded = WriteOutFormatter.Format(options.WriteOut!, context);
-                builder.Append(expanded.Stdout);
-                WriteStderr(options, expanded.Stderr);
-            }
-
-            if (jarText != null)
-            {
-                builder.Append(jarText);
-            }
-
-            result.Body = builder.ToString();
-            return result;
+            return builder.ToString();
         }
 
         /// <summary>
