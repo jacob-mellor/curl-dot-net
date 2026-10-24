@@ -320,6 +320,8 @@ namespace CurlDotNet.Exceptions
                 27 => "CURLE_OUT_OF_MEMORY",
                 28 => "CURLE_OPERATION_TIMEDOUT",
                 35 => "CURLE_SSL_CONNECT_ERROR",
+                33 => "CURLE_RANGE_ERROR",
+                43 => "CURLE_BAD_FUNCTION_ARGUMENT",
                 47 => "CURLE_TOO_MANY_REDIRECTS",
                 51 => "CURLE_PEER_FAILED_VERIFICATION",
                 52 => "CURLE_GOT_NOTHING",
@@ -333,6 +335,7 @@ namespace CurlDotNet.Exceptions
                 61 => "CURLE_BAD_CONTENT_ENCODING",
                 63 => "CURLE_FILESIZE_EXCEEDED",
                 67 => "CURLE_LOGIN_DENIED",
+                94 => "CURLE_AUTH_ERROR",
                 100 => "CURLE_TOO_LARGE",
                 _ => $"CURLE_UNKNOWN_{CurlErrorCode}"
             };

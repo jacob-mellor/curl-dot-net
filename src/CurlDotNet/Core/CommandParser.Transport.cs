@@ -166,6 +166,34 @@ namespace CurlDotNet.Core
                     }
                     return true;
 
+                case "--show-headers":
+                    options.IncludeHeaders = true; // curl 8.10's name for -i/--include
+                    return true;
+
+                case "--no-show-headers":
+                    options.IncludeHeaders = false;
+                    return true;
+
+                case "--no-remote-name":
+                    options.UseRemoteFileName = false;
+                    return true;
+
+                case "--skip-existing":
+                    options.SkipExisting = true;
+                    return true;
+
+                case "--ignore-content-length":
+                    options.IgnoreContentLength = true;
+                    return true;
+
+                case "--http0.9":
+                    options.AllowHttp09 = true;
+                    return true;
+
+                case "--no-http0.9":
+                    options.AllowHttp09 = false;
+                    return true;
+
                 // --- cookies -------------------------------------------------------------------
                 case "-j":
                 case "--junk-session-cookies":
@@ -180,6 +208,18 @@ namespace CurlDotNet.Core
                         options.Method = "POST";
                         methodSpecified = true;
                     }
+                    return true;
+
+                case "--tr-encoding":
+                    options.TransferEncoding = true;
+                    return true;
+
+                case "--no-tr-encoding":
+                    options.TransferEncoding = false;
+                    return true;
+
+                case "--form-escape":
+                    options.FormEscape = true;
                     return true;
 
                 // --- connection ----------------------------------------------------------------

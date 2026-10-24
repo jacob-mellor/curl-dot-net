@@ -59,7 +59,8 @@ namespace CurlDotNet.Core.Handlers
                     break;
                 }
 
-                if (!options.FollowLocation)
+                // --location-trusted implies -L in curl
+                if (!options.FollowLocation && !options.LocationTrusted)
                 {
                     transfer.RedirectUrl = target.AbsoluteUri;
                     break;
@@ -162,6 +163,16 @@ namespace CurlDotNet.Core.Handlers
                 hop.Headers.Remove("Authorization");
                 hop.Headers.Remove("Cookie");
                 hop.AwsSigV4 = null;
+                if (hop.Cookie != null && hop.Cookie.IndexOf('=') >= 0)
+                {
+                    hop.Cookie = null; // a -b "name=value" string only goes to the first origin
+                }
+            }
+
+            if (!string.Equals(previous.Url.Length > 0 ? new Uri(previous.Url).Host : string.Empty, target.Host, StringComparison.OrdinalIgnoreCase))
+            {
+                // a custom -H "Host: ..." names the first server; curl drops it when the redirect changes host
+                hop.Headers.Remove("Host");
             }
 
             return hop;

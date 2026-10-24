@@ -57,6 +57,78 @@ namespace CurlDotNet.Exceptions
     }
 
     /// <summary>
+    /// CURLE_RANGE_ERROR (33): <c>-C/--continue-at</c> asked to resume, but the server sent the whole
+    /// document (or an error) instead of the requested range.
+    /// </summary>
+    /// <remarks>
+    /// <para>curl refuses to append a full response to a partial download, which would corrupt it.
+    /// Download from the start (drop <c>-C</c>) or use a server that supports byte ranges.</para>
+    /// </remarks>
+    [Serializable]
+    public class CurlRangeErrorException : CurlException
+    {
+        /// <summary>
+        /// Initializes a new instance.
+        /// </summary>
+        /// <param name="offset">The byte offset the transfer tried to resume from.</param>
+        /// <param name="statusCode">The status the server answered with.</param>
+        /// <param name="command">The curl command that was executing.</param>
+        public CurlRangeErrorException(long offset, int statusCode, string? command = null)
+            : base($"HTTP server doesn't seem to support byte ranges. Cannot resume: asked for bytes {offset}- with -C/--continue-at, " +
+                   $"but the server answered {statusCode} without a Content-Range. Download the whole file again without -C." +
+                   "\nFor HTTP error handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md",
+                   33, command)
+        {
+            Offset = offset;
+            StatusCode = statusCode;
+        }
+
+        /// <summary>The resume offset that was requested.</summary>
+        public long Offset { get; }
+
+        /// <summary>The status code of the response that did not honour the range.</summary>
+        public int StatusCode { get; }
+    }
+
+    /// <summary>
+    /// CURLE_AUTH_ERROR (94): an authentication scheme failed while answering the server's (or the
+    /// proxy's) challenge.
+    /// </summary>
+    /// <remarks>
+    /// <para>Raised when Digest, NTLM or Negotiate negotiation (<c>--digest</c>, <c>--ntlm</c>,
+    /// <c>--negotiate</c>, <c>--anyauth</c>, or the <c>--proxy-*</c> variants) cannot process the
+    /// <c>WWW-Authenticate</c>/<c>Proxy-Authenticate</c> challenge, for example because the server sent
+    /// a parameter twice. A plain wrong password is not this error: it ends with a normal 401 result.</para>
+    /// </remarks>
+    [Serializable]
+    public class CurlAuthErrorException : CurlException
+    {
+        /// <summary>
+        /// Initializes a new instance.
+        /// </summary>
+        /// <param name="scheme">digest, ntlm, negotiate or anyauth.</param>
+        /// <param name="proxy">True when the failing negotiation was with the proxy.</param>
+        /// <param name="detail">What the authentication code reported.</param>
+        /// <param name="command">The curl command that was executing.</param>
+        public CurlAuthErrorException(string scheme, bool proxy, string detail, string? command = null)
+            : base($"{(proxy ? "Proxy" : "Server")} authentication failed: the {scheme} negotiation could not process the " +
+                   $"{(proxy ? "Proxy-Authenticate" : "WWW-Authenticate")} challenge ({detail}). Try --basic (or --proxy-basic) if the " +
+                   "server also offers Basic, or check the challenge with -v." +
+                   "\nFor authentication help, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/auth-errors.md",
+                   94, command)
+        {
+            Scheme = scheme;
+            Proxy = proxy;
+        }
+
+        /// <summary>The scheme that failed (digest, ntlm, negotiate or anyauth).</summary>
+        public string Scheme { get; }
+
+        /// <summary>True when the failing negotiation was with the proxy rather than the server.</summary>
+        public bool Proxy { get; }
+    }
+
+    /// <summary>
     /// CURLE_TOO_LARGE (100): the server sent more response header data than curl accepts.
     /// </summary>
     /// <remarks>

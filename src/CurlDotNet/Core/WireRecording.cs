@@ -71,8 +71,8 @@ namespace CurlDotNet.Core
         /// <summary>True for 1xx interim responses (other than 101 Switching Protocols).</summary>
         public bool IsInformational => StatusCode >= 100 && StatusCode < 200 && StatusCode != 101;
 
-        /// <summary>Byte length of <see cref="Text"/> (ISO-8859-1 is one byte per character).</summary>
-        public int ByteLength => Text.Length;
+        /// <summary>Bytes the header block occupied on the wire (before folded lines were joined).</summary>
+        public int ByteLength { get; set; }
 
         /// <summary>Returns the first value of the named header, or null.</summary>
         public string? GetHeader(string name)
@@ -102,7 +102,7 @@ namespace CurlDotNet.Core
         /// <summary>Parses the status line and header fields of <paramref name="text"/>.</summary>
         public static RawResponseHead Parse(string text, long timestamp)
         {
-            var head = new RawResponseHead { Text = text, Timestamp = timestamp };
+            var head = new RawResponseHead { Text = Unfold(text), Timestamp = timestamp, ByteLength = text.Length };
             var lines = text.Split('\n');
             var statusLine = lines.Length > 0 ? lines[0].TrimEnd('\r') : string.Empty;
             ParseStatusLine(statusLine, head);
@@ -133,6 +133,42 @@ namespace CurlDotNet.Core
             }
 
             return head;
+        }
+
+        /// <summary>
+        /// Joins obs-fold continuation lines the way curl prints them: the folded line loses its
+        /// trailing blanks and each continuation is appended after a single space.
+        /// </summary>
+        internal static string Unfold(string text)
+        {
+            if (text.IndexOf("\n ", StringComparison.Ordinal) < 0 && text.IndexOf("\n\t", StringComparison.Ordinal) < 0)
+            {
+                return text;
+            }
+
+            var lines = text.Split('\n');
+            var sb = new StringBuilder(text.Length);
+            for (var i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i];
+                var hasCr = line.EndsWith("\r", StringComparison.Ordinal);
+                var content = hasCr ? line.Substring(0, line.Length - 1) : line;
+                var isLast = i == lines.Length - 1;
+
+                // swallow following continuation lines into this one
+                while (i > 0 && content.Length > 0 && i + 1 < lines.Length && lines[i + 1].Length > 0
+                       && (lines[i + 1][0] == ' ' || lines[i + 1][0] == '\t') && lines[i + 1].TrimEnd('\r').Trim(' ', '\t').Length > 0)
+                {
+                    var next = lines[++i].TrimEnd('\r');
+                    content = content.TrimEnd(' ', '\t') + " " + next.Trim(' ', '\t');
+                    isLast = i == lines.Length - 1;
+                }
+
+                sb.Append(content);
+                if (hasCr) sb.Append('\r');
+                if (!isLast) sb.Append('\n');
+            }
+            return sb.ToString();
         }
 
         private static void ParseStatusLine(string line, RawResponseHead head)
@@ -170,7 +206,9 @@ namespace CurlDotNet.Core
     {
         private enum State { Head, Body, ChunkSize, ChunkData, ChunkDataEnd, Trailers, ToEof }
 
+        private const int RawCap = 1024 * 1024;
         private readonly bool _isHeadRequest;
+        private readonly MemoryStream _raw = new MemoryStream();
         private State _state = State.Head;
         private readonly MemoryStream _head = new MemoryStream();
         private readonly StringBuilder _line = new StringBuilder();
@@ -202,9 +240,16 @@ namespace CurlDotNet.Core
         /// <summary>The response whose body is currently being received, if any.</summary>
         public RawResponseHead? Current => _current;
 
+        /// <summary>The first bytes received (up to 1 MB), kept for HTTP/0.9 replies that have no headers.</summary>
+        public byte[] RawPrefix => _raw.ToArray();
+
         /// <summary>Feeds bytes read from the connection.</summary>
         public void Feed(byte[] buffer, int offset, int count)
         {
+            if (_raw.Length < RawCap)
+            {
+                _raw.Write(buffer, offset, (int)Math.Min(count, RawCap - _raw.Length));
+            }
             TotalBytes += count;
             var i = offset;
             var end = offset + count;

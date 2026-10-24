@@ -654,6 +654,19 @@ namespace CurlDotNet.Exceptions
         {
             ArgumentName = argumentName;
         }
+
+        /// <summary>
+        /// Initializes a new instance for a combination of options curl refuses, explaining which
+        /// options clash and what to use instead.
+        /// </summary>
+        /// <param name="argumentName">The option that cannot be used this way, such as <c>-C/--continue-at</c>.</param>
+        /// <param name="detail">What is wrong and how to fix it.</param>
+        /// <param name="command">The curl command that was executing.</param>
+        public CurlBadFunctionArgumentException(string argumentName, string detail, string? command)
+            : base($"{detail}\nFor option errors, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md", 43, command)
+        {
+            ArgumentName = argumentName;
+        }
     }
 
     /// <summary>
@@ -923,6 +936,20 @@ namespace CurlDotNet.Exceptions
         /// <param name="command">The curl command that caused the exception.</param>
         public CurlBadContentEncodingException(string encoding, string command = null)
             : base($"Bad content encoding: {encoding}", 61, command)
+        {
+            Encoding = encoding;
+        }
+
+        /// <summary>
+        /// Initializes a new instance that explains why the server's Transfer-Encoding or
+        /// Content-Encoding was refused.
+        /// </summary>
+        /// <param name="encoding">The encoding header value the server sent.</param>
+        /// <param name="detail">What is wrong with it.</param>
+        /// <param name="command">The curl command that was executing.</param>
+        public CurlBadContentEncodingException(string encoding, string detail, string? command)
+            : base($"Bad content encoding \"{encoding}\": {detail}. This is a server bug (or an attack on the HTTP framing); no client option accepts it." +
+                   "\nFor HTTP error handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md", 61, command)
         {
             Encoding = encoding;
         }

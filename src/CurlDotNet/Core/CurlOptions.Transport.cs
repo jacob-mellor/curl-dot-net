@@ -192,6 +192,16 @@ namespace CurlDotNet.Core
         public List<CurlFormPart> FormParts { get; set; } = new List<CurlFormPart>();
 
         /// <summary>
+        /// Escape form field and file names with backslashes instead of percent-encoding.
+        /// </summary>
+        /// <remarks>
+        /// <para>Set by <c>--form-escape</c>. By default curl writes a double quote in a <c>-F</c> name or
+        /// file name as <c>%22</c> (and CR/LF as <c>%0D</c>/<c>%0A</c>); with this option it writes
+        /// <c>\"</c> and doubles backslashes instead, which some older servers expect.</para>
+        /// </remarks>
+        public bool FormEscape { get; set; }
+
+        /// <summary>
         /// Seconds to wait for a <c>100 Continue</c> before sending the body anyway.
         /// </summary>
         /// <remarks><para>Set by <c>--expect100-timeout SECONDS</c> (decimals allowed). Default: 1 second.</para></remarks>
@@ -219,6 +229,35 @@ namespace CurlDotNet.Core
         /// <remarks><para>Set by <c>--etag-compare FILE</c>. A missing file sends an empty <c>If-None-Match: ""</c>.</para></remarks>
         /// <seealso cref="EtagSave"/>
         public string? EtagCompare { get; set; }
+
+        /// <summary>
+        /// Read the body until the server closes the connection, ignoring a wrong Content-Length.
+        /// </summary>
+        /// <remarks><para>Set by <c>--ignore-content-length</c>. A body shorter than the announced length
+        /// is then accepted instead of failing with exit code 18.</para></remarks>
+        public bool IgnoreContentLength { get; set; }
+
+        /// <summary>
+        /// Skip the transfer when the output file already exists.
+        /// </summary>
+        /// <remarks><para>Set by <c>--skip-existing</c>; applies to <c>-o FILE</c> and <c>-O</c>. Nothing is
+        /// sent and the result is empty.</para></remarks>
+        public bool SkipExisting { get; set; }
+
+        /// <summary>
+        /// Accept an HTTP/0.9 reply (a body with no status line or headers).
+        /// </summary>
+        /// <remarks><para>Set by <c>--http0.9</c> (and cleared by <c>--no-http0.9</c>). Without it such a reply
+        /// fails with exit code 1, like curl 7.66 and later.</para></remarks>
+        public bool AllowHttp09 { get; set; }
+
+        /// <summary>
+        /// Ask for a compressed transfer-encoding and decode it.
+        /// </summary>
+        /// <remarks><para>Set by <c>--tr-encoding</c>: sends <c>TE: gzip</c> with <c>Connection: TE</c> and
+        /// decodes a <c>Transfer-Encoding: gzip</c> (or deflate) body. Without it such a response is
+        /// refused with exit code 61, like curl.</para></remarks>
+        public bool TransferEncoding { get; set; }
 
         /// <summary>
         /// Creates a member-wise copy so a redirect hop can change its URL, method or headers without
@@ -263,5 +302,12 @@ namespace CurlDotNet.Core
 
         /// <summary>Extra part headers from <c>;headers=</c>.</summary>
         public List<string> Headers { get; set; } = new List<string>();
+
+        /// <summary>
+        /// The files of <c>-F "name=@a.txt,b.txt"</c>: when more than one file is named, each one is an
+        /// entry here and they are sent together as a nested <c>multipart/mixed</c> part, like curl.
+        /// Empty for single-file and text parts.
+        /// </summary>
+        public List<CurlFormPart> MixedFiles { get; set; } = new List<CurlFormPart>();
     }
 }

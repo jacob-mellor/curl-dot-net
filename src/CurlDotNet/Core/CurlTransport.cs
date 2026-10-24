@@ -446,6 +446,9 @@ namespace CurlDotNet.Core
                 ConnectCallback = ConnectAsync,
                 PlaintextStreamFilter = FilterAsync,
                 PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30),
+                // curl's own limits (300 KB per transfer, 100 KB per line) are enforced by TransportErrors;
+                // HttpClient's 64 KB default would fail earlier and less precisely.
+                MaxResponseHeadersLength = 2048,
             };
             if (proxy != null)
             {

@@ -1,11 +1,13 @@
 /***************************************************************************
  * MultipartFormBuilder - curl's -F / --form-string parsing and multipart body layout
  *
- * Parsing follows src/tool_formparse.c (name=value, name=@file, name=<file, quoted words with
- * \\ and \" escapes, ;type= ;filename= ;headers= parameters). The body follows lib/mime.c:
- * boundary of 24 dashes plus 22 random alphanumerics, Content-Disposition with %22-escaped
- * names, no Content-Type on plain text parts, file parts typed from the file extension with
- * curl's table (default application/octet-stream).
+ * Parsing follows src/tool_formparse.c (name=value, name=@file[,file2], name=<file, quoted
+ * words with \\ and \" escapes, ;type= (which absorbs following unknown parameters such as
+ * ;charset=), ;filename= and ;headers= parameters). The body follows lib/mime.c: boundary of
+ * 24 dashes plus 22 random alphanumerics, Content-Disposition with %22-escaped names (or
+ * backslash escapes with --form-escape), no Content-Type on plain text parts, file parts typed
+ * from the file extension with curl's table (default application/octet-stream), and several
+ * files in one field sent as a nested multipart/mixed part.
  *
  * Copyright (C) 2024-2026 Jacob Mellor and IronSoftware
  ***************************************************************************/
@@ -37,29 +39,53 @@ namespace CurlDotNet.Core
                 return null;
             }
 
-            var part = new CurlFormPart { Name = field.Substring(0, eq) };
+            var name = field.Substring(0, eq);
             var contents = field.Substring(eq + 1);
 
             if (literal)
             {
-                part.Value = contents;
-                return part;
+                return new CurlFormPart { Name = name, Value = contents };
             }
 
             if (contents.StartsWith("@", StringComparison.Ordinal))
             {
+                // one or more files separated by ',' each with its own ;type= / ;filename=
+                var files = new List<CurlFormPart>();
                 var pos = 1;
-                var data = ParseParams(contents, ref pos, part, allowFilename: true);
-                part.FilePath = data;
-                part.IsFileUpload = true;
-                return part;
+                while (true)
+                {
+                    var file = new CurlFormPart { Name = name, IsFileUpload = true };
+                    file.FilePath = ParseParams(contents, ref pos, file, ',');
+                    files.Add(file);
+                    if (pos < contents.Length && contents[pos] == ',')
+                    {
+                        pos++;
+                        continue;
+                    }
+                    break;
+                }
+
+                if (files.Count == 1)
+                {
+                    return files[0];
+                }
+
+                return new CurlFormPart
+                {
+                    Name = name,
+                    IsFileUpload = true,
+                    FilePath = files[0].FilePath,
+                    MixedFiles = files,
+                };
             }
 
+            var part = new CurlFormPart { Name = name };
             var p = 0;
-            var value = ParseParams(contents, ref p, part, allowFilename: false);
-            if (value.StartsWith("<", StringComparison.Ordinal))
+            var value = ParseParams(contents, ref p, part, '\0');
+            // curl tests the unparsed value: "name=<file" reads a file, "name= <b>" is the text "<b>"
+            if (contents.StartsWith("<", StringComparison.Ordinal))
             {
-                part.FilePath = value.Substring(1);
+                part.FilePath = value.Length > 0 && value[0] == '<' ? value.Substring(1) : value;
                 part.IsFileContent = true;
             }
             else
@@ -69,57 +95,90 @@ namespace CurlDotNet.Core
             return part;
         }
 
-        /// <summary>curl's get_param_part: the data word followed by ;type= ;filename= ;headers= parameters.</summary>
-        private static string ParseParams(string s, ref int pos, CurlFormPart part, bool allowFilename)
+        /// <summary>
+        /// curl's get_param_part: the data word followed by ;type= ;filename= ;headers= parameters,
+        /// ending at <paramref name="endChar"/> (',' between files) or the end of the argument.
+        /// </summary>
+        private static string ParseParams(string s, ref int pos, CurlFormPart part, char endChar)
         {
             SkipSpaces(s, ref pos);
-            var data = ReadWord(s, ref pos);
+            var data = ReadWord(s, ref pos, endChar);
+
+            // While a type= is open (curl's "endct"), unknown parameters such as charset=x belong to it.
+            var typeStart = -1;
+            var typeEnd = -1;
+            void CloseType()
+            {
+                if (typeStart >= 0)
+                {
+                    part.ContentType = s.Substring(typeStart, typeEnd - typeStart);
+                    typeStart = -1;
+                }
+            }
 
             while (pos < s.Length && s[pos] == ';')
             {
                 pos++;
                 SkipSpaces(s, ref pos);
-                if (StartsWith(s, pos, "type="))
+                if (typeStart < 0 && StartsWith(s, pos, "type="))
                 {
                     pos += 5;
                     SkipSpaces(s, ref pos);
-                    var start = pos;
+                    typeStart = pos;
                     while (pos < s.Length && "()<>@,;:\\\"[]?=\r\n ".IndexOf(s[pos]) < 0)
                     {
                         pos++;
                     }
-                    part.ContentType = s.Substring(start, pos - start);
-                    while (pos < s.Length && s[pos] != ';')
+                    typeEnd = pos;
+                    while (pos < s.Length && s[pos] != ';' && s[pos] != endChar)
                     {
                         pos++;
                     }
                 }
-                else if (allowFilename && StartsWith(s, pos, "filename="))
+                else if (StartsWith(s, pos, "filename="))
                 {
+                    CloseType();
                     pos += 9;
                     SkipSpaces(s, ref pos);
-                    part.FileName = ReadWord(s, ref pos);
+                    part.FileName = ReadWord(s, ref pos, endChar);
                 }
                 else if (StartsWith(s, pos, "headers="))
                 {
+                    CloseType();
                     pos += 8;
                     SkipSpaces(s, ref pos);
-                    var header = ReadWord(s, ref pos);
+                    var header = ReadWord(s, ref pos, endChar);
                     if (header.Length > 0)
                     {
                         part.Headers.Add(header);
                     }
                 }
+                else if (typeStart >= 0)
+                {
+                    // part of the content type, e.g. ";charset=utf-8"
+                    while (pos < s.Length && s[pos] != ';' && s[pos] != endChar)
+                    {
+                        if (s[pos] != ' ' && s[pos] != '\t')
+                        {
+                            typeEnd = pos + 1;
+                        }
+                        pos++;
+                    }
+                }
                 else
                 {
-                    ReadWord(s, ref pos); // unknown parameter (curl warns and skips it)
+                    ReadWord(s, ref pos, endChar); // unknown parameter (curl warns and skips it)
                 }
             }
+            CloseType();
             return data;
         }
 
-        /// <summary>curl's get_param_word: a double-quoted word with \\ and \" escapes, or text up to ';'.</summary>
-        private static string ReadWord(string s, ref int pos)
+        /// <summary>
+        /// curl's get_param_word: a double-quoted word with \\ and \" escapes, or text up to ';' (or
+        /// <paramref name="endChar"/>), with trailing blanks removed from unquoted words.
+        /// </summary>
+        private static string ReadWord(string s, ref int pos, char endChar)
         {
             if (pos < s.Length && s[pos] == '"')
             {
@@ -137,7 +196,7 @@ namespace CurlDotNet.Core
                     if (c == '"')
                     {
                         i++;
-                        while (i < s.Length && s[i] != ';')
+                        while (i < s.Length && s[i] != ';' && s[i] != endChar)
                         {
                             i++; // trailing data after the closing quote is ignored
                         }
@@ -151,7 +210,7 @@ namespace CurlDotNet.Core
             }
 
             var start = pos;
-            while (pos < s.Length && s[pos] != ';')
+            while (pos < s.Length && s[pos] != ';' && s[pos] != endChar)
             {
                 pos++;
             }
@@ -199,50 +258,85 @@ namespace CurlDotNet.Core
         {
             var boundary = NewBoundary();
             var content = new MultipartFormDataContent(boundary);
-            content.Headers.Remove("Content-Type");
-            content.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary);
+            SetMultipartType(content, "multipart/form-data", boundary);
 
             foreach (var part in parts)
             {
-                var disposition = new StringBuilder("form-data; name=\"").Append(Escape(part.Name)).Append('"');
-                byte[] data;
-                string? contentType = part.ContentType;
+                var disposition = new StringBuilder("form-data; name=\"").Append(Escape(part.Name, options)).Append('"');
+                HttpContent partContent;
 
-                if (part.IsFileUpload || part.IsFileContent)
+                if (part.MixedFiles.Count > 1)
                 {
-                    data = ReadFile(part, options);
-                    if (part.IsFileUpload)
+                    // several files in one field: a nested multipart/mixed, each file an attachment
+                    var innerBoundary = NewBoundary();
+                    var mixed = new MultipartContent("mixed", innerBoundary);
+                    SetMultipartType(mixed, "multipart/mixed", innerBoundary);
+                    foreach (var file in part.MixedFiles)
                     {
-                        var fileName = part.FileName ?? Path.GetFileName(part.FilePath ?? string.Empty);
-                        disposition.Append("; filename=\"").Append(Escape(fileName)).Append('"');
-                        contentType ??= ContentTypeFor(part.FilePath ?? fileName);
+                        mixed.Add(FilePart("attachment", file, options));
                     }
+                    mixed.Headers.TryAddWithoutValidation("Content-Disposition", disposition.ToString());
+                    partContent = mixed;
+                }
+                else if (part.IsFileUpload)
+                {
+                    partContent = FilePart(disposition.ToString(), part, options);
                 }
                 else
                 {
-                    // command-line text is sent as UTF-8, like the -d data
-                    data = Encoding.UTF8.GetBytes(part.Value ?? string.Empty);
+                    var data = part.IsFileContent
+                        ? ReadFile(part, options)
+                        : Encoding.UTF8.GetBytes(part.Value ?? string.Empty); // command-line text is UTF-8, like -d
+                    if (part.FileName != null)
+                    {
+                        disposition.Append("; filename=\"").Append(Escape(part.FileName, options)).Append('"');
+                    }
+                    partContent = new ByteArrayContent(data);
+                    partContent.Headers.TryAddWithoutValidation("Content-Disposition", disposition.ToString());
+                    if (!string.IsNullOrEmpty(part.ContentType))
+                    {
+                        // plain text fields get no Content-Type at all unless ;type= asks for one
+                        partContent.Headers.TryAddWithoutValidation("Content-Type", part.ContentType);
+                    }
+                    AddPartHeaders(partContent, part);
                 }
 
-                var partContent = new ByteArrayContent(data);
-                partContent.Headers.TryAddWithoutValidation("Content-Disposition", disposition.ToString());
-                if (!string.IsNullOrEmpty(contentType))
-                {
-                    // plain text fields get no Content-Type at all, exactly like curl
-                    partContent.Headers.TryAddWithoutValidation("Content-Type", contentType);
-                }
-                foreach (var header in part.Headers)
-                {
-                    var colon = header.IndexOf(':');
-                    if (colon > 0)
-                    {
-                        partContent.Headers.TryAddWithoutValidation(header.Substring(0, colon).Trim(), header.Substring(colon + 1).Trim());
-                    }
-                }
                 content.Add(partContent);
             }
 
             return content;
+        }
+
+        /// <summary>A file part: <paramref name="dispositionPrefix"/> plus the filename parameter, typed from the extension.</summary>
+        private static HttpContent FilePart(string dispositionPrefix, CurlFormPart file, CurlOptions options)
+        {
+            var data = ReadFile(file, options);
+            var fileName = file.FileName ?? Path.GetFileName(file.FilePath ?? string.Empty);
+            var disposition = dispositionPrefix + "; filename=\"" + Escape(fileName, options) + "\"";
+            var partContent = new ByteArrayContent(data);
+            partContent.Headers.TryAddWithoutValidation("Content-Disposition", disposition);
+            partContent.Headers.TryAddWithoutValidation("Content-Type", file.ContentType ?? ContentTypeFor(file.FilePath ?? fileName));
+            AddPartHeaders(partContent, file);
+            return partContent;
+        }
+
+        private static void AddPartHeaders(HttpContent content, CurlFormPart part)
+        {
+            foreach (var header in part.Headers)
+            {
+                var colon = header.IndexOf(':');
+                if (colon > 0)
+                {
+                    content.Headers.TryAddWithoutValidation(header.Substring(0, colon).Trim(), header.Substring(colon + 1).Trim());
+                }
+            }
+        }
+
+        private static void SetMultipartType(HttpContent content, string mediaType, string boundary)
+        {
+            // HttpClient quotes the boundary; curl does not
+            content.Headers.Remove("Content-Type");
+            content.Headers.TryAddWithoutValidation("Content-Type", mediaType + "; boundary=" + boundary);
         }
 
         private static byte[] ReadFile(CurlFormPart part, CurlOptions options)
@@ -263,9 +357,18 @@ namespace CurlDotNet.Core
             }
         }
 
-        /// <summary>curl's form-data escaping of names and file names: " CR LF become %22 %0D %0A.</summary>
-        private static string Escape(string value) =>
-            value.Replace("\"", "%22").Replace("\r", "%0D").Replace("\n", "%0A");
+        /// <summary>
+        /// curl's escaping of form names and file names: by default " CR LF become %22 %0D %0A;
+        /// with --form-escape a backslash and a double quote get a backslash in front instead.
+        /// </summary>
+        private static string Escape(string value, CurlOptions options)
+        {
+            if (options.FormEscape)
+            {
+                return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+            }
+            return value.Replace("\"", "%22").Replace("\r", "%0D").Replace("\n", "%0A");
+        }
 
         /// <summary>curl's Curl_mime_contenttype table.</summary>
         internal static string ContentTypeFor(string fileName)

@@ -129,9 +129,15 @@ namespace CurlDotNet.Core
 
             if (options.NoClobber && File.Exists(path))
             {
+                // curl keeps the extension: report.txt -> report-1.txt; without one: save -> save.1
+                var fileName = Path.GetFileName(path);
+                var dot = fileName.LastIndexOf('.');
+                var stem = dot > 0 ? path.Substring(0, path.Length - (fileName.Length - dot)) : path;
+                var extension = dot > 0 ? fileName.Substring(dot) : string.Empty;
                 for (var n = 1; n <= 100; n++)
                 {
-                    var candidate = path + "." + n.ToString(CultureInfo.InvariantCulture);
+                    var number = n.ToString(CultureInfo.InvariantCulture);
+                    var candidate = dot > 0 ? stem + "-" + number + extension : path + "." + number;
                     if (!File.Exists(candidate))
                     {
                         return candidate;

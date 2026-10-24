@@ -34,8 +34,25 @@ namespace CurlDotNet.Core
         /// </summary>
         public static void ValidateHeads(WireExchange exchange, HttpTransfer transfer)
         {
+            long total = 0;
+            foreach (var head in transfer.Transcript.AllHeads)
+            {
+                total += head.ByteLength;
+                var limit = CheckHeaderLimits(head.Text, total - head.ByteLength, transfer);
+                if (limit != null)
+                {
+                    throw limit;
+                }
+            }
+
             foreach (var head in exchange.Heads)
             {
+                var encodingProblem = ValidateTransferEncoding(head, transfer.Options);
+                if (encodingProblem != null)
+                {
+                    throw encodingProblem;
+                }
+
                 var problem = Validate(head);
                 if (problem != null)
                 {
@@ -44,6 +61,99 @@ namespace CurlDotNet.Core
                         : new CurlWeirdServerReplyException(WeirdMessage(problem.Value.Message, transfer), transfer.Options.OriginalCommand);
                 }
             }
+        }
+
+        /// <summary>
+        /// curl's response header limits: at most 5000 header fields and 100 KB per line (both
+        /// CURLE_TOO_LARGE, 100), and 300 KB of headers for the whole transfer (CURLE_RECV_ERROR, 56).
+        /// </summary>
+        internal static CurlException? CheckHeaderLimits(string headText, long previousTotal, HttpTransfer transfer)
+        {
+            const int maxFields = 5000;
+            const int maxLine = 100 * 1024;
+            const int maxTotal = 300 * 1024;
+            var command = transfer.Options.OriginalCommand;
+
+            var fields = 0;
+            var longest = 0;
+            var start = 0;
+            for (var i = 0; i <= headText.Length; i++)
+            {
+                if (i == headText.Length || headText[i] == '\n')
+                {
+                    var length = i - start;
+                    if (length > longest) longest = length;
+                    if (length > 1) fields++;
+                    start = i + 1;
+                }
+            }
+
+            if (fields - 1 > maxFields)
+            {
+                return new CurlTooLargeException($"the response has more than {maxFields} header fields", command);
+            }
+            if (longest > maxLine)
+            {
+                return new CurlTooLargeException($"a response header line is {longest} bytes, over curl's {maxLine}-byte limit", command);
+            }
+            var total = previousTotal + headText.Length;
+            if (total > maxTotal)
+            {
+                var uri = transfer.CurrentRequest?.RequestUri ?? transfer.FirstUri;
+                return new CurlReceiveErrorException(ReceiveMessage($"Too large response headers: {total} > {maxTotal} bytes for this transfer " +
+                    "(redirect hops count too)", uri), command);
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// curl's Transfer-Encoding rules: chunked must be the last coding, only chunked and identity
+        /// are accepted unless --tr-encoding allows gzip/deflate, and at most five codings (exit 61).
+        /// </summary>
+        internal static CurlException? ValidateTransferEncoding(RawResponseHead head, CurlOptions options)
+        {
+            var values = head.GetHeaders("Transfer-Encoding").ToList();
+            if (values.Count == 0 || head.IsInformational)
+            {
+                return null;
+            }
+
+            var raw = string.Join(", ", values);
+            var tokens = raw.Split(',').Select(t => t.Trim().ToLowerInvariant()).Where(t => t.Length > 0).ToList();
+            var command = options.OriginalCommand;
+            for (var i = 0; i < tokens.Count; i++)
+            {
+                var token = tokens[i];
+                if (token == "chunked")
+                {
+                    if (i != tokens.Count - 1)
+                    {
+                        return new CurlBadContentEncodingException(raw, "chunked must be the last transfer-coding", command);
+                    }
+                    continue;
+                }
+                if (token == "identity")
+                {
+                    if (tokens.Count > 1 && i == tokens.Count - 1)
+                    {
+                        return new CurlBadContentEncodingException(raw, "identity cannot follow another transfer-coding", command);
+                    }
+                    continue;
+                }
+                if ((token == "gzip" || token == "x-gzip" || token == "deflate") && options.TransferEncoding)
+                {
+                    continue;
+                }
+                return new CurlBadContentEncodingException(raw, options.TransferEncoding || (token != "gzip" && token != "deflate")
+                    ? $"unsupported transfer-coding \"{token}\""
+                    : $"the server used transfer-coding \"{token}\" without being asked (add --tr-encoding to accept it)", command);
+            }
+
+            if (tokens.Count(t => t != "chunked" && t != "identity") > 5)
+            {
+                return new CurlBadContentEncodingException(raw, "more than five transfer-codings were applied", command);
+            }
+            return null;
         }
 
         private static string StatusLineOf(string text)
@@ -78,7 +188,7 @@ namespace CurlDotNet.Core
                 return (1, $"Received HTTP/0.9 when not allowed: the reply does not start with an HTTP status line (\"{Shorten(status)}\"). Add --http0.9 if this server really speaks HTTP/0.9");
             }
 
-            var locations = 0;
+            string? location = null;
             string? contentLength = null;
             for (var i = 1; i < lines.Length; i++)
             {
@@ -110,23 +220,28 @@ namespace CurlDotNet.Core
                 var value = line.Substring(colon + 1).Trim();
                 if (name.Equals("Location", StringComparison.OrdinalIgnoreCase))
                 {
-                    locations++;
-                    if (locations > 1)
+                    if (location != null && location != value)
                     {
-                        return (8, "more than one Location header");
+                        return (8, "more than one Location header, with different targets");
                     }
+                    location = value;
                 }
                 else if (name.Equals("Content-Length", StringComparison.OrdinalIgnoreCase) && !head.IsInformational)
                 {
-                    if (value.Length == 0 || !value.All(char.IsDigit))
+                    // "6, 6" is allowed (RFC 9110 list form) as long as every element agrees
+                    foreach (var element in value.Split(','))
                     {
-                        return (8, $"invalid Content-Length value \"{Shorten(value)}\"");
+                        var number = element.Trim();
+                        if (number.Length == 0 || !number.All(char.IsDigit))
+                        {
+                            return (8, $"invalid Content-Length value \"{Shorten(value)}\"");
+                        }
+                        if (contentLength != null && contentLength.TrimStart('0') != number.TrimStart('0'))
+                        {
+                            return (8, $"conflicting Content-Length values {contentLength} and {number}");
+                        }
+                        contentLength = number;
                     }
-                    if (contentLength != null && contentLength.TrimStart('0') != value.TrimStart('0'))
-                    {
-                        return (8, $"conflicting Content-Length values {contentLength} and {value}");
-                    }
-                    contentLength = value;
                 }
             }
 
@@ -220,7 +335,9 @@ namespace CurlDotNet.Core
             }
             else if (error == HttpRequestError.ConfigurationLimitExceeded)
             {
-                return new CurlTooLargeException("the response header block exceeds the limit (" + InnermostMessage(ex) + ")", command);
+                var pendingText = exchange!.Segments.Select(seg => seg.Parser.PendingHeadText).LastOrDefault(t => t.Length > 0) ?? string.Empty;
+                return CheckHeaderLimits(pendingText, transfer.Transcript.HeaderBytes, transfer)
+                       ?? new CurlTooLargeException("the response header block exceeds the limit (" + InnermostMessage(ex) + ")", command);
             }
 #endif
 
@@ -260,6 +377,15 @@ namespace CurlDotNet.Core
             var final = parser.Heads.LastOrDefault();
             var pending = parser.PendingHeadBytes > 0;
 
+            if (pending)
+            {
+                var limit = CheckHeaderLimits(parser.PendingHeadText, transfer.Transcript.HeaderBytes, transfer);
+                if (limit != null)
+                {
+                    return limit;
+                }
+            }
+
             if (final == null || (pending && final.IsInformational) || (pending && final.BodyComplete))
             {
                 // the header block never completed
@@ -290,7 +416,9 @@ namespace CurlDotNet.Core
 
                 if (final != null && final.IsInformational && !pending)
                 {
-                    return new CurlWeirdServerReplyException(WeirdMessage($"the server sent \"{StatusLineOf(final.Text)}\" and then no final response", transfer), command);
+                    // only an interim "100 Continue" and then the connection closed: nothing usable arrived
+                    return new CurlGotNothingException(uri.Host, command,
+                        $"The server only sent \"{StatusLineOf(final.Text)}\" before closing. ");
                 }
 
                 return new CurlWeirdServerReplyException(WeirdMessage("the response header block is malformed (" + InnermostMessage(ex) + ")", transfer), command);
@@ -326,6 +454,29 @@ namespace CurlDotNet.Core
             }
 
             return new CurlReceiveErrorException(ReceiveMessage(InnermostMessage(ex), uri), command);
+        }
+
+        /// <summary>
+        /// A framework exception thrown from inside HttpClient (typically its Digest/NTLM/Negotiate
+        /// implementation choking on a challenge) mapped to curl's CURLE_AUTH_ERROR (94) when an
+        /// authentication scheme was negotiating, or to a receive error otherwise.
+        /// </summary>
+        public static CurlException FromFrameworkFailure(Exception ex, HttpTransfer transfer)
+        {
+            var options = transfer.Options;
+            var uri = transfer.CurrentRequest?.RequestUri ?? transfer.FirstUri;
+            var serverScheme = HttpHandler.UsesChallengeAuth(options) ? options.AuthScheme : null;
+            var proxyScheme = transfer.Proxy != null && transfer.Proxy.AuthScheme != "basic" && transfer.Proxy.UserCredentials != null
+                ? transfer.Proxy.AuthScheme
+                : null;
+            var scheme = serverScheme ?? proxyScheme;
+            if (scheme != null)
+            {
+                return new CurlAuthErrorException(scheme, proxyScheme != null && serverScheme == null,
+                    $"{ex.GetType().Name}: {ex.Message}", options.OriginalCommand);
+            }
+
+            return new CurlReceiveErrorException(ReceiveMessage($"the response could not be processed ({ex.GetType().Name}: {ex.Message})", uri), options.OriginalCommand);
         }
 
         private static bool IsResponseEnded(Exception ex)

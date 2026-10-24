@@ -105,6 +105,9 @@ namespace CurlDotNet.Core
         /// <summary>Requests sent (excluding HttpClient's own auth retries).</summary>
         public int RequestsSent { get; private set; }
 
+        /// <summary>The byte offset -C/--continue-at resumes from (0 = not resuming).</summary>
+        public long ResumeOffset { get; private set; }
+
         /// <summary>Builds the request for <paramref name="hop"/> and adds curl's transport headers.</summary>
         public HttpRequestMessage PrepareRequest(CurlOptions hop)
         {
@@ -133,6 +136,14 @@ namespace CurlDotNet.Core
             Cookies?.ApplyTo(request, hop);
             ApplyExpect(request, hop);
             ApplyEtag(request, hop);
+            ApplyResume(request, hop);
+
+            if (hop.TransferEncoding)
+            {
+                // --tr-encoding: ask for a compressed transfer-encoding (hop-by-hop, hence Connection: TE)
+                request.Headers.TryAddWithoutValidation("TE", "gzip");
+                request.Headers.Connection.Add("TE");
+            }
 
             var settings = new TransportRequestSettings
             {
@@ -174,6 +185,44 @@ namespace CurlDotNet.Core
             {
                 request.Headers.ExpectContinue = false;
             }
+        }
+
+        /// <summary>
+        /// -C/--continue-at: "-C -" resumes from the size of the existing output file; "-C 0" sends no
+        /// Range at all, like curl.
+        /// </summary>
+        private void ApplyResume(HttpRequestMessage request, CurlOptions hop)
+        {
+            if (!hop.ResumeFrom.HasValue)
+            {
+                ResumeOffset = 0;
+                return;
+            }
+
+            var offset = hop.ResumeFrom.Value;
+            if (offset < 0)
+            {
+                offset = 0;
+                var target = hop.OutputFile;
+                if (!string.IsNullOrEmpty(target) && target != "-")
+                {
+                    if (!string.IsNullOrEmpty(hop.OutputDir) && !System.IO.Path.IsPathRooted(target))
+                    {
+                        target = System.IO.Path.Combine(hop.OutputDir!, target);
+                    }
+                    try
+                    {
+                        if (System.IO.File.Exists(target)) offset = new System.IO.FileInfo(target).Length;
+                    }
+                    catch (System.IO.IOException)
+                    {
+                        offset = 0;
+                    }
+                }
+            }
+
+            ResumeOffset = offset;
+            request.Headers.Range = offset > 0 ? new System.Net.Http.Headers.RangeHeaderValue(offset, null) : null;
         }
 
         /// <summary>--etag-compare: send the stored ETag in If-None-Match.</summary>

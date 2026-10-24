@@ -36,6 +36,8 @@ namespace CurlDotNet.Core
         public string Value = string.Empty;
         /// <summary>Lower-case domain without a leading dot.</summary>
         public string Domain = string.Empty;
+        /// <summary>The domain as the server (or the cookie file) wrote it, used when saving the jar.</summary>
+        public string? DomainAsGiven;
         /// <summary>True when the cookie also applies to subdomains (Domain= was given).</summary>
         public bool TailMatch;
         public string Path = "/";
@@ -58,13 +60,11 @@ namespace CurlDotNet.Core
         private static readonly long MaxAgeCap = 400L * 24 * 3600; // RFC 6265bis: at most 400 days
 
         private readonly List<StoredCookie> _cookies = new List<StoredCookie>();
-        private readonly string? _literal;
         private readonly string? _jarPath;
         private long _counter;
 
-        private CookieEngine(string? literal, string? jarPath)
+        private CookieEngine(string? jarPath)
         {
-            _literal = literal;
             _jarPath = jarPath;
         }
 
@@ -81,7 +81,7 @@ namespace CurlDotNet.Core
                 return null;
             }
 
-            var engine = new CookieEngine(isFile ? null : cookie, options.CookieJar);
+            var engine = new CookieEngine(options.CookieJar);
             if (isFile && cookie!.Length > 0)
             {
                 engine.Load(cookie, options.JunkSessionCookies);
@@ -155,6 +155,7 @@ namespace CurlDotNet.Core
                 {
                     TailMatch = string.Equals(fields[1], "TRUE", StringComparison.OrdinalIgnoreCase),
                     Domain = domain.TrimStart('.').ToLowerInvariant(),
+                    DomainAsGiven = domain.TrimStart('.'),
                     Path = fields[2].Length == 0 ? "/" : fields[2],
                     Secure = string.Equals(fields[3], "TRUE", StringComparison.OrdinalIgnoreCase),
                     Expires = expires,
@@ -189,7 +190,7 @@ namespace CurlDotNet.Core
             request.Headers.Remove("Cookie");
             var uri = request.RequestUri!;
             var header = BuildCookieHeader(uri, HostFor(uri, hop));
-            var literal = hop.Cookie != null && hop.Cookie.IndexOf('=') >= 0 ? hop.Cookie : _literal;
+            var literal = hop.Cookie != null && hop.Cookie.IndexOf('=') >= 0 ? hop.Cookie : null;
 
             // a custom -H "Cookie: ..." is appended by curl after its own cookies
             hop.Headers.TryGetValue("Cookie", out var custom);
@@ -332,7 +333,8 @@ namespace CurlDotNet.Core
             foreach (var c in _cookies.Where(c => c.Expires == 0 || c.Expires > now).OrderByDescending(c => c.Created))
             {
                 if (c.HttpOnly) sb.Append("#HttpOnly_");
-                sb.Append(c.TailMatch ? "." + c.Domain : c.Domain).Append('\t');
+                var domain = c.DomainAsGiven ?? c.Domain;
+                sb.Append(c.TailMatch ? "." + domain : domain).Append('\t');
                 sb.Append(c.TailMatch ? "TRUE" : "FALSE").Append('\t');
                 sb.Append(c.Path).Append('\t');
                 sb.Append(c.Secure ? "TRUE" : "FALSE").Append('\t');
@@ -447,9 +449,10 @@ namespace CurlDotNet.Core
 
             if (domain != null)
             {
-                var d = domain.Trim();
-                if (d.StartsWith(".", StringComparison.Ordinal)) d = d.Substring(1);
-                d = d.TrimEnd('.').ToLowerInvariant();
+                var given = domain.Trim();
+                if (given.StartsWith(".", StringComparison.Ordinal)) given = given.Substring(1);
+                given = given.TrimEnd('.');
+                var d = given.ToLowerInvariant();
                 if (d.Length == 0 || d.StartsWith(".", StringComparison.Ordinal))
                 {
                     return null;
@@ -475,6 +478,7 @@ namespace CurlDotNet.Core
                     cookie.TailMatch = true;
                 }
                 cookie.Domain = d;
+                cookie.DomainAsGiven = given;
             }
             else
             {

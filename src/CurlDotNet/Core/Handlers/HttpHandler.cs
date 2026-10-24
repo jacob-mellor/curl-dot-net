@@ -189,7 +189,25 @@ namespace CurlDotNet.Core
             var readingBody = false;
             try
             {
+                if (options.SkipExisting)
+                {
+                    var target = TransferOutput.ResolveOutputPath(options, transfer, null, options.Url);
+                    if (target != null && File.Exists(target))
+                    {
+                        // --skip-existing: curl does not even connect when the file is already there
+                        trace?.Info($"Skipping {options.Url}: '{target}' already exists (--skip-existing)");
+                        return new CurlResult { StatusCode = 0, Body = string.Empty, Command = options.OriginalCommand, Timings = timings };
+                    }
+                }
+
                 var request = transfer.PrepareRequest(options);
+                if (options.ResumeFrom.HasValue && options.ResumeFrom.Value != 0 && request.Content != null)
+                {
+                    // curl cannot resume an upload over HTTP (exit 43) and refuses to try
+                    throw new CurlBadFunctionArgumentException("-C/--continue-at",
+                        $"-C/--continue-at {(options.ResumeFrom.Value < 0 ? "-" : options.ResumeFrom.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))} cannot be combined with a request body (-d, -F or -T): resuming an HTTP upload is not supported. " +
+                        "Send the whole body again without -C.", options.OriginalCommand);
+                }
 
                 if (trace != null)
                 {
@@ -222,7 +240,7 @@ namespace CurlDotNet.Core
                 // Redirects are followed by hand, like curl (and redirect_url is computed without -L)
                 if (_redirectHandler.IsRedirect(response.StatusCode))
                 {
-                    if (options.FollowLocation)
+                    if (options.FollowLocation || options.LocationTrusted)
                     {
                         trace?.Info($"Received HTTP {(int)response.StatusCode}; following redirect (-L)");
                     }
@@ -265,12 +283,30 @@ namespace CurlDotNet.Core
                     trace?.Error($"  caused by: {inner.GetType().Name}: {inner.Message}");
                 }
 
+                if (options.AllowHttp09 && !readingBody)
+                {
+                    var http09 = TryHttp09Result(transfer, options);
+                    if (http09 != null)
+                    {
+                        return http09;
+                    }
+                }
+
                 var mapped = TransportErrors.Translate(ex, transfer, readingBody);
                 if (mapped != null)
                 {
                     throw mapped;
                 }
                 throw;
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException || ex is FormatException
+                                       || ex is NotSupportedException || ex is System.ComponentModel.Win32Exception)
+            {
+                // HttpClient's own Digest/NTLM/Negotiate code (or its URI handling) failed on something
+                // the server sent. curl would have handled it; report what happened instead of a raw
+                // framework exception.
+                trace?.Error($"Transfer failed inside HttpClient: {ex.GetType().Name}: {ex.Message}");
+                throw TransportErrors.FromFrameworkFailure(ex, transfer);
             }
             finally
             {
@@ -611,8 +647,14 @@ namespace CurlDotNet.Core
             var finalHead = transfer.FinalHead;
             var timings = transfer.Timings;
 
-            // --max-filesize refuses an announced size before reading anything, like curl
+            // --max-filesize refuses an announced size before reading anything, like curl (a length
+            // too big for a 64-bit number is over any limit)
             var announced = response.Content?.Headers.ContentLength;
+            var rawLength = finalHead?.GetHeader("Content-Length")?.Trim();
+            if (rawLength != null && rawLength.Length > 18 && rawLength.All(char.IsDigit))
+            {
+                announced = long.MaxValue;
+            }
             if (options.MaxFileSize.HasValue && announced.HasValue && announced.Value > options.MaxFileSize.Value && !isHead)
             {
                 throw new CurlFileSizeExceededException(options.MaxFileSize.Value, announced.Value, command);
@@ -636,10 +678,11 @@ namespace CurlDotNet.Core
             var includeHeaders = options.IncludeHeaders || (options.HeadOnly && !string.IsNullOrEmpty(options.OriginalCommand));
             var headerText = transfer.BuildHeaderText(response);
 
-            // -D FILE gets the header blocks as soon as they arrived, even if the body then fails
+            // -D FILE gets the header blocks as soon as they arrived (and chunked trailers after the
+            // body), even if the body then fails
             if (!string.IsNullOrEmpty(options.DumpHeaderFile) && options.DumpHeaderFile != "-")
             {
-                TransferOutput.DumpHeaders(options, headerText);
+                TransferOutput.DumpHeaders(options, headerText + (finalHead?.Trailers ?? string.Empty));
             }
 
             CurlException? failure = null;
@@ -651,12 +694,42 @@ namespace CurlDotNet.Core
             {
                 failure = TransportErrors.Translate(bodyError, transfer, readingBody: true)
                           ?? new CurlReceiveErrorException(bodyError.Message, command);
+                if (failure is CurlPartialFileException partial && partial.BytesExpected.HasValue && options.IgnoreContentLength)
+                {
+                    failure = null; // --ignore-content-length: whatever arrived before the close is the body
+                }
             }
 
             var body = rawBody;
+            if (failure == null && options.TransferEncoding && finalHead != null)
+            {
+                // --tr-encoding: undo gzip/deflate transfer-codings (HttpClient only removes chunked)
+                var codings = string.Join(",", finalHead.GetHeaders("Transfer-Encoding")).Split(',')
+                    .Select(t => t.Trim().ToLowerInvariant()).Where(t => t == "gzip" || t == "x-gzip" || t == "deflate").ToList();
+                if (codings.Count > 0)
+                {
+                    body = DecodeContentEncoding(body, codings);
+                }
+            }
             if (failure == null && options.Compressed)
             {
-                body = DecodeContentEncoding(rawBody, response.Content!.Headers.ContentEncoding);
+                body = DecodeContentEncoding(body, response.Content!.Headers.ContentEncoding);
+            }
+
+            // -C/--continue-at: 416 means "already complete" (curl ignores the body); a reply without
+            // Content-Range would corrupt the partial file (exit 33)
+            var resuming = transfer.ResumeOffset > 0;
+            if (resuming && failure == null)
+            {
+                var contentRange = finalHead?.GetHeader("Content-Range") ?? ContentRangeOf(response);
+                if (status == 416)
+                {
+                    body = Array.Empty<byte>();
+                }
+                else if (contentRange == null && request.Method == HttpMethod.Get)
+                {
+                    throw new CurlRangeErrorException(transfer.ResumeOffset, status, command);
+                }
             }
 
             var (result, responseText, responseBinary) = CreateResult(response, options, isHead ? null : body, finalHead);
@@ -676,16 +749,19 @@ namespace CurlDotNet.Core
                 trace.Info($"Transfer complete: HTTP {result.StatusCode}, {rawBody.Length} bytes received.");
             }
 
-            if (!string.IsNullOrEmpty(options.EtagSave) && failure == null)
+            var etag = finalHead?.GetHeader("ETag") ?? result.GetHeader("ETag");
+            if (!string.IsNullOrEmpty(options.EtagSave) && options.EtagSave != "-" && failure == null)
             {
-                SaveEtag(options, finalHead?.GetHeader("ETag") ?? result.GetHeader("ETag"));
+                SaveEtag(options, etag);
             }
 
             var effectiveUrl = request.RequestUri!.AbsoluteUri;
             var failOnHttp = status >= 400 && (options.FailOnError || options.FailWithBody);
             string? outputPath = null;
             string? writtenPath = null;
-            if (!failOnHttp || options.FailWithBody)
+            // --etag-compare + 304: the copy on disk is current, so it is left alone
+            var notModified = status == 304 && !string.IsNullOrEmpty(options.EtagCompare);
+            if ((!failOnHttp || options.FailWithBody) && !notModified)
             {
                 outputPath = TransferOutput.ResolveOutputPath(options, transfer, finalHead, effectiveUrl);
             }
@@ -694,9 +770,14 @@ namespace CurlDotNet.Core
             {
                 var fromHeader = options.UseRemoteFileName && options.RemoteHeaderName && string.IsNullOrEmpty(options.OutputFile)
                                  && TransferOutput.ContentDispositionFileName(finalHead?.GetHeader("Content-Disposition") ?? result.GetHeader("Content-Disposition")) != null;
-                writtenPath = TransferOutput.PrepareTarget(outputPath, options, fromHeader);
+                writtenPath = resuming ? outputPath : TransferOutput.PrepareTarget(outputPath, options, fromHeader);
+                if (resuming)
+                {
+                    TransferOutput.EnsureDirectory(writtenPath, options, "-o/--output");
+                }
                 var bytes = BuildOutputBytes(includeHeaders ? headerText : null, failure == null ? body : rawBody, includeHeaders ? finalHead?.Trailers : null);
-                TransferOutput.WriteFile(writtenPath, bytes, append: false, options, options.UseRemoteFileName && string.IsNullOrEmpty(options.OutputFile) ? "-O/--remote-name" : "-o/--output");
+                // a resumed download is appended to the partial file
+                TransferOutput.WriteFile(writtenPath, bytes, append: resuming, options, options.UseRemoteFileName && string.IsNullOrEmpty(options.OutputFile) ? "-O/--remote-name" : "-o/--output");
                 result.OutputFiles.Add(writtenPath);
                 if (options.RemoteTime && failure == null)
                 {
@@ -734,6 +815,11 @@ namespace CurlDotNet.Core
                 builder.Append(headerText);
             }
 
+            if (options.EtagSave == "-")
+            {
+                builder.Append(string.IsNullOrEmpty(etag) ? string.Empty : etag + "\n");
+            }
+
             if (includeHeaders && outputPath == null)
             {
                 if (options.Verbose && builder.Length > 0)
@@ -748,7 +834,7 @@ namespace CurlDotNet.Core
                 builder.Append(responseText);
             }
 
-            if (outputPath == null && includeHeaders && finalHead?.Trailers != null)
+            if (outputPath == null && (includeHeaders || options.DumpHeaderFile == "-") && finalHead?.Trailers != null)
             {
                 builder.Append(finalHead.Trailers);
             }
@@ -769,6 +855,51 @@ namespace CurlDotNet.Core
             result.Body = builder.ToString();
             return result;
         }
+
+        /// <summary>
+        /// --http0.9: when the reply had no status line, everything the server sent is the body.
+        /// Returns null when the reply was not HTTP/0.9 (or was a HEAD request, which cannot be).
+        /// </summary>
+        private CurlResult? TryHttp09Result(HttpTransfer transfer, CurlOptions options)
+        {
+            var exchange = transfer.LastExchange;
+            if (exchange == null || exchange.IsHeadRequest || options.HeadOnly || exchange.FinalHead != null)
+            {
+                return null;
+            }
+
+            var segment = exchange.Segments.LastOrDefault(s => s.Parser.TotalBytes > 0);
+            if (segment == null)
+            {
+                return null;
+            }
+
+            var raw = segment.Parser.RawPrefix;
+            var text = WireText.Latin1.GetString(raw, 0, Math.Min(raw.Length, 5));
+            if (text.StartsWith("HTTP/", StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var result = new CurlResult { StatusCode = 0, Command = options.OriginalCommand, Timings = transfer.Timings };
+            var outputPath = TransferOutput.ResolveOutputPath(options, transfer, null, options.Url);
+            if (outputPath != null)
+            {
+                var path = TransferOutput.PrepareTarget(outputPath, options, fromHeaderName: false);
+                TransferOutput.WriteFile(path, raw, append: false, options, "-o/--output");
+                result.OutputFiles.Add(path);
+                result.Body = string.Empty;
+            }
+            else
+            {
+                result.Body = LooksBinary(raw) ? string.Empty : DecodeTextBody(raw, null);
+                result.BinaryData = LooksBinary(raw) ? raw : null;
+            }
+            return result;
+        }
+
+        private static string? ContentRangeOf(HttpResponseMessage response) =>
+            response.Content?.Headers.ContentRange?.ToString();
 
         /// <summary>Signals that --max-filesize was exceeded while reading.</summary>
         private sealed class FileSizeLimitReached : Exception
