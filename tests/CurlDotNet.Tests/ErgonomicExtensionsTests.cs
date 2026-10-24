@@ -49,7 +49,7 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
-        public void ParseJson_FailedRequest_ThrowsInvalidOperationException()
+        public void ParseJson_FailedRequest_ThrowsCurlParsingException()
         {
             // Arrange
             var result = new CurlResult
@@ -59,12 +59,12 @@ namespace CurlDotNet.Tests
             };
 
             // Act & Assert
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<CurlParsingException>(() =>
                 result.ParseJson<TestUser>());
         }
 
         [Fact]
-        public void ParseJson_EmptyBody_ThrowsInvalidOperationException()
+        public void ParseJson_EmptyBody_ThrowsCurlParsingException()
         {
             // Arrange
             var result = new CurlResult
@@ -74,7 +74,7 @@ namespace CurlDotNet.Tests
             };
 
             // Act & Assert
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<CurlParsingException>(() =>
                 result.ParseJson<TestUser>());
         }
 

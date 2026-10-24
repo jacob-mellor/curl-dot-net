@@ -73,8 +73,8 @@ namespace CurlDotNet.Tests
         {
             var result = new CurlResult { Body = null };
             Action act = () => result.ParseJson<Dictionary<string, string>>();
-            act.Should().Throw<InvalidOperationException>()
-                .WithMessage("Cannot parse JSON: Body is empty");
+            act.Should().Throw<CurlDotNet.Exceptions.CurlParsingException>()
+                .WithMessage("*found no JSON to parse*empty*See https://github.com/jacob-mellor/curl-dot-net/*");
         }
 
         [Fact]
@@ -82,8 +82,8 @@ namespace CurlDotNet.Tests
         {
             var result = new CurlResult { Body = "" };
             Action act = () => result.ParseJson<Dictionary<string, string>>();
-            act.Should().Throw<InvalidOperationException>()
-                .WithMessage("Cannot parse JSON: Body is empty");
+            act.Should().Throw<CurlDotNet.Exceptions.CurlParsingException>()
+                .WithMessage("*found no JSON to parse*empty*");
         }
 
         [Fact]
@@ -91,8 +91,8 @@ namespace CurlDotNet.Tests
         {
             var result = new CurlResult { Body = "not valid json" };
             Action act = () => result.ParseJson<Dictionary<string, string>>();
-            act.Should().Throw<InvalidOperationException>()
-                .Which.Message.Should().Contain("Failed to parse JSON");
+            act.Should().Throw<CurlDotNet.Exceptions.CurlParsingException>()
+                .Which.Message.Should().Contain("could not read the response body").And.Contain("not valid json");
         }
 
         [Fact]
@@ -500,7 +500,7 @@ namespace CurlDotNet.Tests
             Action act = () => result.EnsureContains("Missing");
 
             act.Should().Throw<InvalidOperationException>()
-                .WithMessage("Response does not contain 'Missing'");
+                .WithMessage("*EnsureContains(\"Missing\") failed*does not contain it*See https://github.com/jacob-mellor/curl-dot-net/*");
         }
 
         [Fact]
@@ -525,7 +525,7 @@ namespace CurlDotNet.Tests
             Func<Task> act = async () => await result.Retry();
 
             await act.Should().ThrowAsync<InvalidOperationException>()
-                .WithMessage("Cannot retry: Original command not available");
+                .WithMessage("Cannot retry*has no Command*See https://github.com/jacob-mellor/curl-dot-net/*");
         }
 
         [Fact]

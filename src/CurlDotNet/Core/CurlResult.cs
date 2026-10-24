@@ -26,248 +26,199 @@ using CurlDotNet.Exceptions;
 namespace CurlDotNet.Core
 {
     /// <summary>
-    /// <para><b>🎯 The response from your curl command - everything you need is here!</b></para>
-    ///
-    /// <para>After running any curl command, you get this object back. It has the status code,
-    /// response body, headers, and helpful methods to work with the data.</para>
-    ///
-    /// <para><b>The API is designed to be intuitive - just type what you want to do:</b></para>
-    /// <list type="bullet">
-    /// <item>Want the body? → <c>result.Body</c></item>
-    /// <item>Want JSON? → <c>result.ParseJson&lt;T&gt;()</c> or <c>result.AsJson&lt;T&gt;()</c></item>
-    /// <item>Want to save? → <c>result.SaveToFile("path")</c></item>
-    /// <item>Want headers? → <c>result.Headers["Content-Type"]</c></item>
-    /// <item>Check success? → <c>result.IsSuccess</c> or <c>result.EnsureSuccess()</c></item>
-    /// </list>
-    ///
-    /// <para><b>Quick Example:</b></para>
-    /// <code>
-    /// var result = await Curl.Execute("curl https://api.github.com/users/octocat");
-    ///
-    /// if (result.IsSuccess)  // Was it 200-299?
-    /// {
-    ///     var user = result.ParseJson&lt;User&gt;();  // Parse JSON to your type
-    ///     result.SaveToFile("user.json");       // Save for later
-    /// }
-    /// </code>
+    /// What a curl command returned: the HTTP status, the body text (or bytes), the response headers, the files
+    /// written, the timings - plus helpers to parse JSON, save, validate and retry.
     /// </summary>
     /// <remarks>
-    /// <para><b>Design Philosophy:</b> Every method name tells you exactly what it does.
-    /// No surprises. If you guess a method name, it probably exists and does what you expect.</para>
-    ///
-    /// <para><b>Fluent API:</b> Most methods return 'this' so you can chain operations:</para>
-    /// <code>
-    /// result
-    ///     .EnsureSuccess()           // Throw if not 200-299
-    ///     .SaveToFile("backup.json") // Save a copy
-    ///     .ParseJson&lt;Data&gt;()        // Parse and return data
-    /// </code>
+    /// <para>Every <c>Curl.ExecuteAsync</c>/<c>Curl.Execute</c> call, <see cref="CurlRequestBuilder"/> and
+    /// <see cref="CurlDotNet.Lib.LibCurl"/> request returns one. Transport failures (DNS, connection, timeout, TLS, <c>-f</c>
+    /// with an HTTP error) are thrown as <see cref="CurlException"/> subclasses instead, so a CurlResult in your hand means
+    /// the server answered - possibly with 404 or 500, which you check with <see cref="IsSuccess"/>,
+    /// <see cref="StatusCode"/> or <see cref="EnsureSuccess"/>. (The non-throwing <see cref="CurlDotNet.Lib.LibCurl"/> API
+    /// returns a result with <see cref="StatusCode"/> 0 and the failure in <see cref="Exception"/> instead.)</para>
+    /// <para>Where the data is: text responses are in <see cref="Body"/> (exactly what the curl tool would print on standard
+    /// output, so with <c>-i</c> it starts with the headers and with <c>-w</c> it ends with the write-out text); binary
+    /// responses (images, PDFs, zip, Office files) are in <see cref="BinaryData"/>; responses written with <c>-o</c>/<c>-O</c>
+    /// are on disk and listed in <see cref="OutputFiles"/>; headers of the final response are in <see cref="Headers"/>.</para>
+    /// <para>Most helpers return the same instance, so calls chain:
+    /// <c>var user = (await Curl.ExecuteAsync("curl https://api.example.com/users/42")).EnsureSuccess().SaveToFile("user.json").ParseJson&lt;User&gt;();</c></para>
+    /// <para>A CurlResult is a plain object with settable properties; it is not thread-safe while being modified
+    /// (<see cref="FilterLines"/> changes <see cref="Body"/>).</para>
+    /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/05-understanding-results.md</para>
     /// </remarks>
+    /// <example>
+    /// <code>
+    /// var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
+    ///
+    /// if (result.IsSuccess)  // 200-299
+    /// {
+    ///     var user = result.ParseJson&lt;User&gt;();  // Parse JSON to your type
+    ///     result.SaveToFile("user.json");          // Save for later
+    /// }
+    /// </code>
+    /// </example>
+    /// <seealso cref="Curl.ExecuteAsync(string)"/>
+    /// <seealso cref="CurlTimings"/>
+    /// <seealso cref="CurlException"/>
     public class CurlResult
     {
         #region Core Properties - The basics everyone needs
 
         /// <summary>
-        /// <para><b>The HTTP status code - tells you what happened.</b></para>
-        ///
-        /// <para>Common codes you'll see:</para>
-        /// <code>
-        /// 200 = OK, it worked!
-        /// 201 = Created something new
-        /// 204 = Success, but no content returned
-        /// 400 = Bad request (you sent something wrong)
-        /// 401 = Unauthorized (need to login)
-        /// 403 = Forbidden (not allowed)
-        /// 404 = Not found
-        /// 429 = Too many requests (slow down!)
-        /// 500 = Server error (their fault, not yours)
-        /// 503 = Service unavailable (try again later)
-        /// </code>
-        ///
-        /// <para><b>Example - Handle different statuses:</b></para>
-        /// <code>
-        /// switch (result.StatusCode)
-        /// {
-        ///     case 200: ProcessData(result.Body); break;
-        ///     case 404: Console.WriteLine("Not found"); break;
-        ///     case 401: RedirectToLogin(); break;
-        ///     case >= 500: Console.WriteLine("Server error, retry later"); break;
-        /// }
-        /// </code>
+        /// The HTTP status code of the final response (after any redirects followed with <c>-L</c>), such as 200, 201,
+        /// 304, 404 or 500 - curl's <c>%{http_code}</c>.
         /// </summary>
+        /// <value>100-599 for HTTP; the FTP reply code (such as 226) for <c>ftp://</c>; 200, or 404 for a missing file, for
+        /// <c>file://</c>; 0 when there was no response (<c>--skip-existing</c> skipped the request, or a
+        /// <see cref="CurlDotNet.Lib.LibCurl"/> call failed - see <see cref="Exception"/>); 304 when a <c>-z</c> time
+        /// condition was not met, like curl.</value>
+        /// <remarks>
+        /// <para>An HTTP error status is not an exception: 404 and 500 come back here unless the command used
+        /// <c>-f</c>/<c>--fail</c> (then <see cref="CurlHttpReturnedErrorException"/>, exit code 22, is thrown). Use
+        /// <see cref="IsSuccess"/> for "2xx", or <see cref="EnsureSuccess"/>/<see cref="EnsureStatus"/> to throw.</para>
+        /// <para>Example: <c>switch (result.StatusCode) { case 200: Use(result.Body); break; case 404: return null; case 401: await RefreshTokenAsync(); break; }</c>.</para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</para>
+        /// </remarks>
+        /// <seealso cref="IsSuccess"/>
+        /// <seealso cref="EnsureSuccess"/>
+        /// <seealso cref="EnsureStatus(int)"/>
         public int StatusCode { get; set; }
 
         /// <summary>
-        /// <para><b>The response body as a string - this is your data!</b></para>
-        ///
-        /// <para>Contains whatever the server sent back: JSON, HTML, XML, plain text, etc.</para>
-        ///
-        /// <para><b>Common patterns:</b></para>
-        /// <code>
-        /// // JSON API response (most common)
-        /// if (result.Body.StartsWith("{"))
-        /// {
-        ///     var data = result.ParseJson&lt;MyClass&gt;();
-        /// }
-        ///
-        /// // HTML webpage
-        /// if (result.Body.Contains("&lt;html"))
-        /// {
-        ///     result.SaveToFile("page.html");
-        /// }
-        ///
-        /// // Plain text
-        /// Console.WriteLine(result.Body);
-        /// </code>
-        ///
-        /// <para><b>Note:</b> For binary data (images, PDFs), use <see cref="BinaryData"/> instead.</para>
-        /// <para><b>Note:</b> Can be null for 204 No Content or binary responses.</para>
+        /// The response as text - exactly what the curl tool would print to standard output (the body, plus the
+        /// headers with <c>-i</c>, the <c>-v</c> log, and the <c>-w</c> output).
         /// </summary>
+        /// <value>The decoded text (charset from <c>Content-Type</c>, UTF-8 when none). Empty (not null) when the body was
+        /// written to a file with <c>-o</c>/<c>-O</c>, when the response is binary (the bytes are in <see cref="BinaryData"/>),
+        /// for HEAD requests without <c>-i</c>, and for 204 responses. Null only on a CurlResult you created yourself.</value>
+        /// <remarks>
+        /// <para>With a plain <c>curl URL</c> this is just the response body, ready for <see cref="ParseJson{T}"/>. Flags
+        /// that make curl print more also change Body: <c>-i</c> puts the status line and headers first, <c>-w '%{http_code}'</c>
+        /// appends the expanded text, <c>-v</c> prepends the request/response log. Use <see cref="Headers"/> and
+        /// <see cref="StatusCode"/> rather than parsing them out of Body.</para>
+        /// <para>Example: <c>var html = (await Curl.ExecuteAsync("curl -L https://example.com")).Body;</c></para>
+        /// </remarks>
+        /// <seealso cref="BinaryData"/>
+        /// <seealso cref="OutputFiles"/>
+        /// <seealso cref="ParseJson{T}"/>
+        /// <seealso cref="SaveToFile(string)"/>
         public string Body { get; set; }
 
         /// <summary>
-        /// <para><b>All HTTP headers from the response - contains metadata about the response.</b></para>
-        ///
-        /// <para>Headers tell you things like content type, cache rules, rate limits, etc.
-        /// Access them like a dictionary (case-insensitive keys).</para>
-        ///
-        /// <para><b>Get a specific header:</b></para>
-        /// <code>
-        /// // These all work (case-insensitive):
-        /// var type = result.Headers["Content-Type"];
-        /// var type = result.Headers["content-type"];
-        /// var type = result.Headers["CONTENT-TYPE"];
-        ///
-        /// // Or use the helper:
-        /// var type = result.GetHeader("Content-Type");
-        /// </code>
-        ///
-        /// <para><b>Check rate limits (common in APIs):</b></para>
-        /// <code>
-        /// if (result.Headers.ContainsKey("X-RateLimit-Remaining"))
-        /// {
-        ///     var remaining = int.Parse(result.Headers["X-RateLimit-Remaining"]);
-        ///     if (remaining &lt; 10)
-        ///         Console.WriteLine("⚠️ Only {0} API calls left!", remaining);
-        /// }
-        /// </code>
-        ///
-        /// <para><b>Common headers:</b></para>
-        /// <list type="bullet">
-        /// <item><b>Content-Type</b> - Format of the data (application/json, text/html)</item>
-        /// <item><b>Content-Length</b> - Size in bytes</item>
-        /// <item><b>Location</b> - Where you got redirected to</item>
-        /// <item><b>Set-Cookie</b> - Cookies to store</item>
-        /// <item><b>Cache-Control</b> - How long to cache</item>
-        /// </list>
+        /// The headers of the final response, by name, case-insensitive (<c>Headers["content-type"]</c> works); repeated
+        /// headers such as <c>Set-Cookie</c> are joined with <c>", "</c>.
         /// </summary>
+        /// <value>A dictionary with <see cref="StringComparer.OrdinalIgnoreCase"/>; values are exactly as the server sent them
+        /// (after the colon, trimmed). Empty when there was no HTTP response. After <c>-L</c> only the last hop's headers are
+        /// here; use <c>-i</c> and <see cref="Body"/> to see every hop.</value>
+        /// <remarks>
+        /// <para>Indexing a missing name throws <see cref="KeyNotFoundException"/>; <see cref="GetHeader(string)"/> returns
+        /// null instead and also works on a dictionary you assigned yourself with a case-sensitive comparer.</para>
+        /// <para>Example: <c>if (result.Headers.TryGetValue("X-RateLimit-Remaining", out var left) &amp;&amp; int.Parse(left) &lt; 10) await Task.Delay(60_000);</c></para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/08-headers-explained.md</para>
+        /// </remarks>
+        /// <seealso cref="GetHeader(string)"/>
+        /// <seealso cref="HasHeader(string)"/>
         public Dictionary<string, string> Headers { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// <para><b>Quick success check - true if status is 200-299.</b></para>
-        ///
-        /// <para>The easiest way to check if your request worked:</para>
-        /// <code>
-        /// if (result.IsSuccess)
-        /// {
-        ///     // It worked! Do something with result.Body
-        /// }
-        /// else
-        /// {
-        ///     // Something went wrong, check result.StatusCode
-        /// }
-        /// </code>
-        ///
-        /// <para>What's considered success: 200 OK, 201 Created, 204 No Content, etc.</para>
-        /// <para>What's NOT success: 404 Not Found, 500 Server Error, etc.</para>
+        /// True when <see cref="StatusCode"/> is 200-299 (OK, Created, No Content...); false for 1xx, 3xx, 4xx, 5xx and 0.
         /// </summary>
+        /// <value>Computed from <see cref="StatusCode"/> each time; never throws.</value>
+        /// <remarks>
+        /// <para>A 304 Not Modified or an unfollowed 301/302 is not "success" here. To accept other codes, compare
+        /// <see cref="StatusCode"/> yourself or call <see cref="EnsureStatus(int)"/>.</para>
+        /// <para>Example: <c>if (!result.IsSuccess) logger.LogWarning("{Status} from {Command}", result.StatusCode, result.Command);</c></para>
+        /// </remarks>
+        /// <seealso cref="StatusCode"/>
+        /// <seealso cref="EnsureSuccess"/>
         public bool IsSuccess => StatusCode >= 200 && StatusCode < 300;
 
         /// <summary>
-        /// <para><b>Binary data for files like images, PDFs, downloads.</b></para>
-        ///
-        /// <para>When you download non-text files, the bytes are here:</para>
-        /// <code>
-        /// // Download an image
-        /// var result = await Curl.Execute("curl https://example.com/logo.png");
-        ///
-        /// if (result.IsBinary)
-        /// {
-        ///     File.WriteAllBytes("logo.png", result.BinaryData);
-        ///     Console.WriteLine($"Saved {result.BinaryData.Length} bytes");
-        /// }
-        /// </code>
+        /// The response body as raw bytes when it is binary (image, PDF, zip, Office file, or anything that is not
+        /// text); null for text responses, whose content is in <see cref="Body"/>.
         /// </summary>
+        /// <value>The bytes exactly as received (after <c>--compressed</c> decoding), or null. Also filled when the body
+        /// was written to a file with <c>-o</c>.</value>
+        /// <remarks>
+        /// <para>A response is binary when its <c>Content-Type</c> is not a text type, or when the bytes look binary even
+        /// under a text type (a server sending an .xlsx as <c>text/plain</c>). Force it with
+        /// <see cref="CurlRequestBuilder.AsBinary"/>, or register types with <see cref="CurlRequestBuilder.WithBinaryContentType(string)"/>.</para>
+        /// <para>Example: <c>var r = await Curl.ExecuteAsync("curl https://example.com/logo.png"); if (r.IsBinary) File.WriteAllBytes("logo.png", r.BinaryData);</c>
+        /// - or simply <c>r.SaveToFile("logo.png")</c>, which picks bytes or text for you.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</para>
+        /// </remarks>
+        /// <seealso cref="IsBinary"/>
+        /// <seealso cref="Body"/>
+        /// <seealso cref="SaveToFile(string)"/>
+        /// <seealso cref="ToStream"/>
         public byte[] BinaryData { get; set; }
 
         /// <summary>
-        /// <para><b>Is this binary data? (images, PDFs, etc.)</b></para>
-        ///
-        /// <para>Quick check before accessing BinaryData:</para>
-        /// <code>
-        /// if (result.IsBinary)
-        ///     File.WriteAllBytes("file.bin", result.BinaryData);
-        /// else
-        ///     File.WriteAllText("file.txt", result.Body);
-        /// </code>
+        /// True when the response body is in <see cref="BinaryData"/> (non-empty) rather than in <see cref="Body"/>.
         /// </summary>
+        /// <value>Computed: <c>BinaryData != null &amp;&amp; BinaryData.Length &gt; 0</c>.</value>
+        /// <remarks>
+        /// <para>Example: <c>if (result.IsBinary) File.WriteAllBytes(path, result.BinaryData); else File.WriteAllText(path, result.Body);</c>
+        /// (which is what <see cref="SaveToFile(string)"/> does).</para>
+        /// </remarks>
+        /// <seealso cref="BinaryData"/>
+        /// <seealso cref="Body"/>
         public bool IsBinary => BinaryData != null && BinaryData.Length > 0;
 
         /// <summary>
-        /// <para><b>The original curl command that was executed.</b></para>
-        ///
-        /// <para>Useful for debugging or retrying:</para>
-        /// <code>
-        /// Console.WriteLine($"Executed: {result.Command}");
-        ///
-        /// // Retry the same command
-        /// var retry = await Curl.Execute(result.Command);
-        /// </code>
+        /// The curl command that produced this result, as you passed it (or as <see cref="CurlRequestBuilder.ToCurlCommand"/>
+        /// rendered it); used by <see cref="Retry"/> and in error messages.
         /// </summary>
+        /// <value>The command text, or null for a result you created yourself. It can contain secrets you put in the
+        /// command (<c>-u user:password</c>, <c>-H "Authorization: Bearer ..."</c>), so redact it before logging; passing
+        /// secrets through <see cref="CurlSettings.Headers"/> keeps them out of this string.</value>
+        /// <remarks>
+        /// <para>Example: <c>logger.LogInformation("{Status} for {Command}", result.StatusCode, result.Command);</c></para>
+        /// </remarks>
+        /// <seealso cref="Retry"/>
+        /// <seealso cref="RetryWith(Action{CurlSettings})"/>
         public string Command { get; set; }
 
         /// <summary>
-        /// <para><b>Detailed timing information (like curl -w).</b></para>
-        ///
-        /// <para>See how long each phase took:</para>
-        /// <code>
-        /// Console.WriteLine($"DNS lookup: {result.Timings.NameLookup}ms");
-        /// Console.WriteLine($"Connect: {result.Timings.Connect}ms");
-        /// Console.WriteLine($"Total: {result.Timings.Total}ms");
-        /// </code>
+        /// How long each phase of the transfer took (DNS, connect, TLS, first byte, total) in milliseconds, like curl's
+        /// <c>-w '%{time_total}'</c> family.
         /// </summary>
+        /// <value>Filled for HTTP(S) transfers; null or all zeros for other protocols and results you created yourself.
+        /// See <see cref="CurlTimings"/> for what each value means and when it is 0.</value>
+        /// <remarks>
+        /// <para>Example: <c>if (result.Timings.Total &gt; 2000) Console.WriteLine($"slow: DNS {result.Timings.NameLookup:F0} ms, connect {result.Timings.Connect:F0} ms, first byte {result.Timings.StartTransfer:F0} ms");</c></para>
+        /// </remarks>
+        /// <seealso cref="CurlTimings"/>
+        /// <seealso cref="PrintVerbose"/>
         public CurlTimings Timings { get; set; }
 
         /// <summary>
-        /// <para><b>Files that were saved (if using -o flag).</b></para>
-        ///
-        /// <para>Track what files were created:</para>
-        /// <code>
-        /// foreach (var file in result.OutputFiles)
-        /// {
-        ///     Console.WriteLine($"Saved: {file}");
-        /// }
-        /// </code>
+        /// Paths of the files this transfer wrote: the <c>-o</c>/<c>-O</c> output (with <c>--output-dir</c> and
+        /// <c>--no-clobber</c> renaming applied), plus any files saved later with <see cref="SaveToFile(string)"/> and friends.
         /// </summary>
+        /// <value>Paths as written (relative paths stay relative to the current directory); empty when the body went to
+        /// <see cref="Body"/>/<see cref="BinaryData"/> only. <c>-D</c>, <c>-c</c> and <c>--trace</c> files are not listed.</value>
+        /// <remarks>
+        /// <para>Example: <c>var r = await Curl.ExecuteAsync("curl -O https://example.com/files/report.pdf"); Console.WriteLine(r.OutputFiles[0]); // report.pdf</c></para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</para>
+        /// </remarks>
+        /// <seealso cref="SaveToFile(string)"/>
+        /// <seealso cref="Body"/>
+        /// <seealso cref="BinaryData"/>
         public List<string> OutputFiles { get; set; } = new List<string>();
 
         /// <summary>
-        /// <para><b>Any exception if the request failed completely.</b></para>
-        ///
-        /// <para>Only set for network failures, not HTTP errors:</para>
-        /// <code>
-        /// if (result.Exception != null)
-        /// {
-        ///     // Network/DNS/Timeout failure
-        ///     Console.WriteLine($"Failed: {result.Exception.Message}");
-        /// }
-        /// else if (!result.IsSuccess)
-        /// {
-        ///     // HTTP error (404, 500, etc)
-        ///     Console.WriteLine($"HTTP {result.StatusCode}");
-        /// }
-        /// </code>
+        /// The failure behind a result that has no HTTP response, set only by the non-throwing
+        /// <see cref="CurlDotNet.Lib.LibCurl"/> API; null for results from <c>Curl.ExecuteAsync</c>, which throws instead.
         /// </summary>
+        /// <value>A <see cref="CurlException"/> subclass (DNS, connect, timeout, TLS...) with <see cref="StatusCode"/> 0, or
+        /// null. HTTP errors such as 404 never set it - check <see cref="StatusCode"/> for those.</value>
+        /// <remarks>
+        /// <para>Example: <c>var r = await libCurl.GetAsync(url); if (r.Exception is CurlException ce) Console.WriteLine($"{ce.WhatHappened} - {ce.DocumentationUrl}");</c></para>
+        /// </remarks>
+        /// <seealso cref="CurlException"/>
+        /// <seealso cref="IsSuccess"/>
         public Exception Exception { get; set; }
 
         #endregion
@@ -284,50 +235,58 @@ namespace CurlDotNet.Core
         };
 
         /// <summary>
-        /// <para><b>Parse the JSON response into your C# class.</b></para>
-        ///
-        /// <para>The most common operation - turning JSON into objects. This method uses <see cref="System.Text.Json.JsonSerializer"/> 
-        /// in .NET 6+ and <see cref="Newtonsoft.Json.JsonConvert"/> in .NET Standard 2.0 for maximum compatibility.</para>
+        /// Deserializes the JSON in <see cref="Body"/> into a <typeparamref name="T"/> - your class, a
+        /// <c>List&lt;T&gt;</c>, a <c>Dictionary&lt;string, object&gt;</c> - matching property names case-insensitively.
+        /// </summary>
+        /// <remarks>
+        /// <para>On .NET 8/9/10 and .NET Framework 4.7.2/4.8 this uses System.Text.Json with
+        /// <c>PropertyNameCaseInsensitive = true</c> (so <c>"userName"</c> fills <c>UserName</c>); on the .NET Standard 2.0
+        /// build it uses Newtonsoft.Json, which is case-insensitive by default. JSON properties without a matching C#
+        /// property are ignored, and C# properties without a JSON value keep their default. JSON <c>null</c> returns
+        /// <c>null</c>/<c>default</c>.</para>
+        /// <para>The status code is not checked: a 404 with a JSON error body parses happily into your type with empty
+        /// properties. Call <see cref="EnsureSuccess"/> first when only 2xx bodies are valid.</para>
+        /// <para>Example: <c>var user = (await Curl.ExecuteAsync("curl https://api.github.com/users/octocat")).EnsureSuccess().ParseJson&lt;GitHubUser&gt;();</c>
+        /// then <c>Console.WriteLine(user.Login);</c>. For arrays: <c>result.ParseJson&lt;List&lt;Repo&gt;&gt;()</c>. To explore
+        /// JSON without a class, use <see cref="AsJsonDynamic"/>; to choose your own serializer options, use the
+        /// <see cref="ErgonomicExtensions.ParseJson{T}(CurlResult, System.Text.Json.JsonSerializerOptions)"/> extension.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/parse-json-from-curl-in-csharp/README.md</para>
+        /// </remarks>
+        /// <typeparam name="T">A class or struct with a public parameterless constructor and settable properties, a
+        /// collection such as <see cref="List{T}"/>, or <see cref="Dictionary{TKey, TValue}"/>. Interfaces and abstract types
+        /// cannot be created.</typeparam>
+        /// <returns>A new <typeparamref name="T"/> filled from <see cref="Body"/>; <c>null</c>/<c>default</c> when the body is
+        /// the JSON literal <c>null</c>.</returns>
+        /// <exception cref="CurlParsingException">The body is empty (a 204, a HEAD request, output sent to a file with
+        /// <c>-o</c>, or binary data), the body is not valid JSON (often an HTML error page or login redirect), or the JSON
+        /// does not fit <typeparamref name="T"/> (an array into a single object, text into a number). The message names the
+        /// URL, status, Content-Type and the start of the body; the parser's exception is the InnerException. Fix: check
+        /// <see cref="StatusCode"/> first and print <see cref="Body"/>.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/parse-json-from-curl-in-csharp/README.md</exception>
         /// <example>
         /// <code language="csharp">
-        /// // Define your class matching the JSON structure
-        /// public class User
-        /// {
-        ///     public string Name { get; set; }
-        ///     public string Email { get; set; }
-        ///     public int Id { get; set; }
-        /// }
+        /// public class User { public string Name { get; set; } public string Email { get; set; } public int Id { get; set; } }
         ///
         /// var response = await Curl.ExecuteAsync("curl https://api.example.com/users/42");
-        /// var user = response.ParseJson&lt;User&gt;();
+        /// var user = response.EnsureSuccess().ParseJson&lt;User&gt;();
         /// Console.WriteLine($"Hello {user.Name}!");
         ///
-        /// // Or parse arrays
-        /// var listResponse = await Curl.ExecuteAsync("curl https://api.example.com/users");
-        /// var users = listResponse.ParseJson&lt;List&lt;User&gt;&gt;();
-        /// Console.WriteLine($"Found {users.Count} users");
+        /// var users = (await Curl.ExecuteAsync("curl https://api.example.com/users")).ParseJson&lt;List&lt;User&gt;&gt;();
         /// </code>
         /// </example>
-        ///
-        /// <para><b>Tip:</b> Use https://json2csharp.com to generate C# classes from JSON!</para>
-        /// </summary>
-        /// <typeparam name="T">The type to deserialize to. Must match the JSON structure. Can be a class, struct, or collection type like <see cref="List{T}"/> or <see cref="Dictionary{TKey, TValue}"/>.</typeparam>
-        /// <returns>An instance of <typeparamref name="T"/> with data from the JSON <see cref="Body"/>.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when <see cref="Body"/> is null or empty.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when JSON deserialization fails or JSON doesn't match type <typeparamref name="T"/>.</exception>
-        /// <exception cref="System.Exception">Thrown when the JSON syntax is invalid. See <see cref="Exception.InnerException"/> for details.</exception>
-        /// <remarks>
-        /// <para>This method automatically detects whether to use System.Text.Json or Newtonsoft.Json based on the target framework.</para>
-        /// <para>For complex JSON structures, consider using <see cref="AsJsonDynamic"/> for exploration, then creating a typed class.</para>
-        /// <para>If <typeparamref name="T"/> doesn't match the JSON structure, properties that don't match will be left at their default values.</para>
-        /// </remarks>
-        /// <seealso cref="AsJson{T}">Alternative method name for parsing JSON</seealso>
-        /// <seealso cref="AsJsonDynamic">Parse JSON as dynamic object without a class</seealso>
-        /// <seealso cref="Body">The JSON string being parsed</seealso>
+        /// <seealso cref="AsJson{T}"/>
+        /// <seealso cref="AsJsonDynamic"/>
+        /// <seealso cref="Body"/>
+        /// <seealso cref="SaveAsJson(string, bool)"/>
         public T ParseJson<T>()
         {
             if (string.IsNullOrEmpty(Body))
-                throw new InvalidOperationException("Cannot parse JSON: Body is empty");
+            {
+                throw new CurlParsingException(CurlException.Compose(
+                    $"ParseJson<{typeof(T).Name}>() found no JSON to parse: the response body of {DescribeRequest()} is empty (HTTP {StatusCode}).",
+                    EmptyBodyFix(), DocLinks.HowToParseJson),
+                    GetHeader("Content-Type"), typeof(T), Command);
+            }
 
             try
             {
@@ -337,31 +296,71 @@ namespace CurlDotNet.Core
                 return System.Text.Json.JsonSerializer.Deserialize<T>(Body, JsonOptionsForParsing);
 #endif
             }
-            catch (Exception ex)
+#if NETSTANDARD2_0
+            catch (Newtonsoft.Json.JsonException ex)
+#else
+            catch (System.Text.Json.JsonException ex)
+#endif
             {
-                throw new InvalidOperationException($"Failed to parse JSON as {typeof(T).Name}: {ex.Message}", ex);
+                throw new CurlParsingException(CurlException.Compose(
+                    $"ParseJson<{typeof(T).Name}>() could not read the response body of {DescribeRequest()} as {typeof(T).Name}: {ex.Message} " +
+                    $"(HTTP {StatusCode}, Content-Type: {GetHeader("Content-Type") ?? "none"}, body starts with \"{ErrorText.Preview(Body, 60)}\").",
+                    BadJsonFix(typeof(T)), DocLinks.HowToParseJson),
+                    GetHeader("Content-Type"), typeof(T), Command, ex);
+            }
+            catch (Exception ex) when (ex is NotSupportedException || ex is InvalidOperationException || ex is ArgumentException || ex is MissingMethodException)
+            {
+                throw new CurlParsingException(CurlException.Compose(
+                    $"ParseJson<{typeof(T).Name}>() cannot create a {typeof(T).FullName} from JSON ({ex.GetType().Name}: {ex.Message}).",
+                    "Use a concrete class with a public parameterless constructor and settable properties (not an interface or abstract type), or read the data with AsJsonDynamic().",
+                    DocLinks.HowToParseJson),
+                    GetHeader("Content-Type"), typeof(T), Command, ex);
             }
         }
 
+        /// <summary>The fix for an empty body, depending on where the data went.</summary>
+        private string EmptyBodyFix()
+        {
+            if (IsBinary)
+            {
+                return $"The response is binary ({BinaryData.Length} bytes in BinaryData, Content-Type: {GetHeader("Content-Type") ?? "none"}), not JSON; save it with SaveToFile(path) or request the JSON endpoint.";
+            }
+            if (OutputFiles != null && OutputFiles.Count > 0)
+            {
+                return $"The body was written to '{OutputFiles[0]}' by -o/-O, so Body is empty; read that file, or drop -o to keep the JSON in Body.";
+            }
+            return "Check StatusCode before parsing (204 No Content and HEAD requests have no body), and make sure the request asks for JSON, for example with -H 'Accept: application/json'.";
+        }
+
+        /// <summary>The fix for a body that did not parse, depending on the status code.</summary>
+        private string BadJsonFix(Type target)
+        {
+            if (!IsSuccess && StatusCode != 0)
+            {
+                return $"The server answered HTTP {StatusCode}, so the body is probably an error message rather than your data; check StatusCode (or call EnsureSuccess()) before parsing.";
+            }
+            return $"Print result.Body to see what arrived: an HTML page usually means a wrong URL, method or missing credentials; a JSON array needs List<{target.Name}> rather than {target.Name}.";
+        }
+
         /// <summary>
-        /// <para><b>Parse JSON response (alternative name for <see cref="ParseJson{T}"/>).</b></para>
-        ///
-        /// <para>Some people prefer <c>AsJson</c>, some prefer <c>ParseJson</c>. Both methods are identical and produce the same result.</para>
-        /// <code language="csharp">
-        /// var data = result.AsJson&lt;MyData&gt;();
-        /// // Exactly the same as: result.ParseJson&lt;MyData&gt;()
-        /// </code>
+        /// Deserializes the JSON in <see cref="Body"/> into a <typeparamref name="T"/>; identical to
+        /// <see cref="ParseJson{T}"/>, for those who prefer the name.
         /// </summary>
-        /// <typeparam name="T">The type to deserialize to. See <see cref="ParseJson{T}"/> for details.</typeparam>
-        /// <returns>An instance of <typeparamref name="T"/> with data from the JSON <see cref="Body"/>.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when <see cref="Body"/> is null or empty.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when JSON deserialization fails.</exception>
-        /// <exception cref="System.Exception">Thrown when the JSON syntax is invalid.</exception>
         /// <remarks>
-        /// <para>This is simply an alias for <see cref="ParseJson{T}"/>. Use whichever method name you prefer.</para>
+        /// <para>Same serializer, case-insensitive matching and errors as <see cref="ParseJson{T}"/>.</para>
+        /// <para>Example: <c>var order = result.AsJson&lt;Order&gt;();</c></para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/parse-json-from-curl-in-csharp/README.md</para>
         /// </remarks>
-        /// <seealso cref="ParseJson{T}">Primary method for parsing JSON</seealso>
-        /// <seealso cref="AsJsonDynamic">Parse JSON as dynamic without a class</seealso>
+        /// <typeparam name="T">The type to create; see <see cref="ParseJson{T}"/>.</typeparam>
+        /// <returns>A new <typeparamref name="T"/> filled from <see cref="Body"/>.</returns>
+        /// <exception cref="CurlParsingException">The body is empty (a 204, a HEAD request, output sent to a file with
+        /// <c>-o</c>, or binary data), the body is not valid JSON (often an HTML error page or login redirect), or the JSON
+        /// does not fit <typeparamref name="T"/> (an array into a single object, text into a number). The message names the
+        /// URL, status, Content-Type and the start of the body; the parser's exception is the InnerException. Fix: check
+        /// <see cref="StatusCode"/> first and print <see cref="Body"/>.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/parse-json-from-curl-in-csharp/README.md</exception>
+        /// <seealso cref="ParseJson{T}"/>
+        /// <seealso cref="AsJsonDynamic"/>
         public T AsJson<T>() => ParseJson<T>();
 
         /// <summary>
@@ -456,124 +455,186 @@ namespace CurlDotNet.Core
         #region Save Operations - Save responses to files
 
         /// <summary>
-        /// <para><b>Save the response to a file - works for both text and binary!</b></para>
-        ///
-        /// <para>Smart saving - automatically handles text vs binary:</para>
-        /// <code>
-        /// // Save any response
-        /// result.SaveToFile("output.txt");     // Text saved as text
-        /// result.SaveToFile("image.png");      // Binary saved as binary
-        ///
-        /// // Chain operations (returns this)
-        /// result
-        ///     .SaveToFile("backup.json")       // Save a backup
-        ///     .ParseJson&lt;Data&gt;();              // Then parse it
-        /// </code>
-        ///
-        /// <para><b>Path examples:</b></para>
-        /// <code>
-        /// result.SaveToFile("file.txt");              // Current directory
-        /// result.SaveToFile("data/file.txt");         // Relative path
-        /// result.SaveToFile(@"C:\temp\file.txt");     // Absolute path
-        /// result.SaveToFile("/home/user/file.txt");   // Linux/Mac path
-        /// </code>
+        /// Writes the response to <paramref name="filePath"/> - the bytes of <see cref="BinaryData"/> for binary responses,
+        /// otherwise the text of <see cref="Body"/> - overwriting any existing file, and returns this result.
         /// </summary>
-        /// <param name="filePath">Where to save the file</param>
-        /// <returns>This result (for chaining)</returns>
-        /// <example>
-        /// <code language="csharp">
-        /// // Download and save JSON response
-        /// var result = await Curl.ExecuteAsync("curl https://api.example.com/data.json");
-        /// result.SaveToFile("data.json");
-        /// // File is now saved to disk AND still available in result.Body
-        ///
-        /// // Download image and save
-        /// var result = await Curl.ExecuteAsync("curl https://example.com/logo.png");
-        /// result.SaveToFile("logo.png");
-        /// Console.WriteLine($"Saved {result.BinaryData.Length} bytes");
-        ///
-        /// // Chain with parsing
-        /// var result = await Curl.ExecuteAsync("curl https://api.example.com/users");
-        /// var users = result
-        ///     .SaveToFile("backup-users.json")  // Save backup
-        ///     .ParseJson&lt;List&lt;User&gt;&gt;();    // Then parse
-        ///
-        /// // Save with relative path
-        /// result.SaveToFile("downloads/report.pdf");
-        ///
-        /// // Save with absolute path
-        /// result.SaveToFile(@"C:\Temp\output.txt");  // Windows
-        /// result.SaveToFile("/tmp/output.txt");       // Linux/Mac
-        /// </code>
-        /// </example>
-        /// <seealso cref="SaveToFileAsync">Async version that doesn't block</seealso>
-        /// <seealso cref="SaveAsJson">Save JSON with formatting</seealso>
-        /// <seealso cref="AppendToFile">Append to existing file instead of overwriting</seealso>
+        /// <remarks>
+        /// <para>Text is written as UTF-8 (without a byte-order mark); binary data byte-for-byte. The path is added to
+        /// <see cref="OutputFiles"/>. The folder must already exist. Note that <see cref="Body"/> is what curl prints, so a
+        /// command with <c>-i</c> or <c>-w</c> saves those extras too.</para>
+        /// <para>For large downloads prefer curl's own <c>-o file</c> (or <c>-O</c>), which writes as the transfer runs:
+        /// <c>await Curl.ExecuteAsync("curl -o report.pdf https://example.com/report.pdf");</c></para>
+        /// <para>Example: <c>(await Curl.ExecuteAsync("curl https://example.com/logo.png")).SaveToFile("logo.png");</c> or chained:
+        /// <c>var data = result.EnsureSuccess().SaveToFile("backup.json").ParseJson&lt;Data&gt;();</c></para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</para>
+        /// </remarks>
+        /// <param name="filePath">Relative (to the current directory) or absolute path, such as <c>"data.json"</c>,
+        /// <c>"downloads/report.pdf"</c> or <c>@"C:\Temp\out.txt"</c>.</param>
+        /// <returns>This same result, for chaining.</returns>
+        /// <exception cref="ArgumentException"><paramref name="filePath"/> is null, empty or whitespace; pass a path such as
+        /// <c>"out.json"</c>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</exception>
+        /// <exception cref="CurlWriteErrorException">The file could not be written (exit code 23): the folder does not
+        /// exist, access is denied, the file is locked by another program, the disk is full, or the name contains invalid
+        /// characters. The message names the path, the cause and the fix.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</exception>
+        /// <seealso cref="SaveToFileAsync(string)"/>
+        /// <seealso cref="AppendToFile(string)"/>
+        /// <seealso cref="SaveAsJson(string, bool)"/>
+        /// <seealso cref="OutputFiles"/>
+        /// <seealso cref="BinaryData"/>
         public CurlResult SaveToFile(string filePath)
         {
-            if (BinaryData != null)
-                File.WriteAllBytes(filePath, BinaryData);
-            else
-                File.WriteAllText(filePath, Body ?? "");
-
-            OutputFiles.Add(filePath);
-            return this;
-        }
-
-        /// <summary>
-        /// <para><b>Save the response to a file asynchronously.</b></para>
-        ///
-        /// <para>Same as SaveToFile but doesn't block:</para>
-        /// <code>
-        /// await result.SaveToFileAsync("large-file.json");
-        ///
-        /// // Or chain async operations
-        /// await result
-        ///     .SaveToFileAsync("backup.json")
-        ///     .ContinueWith(_ => Console.WriteLine("Saved!"));
-        /// </code>
-        /// </summary>
-        public async Task<CurlResult> SaveToFileAsync(string filePath)
-        {
-#if NETSTANDARD2_0 || NET472 || NET48
-            // .NET Framework and .NET Standard 2.0 don't have async file methods
-            await Task.Run(() =>
+            WriteOrThrow(filePath, nameof(SaveToFile), () =>
             {
                 if (BinaryData != null)
                     File.WriteAllBytes(filePath, BinaryData);
                 else
                     File.WriteAllText(filePath, Body ?? "");
             });
-#else
-            if (BinaryData != null)
-                await File.WriteAllBytesAsync(filePath, BinaryData);
+
+            OutputFiles.Add(filePath);
+            return this;
+        }
+
+        /// <summary>Size of what SaveToFile/AppendToFile write, for messages.</summary>
+        private long PayloadSize => BinaryData?.LongLength ?? (Body == null ? 0 : Encoding.UTF8.GetByteCount(Body));
+
+        /// <summary>
+        /// Runs a file write and turns path and I/O failures into exceptions that name the file and the fix.
+        /// </summary>
+        private void WriteOrThrow(string filePath, string method, Action write)
+        {
+            ValidatePath(filePath, method);
+            try
+            {
+                write();
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException
+                                       || ex is NotSupportedException || ex is System.Security.SecurityException)
+            {
+                throw WriteError(filePath, method, ex);
+            }
+        }
+
+        private static void ValidatePath(string filePath, string method)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                var message = CurlException.Compose(
+                    $"{method}() needs a file path, but was given {(filePath == null ? "null" : "an empty string")}.",
+                    "Pass a relative path such as \"out.json\" or an absolute one such as \"/tmp/out.json\".",
+                    DocLinks.HowToDownload);
+                throw filePath == null ? new ArgumentNullException(nameof(filePath), message) : new ArgumentException(message, nameof(filePath));
+            }
+        }
+
+        private CurlWriteErrorException WriteError(string filePath, string method, Exception ex)
+        {
+            string fix;
+            if (ex is DirectoryNotFoundException)
+            {
+                string folder;
+                try { folder = Path.GetDirectoryName(Path.GetFullPath(filePath)) ?? filePath; } catch (Exception) { folder = filePath; }
+                fix = $"The folder '{folder}' does not exist; create it first with Directory.CreateDirectory, or save to an existing folder.";
+            }
+            else if (ex is UnauthorizedAccessException || ex is System.Security.SecurityException)
+            {
+                fix = "This process may not write there, or the file is read-only; choose a folder you can write to (for example Path.GetTempPath()) or fix the permissions.";
+            }
+            else if (ex is PathTooLongException)
+            {
+                fix = "The path is longer than this platform allows; use a shorter folder or file name.";
+            }
+            else if (ex is ArgumentException || ex is NotSupportedException)
+            {
+                fix = "The path contains characters that are not allowed in a file name (such as : * ? \" < > | on Windows); remove them.";
+            }
             else
-                await File.WriteAllTextAsync(filePath, Body ?? "");
+            {
+                fix = "The file may be open in another program, or the disk may be full; close the file or free some space, then try again.";
+            }
+            return new CurlWriteErrorException(filePath, CurlException.Compose(
+                $"{method}() could not write {PayloadSize} bytes of the response of {DescribeRequest()} ({ex.GetType().Name}: {ex.Message}).",
+                fix, DocLinks.HowToDownload), Command);
+        }
+
+        /// <summary>
+        /// Writes the response to <paramref name="filePath"/> without blocking the calling thread - bytes for binary
+        /// responses, text for the rest - and returns this result when the file is complete.
+        /// </summary>
+        /// <remarks>
+        /// <para>Same rules as <see cref="SaveToFile(string)"/>: overwrites the file, writes UTF-8 text or raw bytes, adds the
+        /// path to <see cref="OutputFiles"/>, and needs an existing folder. On .NET 8+ it uses the asynchronous file APIs; on
+        /// .NET Standard 2.0 and .NET Framework, which lack them, the write runs on a thread-pool thread.</para>
+        /// <para>Example: <c>var result = await Curl.ExecuteAsync("curl https://example.com/data.json"); await result.SaveToFileAsync("data.json");</c></para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</para>
+        /// </remarks>
+        /// <param name="filePath">Relative or absolute path of the file to create or overwrite, such as <c>"exports/data.json"</c>.</param>
+        /// <returns>A task that completes with this same result once the file is written.</returns>
+        /// <exception cref="ArgumentException"><paramref name="filePath"/> is null, empty or whitespace; pass a path such as
+        /// <c>"out.json"</c>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</exception>
+        /// <exception cref="CurlWriteErrorException">The file could not be written (exit code 23): the folder does not
+        /// exist, access is denied, the file is locked by another program, the disk is full, or the name contains invalid
+        /// characters. The message names the path, the cause and the fix.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</exception>
+        /// <seealso cref="SaveToFile(string)"/>
+        /// <seealso cref="OutputFiles"/>
+        public async Task<CurlResult> SaveToFileAsync(string filePath)
+        {
+            ValidatePath(filePath, nameof(SaveToFileAsync));
+            try
+            {
+#if NETSTANDARD2_0 || NET472 || NET48
+                // .NET Framework and .NET Standard 2.0 don't have async file methods
+                await Task.Run(() =>
+                {
+                    if (BinaryData != null)
+                        File.WriteAllBytes(filePath, BinaryData);
+                    else
+                        File.WriteAllText(filePath, Body ?? "");
+                });
+#else
+                if (BinaryData != null)
+                    await File.WriteAllBytesAsync(filePath, BinaryData);
+                else
+                    await File.WriteAllTextAsync(filePath, Body ?? "");
 #endif
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException
+                                       || ex is NotSupportedException || ex is System.Security.SecurityException)
+            {
+                throw WriteError(filePath, nameof(SaveToFileAsync), ex);
+            }
 
             OutputFiles.Add(filePath);
             return this;
         }
 
         /// <summary>
-        /// <para><b>Save as formatted JSON file (pretty-printed).</b></para>
-        ///
-        /// <para>Makes JSON human-readable with indentation:</para>
-        /// <code>
-        /// // Save with nice formatting
-        /// result.SaveAsJson("data.json");           // Pretty-printed
-        /// result.SaveAsJson("data.json", false);    // Minified
-        ///
-        /// // Before: {"name":"John","age":30}
-        /// // After:  {
-        /// //           "name": "John",
-        /// //           "age": 30
-        /// //         }
-        /// </code>
+        /// Writes <see cref="Body"/> to <paramref name="filePath"/> as re-formatted JSON (indented by default, or
+        /// minified), and returns this result; a body that is not JSON is written unchanged.
         /// </summary>
-        /// <param name="filePath">Where to save the JSON file</param>
-        /// <param name="indented">true for pretty formatting (default), false for minified</param>
-        /// <returns>This result (for chaining)</returns>
+        /// <remarks>
+        /// <para>The JSON is parsed and written again (System.Text.Json on .NET 8+/.NET Framework, Newtonsoft.Json on
+        /// .NET Standard 2.0), so the content is the same but the whitespace changes. Invalid JSON does not throw: the
+        /// text is saved as-is. Binary responses are not handled here; use <see cref="SaveToFile(string)"/>. The path is
+        /// added to <see cref="OutputFiles"/>.</para>
+        /// <para>Example: <c>(await Curl.ExecuteAsync("curl https://api.github.com/repos/dotnet/runtime")).SaveAsJson("runtime.json");</c>
+        /// turns <c>{"id":1,"name":"x"}</c> into a readable, indented file.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/parse-json-from-curl-in-csharp/README.md</para>
+        /// </remarks>
+        /// <param name="filePath">Relative or absolute path of the file to create or overwrite, such as <c>"data.json"</c>.</param>
+        /// <param name="indented">true (default) for two-space indented output, false for minified single-line JSON.</param>
+        /// <returns>This same result, for chaining.</returns>
+        /// <exception cref="ArgumentException"><paramref name="filePath"/> is null, empty or whitespace; pass a path such as
+        /// <c>"out.json"</c>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</exception>
+        /// <exception cref="CurlWriteErrorException">The file could not be written (exit code 23): the folder does not
+        /// exist, access is denied, the file is locked by another program, the disk is full, or the name contains invalid
+        /// characters. The message names the path, the cause and the fix.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</exception>
+        /// <seealso cref="SaveToFile(string)"/>
+        /// <seealso cref="SaveAsCsv(string)"/>
+        /// <seealso cref="ParseJson{T}"/>
         public CurlResult SaveAsJson(string filePath, bool indented = true)
         {
             string formatted;
@@ -596,65 +657,74 @@ namespace CurlDotNet.Core
                 formatted = Body;
             }
 
-            File.WriteAllText(filePath, formatted);
+            WriteOrThrow(filePath, nameof(SaveAsJson), () => File.WriteAllText(filePath, formatted));
             OutputFiles.Add(filePath);
             return this;
         }
 
         /// <summary>
-        /// <para><b>Save JSON response as CSV file (for JSON arrays).</b></para>
-        ///
-        /// <para>Converts JSON arrays to CSV for Excel:</para>
-        /// <code>
-        /// // JSON: [{"name":"John","age":30}, {"name":"Jane","age":25}]
-        /// result.SaveAsCsv("users.csv");
-        ///
-        /// // Creates CSV:
-        /// // name,age
-        /// // John,30
-        /// // Jane,25
-        ///
-        /// // Open in Excel
-        /// Process.Start("users.csv");
-        /// </code>
-        ///
-        /// <para><b>Note:</b> Only works with JSON arrays of objects.</para>
+        /// Converts a JSON array of objects in <see cref="Body"/> to CSV (one column per property of the first object)
+        /// and writes it to <paramref name="filePath"/>; a body that is not such an array is written unchanged.
         /// </summary>
+        /// <remarks>
+        /// <para>The header row comes from the first object's property names; each later object contributes the values
+        /// of those properties (missing ones are empty, extra ones are ignored). Values containing a comma or a quote are
+        /// quoted with doubled quotes; nested objects and arrays are written as their JSON text. An empty array writes an
+        /// empty file. The path is added to <see cref="OutputFiles"/>.</para>
+        /// <para>Example: for <c>[{"name":"John","age":30},{"name":"Jane","age":25}]</c>,
+        /// <c>result.SaveAsCsv("users.csv")</c> writes <c>name,age</c>, <c>John,30</c>, <c>Jane,25</c> - ready for Excel.</para>
+        /// </remarks>
+        /// <param name="filePath">Relative or absolute path of the CSV file to create or overwrite, such as <c>"users.csv"</c>.</param>
+        /// <returns>This same result, for chaining.</returns>
+        /// <exception cref="ArgumentException"><paramref name="filePath"/> is null, empty or whitespace; pass a path such as
+        /// <c>"out.json"</c>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</exception>
+        /// <exception cref="CurlWriteErrorException">The file could not be written (exit code 23): the folder does not
+        /// exist, access is denied, the file is locked by another program, the disk is full, or the name contains invalid
+        /// characters. The message names the path, the cause and the fix.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</exception>
+        /// <seealso cref="SaveAsJson(string, bool)"/>
+        /// <seealso cref="SaveToFile(string)"/>
         public CurlResult SaveAsCsv(string filePath)
         {
             var csv = ConvertJsonToCsv(Body);
-            File.WriteAllText(filePath, csv);
+            WriteOrThrow(filePath, nameof(SaveAsCsv), () => File.WriteAllText(filePath, csv));
             OutputFiles.Add(filePath);
             return this;
         }
 
         /// <summary>
-        /// <para><b>Append response to an existing file.</b></para>
-        ///
-        /// <para>Add to a file without overwriting:</para>
-        /// <code>
-        /// // Log all responses
-        /// result.AppendToFile("api-log.txt");
-        ///
-        /// // Build up a file over time
-        /// foreach (var url in urls)
-        /// {
-        ///     var r = await Curl.Execute($"curl {url}");
-        ///     r.AppendToFile("combined.txt");
-        /// }
-        /// </code>
+        /// Appends the response (bytes of <see cref="BinaryData"/>, or the text of <see cref="Body"/>) to the end of
+        /// <paramref name="filePath"/>, creating the file if needed, and returns this result.
         /// </summary>
+        /// <remarks>
+        /// <para>Nothing is added between responses - append your own newline if you need one. Unlike
+        /// <see cref="SaveToFile(string)"/>, the path is not added to <see cref="OutputFiles"/>. Text is written as UTF-8.</para>
+        /// <para>Example: <c>foreach (var url in urls) (await Curl.ExecuteAsync($"curl {url}")).AppendToFile("combined.txt");</c></para>
+        /// </remarks>
+        /// <param name="filePath">Relative or absolute path of the file to append to, such as <c>"api-log.txt"</c>.</param>
+        /// <returns>This same result, for chaining.</returns>
+        /// <exception cref="ArgumentException"><paramref name="filePath"/> is null, empty or whitespace; pass a path such as
+        /// <c>"out.json"</c>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</exception>
+        /// <exception cref="CurlWriteErrorException">The file could not be written (exit code 23): the folder does not
+        /// exist, access is denied, the file is locked by another program, the disk is full, or the name contains invalid
+        /// characters. The message names the path, the cause and the fix.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</exception>
+        /// <seealso cref="SaveToFile(string)"/>
+        /// <seealso cref="SaveToFileAsync(string)"/>
         public CurlResult AppendToFile(string filePath)
         {
-            if (BinaryData != null)
+            WriteOrThrow(filePath, nameof(AppendToFile), () =>
             {
-                using var stream = new FileStream(filePath, FileMode.Append);
-                stream.Write(BinaryData, 0, BinaryData.Length);
-            }
-            else
-            {
-                File.AppendAllText(filePath, Body ?? "");
-            }
+                if (BinaryData != null)
+                {
+                    using var stream = new FileStream(filePath, FileMode.Append);
+                    stream.Write(BinaryData, 0, BinaryData.Length);
+                }
+                else
+                {
+                    File.AppendAllText(filePath, Body ?? "");
+                }
+            });
             return this;
         }
 
@@ -663,45 +733,21 @@ namespace CurlDotNet.Core
         #region Header Operations - Working with HTTP headers
 
         /// <summary>
-        /// <para><b>Get a specific header value (case-insensitive).</b></para>
-        ///
-        /// <para>Easy header access with null safety. This matches curl's header behavior exactly.</para>
+        /// Returns the value of one response header by name, ignoring case, or null when the response did not have it -
+        /// safer than indexing <see cref="Headers"/>, which throws for a missing name.
         /// </summary>
-        /// <param name="headerName">Name of the header (case doesn't matter)</param>
-        /// <returns>Header value or null if not found</returns>
-        /// <example>
-        /// <code language="csharp">
-        /// // Get content type
-        /// var contentType = result.GetHeader("Content-Type");
-        /// if (contentType?.Contains("json") == true)
-        /// {
-        ///     var data = result.ParseJson&lt;MyData&gt;();
-        /// }
-        ///
-        /// // Check rate limits (common in APIs)
-        /// var remaining = result.GetHeader("X-RateLimit-Remaining");
-        /// if (remaining != null &amp;&amp; int.Parse(remaining) &lt; 10)
-        /// {
-        ///     Console.WriteLine("⚠️ Only {0} API calls left!", remaining);
-        /// }
-        ///
-        /// // Check cache control
-        /// var cacheControl = result.GetHeader("Cache-Control");
-        /// if (cacheControl?.Contains("no-cache") == true)
-        /// {
-        ///     Console.WriteLine("Response should not be cached");
-        /// }
-        ///
-        /// // Get redirect location
-        /// var location = result.GetHeader("Location");
-        /// if (location != null)
-        /// {
-        ///     Console.WriteLine($"Redirected to: {location}");
-        /// }
-        /// </code>
-        /// </example>
-        /// <seealso cref="HasHeader">Check if header exists</seealso>
-        /// <seealso cref="Headers">Access all headers as dictionary</seealso>
+        /// <remarks>
+        /// <para>Repeated headers come back joined with <c>", "</c> (for example two <c>Set-Cookie</c> lines). The lookup is
+        /// case-insensitive even when you replaced <see cref="Headers"/> with a case-sensitive dictionary.</para>
+        /// <para>Example: <c>var left = result.GetHeader("X-RateLimit-Remaining"); if (left != null &amp;&amp; int.Parse(left) &lt; 10) await Task.Delay(60_000);</c>
+        /// or <c>if (result.GetHeader("Content-Type")?.Contains("json") == true) data = result.ParseJson&lt;Data&gt;();</c></para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/08-headers-explained.md</para>
+        /// </remarks>
+        /// <param name="headerName">The header name without the colon, in any case, such as <c>Content-Type</c>,
+        /// <c>location</c> or <c>ETAG</c>. Null or empty returns null.</param>
+        /// <returns>The header value as sent by the server (text after the colon, trimmed), or null when absent.</returns>
+        /// <seealso cref="HasHeader(string)"/>
+        /// <seealso cref="Headers"/>
         public string GetHeader(string headerName)
         {
             if (Headers == null || string.IsNullOrEmpty(headerName))
@@ -721,47 +767,26 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// <para><b>Check if a header exists.</b></para>
-        ///
-        /// <para>Test for header presence before accessing. This is case-insensitive, matching curl's behavior.</para>
+        /// True when the response contains the header <paramref name="headerName"/> (ignoring case), so you can test before
+        /// reading it.
         /// </summary>
-        /// <param name="headerName">Name of the header to check (case-insensitive)</param>
-        /// <returns>true if the header exists, false otherwise</returns>
-        /// <example>
-        /// <code language="csharp">
-        /// // Check for cookies
-        /// if (result.HasHeader("Set-Cookie"))
-        /// {
-        ///     var cookie = result.GetHeader("Set-Cookie");
-        ///     Console.WriteLine($"Cookie received: {cookie}");
-        /// }
-        ///
-        /// // Check for authentication requirements
-        /// if (result.HasHeader("WWW-Authenticate"))
-        /// {
-        ///     Console.WriteLine("Authentication required");
-        /// }
-        ///
-        /// // Check for custom headers
-        /// if (result.HasHeader("X-Custom-Header"))
-        /// {
-        ///     var value = result.GetHeader("X-Custom-Header");
-        ///     ProcessCustomValue(value);
-        /// }
-        ///
-        /// // Conditional logic based on headers
-        /// if (result.HasHeader("Content-Encoding") &amp;&amp; 
-        ///     result.GetHeader("Content-Encoding").Contains("gzip"))
-        /// {
-        ///     Console.WriteLine("Response is gzip compressed");
-        /// }
-        /// </code>
-        /// </example>
-        /// <seealso cref="GetHeader">Get header value</seealso>
-        /// <seealso cref="Headers">Access all headers</seealso>
+        /// <remarks>
+        /// <para>Uses the same case-insensitive lookup as <see cref="GetHeader(string)"/>; <c>HasHeader(x)</c> is equivalent to
+        /// <c>GetHeader(x) != null</c>.</para>
+        /// <para>Example: <c>if (result.HasHeader("WWW-Authenticate")) Console.WriteLine("Server wants credentials: " + result.GetHeader("WWW-Authenticate"));</c></para>
+        /// </remarks>
+        /// <param name="headerName">The header name without the colon, in any case, such as <c>Set-Cookie</c>. Null or empty
+        /// returns false.</param>
+        /// <returns>true when the header is present (even with an empty value); otherwise false.</returns>
+        /// <seealso cref="GetHeader(string)"/>
+        /// <seealso cref="Headers"/>
         public bool HasHeader(string headerName)
         {
-            return Headers.ContainsKey(headerName);
+            if (Headers == null || string.IsNullOrEmpty(headerName))
+                return false;
+
+            return Headers.ContainsKey(headerName)
+                || Headers.Keys.Any(k => string.Equals(k, headerName, StringComparison.OrdinalIgnoreCase));
         }
 
         #endregion
@@ -769,63 +794,116 @@ namespace CurlDotNet.Core
         #region Validation Operations - Ensure everything worked
 
         /// <summary>
-        /// <para><b>Throw an exception if the request wasn't successful (not 200-299).</b></para>
-        ///
-        /// <para>Use this when you expect success and want to fail fast. This matches curl's <c>-f</c> (fail) flag behavior.</para>
+        /// Throws <see cref="CurlHttpException"/> unless <see cref="StatusCode"/> is 200-299, otherwise returns this result -
+        /// the CurlDotNet version of <c>HttpResponseMessage.EnsureSuccessStatusCode()</c>.
         /// </summary>
-        /// <returns>This result if successful (for chaining)</returns>
-        /// <exception cref="CurlHttpException">Thrown if status is not 200-299. The exception contains <see cref="CurlHttpException.StatusCode"/> and <see cref="CurlHttpException.ResponseBody"/>.</exception>
+        /// <remarks>
+        /// <para>Use it to fail fast before parsing: <c>var user = (await Curl.ExecuteAsync("curl https://api.example.com/users/42")).EnsureSuccess().ParseJson&lt;User&gt;();</c></para>
+        /// <para>It is the after-the-fact equivalent of curl's <c>-f</c>/<c>--fail</c>. With <c>-f</c> in the command the
+        /// transfer itself throws <see cref="CurlHttpReturnedErrorException"/> (exit code 22) and you never get a result; with
+        /// EnsureSuccess you get the result first and decide. The thrown exception is <see cref="CurlDotNet.Core.CurlHttpException"/>
+        /// (namespace <c>CurlDotNet.Core</c>), which carries the body and headers.</para>
+        /// <para>Example: <c>try { result.EnsureSuccess(); } catch (CurlHttpException ex) when (ex.StatusCode == 404) { return null; }</c></para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</para>
+        /// </remarks>
+        /// <returns>This same result when the status is 2xx, for chaining.</returns>
+        /// <exception cref="CurlHttpException">(status not 200-299) The message names the URL, the status and a fix for that status (credentials
+        /// for 401, permissions for 403, the path for 404, waiting for 429, retrying for 5xx, <c>-L</c> for 3xx);
+        /// <see cref="CurlHttpException.ResponseBody"/> and <see cref="CurlHttpException.ResponseHeaders"/> carry the response.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</exception>
         /// <example>
         /// <code language="csharp">
-        /// // Fail fast pattern
         /// try
         /// {
-        ///     var data = result
-        ///         .EnsureSuccess()      // Throws if not 200-299
-        ///         .ParseJson&lt;Data&gt;();  // Only runs if successful
-        /// }
-        /// catch (CurlHttpException ex)
-        /// {
-        ///     Console.WriteLine($"HTTP {ex.StatusCode}: {ex.Message}");
-        ///     Console.WriteLine($"Response body: {ex.ResponseBody}");
-        /// }
-        ///
-        /// // Common API pattern - get user data
-        /// var user = (await Curl.ExecuteAsync("curl https://api.example.com/user/123"))
-        ///     .EnsureSuccess()        // Throws on 404, 500, etc.
-        ///     .ParseJson&lt;User&gt;();    // Safe to parse, we know it's 200
-        ///
-        /// // Chain multiple operations
-        /// var response = await Curl.ExecuteAsync("curl https://api.example.com/data");
-        /// var processed = response
-        ///     .EnsureSuccess()           // Ensure 200-299
-        ///     .SaveToFile("backup.json") // Save backup
-        ///     .ParseJson&lt;DataModel&gt;(); // Then parse
-        ///
-        /// // Different handling for different status codes
-        /// try
-        /// {
-        ///     result.EnsureSuccess();
-        ///     ProcessData(result.Body);
-        /// }
-        /// catch (CurlHttpException ex) when (ex.StatusCode == 404)
-        /// {
-        ///     Console.WriteLine("Resource not found");
+        ///     var data = result.EnsureSuccess().ParseJson&lt;Data&gt;();
         /// }
         /// catch (CurlHttpException ex) when (ex.StatusCode >= 500)
         /// {
-        ///     Console.WriteLine("Server error - retry later");
+        ///     Console.WriteLine($"Server error {ex.StatusCode} - retry later");
         /// }
         /// </code>
         /// </example>
-        /// <seealso cref="EnsureStatus">Ensure specific status code</seealso>
-        /// <seealso cref="EnsureContains">Ensure response contains text</seealso>
-        /// <seealso cref="IsSuccess">Check success without throwing</seealso>
+        /// <seealso cref="IsSuccess"/>
+        /// <seealso cref="EnsureStatus(int)"/>
+        /// <seealso cref="EnsureContains(string)"/>
+        /// <seealso cref="ErgonomicExtensions.EnsureSuccessStatusCode(CurlResult)"/>
         public CurlResult EnsureSuccess()
         {
             if (!IsSuccess)
             {
-                throw new CurlHttpException($"HTTP request failed with status {StatusCode}", StatusCode)
+                throw new CurlHttpException(CurlException.Compose(
+                    $"EnsureSuccess() failed: {DescribeRequest()} answered HTTP {StatusCode}, and only 200-299 counts as success." + BodyHint(),
+                    StatusFix(StatusCode), DocLinks.HowToErrorHandling), StatusCode)
+                {
+                    ResponseBody = Body,
+                    ResponseHeaders = Headers
+                };
+            }
+            return this;
+        }
+
+        /// <summary>" Response body starts with ..." for messages, or empty.</summary>
+        private string BodyHint() =>
+            string.IsNullOrEmpty(Body) ? string.Empty : $" Response body starts with \"{ErrorText.Preview(Body, 80)}\".";
+
+        /// <summary>How to fix a request that ended with <paramref name="status"/>.</summary>
+        internal string StatusFix(int status)
+        {
+            if (status == 0)
+                return "There was no HTTP response (status 0): check result.Exception (LibCurl API) or whether the URL is http(s); for ftp:// and file:// use StatusCode directly.";
+            if (status >= 300 && status < 400)
+            {
+                var location = GetHeader("Location");
+                return $"The server redirected{(location == null ? "" : $" to {ErrorText.SafeUrl(location)}")}; add -L to the command (or FollowRedirects()) to follow it.";
+            }
+            switch (status)
+            {
+                case 400: return "The server rejected the request as malformed: check the body (-d/--json), the Content-Type header and required fields; the response body usually says which field.";
+                case 401: return "Authentication is missing or wrong: check the credentials (-u user:password, or -H \"Authorization: Bearer <token>\") and whether the token has expired.";
+                case 403: return "The credentials were accepted but are not allowed to do this: check the account's permissions or the API key's scopes.";
+                case 404: return "Check the URL path, the resource id and the HTTP method (-X); the resource may not exist or may have moved.";
+                case 405: return "The URL does not accept this HTTP method; check -X (GET, POST, PUT, DELETE...) against the API documentation.";
+                case 408: return "The server timed out waiting for the request; retry, and check that a large upload is not stalling.";
+                case 409: return "The request conflicts with the current state of the resource (for example a duplicate); fetch the latest version and retry.";
+                case 413: return "The request body is too large for the server; send less data or split it.";
+                case 415: return "The server does not accept this Content-Type; set the right one, for example -H \"Content-Type: application/json\" or use --json.";
+                case 422: return "The server understood the request but the data failed validation; read the response body for the field errors.";
+                case 429:
+                    var retryAfter = GetHeader("Retry-After");
+                    return $"Too many requests: wait{(retryAfter == null ? "" : $" {retryAfter} second(s), as Retry-After says,")} before retrying, and slow down (use --retry, which honours Retry-After).";
+            }
+            if (status >= 500)
+                return $"The server failed ({status}); this is not caused by your request syntax. Retry later or with --retry, and contact the API owner if it persists.";
+            return $"Check the API documentation for what HTTP {status} means for this endpoint; the response body may explain it.";
+        }
+
+        /// <summary>
+        /// Throws <see cref="CurlHttpException"/> unless <see cref="StatusCode"/> equals <paramref name="expectedStatus"/> exactly,
+        /// otherwise returns this result - for APIs where only one code is right (201 Created, 204 No Content).
+        /// </summary>
+        /// <remarks>
+        /// <para>Example: <c>(await Curl.ExecuteAsync("curl -X POST --json '{\"name\":\"x\"}' https://api.example.com/items")).EnsureStatus(201);</c>
+        /// throws if the API answered 200 or 409 instead of 201.</para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</para>
+        /// </remarks>
+        /// <param name="expectedStatus">The exact status you require, such as 200, 201 or 204.</param>
+        /// <returns>This same result when the status matches, for chaining.</returns>
+        /// <exception cref="CurlHttpException">(status differs from <paramref name="expectedStatus"/>) The message names the URL, the status and a fix for that status (credentials
+        /// for 401, permissions for 403, the path for 404, waiting for 429, retrying for 5xx, <c>-L</c> for 3xx);
+        /// <see cref="CurlHttpException.ResponseBody"/> and <see cref="CurlHttpException.ResponseHeaders"/> carry the response.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</exception>
+        /// <seealso cref="EnsureSuccess"/>
+        /// <seealso cref="StatusCode"/>
+        public CurlResult EnsureStatus(int expectedStatus)
+        {
+            if (StatusCode != expectedStatus)
+            {
+                var fix = IsSuccess
+                    ? $"The request succeeded with {StatusCode}, which is not the {expectedStatus} you required; if {StatusCode} is also acceptable, use EnsureSuccess() or compare StatusCode yourself."
+                    : StatusFix(StatusCode);
+                throw new CurlHttpException(CurlException.Compose(
+                    $"EnsureStatus({expectedStatus}) failed: {DescribeRequest()} answered HTTP {StatusCode}." + BodyHint(),
+                    fix, DocLinks.HowToErrorHandling), StatusCode)
                 {
                     ResponseBody = Body,
                     ResponseHeaders = Headers
@@ -835,51 +913,40 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// <para><b>Throw if status doesn't match what you expect.</b></para>
-        ///
-        /// <para>Validate specific status codes:</para>
-        /// <code>
-        /// // Expect 201 Created
-        /// result.EnsureStatus(201);
-        ///
-        /// // Expect 204 No Content
-        /// result.EnsureStatus(204);
-        /// </code>
+        /// Throws <see cref="InvalidOperationException"/> unless <see cref="Body"/> contains <paramref name="expectedText"/>
+        /// (exact, case-sensitive), otherwise returns this result - a quick content check for smoke tests and health checks.
         /// </summary>
-        /// <param name="expectedStatus">The status code you expect</param>
-        /// <returns>This result if status matches (for chaining)</returns>
-        /// <exception cref="CurlHttpException">Thrown if status doesn't match</exception>
-        public CurlResult EnsureStatus(int expectedStatus)
-        {
-            if (StatusCode != expectedStatus)
-            {
-                throw new CurlHttpException(
-                    $"Expected status {expectedStatus} but got {StatusCode}",
-                    StatusCode);
-            }
-            return this;
-        }
-
-        /// <summary>
-        /// <para><b>Throw if response body doesn't contain expected text.</b></para>
-        ///
-        /// <para>Validate response content:</para>
-        /// <code>
-        /// // Make sure we got the right response
-        /// result.EnsureContains("success");
-        ///
-        /// // Check for error messages
-        /// if (result.Body.Contains("error"))
-        /// {
-        ///     result.EnsureContains("recoverable");  // Make sure it's recoverable
-        /// }
-        /// </code>
-        /// </summary>
+        /// <remarks>
+        /// <para>The comparison is ordinal: <c>"OK"</c> does not match <c>"ok"</c>. Binary responses have an empty
+        /// <see cref="Body"/> and never match.</para>
+        /// <para>Example: <c>(await Curl.ExecuteAsync("curl https://status.example.com/health")).EnsureSuccess().EnsureContains("\"status\":\"up\"");</c></para>
+        /// </remarks>
+        /// <param name="expectedText">The text that must appear somewhere in <see cref="Body"/>, such as <c>"success"</c>.</param>
+        /// <returns>This same result when the text is found, for chaining.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="expectedText"/> is null; pass the text to look for.</exception>
+        /// <exception cref="InvalidOperationException">The body does not contain the text. The message names the URL, the
+        /// status, the body length and its first characters. Fix: print <see cref="Body"/>, check case and spelling.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</exception>
+        /// <seealso cref="EnsureSuccess"/>
+        /// <seealso cref="Body"/>
         public CurlResult EnsureContains(string expectedText)
         {
+            if (expectedText == null)
+            {
+                throw new ArgumentNullException(nameof(expectedText), CurlException.Compose(
+                    "EnsureContains() was called with null.",
+                    "Pass the text the response body must contain, for example EnsureContains(\"success\").",
+                    DocLinks.HowToErrorHandling));
+            }
             if (Body?.Contains(expectedText) != true)
             {
-                throw new InvalidOperationException($"Response does not contain '{expectedText}'");
+                var what = string.IsNullOrEmpty(Body)
+                    ? $"EnsureContains(\"{ErrorText.Preview(expectedText, 60)}\") failed: the response body of {DescribeRequest()} is empty (HTTP {StatusCode}{(IsBinary ? $", {BinaryData.Length} bytes of binary data" : "")})."
+                    : $"EnsureContains(\"{ErrorText.Preview(expectedText, 60)}\") failed: the response body of {DescribeRequest()} (HTTP {StatusCode}, {Body.Length} characters) does not contain it." + BodyHint();
+                var fix = !string.IsNullOrEmpty(Body) && Body.IndexOf(expectedText, StringComparison.OrdinalIgnoreCase) >= 0
+                    ? "The text is there with different upper/lower case; the check is case-sensitive, so match the case exactly."
+                    : "Print result.Body to see what the server actually returned; check the URL and status first, and remember the check is exact and case-sensitive.";
+                throw new InvalidOperationException(CurlException.Compose(what, fix, DocLinks.HowToErrorHandling));
             }
             return this;
         }
@@ -889,58 +956,70 @@ namespace CurlDotNet.Core
         #region Retry Operations - Try again if something went wrong
 
         /// <summary>
-        /// <para><b>Retry the same curl command again.</b></para>
-        ///
-        /// <para>Simple retry for transient failures:</para>
-        /// <code>
-        /// // First attempt
-        /// var result = await Curl.Execute("curl https://flaky-api.example.com");
-        ///
-        /// // Retry if it failed
-        /// if (!result.IsSuccess)
-        /// {
-        ///     result = await result.Retry();
-        /// }
-        ///
-        /// // Retry with delay
-        /// if (result.StatusCode == 429)  // Too many requests
-        /// {
-        ///     await Task.Delay(5000);
-        ///     result = await result.Retry();
-        /// }
-        /// </code>
+        /// Runs <see cref="Command"/> again with <see cref="Curl.ExecuteAsync(string)"/> and returns the new result - a
+        /// one-line manual retry after a 429, 503 or flaky network.
         /// </summary>
-        /// <returns>New result from retrying the command</returns>
+        /// <remarks>
+        /// <para>No delay is added and nothing about the command changes; this result is not modified. For automatic
+        /// retries with back-off use curl's <c>--retry 3</c> in the command or <see cref="CurlSettings.WithRetries(int, int)"/>.
+        /// Settings passed to the original call (timeouts, headers, progress) are not repeated; use
+        /// <see cref="RetryWith(Action{CurlSettings})"/> to supply them again.</para>
+        /// <para>Example: <c>if (result.StatusCode == 429) { await Task.Delay(5000); result = await result.Retry(); }</c></para>
+        /// </remarks>
+        /// <returns>The result of the new transfer.</returns>
+        /// <exception cref="InvalidOperationException"><see cref="Command"/> is null or empty (the result was created by hand),
+        /// so there is nothing to run again. Fix: call <c>Curl.ExecuteAsync(command)</c> yourself, or set <see cref="Command"/>.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/run-curl-command-in-csharp/README.md</exception>
+        /// <exception cref="CurlException">The repeated transfer failed (DNS, connection, timeout, TLS, <c>-f</c>...), exactly as
+        /// <see cref="Curl.ExecuteAsync(string)"/> would throw; see the exception's message for the fix.</exception>
+        /// <seealso cref="RetryWith(Action{CurlSettings})"/>
+        /// <seealso cref="Command"/>
+        /// <seealso cref="CurlSettings.WithRetries(int, int)"/>
         public async Task<CurlResult> Retry()
         {
             if (string.IsNullOrEmpty(Command))
-                throw new InvalidOperationException("Cannot retry: Original command not available");
+                throw new InvalidOperationException(NoCommandMessage(nameof(Retry)));
 
             return await Curl.ExecuteAsync(Command);
         }
 
+        private string NoCommandMessage(string method) => CurlException.Compose(
+            $"Cannot retry: {method}() needs the original command, but this CurlResult (HTTP {StatusCode}) has no Command - it was created by hand or copied without it.",
+            "Run the request again with Curl.ExecuteAsync(command), or set result.Command to the curl command before calling " + method + "().",
+            DocLinks.HowToRunCommand);
+
         /// <summary>
-        /// <para><b>Retry with modifications to the original command.</b></para>
-        ///
-        /// <para>Retry with different settings:</para>
-        /// <code>
-        /// // Retry with longer timeout
-        /// var result = await result.RetryWith(settings =>
-        /// {
-        ///     settings.Timeout = TimeSpan.FromSeconds(60);
-        /// });
-        ///
-        /// // Retry with authentication
-        /// var result = await result.RetryWith(settings =>
-        /// {
-        ///     settings.AddHeader("Authorization", "Bearer " + token);
-        /// });
-        /// </code>
+        /// Runs <see cref="Command"/> again with <see cref="CurlSettings"/> you configure (longer timeout, extra header,
+        /// retries, progress) and returns the new result.
         /// </summary>
+        /// <remarks>
+        /// <para><paramref name="configure"/> receives a fresh <see cref="CurlSettings"/>; whatever it sets overrides the same
+        /// option in the command (for example <see cref="CurlSettings.MaxTimeSeconds"/> wins over <c>-m</c>).</para>
+        /// <para>Example: <c>result = await result.RetryWith(s =&gt; s.WithTimeout(60).WithHeader("Authorization", "Bearer " + newToken));</c></para>
+        /// </remarks>
+        /// <param name="configure">Callback that fills in the settings for the new attempt, such as
+        /// <c>s =&gt; s.WithTimeout(60)</c>; must not be null.</param>
+        /// <returns>The result of the new transfer.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="configure"/> is null; pass <c>s =&gt; { }</c> to change nothing,
+        /// or call <see cref="Retry"/>.</exception>
+        /// <exception cref="InvalidOperationException"><see cref="Command"/> is null or empty (the result was created by hand),
+        /// so there is nothing to run again. Fix: call <c>Curl.ExecuteAsync(command)</c> yourself, or set <see cref="Command"/>.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/run-curl-command-in-csharp/README.md</exception>
+        /// <exception cref="CurlException">The repeated transfer failed (DNS, connection, timeout, TLS, <c>-f</c>...), exactly as
+        /// <see cref="Curl.ExecuteAsync(string)"/> would throw; see the exception's message for the fix.</exception>
+        /// <seealso cref="Retry"/>
+        /// <seealso cref="CurlSettings"/>
         public async Task<CurlResult> RetryWith(Action<CurlSettings> configure)
         {
+            if (configure == null)
+            {
+                throw new ArgumentNullException(nameof(configure), CurlException.Compose(
+                    "RetryWith() was called with a null configure callback.",
+                    "Pass a callback such as s => s.WithTimeout(60), or call Retry() to run the command unchanged.",
+                    DocLinks.HowToRunCommand));
+            }
             if (string.IsNullOrEmpty(Command))
-                throw new InvalidOperationException("Cannot retry: Original command not available");
+                throw new InvalidOperationException(NoCommandMessage(nameof(RetryWith)));
 
             var settings = new CurlSettings();
             configure(settings);
@@ -952,20 +1031,17 @@ namespace CurlDotNet.Core
         #region Display Operations - Show results in console
 
         /// <summary>
-        /// <para><b>Print the response body to console.</b></para>
-        ///
-        /// <para>Quick debugging output:</para>
-        /// <code>
-        /// result.PrintBody();  // Just prints the body
-        ///
-        /// // Chain with other operations
-        /// result
-        ///     .PrintBody()           // Debug output
-        ///     .SaveToFile("out.txt") // Also save it
-        ///     .ParseJson&lt;Data&gt;();   // Then parse
-        /// </code>
+        /// Writes <see cref="Body"/> to the console (standard output) followed by a newline, and returns this result -
+        /// handy in scripts and quick experiments.
         /// </summary>
-        /// <returns>This result (for chaining)</returns>
+        /// <remarks>
+        /// <para>Prints exactly <see cref="Body"/>, so binary responses print an empty line. Not for production logging; use
+        /// your logger with <see cref="Body"/> instead.</para>
+        /// <para>Example: <c>(await Curl.ExecuteAsync("curl https://api.github.com/zen")).PrintBody();</c></para>
+        /// </remarks>
+        /// <returns>This same result, for chaining.</returns>
+        /// <seealso cref="Print"/>
+        /// <seealso cref="PrintVerbose"/>
         public CurlResult PrintBody()
         {
             Console.WriteLine(Body);
@@ -973,16 +1049,14 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// <para><b>Print status code and body to console.</b></para>
-        ///
-        /// <para>More detailed debug output:</para>
-        /// <code>
-        /// result.Print();
-        /// // Output:
-        /// // Status: 200
-        /// // {"name":"John","age":30}
-        /// </code>
+        /// Writes <c>Status: {StatusCode}</c> and then <see cref="Body"/> to the console, and returns this result.
         /// </summary>
+        /// <remarks>
+        /// <para>Example: <c>result.Print();</c> prints <c>Status: 200</c> followed by the body text.</para>
+        /// </remarks>
+        /// <returns>This same result, for chaining.</returns>
+        /// <seealso cref="PrintBody"/>
+        /// <seealso cref="PrintVerbose"/>
         public CurlResult Print()
         {
             Console.WriteLine($"Status: {StatusCode}");
@@ -991,20 +1065,18 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// <para><b>Print everything - status, headers, and body (like curl -v).</b></para>
-        ///
-        /// <para>Full debug output:</para>
-        /// <code>
-        /// result.PrintVerbose();
-        /// // Output:
-        /// // Status: 200
-        /// // Headers:
-        /// //   Content-Type: application/json
-        /// //   Content-Length: 123
-        /// // Body:
-        /// // {"name":"John"}
-        /// </code>
+        /// Writes the status, every response header, the body and the main timings (DNS, connect, total) to the console,
+        /// and returns this result - a quick look at everything that came back.
         /// </summary>
+        /// <remarks>
+        /// <para>This prints the parsed result; for the raw request and response exchange as curl shows it, run the command
+        /// with <c>-v</c> (the log is in <see cref="Body"/>) or <c>--trace-ascii trace.txt</c>.</para>
+        /// <para>Example: <c>(await Curl.ExecuteAsync("curl https://example.com")).PrintVerbose();</c></para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/14-debugging-requests.md</para>
+        /// </remarks>
+        /// <returns>This same result, for chaining.</returns>
+        /// <seealso cref="Print"/>
+        /// <seealso cref="Timings"/>
         public CurlResult PrintVerbose()
         {
             Console.WriteLine($"Status: {StatusCode}");
@@ -1032,47 +1104,43 @@ namespace CurlDotNet.Core
         #region Transformation Operations - Change or extract data
 
         /// <summary>
-        /// <para><b>Transform the result using your own function.</b></para>
-        ///
-        /// <para>Extract or convert data however you need:</para>
-        /// <code>
-        /// // Extract just what you need
-        /// var name = result.Transform(r =>
-        /// {
-        ///     var user = r.ParseJson&lt;User&gt;();
-        ///     return user.Name;
-        /// });
-        ///
-        /// // Convert to your own type
-        /// var summary = result.Transform(r => new
-        /// {
-        ///     Success = r.IsSuccess,
-        ///     Size = r.Body?.Length ?? 0,
-        ///     Type = r.GetHeader("Content-Type")
-        /// });
-        /// </code>
+        /// Passes this result to <paramref name="transformer"/> and returns whatever it returns - a way to end a fluent chain
+        /// with your own projection.
         /// </summary>
+        /// <remarks>
+        /// <para>Exceptions thrown by <paramref name="transformer"/> propagate unchanged.</para>
+        /// <para>Example: <c>var summary = result.Transform(r =&gt; new { r.StatusCode, Size = r.Body?.Length ?? 0, Type = r.GetHeader("Content-Type") });</c></para>
+        /// </remarks>
+        /// <typeparam name="T">The type your function returns.</typeparam>
+        /// <param name="transformer">A function of this result, such as <c>r =&gt; r.ParseJson&lt;User&gt;().Name</c>; must not be null.</param>
+        /// <returns>The value returned by <paramref name="transformer"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="transformer"/> is null; pass a function.</exception>
+        /// <seealso cref="ParseJson{T}"/>
         public T Transform<T>(Func<CurlResult, T> transformer)
         {
+            if (transformer == null)
+            {
+                throw new ArgumentNullException(nameof(transformer), CurlException.Compose(
+                    $"Transform<{typeof(T).Name}>() was called with a null function.",
+                    "Pass a function of the result, for example r => r.StatusCode.",
+                    DocLinks.HowToParseJson));
+            }
             return transformer(this);
         }
 
         /// <summary>
-        /// <para><b>Convert the response to a Stream for reading.</b></para>
-        ///
-        /// <para>Useful for streaming or processing data:</para>
-        /// <code>
-        /// using var stream = result.ToStream();
-        /// using var reader = new StreamReader(stream);
-        /// var line = await reader.ReadLineAsync();
-        ///
-        /// // Or for binary data
-        /// using var stream = result.ToStream();
-        /// var buffer = new byte[1024];
-        /// var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-        /// </code>
+        /// Returns the response as a new readable <see cref="MemoryStream"/>: the bytes of <see cref="BinaryData"/>, or
+        /// <see cref="Body"/> encoded as UTF-8, or an empty stream.
         /// </summary>
-        /// <returns>A MemoryStream containing the response data</returns>
+        /// <remarks>
+        /// <para>The data is already in memory; this does not stream from the network. Each call returns a new stream
+        /// positioned at 0; dispose it when done. Useful for APIs that take a <see cref="Stream"/>, such as
+        /// <c>XDocument.Load</c>, <c>ZipArchive</c> or an image library.</para>
+        /// <para>Example: <c>using var zip = new System.IO.Compression.ZipArchive((await Curl.ExecuteAsync("curl -L https://example.com/files.zip")).ToStream());</c></para>
+        /// </remarks>
+        /// <returns>A new <see cref="MemoryStream"/> over the response data (never null).</returns>
+        /// <seealso cref="BinaryData"/>
+        /// <seealso cref="Body"/>
         public Stream ToStream()
         {
             if (BinaryData != null)
@@ -1091,22 +1159,27 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// <para><b>Extract lines that match a condition.</b></para>
-        ///
-        /// <para>Filter text responses:</para>
-        /// <code>
-        /// // Keep only error lines
-        /// result.FilterLines(line => line.Contains("ERROR"));
-        ///
-        /// // Remove empty lines
-        /// result.FilterLines(line => !string.IsNullOrWhiteSpace(line));
-        ///
-        /// // Keep lines starting with data
-        /// result.FilterLines(line => line.StartsWith("data:"));
-        /// </code>
+        /// Keeps only the lines of <see cref="Body"/> for which <paramref name="predicate"/> returns true (this changes
+        /// <see cref="Body"/> in place) and returns this result.
         /// </summary>
+        /// <remarks>
+        /// <para>Lines are split on <c>\n</c> and joined back with <c>\n</c>; a <c>\r</c> before the newline stays part of the
+        /// line. Does nothing when <see cref="Body"/> is null. <see cref="BinaryData"/> is untouched.</para>
+        /// <para>Example: <c>result.FilterLines(line =&gt; line.StartsWith("data:"))</c> keeps the data lines of a server-sent-events response.</para>
+        /// </remarks>
+        /// <param name="predicate">Called once per line; return true to keep it. Must not be null.</param>
+        /// <returns>This same result (with the filtered <see cref="Body"/>), for chaining.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is null; pass a function such as <c>l =&gt; l.Length &gt; 0</c>.</exception>
+        /// <seealso cref="Body"/>
         public CurlResult FilterLines(Func<string, bool> predicate)
         {
+            if (predicate == null)
+            {
+                throw new ArgumentNullException(nameof(predicate), CurlException.Compose(
+                    "FilterLines() was called with a null predicate.",
+                    "Pass a function that returns true for lines to keep, for example line => !string.IsNullOrWhiteSpace(line).",
+                    DocLinks.HowToParseJson));
+            }
             if (Body != null)
             {
                 var lines = Body.Split('\n').Where(predicate);
@@ -1195,20 +1268,19 @@ namespace CurlDotNet.Core
     }
 
     /// <summary>
-    /// <para><b>Detailed timing breakdown of the curl operation.</b></para>
-    ///
-    /// <para>See where time was spent (like curl -w):</para>
-    /// <code>
-    /// if (result.Timings.Total > 2000)
-    /// {
-    ///     Console.WriteLine("Slow request! Let's see why:");
-    ///     Console.WriteLine($"DNS: {result.Timings.NameLookup}ms");
-    ///     Console.WriteLine($"Connect: {result.Timings.Connect}ms");
-    ///     Console.WriteLine($"SSL: {result.Timings.AppConnect}ms");
-    ///     Console.WriteLine($"Wait: {result.Timings.StartTransfer}ms");
-    /// }
-    /// </code>
+    /// Where the time of a transfer went - DNS, TCP connect, TLS handshake, first byte, total - in milliseconds,
+    /// matching curl's <c>-w '%{time_namelookup}'</c>, <c>%{time_connect}</c> ... <c>%{time_total}</c> (which are seconds).
     /// </summary>
+    /// <remarks>
+    /// <para>All values are cumulative from the start of the transfer, as in curl: <see cref="NameLookup"/> &lt;=
+    /// <see cref="Connect"/> &lt;= <see cref="AppConnect"/> (HTTPS) &lt;= <see cref="StartTransfer"/> &lt;= <see cref="Total"/>.
+    /// Subtract neighbours to get the length of one phase. Connection-level values (NameLookup, Connect, AppConnect) are
+    /// recorded on .NET 5 and later for new connections; on .NET Standard 2.0 / .NET Framework and for reused pooled
+    /// connections they are 0.</para>
+    /// <para>Example: <c>var t = result.Timings; Console.WriteLine($"DNS {t.NameLookup:F0} ms, TCP {t.Connect - t.NameLookup:F0} ms, TLS {t.AppConnect - t.Connect:F0} ms, server {t.StartTransfer - Math.Max(t.AppConnect, t.Connect):F0} ms, download {t.Total - t.StartTransfer:F0} ms");</c></para>
+    /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/14-debugging-requests.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlResult.Timings"/>
     public class CurlTimings
     {
         /// <summary>
@@ -1306,37 +1378,69 @@ namespace CurlDotNet.Core
     }
 
     /// <summary>
-    /// <para><b>Exception for HTTP errors (4xx, 5xx status codes).</b></para>
-    ///
-    /// <para>Thrown by EnsureSuccess() when request fails:</para>
-    /// <code>
-    /// try
-    /// {
-    ///     result.EnsureSuccess();
-    /// }
-    /// catch (CurlHttpException ex)
-    /// {
-    ///     Console.WriteLine($"HTTP {ex.StatusCode}: {ex.Message}");
-    ///     Console.WriteLine($"Response was: {ex.ResponseBody}");
-    /// }
-    /// </code>
+    /// Thrown by <see cref="CurlResult.EnsureSuccess"/> and <see cref="CurlResult.EnsureStatus(int)"/> when the server answered
+    /// with a status you did not accept; carries the status, the response body and the headers so you can react.
     /// </summary>
+    /// <remarks>
+    /// <para>This is <c>CurlDotNet.Core.CurlHttpException</c>, a plain <see cref="Exception"/>. It is a different type from
+    /// <see cref="CurlDotNet.Exceptions.CurlHttpException"/>, which is a <see cref="CurlException"/> thrown during the transfer
+    /// (for example <see cref="CurlHttpReturnedErrorException"/> when the command uses <c>-f</c>). With both namespaces
+    /// imported, write the namespace you mean.</para>
+    /// <para>Its message says what happened (URL and status), how to fix it for that status, and links the error-handling guide.</para>
+    /// <para>Example: <c>try { result.EnsureSuccess(); } catch (CurlDotNet.Core.CurlHttpException ex) when (ex.StatusCode == 401) { await RefreshTokenAsync(); }</c></para>
+    /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlResult.EnsureSuccess"/>
+    /// <seealso cref="CurlResult.EnsureStatus(int)"/>
+    /// <seealso cref="CurlDotNet.Exceptions.CurlHttpException"/>
     public class CurlHttpException : Exception
     {
-        /// <summary>The HTTP status code that caused the error</summary>
+        /// <summary>
+        /// The HTTP status the server answered with (for example 404 or 503), copied from <see cref="CurlResult.StatusCode"/>.
+        /// </summary>
+        /// <value>The status code; 0 when the request had no HTTP response.</value>
+        /// <remarks>
+        /// <para>Example: <c>catch (CurlHttpException ex) when (ex.StatusCode &gt;= 500) { /* retry later */ }</c></para>
+        /// </remarks>
+        /// <seealso cref="CurlResult.StatusCode"/>
+        /// <seealso cref="ResponseBody"/>
         public int StatusCode { get; }
 
-        /// <summary>The response body (may contain error details)</summary>
+        /// <summary>
+        /// The response text (<see cref="CurlResult.Body"/>) of the failed request - APIs usually explain the error here.
+        /// </summary>
+        /// <value>The body text, empty for binary or empty responses, or null when the exception was created without it.</value>
+        /// <remarks>
+        /// <para>Example: <c>catch (CurlHttpException ex) { logger.LogError("{Status}: {Body}", ex.StatusCode, ex.ResponseBody); }</c></para>
+        /// </remarks>
+        /// <seealso cref="CurlResult.Body"/>
+        /// <seealso cref="ResponseHeaders"/>
         public string ResponseBody { get; set; }
 
-        /// <summary>The response headers</summary>
+        /// <summary>
+        /// The response headers (<see cref="CurlResult.Headers"/>) of the failed request, such as <c>Retry-After</c> or
+        /// <c>WWW-Authenticate</c>.
+        /// </summary>
+        /// <value>The result's case-insensitive header dictionary, or null when the exception was created without it.</value>
+        /// <remarks>
+        /// <para>Example: <c>if (ex.ResponseHeaders?.TryGetValue("Retry-After", out var wait) == true) await Task.Delay(TimeSpan.FromSeconds(int.Parse(wait)));</c></para>
+        /// </remarks>
+        /// <seealso cref="CurlResult.Headers"/>
+        /// <seealso cref="ResponseBody"/>
         public Dictionary<string, string> ResponseHeaders { get; set; }
 
         /// <summary>
-        /// Initializes a new instance of the CurlHttpException class.
+        /// Creates the exception with your message and status; <see cref="ResponseBody"/> and <see cref="ResponseHeaders"/>
+        /// can be set with an object initializer.
         /// </summary>
-        /// <param name="message">The error message.</param>
-        /// <param name="statusCode">The HTTP status code.</param>
+        /// <remarks>
+        /// <para>The message is used exactly as given. Write it as what happened, how to fix it and a link, like the
+        /// library's own messages.</para>
+        /// <para>Example: <c>throw new CurlHttpException($"Order API answered {r.StatusCode}.", r.StatusCode) { ResponseBody = r.Body, ResponseHeaders = r.Headers };</c></para>
+        /// </remarks>
+        /// <param name="message">The text returned by <see cref="Exception.Message"/>.</param>
+        /// <param name="statusCode">The HTTP status code, such as 404, stored in <see cref="StatusCode"/>.</param>
+        /// <seealso cref="CurlResult.EnsureSuccess"/>
         public CurlHttpException(string message, int statusCode) : base(message)
         {
             StatusCode = statusCode;
