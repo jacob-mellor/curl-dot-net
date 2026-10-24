@@ -65,7 +65,7 @@ namespace CurlDotNet.Core
         /// equivalent to the URL argument (or <c>--url</c>) of a curl command.
         /// </summary>
         /// <value>An absolute URL with scheme <c>http</c>, <c>https</c>, <c>ftp</c>, <c>ftps</c> or <c>file</c>.
-        /// Default: empty string, which fails with exit code 3 when executed.</value>
+        /// Default: empty string, which fails with exit code 2 ("No URL specified") when executed.</value>
         /// <remarks>
         /// <para>A URL without a scheme (<c>example.com/path</c>) gets <c>http://</c>, like curl. User info in the URL
         /// (<c>https://alice:secret@host/</c>) becomes Basic credentials for that host. Spaces and other characters that
@@ -733,31 +733,57 @@ namespace CurlDotNet.Core
         public double? ConnectTimeout { get; set; }
 
         /// <summary>
-        /// Bytes per second parsed from curl's <c>--limit-rate</c> or <c>--speed-limit</c> (both land here); recorded for
-        /// compatibility but not applied, so transfers run at full speed.
+        /// Aborts a transfer that stays slower than this many bytes per second for <see cref="SpeedTime"/> seconds, like
+        /// curl's <c>-Y</c>/<c>--speed-limit</c>; the transfer then fails with exit code 28.
         /// </summary>
-        /// <value>Bytes per second; the parser accepts suffixes <c>k</c>, <c>M</c>, <c>G</c> (powers of 1024). Default: 0. Not acted on.</value>
+        /// <value>Bytes per second; 0 (the default) turns the check off. When <see cref="SpeedTime"/> is 0, curl's default
+        /// of 30 seconds is used.</value>
         /// <remarks>
-        /// <para>curl uses <c>--limit-rate</c> to throttle and <c>--speed-limit</c> with <see cref="SpeedTime"/> to abort slow
-        /// transfers; CurlDotNet does neither yet. Use <see cref="MaxTime"/> to bound a slow transfer.</para>
-        /// <para>Example: <c>curl --limit-rate 100k URL</c> parses to <c>SpeedLimit = 102400</c>.</para>
+        /// <para>The rate is measured while the response body downloads (http and https), over a sliding window of
+        /// <see cref="SpeedTime"/> seconds. When it stays below the limit for the whole window the transfer is aborted with
+        /// <see cref="CurlDotNet.Exceptions.CurlOperationTimeoutException"/> (exit 28) and curl's message
+        /// <c>Operation too slow. Less than N bytes/sec transferred the last S seconds</c>. Use it to give up on stalled
+        /// downloads without capping a healthy one with <see cref="MaxTime"/>. A non-numeric value on the command line fails
+        /// with exit code 2.</para>
+        /// <para>Example: <c>curl --speed-limit 1000 --speed-time 30 URL</c> is
+        /// <c>new CurlOptions { Url = url, SpeedLimit = 1000, SpeedTime = 30 }</c>.</para>
         /// </remarks>
         /// <seealso cref="SpeedTime"/>
+        /// <seealso cref="LimitRate"/>
         /// <seealso cref="MaxTime"/>
         public long SpeedLimit { get; set; }
 
         /// <summary>
-        /// Seconds parsed from curl's <c>--speed-time</c> (abort when slower than <see cref="SpeedLimit"/> for this long);
-        /// recorded for compatibility but not applied.
+        /// How long, in seconds, a transfer may stay below <see cref="SpeedLimit"/> before it is aborted, like curl's
+        /// <c>-y</c>/<c>--speed-time</c>.
         /// </summary>
-        /// <value>Whole seconds. Default: 0. Not acted on.</value>
+        /// <value>Whole seconds. Default: 0, which means curl's 30 seconds when <see cref="SpeedLimit"/> is set (and nothing
+        /// otherwise).</value>
         /// <remarks>
-        /// <para>Use <see cref="MaxTime"/> or a <c>CancellationToken</c> to stop stalled transfers.
-        /// Example: <c>curl --speed-limit 1000 --speed-time 30 URL</c> parses to <c>SpeedLimit = 1000, SpeedTime = 30</c>.</para>
+        /// <para>curl also applies <c>--speed-time</c> alone with a limit of 1 byte per second; CurlDotNet does the same, so
+        /// <c>--speed-time 20</c> aborts a transfer that receives nothing for 20 seconds (exit 28).</para>
+        /// <para>Example: <c>curl -Y 500 -y 10 URL</c> is <c>new CurlOptions { Url = url, SpeedLimit = 500, SpeedTime = 10 }</c>.</para>
         /// </remarks>
         /// <seealso cref="SpeedLimit"/>
         /// <seealso cref="MaxTime"/>
         public int SpeedTime { get; set; }
+
+        /// <summary>
+        /// Caps the download speed at this many bytes per second, like curl's <c>--limit-rate</c>; the body is read more
+        /// slowly so the average rate stays at or below the cap.
+        /// </summary>
+        /// <value>Bytes per second; the parser accepts suffixes <c>k</c>, <c>M</c>, <c>G</c>, <c>T</c>, <c>P</c> (powers of
+        /// 1024), so <c>100k</c> is 102400. Default: 0 (no cap).</value>
+        /// <remarks>
+        /// <para>Applies to http and https response bodies: after each chunk the reader waits until the average rate since
+        /// the body started is back under the cap (curl averages the same way, so short bursts are possible). Uploads are
+        /// not throttled. A malformed value on the command line fails with exit code 2.</para>
+        /// <para>Example: <c>curl --limit-rate 100k -O https://example.com/big.iso</c> is
+        /// <c>new CurlOptions { Url = url, UseRemoteFileName = true, LimitRate = 100 * 1024 }</c>.</para>
+        /// </remarks>
+        /// <seealso cref="SpeedLimit"/>
+        /// <seealso cref="MaxTime"/>
+        public long LimitRate { get; set; }
 
         /// <summary>
         /// Resumes a download at a byte offset by sending <c>Range: bytes=N-</c>, like curl's <c>-C</c>/<c>--continue-at N</c>;
@@ -1737,6 +1763,18 @@ namespace CurlDotNet.Core
 
         /// <summary>The value <see cref="Data"/> had when <see cref="ParsedDataBytes"/> was assembled.</summary>
         internal string? ParsedDataText { get; set; }
+
+        /// <summary>Chunk size, in bytes, for reading response bodies (from <see cref="CurlSettings.BufferSize"/>); 0 means 80 KB.</summary>
+        internal int ReadBufferSize { get; set; }
+
+        /// <summary>The 0-based <c>--retry</c> attempt being run (<c>%{num_retries}</c>); 0 outside a retry loop.</summary>
+        internal int RetryNumber { get; set; }
+
+        /// <summary>
+        /// Set by the <c>--retry</c> loop while another attempt may follow: the attempt keeps its <c>-w</c> text
+        /// (and <c>-c -</c> jar) back so it is written once, for the last attempt.
+        /// </summary>
+        internal bool DeferWriteOut { get; set; }
 
         /// <summary>
         /// Returns the request body the parser assembled for this transfer, or null when the body should be

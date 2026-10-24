@@ -840,7 +840,7 @@ namespace CurlDotNet.Tests
             var result = await Curl.ExecuteAsync($"curl -o {Q(P("o"))} -w @{Q(format)} {server.Url("/j")}");
 
             result.Body.Should().StartWith("{").And.EndWith("}");
-            result.Body.Should().Contain("\"http_code\":\"200\"").And.Contain("\"size_download\":5");
+            result.Body.Should().Contain("\"http_code\":200").And.Contain("\"size_download\":5");
         }
 
         [Fact]

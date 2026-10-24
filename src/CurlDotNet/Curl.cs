@@ -687,7 +687,7 @@ namespace CurlDotNet
         /// <returns>The <see cref="CurlResult"/>, as described on <see cref="ExecuteAsync(string)"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="options"/> is null. Fix: pass a <c>new CurlOptions { Url = ... }</c>.
         /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/run-curl-command-in-csharp/README.md</exception>
-        /// <exception cref="CurlException"><see cref="CurlOptions.Url"/> is empty (exit code 3), or the transfer failed;
+        /// <exception cref="CurlException"><see cref="CurlOptions.Url"/> is empty (exit code 2, "no URL specified"), or the transfer failed;
         /// the subtypes are listed on <see cref="ExecuteAsync(string)"/>. See
         /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
         /// <seealso cref="Execute(CurlOptions)">Blocking version</seealso>
@@ -718,7 +718,7 @@ namespace CurlDotNet
         /// <returns>The <see cref="CurlResult"/>, as described on <see cref="ExecuteAsync(string)"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="options"/> is null.</exception>
         /// <exception cref="OperationCanceledException">The token was cancelled before the transfer finished.</exception>
-        /// <exception cref="CurlException">No URL (exit code 3) or the transfer failed; see <see cref="ExecuteAsync(string)"/>.</exception>
+        /// <exception cref="CurlException">No URL (exit code 2, like curl's "no URL specified") or the transfer failed; see <see cref="ExecuteAsync(string)"/>.</exception>
         /// <seealso cref="ExecuteAsync(CurlOptions)"/>
         /// <seealso cref="Execute(CurlOptions)"/>
         /// <seealso cref="Lib.LibCurl.PerformAsync(CurlOptions, CancellationToken)"/>

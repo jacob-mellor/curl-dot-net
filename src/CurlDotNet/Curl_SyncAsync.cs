@@ -186,7 +186,7 @@ namespace CurlDotNet
         /// <param name="options">The request to send; <see cref="CurlOptions.Url"/> must be set to an absolute URL.</param>
         /// <returns>The <see cref="CurlResult"/>, as described on <see cref="ExecuteAsync(string)"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="options"/> is null.</exception>
-        /// <exception cref="CurlException">No URL (exit code 3) or the transfer failed; see <see cref="ExecuteAsync(string)"/>.
+        /// <exception cref="CurlException">No URL (exit code 2, like curl's "no URL specified") or the transfer failed; see <see cref="ExecuteAsync(string)"/>.
         /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
         /// <seealso cref="ExecuteAsync(CurlOptions)">Async version (preferred)</seealso>
         /// <seealso cref="Lib.LibCurl.PerformAsync(CurlOptions, CancellationToken)"/>

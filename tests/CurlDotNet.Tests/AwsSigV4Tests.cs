@@ -2,6 +2,7 @@ using System;
 using System.Net.Http;
 using System.Text;
 using CurlDotNet.Core;
+using CurlDotNet.Exceptions;
 using FluentAssertions;
 using Xunit;
 
@@ -104,24 +105,24 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
-        public void AwsSigV4Config_Parse_NullValue_ThrowsArgumentException()
+        public void AwsSigV4Config_Parse_NullValue_ThrowsCurlInvalidCommandException()
         {
             Action act = () => AwsSigV4Config.Parse(null);
-            act.Should().Throw<ArgumentException>();
+            act.Should().Throw<CurlInvalidCommandException>().Which.CurlErrorCode.Should().Be(2);
         }
 
         [Fact]
-        public void AwsSigV4Config_Parse_EmptyValue_ThrowsArgumentException()
+        public void AwsSigV4Config_Parse_EmptyValue_ThrowsCurlInvalidCommandException()
         {
             Action act = () => AwsSigV4Config.Parse("");
-            act.Should().Throw<ArgumentException>();
+            act.Should().Throw<CurlInvalidCommandException>().Which.CurlErrorCode.Should().Be(2);
         }
 
         [Fact]
-        public void AwsSigV4Config_Parse_WhitespaceValue_ThrowsArgumentException()
+        public void AwsSigV4Config_Parse_WhitespaceValue_ThrowsCurlInvalidCommandException()
         {
             Action act = () => AwsSigV4Config.Parse("  ");
-            act.Should().Throw<ArgumentException>();
+            act.Should().Throw<CurlInvalidCommandException>().Which.CurlErrorCode.Should().Be(2);
         }
 
         #endregion

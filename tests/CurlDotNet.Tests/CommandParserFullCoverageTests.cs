@@ -377,19 +377,19 @@ namespace CurlDotNet.Tests
         {
             // Test with kilobytes
             var options = _parser.Parse("curl --limit-rate 100k https://api.example.com");
-            options.SpeedLimit.Should().Be(100 * 1024);
+            options.LimitRate.Should().Be(100 * 1024);
 
             // Test with megabytes
             options = _parser.Parse("curl --limit-rate 5m https://api.example.com");
-            options.SpeedLimit.Should().Be(5 * 1024 * 1024);
+            options.LimitRate.Should().Be(5 * 1024 * 1024);
 
             // Test with gigabytes
             options = _parser.Parse("curl --limit-rate 1g https://api.example.com");
-            options.SpeedLimit.Should().Be(1024L * 1024 * 1024);
+            options.LimitRate.Should().Be(1024L * 1024 * 1024);
 
             // Test with no suffix (bytes)
             options = _parser.Parse("curl --limit-rate 1000 https://api.example.com");
-            options.SpeedLimit.Should().Be(1000);
+            options.LimitRate.Should().Be(1000);
         }
 
         [Fact]
@@ -641,11 +641,10 @@ namespace CurlDotNet.Tests
             var command = "curl -H @/path/to/headers.txt https://api.example.com";
 
             // Act
-            var options = _parser.Parse(command);
+            Action act = () => _parser.Parse(command);
 
-            // Assert
-            // Header from file notation stored as header value
-            options.Headers.Should().ContainKey("@/path/to/headers.txt");
+            // Assert: like curl, a header file that cannot be read is a read error (exit code 26)
+            act.Should().Throw<CurlDotNet.Exceptions.CurlReadErrorException>().Which.CurlErrorCode.Should().Be(26);
         }
 
         [Fact]

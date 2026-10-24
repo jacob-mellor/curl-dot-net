@@ -1095,7 +1095,7 @@ namespace CurlDotNet.Exceptions
         /// <param name="invalidPart">The specific option or value that is invalid, or null.</param>
         /// <param name="command">The full curl command that failed, or null.</param>
         /// <seealso cref="CurlOptionSyntaxException"/>
-        protected CurlInvalidCommandException(string message, int curlErrorCode, string invalidPart, string command)
+        protected internal CurlInvalidCommandException(string message, int curlErrorCode, string invalidPart, string command)
             : base(message, curlErrorCode, command)
         {
             InvalidPart = invalidPart;

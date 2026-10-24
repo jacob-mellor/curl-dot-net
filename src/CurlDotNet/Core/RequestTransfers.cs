@@ -108,7 +108,7 @@ namespace CurlDotNet.Core
                         "(-H, -d, -o and -u need a value right after them), a quote may never be closed, or the command was written for another shell " +
                         "(pass the matching CurlFlavor, such as CurlFlavor.WindowsCmd or CurlFlavor.PowerShell).",
                         DocLinks.HowToFlavors),
-                    "URL", originalCommand);
+                    2, "URL", originalCommand);
             }
 
             var first = transfers[0];

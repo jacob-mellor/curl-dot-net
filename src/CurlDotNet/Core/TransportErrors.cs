@@ -57,7 +57,7 @@ namespace CurlDotNet.Core
                 if (problem != null)
                 {
                     throw problem.Value.Code == 1
-                        ? (CurlException)new CurlUnsupportedProtocolException(StatusLineOf(head.Text), problem.Value.Message, transfer.Options.OriginalCommand)
+                        ? (CurlException)new CurlUnsupportedProtocolException(ProtocolOf(head.Text), problem.Value.Message, transfer.Options.OriginalCommand)
                         : new CurlWeirdServerReplyException(WeirdMessage(problem.Value.Message, transfer), transfer.Options.OriginalCommand);
                 }
             }
@@ -159,6 +159,17 @@ namespace CurlDotNet.Core
         {
             var nl = text.IndexOf('\n');
             return (nl < 0 ? text : text.Substring(0, nl)).TrimEnd('\r');
+        }
+
+        /// <summary>
+        /// The protocol token a status line starts with (<c>HTTP/1.7</c> for <c>HTTP/1.7 200 OK</c>), which is what
+        /// <see cref="CurlUnsupportedProtocolException.Protocol"/> reports for a reply curl does not accept.
+        /// </summary>
+        private static string ProtocolOf(string text)
+        {
+            var line = StatusLineOf(text).Trim();
+            var space = line.IndexOfAny(new[] { ' ', '\t' });
+            return space < 0 ? line : line.Substring(0, space);
         }
 
         /// <summary>curl rejects chunked trailers that contain a NUL byte (exit 8).</summary>
@@ -469,7 +480,7 @@ namespace CurlDotNet.Core
                     if (problem != null)
                     {
                         return problem.Value.Code == 1
-                            ? (CurlException)new CurlUnsupportedProtocolException(StatusLineOf(text), problem.Value.Message, command)
+                            ? (CurlException)new CurlUnsupportedProtocolException(ProtocolOf(text), problem.Value.Message, command)
                             : new CurlWeirdServerReplyException(WeirdMessage(problem.Value.Message, transfer), command);
                     }
 
@@ -504,7 +515,7 @@ namespace CurlDotNet.Core
             if (problemFinal != null)
             {
                 return problemFinal.Value.Code == 1
-                    ? (CurlException)new CurlUnsupportedProtocolException(StatusLineOf(final.Text), problemFinal.Value.Message, command)
+                    ? (CurlException)new CurlUnsupportedProtocolException(ProtocolOf(final.Text), problemFinal.Value.Message, command)
                     : new CurlWeirdServerReplyException(WeirdMessage(problemFinal.Value.Message, transfer), command);
             }
 

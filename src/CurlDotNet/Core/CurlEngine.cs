@@ -285,7 +285,7 @@ namespace CurlDotNet.Core
                 throw new CurlException(CurlException.Compose(
                     "No URL specified: the request has no URL to fetch.",
                     "Add the URL to the command (\"curl https://api.example.com/items\") or set CurlOptions.Url; when the URL comes from a variable, check that it is not empty.",
-                    DocLinks.Url), 3, options.OriginalCommand);
+                    DocLinks.Url), 2, options.OriginalCommand);
 
             options.Url = CommandParser.NormalizeUrl(options.Url);
 

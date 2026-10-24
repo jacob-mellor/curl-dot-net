@@ -75,14 +75,37 @@ namespace CurlDotNet.Core
 
     internal static class WriteOutFormatter
     {
+        /// <summary>
+        /// The variables <c>%{json}</c> prints, in curl's order (tool_writeout.c's variable table, alphabetical,
+        /// including the <c>url.*</c>/<c>urle.*</c> parts), followed by <c>curl_version</c>.
+        /// </summary>
         private static readonly string[] JsonVariables =
         {
-            "content_type", "errormsg", "exitcode", "filename_effective", "http_code", "http_connect", "http_version",
-            "local_ip", "local_port", "method", "num_connects", "num_headers", "num_redirects", "num_retries",
-            "proxy_used", "redirect_url", "referer", "remote_ip", "remote_port", "response_code", "scheme",
+            "certs", "conn_id", "content_type", "errormsg", "exitcode", "filename_effective", "ftp_entry_path",
+            "http_code", "http_connect", "http_version", "local_ip", "local_port", "method", "num_certs",
+            "num_connects", "num_headers", "num_redirects", "num_retries", "proxy_ssl_verify_result", "proxy_used",
+            "redirect_url", "referer", "remote_ip", "remote_port", "response_code", "scheme", "size_delivered",
             "size_download", "size_header", "size_request", "size_upload", "speed_download", "speed_upload",
-            "time_appconnect", "time_connect", "time_namelookup", "time_posttransfer", "time_pretransfer",
-            "time_redirect", "time_starttransfer", "time_total", "url", "url_effective", "urlnum",
+            "ssl_verify_result", "time_appconnect", "time_connect", "time_namelookup", "time_posttransfer",
+            "time_pretransfer", "time_queue", "time_redirect", "time_starttransfer", "time_total", "tls_earlydata",
+            "url", "url.fragment", "url.host", "url.options", "url.password", "url.path", "url.port", "url.query",
+            "url.scheme", "url.user", "url.zoneid", "url_effective", "urle.fragment", "urle.host", "urle.options",
+            "urle.password", "urle.path", "urle.port", "urle.query", "urle.scheme", "urle.user", "urle.zoneid",
+            "urlnum", "xfer_id",
+        };
+
+        /// <summary>
+        /// The variables curl writes as JSON numbers (writeLong, writeOffset and writeTime in tool_writeout.c);
+        /// every other variable is a JSON string, or null when it has no value.
+        /// </summary>
+        private static readonly HashSet<string> JsonNumbers = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "conn_id", "exitcode", "http_code", "http_connect", "local_port", "num_certs", "num_connects", "num_headers",
+            "num_redirects", "num_retries", "proxy_ssl_verify_result", "proxy_used", "remote_port", "response_code",
+            "size_delivered", "size_download", "size_header", "size_request", "size_upload", "speed_download",
+            "speed_upload", "ssl_verify_result", "time_appconnect", "time_connect", "time_namelookup",
+            "time_posttransfer", "time_pretransfer", "time_queue", "time_redirect", "time_starttransfer", "time_total",
+            "tls_earlydata", "urlnum", "xfer_id",
         };
 
         /// <summary>
@@ -291,6 +314,7 @@ namespace CurlDotNet.Core
                 case "remote_ip": return ctx.RemoteIp;
                 case "remote_port": return ctx.RemotePort == 0 ? string.Empty : Int(ctx.RemotePort);
                 case "scheme": return ctx.Scheme;
+                case "size_delivered":
                 case "size_download": return Int(ctx.SizeDownload);
                 case "size_header": return Int(ctx.SizeHeader);
                 case "size_request": return Int(ctx.SizeRequest);
@@ -311,7 +335,9 @@ namespace CurlDotNet.Core
                 case "url_effective": return ctx.UrlEffective;
                 case "urlnum": return Int(ctx.UrlNum);
                 case "conn_id":
-                case "xfer_id": return "0";
+                case "xfer_id":
+                case "tls_earlydata": return "0";
+                case "certs": return string.Empty;
                 case "json": return Json(ctx);
                 case "header_json": return HeaderJson(ctx);
                 default: return string.Empty;
@@ -361,20 +387,25 @@ namespace CurlDotNet.Core
             return null;
         }
 
+        /// <summary>
+        /// <c>%{json}</c>: every variable as one JSON object, like curl: counters, sizes, speeds and times are
+        /// numbers (<c>"http_code":200</c>, <c>"time_total":0.012345</c>), text is a string, and text without a
+        /// value is <c>null</c> (<c>"errormsg":null</c> for a transfer that worked).
+        /// </summary>
         private static string Json(WriteOutContext ctx)
         {
             var sb = new StringBuilder("{");
             foreach (var name in JsonVariables)
             {
-                var value = Variable(name, ctx);
-                sb.Append('"').Append(name).Append("\":");
-                if (IsNumeric(name))
+                sb.Append(JsonString(name)).Append(':');
+                if (JsonNumbers.Contains(name))
                 {
-                    sb.Append(value.Length == 0 ? "null" : value);
+                    sb.Append(JsonNumber(name, ctx));
                 }
                 else
                 {
-                    sb.Append(JsonString(value));
+                    var value = Variable(name, ctx);
+                    sb.Append(value.Length == 0 && name != "certs" ? "null" : JsonString(value));
                 }
                 sb.Append(',');
             }
@@ -383,11 +414,20 @@ namespace CurlDotNet.Core
             return sb.ToString();
         }
 
-        private static bool IsNumeric(string name)
+        /// <summary>A numeric variable as curl's JSON writes it: plain digits (no <c>000</c> padding), ports as 0 when unknown.</summary>
+        private static string JsonNumber(string name, WriteOutContext ctx)
         {
-            return name.StartsWith("time_", StringComparison.Ordinal) || name.StartsWith("size_", StringComparison.Ordinal)
-                || name.StartsWith("speed_", StringComparison.Ordinal) || name.StartsWith("num_", StringComparison.Ordinal)
-                || name == "exitcode" || name == "local_port" || name == "remote_port" || name == "urlnum" || name == "proxy_used";
+            switch (name)
+            {
+                case "http_code":
+                case "response_code": return Int(ctx.ResponseCode);
+                case "http_connect": return "0";
+                case "local_port": return Int(ctx.LocalPort);
+                case "remote_port": return Int(ctx.RemotePort);
+                default:
+                    var value = Variable(name, ctx);
+                    return value.Length == 0 ? "0" : value;
+            }
         }
 
         private static string HeaderJson(WriteOutContext ctx)
