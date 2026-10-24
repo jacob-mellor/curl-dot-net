@@ -185,9 +185,10 @@ namespace CurlDotNet.Core
                     uploads.Add(upload == null ? null : new RequestGlobResult(upload, new List<string>(), new Dictionary<string, string>()));
                 }
 
-                var urls = !group.Options.GlobOff && RequestGlob.HasGlob(url)
-                    ? RequestGlob.Expand(url, context.OriginalCommand)
-                    : new List<RequestGlobResult> { new RequestGlobResult(url, new List<string>(), new Dictionary<string, string>()) };
+                // without a glob the escapes still apply: "\{" in a URL is a literal "{" (curl test 214)
+                var urls = group.Options.GlobOff
+                    ? new List<RequestGlobResult> { new RequestGlobResult(url, new List<string>(), new Dictionary<string, string>()) }
+                    : RequestGlob.Expand(url, context.OriginalCommand);
 
                 foreach (var uploadMatch in uploads)
                 {

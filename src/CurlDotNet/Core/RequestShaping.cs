@@ -225,7 +225,7 @@ namespace CurlDotNet.Core
         internal static Uri BuildRequestUri(CurlOptions options)
         {
 #if NET6_0_OR_GREATER
-            if (options.PathAsIs)
+            if (options.PathAsIs || NeedsVerbatimPath(options.Url))
             {
                 // The fragment is never sent; without canonicalisation .NET would keep it in the request target
                 var url = options.Url;
@@ -239,6 +239,54 @@ namespace CurlDotNet.Core
             }
 #endif
             return new Uri(options.Url);
+        }
+
+        /// <summary>
+        /// True when the URL's path or query holds characters that curl sends as they are but .NET would
+        /// percent-encode or rewrite (<c>" { } | \ ^ ` &lt; &gt;</c>, curl tests 64 and 214), and nothing that
+        /// needs .NET's canonicalisation (dot segments, spaces, control or non-ASCII characters).
+        /// </summary>
+        internal static bool NeedsVerbatimPath(string url)
+        {
+            var schemeEnd = url.IndexOf("://", StringComparison.Ordinal);
+            if (schemeEnd < 0)
+            {
+                return false;
+            }
+            var pathStart = url.IndexOf('/', schemeEnd + 3);
+            if (pathStart < 0)
+            {
+                return false;
+            }
+            var hash = url.IndexOf('#', pathStart);
+            var target = hash >= 0 ? url.Substring(pathStart, hash - pathStart) : url.Substring(pathStart);
+
+            var special = false;
+            foreach (var c in target)
+            {
+                if (c <= ' ' || c >= 0x7F)
+                {
+                    return false;
+                }
+                if ("\"{}|\\^`<>".IndexOf(c) >= 0)
+                {
+                    special = true;
+                }
+            }
+            if (!special)
+            {
+                return false;
+            }
+
+            var path = target.Split('?')[0].Replace('\\', '/');
+            foreach (var segment in path.Split('/'))
+            {
+                if (segment == "." || segment == "..")
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         /// <summary>

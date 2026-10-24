@@ -705,6 +705,29 @@ namespace CurlDotNet.Tests
                 "Authorization: Digest username=\"hello%0A%0D\", realm=\"testrealm%0a%0d\", nonce=\"1053604145\", uri=\"/\", response=\"64e5ae1b90f05309847ac483c1094284\"");
         }
 
+        [Fact]
+        public async Task UrlWithQuoteBracesAndBackslash_IsSentVerbatim_LikeCurl()
+        {
+            using var server = new RawReplyServer(Hello, World);
+
+            await Curl.ExecuteAsync($"curl \"http://127.0.0.1:{server.Port}/64\\\"\"");
+            await Curl.ExecuteAsync($"curl \"http://127.0.0.1:{server.Port}/\\{{\\}}\\/214\"");
+
+            FirstLine(server.Requests[0]).Should().Be("GET /64\" HTTP/1.1");
+            FirstLine(server.Requests[1]).Should().Be("GET /{}\\/214 HTTP/1.1");
+        }
+
+        [Theory]
+        [InlineData("http://h/a\"b", true)]
+        [InlineData("http://h/a/../b{", false)]
+        [InlineData("http://h/a b{", false)]
+        [InlineData("http://h/plain?q=1", false)]
+        [InlineData("http://h/x?q={1}#frag", true)]
+        public void NeedsVerbatimPath_OnlyForCharactersDotNetWouldChange(string url, bool expected)
+        {
+            RequestShaping.NeedsVerbatimPath(url).Should().Be(expected);
+        }
+
         private static int ClosedPortNumber()
         {
             var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
