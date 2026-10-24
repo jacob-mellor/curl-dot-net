@@ -1058,6 +1058,7 @@ namespace CurlDotNet.Tests
             ExceptionMessageTests.AssertWhatFixLink(ex);
         }
 
+#if NET8_0_OR_GREATER
         [Fact]
         public void Ciphers_OpenSslNames_AreUnsupported_IanaNamesFollowThePlatform()
         {
@@ -1078,7 +1079,6 @@ namespace CurlDotNet.Tests
             }
         }
 
-#if NET8_0_OR_GREATER
         [Fact]
         public async Task CaCert_TrustsAPrivateCa_ThatTheSystemDoesNot()
         {
@@ -1327,8 +1327,13 @@ namespace CurlDotNet.Tests
             publicKeyPem = key.ExportSubjectPublicKeyInfoPem();
             p12WithPassword = withKey.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pkcs12, "p12pass");
             // a PKCS#12 round trip gives SslStream a key it can use on every platform
-            return System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12(
-                withKey.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pkcs12), null);
+            var pfx = withKey.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pkcs12);
+#if NET9_0_OR_GREATER
+            return System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12(pfx, null);
+#else
+            return new System.Security.Cryptography.X509Certificates.X509Certificate2(pfx, (string?)null,
+                System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.Exportable);
+#endif
         }
 
         public void Dispose()
