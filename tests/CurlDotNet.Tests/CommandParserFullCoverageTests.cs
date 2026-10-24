@@ -106,7 +106,7 @@ namespace CurlDotNet.Tests
 
         [Theory]
         [InlineData("curl %API_URL%", "API_URL", "https://api.example.com")]
-        [InlineData("curl -H 'Authorization: Bearer %TOKEN%'", "TOKEN", "secret123")]
+        [InlineData("curl -H \"Authorization: Bearer %TOKEN%\"", "TOKEN", "secret123")]
         public void Parse_ExpandsWindowsCmdEnvironmentVariables(string command, string varName, string varValue)
         {
             // Arrange
@@ -163,7 +163,7 @@ namespace CurlDotNet.Tests
         [Theory]
         [InlineData("curl ${API_URL}", "API_URL", "https://api.example.com")]
         [InlineData("curl $API_URL", "API_URL", "https://api.example.com")]
-        [InlineData("curl -H 'Authorization: Bearer ${TOKEN}'", "TOKEN", "secret123")]
+        [InlineData("curl -H \"Authorization: Bearer ${TOKEN}\"", "TOKEN", "secret123")]
         public void Parse_ExpandsBashEnvironmentVariables(string command, string varName, string varValue)
         {
             // Arrange

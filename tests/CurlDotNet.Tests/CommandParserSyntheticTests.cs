@@ -647,7 +647,7 @@ Line 3' \
             Environment.SetEnvironmentVariable("TEST_TOKEN", "secret123");
             try
             {
-                const string command = @"curl -H 'Authorization: Bearer %TEST_TOKEN%' https://api.example.com";
+                const string command = @"curl -H ""Authorization: Bearer %TEST_TOKEN%"" https://api.example.com";
 
                 // Act
                 var options = _parser.Parse(command);
@@ -671,7 +671,7 @@ Line 3' \
             Environment.SetEnvironmentVariable("TEST_API_KEY", "key456");
             try
             {
-                const string command = @"curl -H 'X-API-Key: $env:TEST_API_KEY' https://api.example.com";
+                const string command = @"curl -H ""X-API-Key: $env:TEST_API_KEY"" https://api.example.com";
 
                 // Act
                 var options = _parser.Parse(command);
