@@ -255,9 +255,10 @@ namespace CurlDotNet.Core
         {
             var path = options.DumpHeaderFile!;
             EnsureDirectory(path, options, "-D/--dump-header");
-            // the first transfer of a command line creates the file; later transfers that dump to the
-            // same file append, so "-D heads url1 url2" keeps both header blocks like curl
-            var append = options.Session != null && !options.Session.DumpHeaderFiles.Add(Path.GetFullPath(path));
+            // the first transfer of a --next group creates the file; later transfers of the group append,
+            // so "-D heads url1 url2" keeps both header blocks, while a -D in the next group starts over
+            var key = options.GroupNumber.ToString(CultureInfo.InvariantCulture) + "|" + Path.GetFullPath(path);
+            var append = options.Session != null && !options.Session.DumpHeaderFiles.Add(key);
             WriteFile(path, WireText.Latin1.GetBytes(headerText), append, options, "-D/--dump-header");
         }
     }

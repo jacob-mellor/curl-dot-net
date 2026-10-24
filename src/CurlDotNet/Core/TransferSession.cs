@@ -20,7 +20,7 @@ namespace CurlDotNet.Core
         /// <summary>The cookie store, created by the first transfer that enables the cookie engine.</summary>
         public CookieEngine? Cookies { get; set; }
 
-        /// <summary>The <c>-D</c> files already written by an earlier transfer (full paths).</summary>
+        /// <summary>The <c>-D</c> files already written by an earlier transfer of the same --next group ("group|full path").</summary>
         public HashSet<string> DumpHeaderFiles { get; } = new HashSet<string>(StringComparer.Ordinal);
 
         /// <summary>The <c>-b</c> files already read into <see cref="Cookies"/>.</summary>

@@ -555,6 +555,17 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
+        public async Task DumpHeader_RepeatedAfterNext_StartsTheFileOver()
+        {
+            using var server = new RawReplyServer(Hello, World, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok");
+            var heads = P("heads.txt");
+
+            await Curl.ExecuteAsync($"curl -D {Q(heads)} {server.Url("/1")} {server.Url("/2")} --next -D {Q(heads)} {server.Url("/3")}");
+
+            File.ReadAllText(heads).Should().Be("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n");
+        }
+
+        [Fact]
         public async Task RemoteHeaderName_NeverOverwritesTheUrlFallbackName_Either()
         {
             var existing = P("name1718");

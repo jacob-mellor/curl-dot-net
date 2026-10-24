@@ -809,6 +809,9 @@ namespace CurlDotNet.Core
         /// </summary>
         internal CurlDotNet.Exceptions.CurlException? SetupError { get; set; }
 
+        /// <summary>The 0-based <c>--next</c> group this transfer belongs to.</summary>
+        internal int GroupNumber { get; set; }
+
         /// <summary>The 0-based position of this transfer among all URLs of the command line (<c>%{urlnum}</c>).</summary>
         internal int TransferNumber { get; set; }
 

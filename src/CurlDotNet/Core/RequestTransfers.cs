@@ -89,9 +89,14 @@ namespace CurlDotNet.Core
             ProcessArguments(args, context);
 
             var transfers = new List<CurlOptions>();
-            foreach (var group in context.Groups)
+            for (var g = 0; g < context.Groups.Count; g++)
             {
-                BuildGroupTransfers(group, context, transfers);
+                var before = transfers.Count;
+                BuildGroupTransfers(context.Groups[g], context, transfers);
+                for (var i = before; i < transfers.Count; i++)
+                {
+                    transfers[i].GroupNumber = g;
+                }
             }
 
             if (transfers.Count == 0)
