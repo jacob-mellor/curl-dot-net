@@ -47,10 +47,10 @@ public sealed class CurlTestFile
         "testcase", "info", "reply", "client", "verify"
     };
 
-    private static readonly Regex OpenTag = new(@"^<([A-Za-z][\w-]*)((?:\s+[\w-]+=""[^""]*"")*)\s*>\s*$", RegexOptions.Compiled);
-    private static readonly Regex OneLineTag = new(@"^<([A-Za-z][\w-]*)((?:\s+[\w-]+=""[^""]*"")*)\s*>(.*)</\1>\s*$", RegexOptions.Compiled);
+    private static readonly Regex OpenTag = new(@"^<([A-Za-z][\w-]*)((?:\s+[\w-]+=(?:""[^""]*""|'[^']*'))*)\s*>\s*$", RegexOptions.Compiled);
+    private static readonly Regex OneLineTag = new(@"^<([A-Za-z][\w-]*)((?:\s+[\w-]+=(?:""[^""]*""|'[^']*'))*)\s*>(.*)</\1>\s*$", RegexOptions.Compiled);
     private static readonly Regex CloseTag = new(@"^</([A-Za-z][\w-]*)>\s*$", RegexOptions.Compiled);
-    private static readonly Regex AttrPattern = new(@"([\w-]+)=""([^""]*)""", RegexOptions.Compiled);
+    private static readonly Regex AttrPattern = new(@"([\w-]+)=(?:""([^""]*)""|'([^']*)')", RegexOptions.Compiled);
 
     public CurlTestFile(int number, string path, List<CurlTestSection> sections)
     {
@@ -162,7 +162,7 @@ public sealed class CurlTestFile
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (Match m in AttrPattern.Matches(attrs))
         {
-            result[m.Groups[1].Value] = m.Groups[2].Value;
+            result[m.Groups[1].Value] = m.Groups[2].Success ? m.Groups[2].Value : m.Groups[3].Value;
         }
         return result;
     }
@@ -316,8 +316,17 @@ public sealed class CurlTestPreprocessor
     private static string DecodePercentBytes(string s) =>
         PercentByte.Replace(s, m => ((char)Convert.ToInt32(m.Groups[1].Value, 16)).ToString());
 
+    private static readonly Regex Days = new(@"%days\[(\d+)\]", RegexOptions.Compiled);
+
     private string ApplyEncodingMacros(string text)
     {
+        text = Days.Replace(text, m =>
+        {
+            // testutil.pm daysit(): now + N days (+30 s), aligned down to a minute, and the next minute as a second option
+            var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var d = (long.Parse(m.Groups[1].Value) * 24 * 3600 + now + 30) / 60 * 60;
+            return $"%alternatives[{d},{d + 60}]";
+        });
         text = B64.Replace(text, m =>
         {
             var inner = DecodePercentBytes(m.Groups[1].Value);

@@ -372,7 +372,8 @@ public sealed class StubHttpServer : IDisposable
             }
         }
 
-        var auth = request.Header("Authorization");
+        // sws.c tests with strstr(reqbuf, "Authorization: Digest") etc., so Proxy-Authorization counts too
+        var auth = request.Header("Authorization") ?? request.Header("Proxy-Authorization");
         if (auth != null)
         {
             if (auth.StartsWith("Digest ", StringComparison.OrdinalIgnoreCase))

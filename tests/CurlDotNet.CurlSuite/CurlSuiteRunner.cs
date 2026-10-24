@@ -88,11 +88,12 @@ public static class CurlSuiteRunner
         }
         server.SetReplies(replies);
 
-        // Input files the test needs.
+        // Input files the test needs (relative names are relative to %PWD, i.e. the run root).
         foreach (var section in test.All("client").Where(s => Regex.IsMatch(s.Name, @"^file\d?$")))
         {
             var fileName = pre.Process(section.Attr("name") ?? string.Empty).Trim();
             if (fileName.Length == 0) continue;
+            fileName = Path.IsPathRooted(fileName) ? fileName : Path.Combine(root, fileName);
             var content = pre.ProcessSection(section);
             Directory.CreateDirectory(Path.GetDirectoryName(fileName)!);
             File.WriteAllText(fileName, content, Encoding.Latin1);
@@ -116,6 +117,18 @@ public static class CurlSuiteRunner
         var hasStdoutSection = test.Has("verify", "stdout");
         var addOutput = !option.Contains("no-output") && (!hasStdoutSection || option.Contains("force-output"));
         var addInclude = !option.Contains("no-include");
+
+        // runtests.pl hands the command to a shell, so "> file" / ">> file" redirect stdout
+        string? redirectFile = null;
+        var redirectAppend = false;
+        var redirect = Regex.Match(userCommand, @"\s(>>|>)\s*(\S+)\s*$");
+        if (redirect.Success)
+        {
+            redirectAppend = redirect.Groups[1].Value == ">>";
+            redirectFile = redirect.Groups[2].Value;
+            redirectFile = Path.IsPathRooted(redirectFile) ? redirectFile : Path.Combine(root, redirectFile);
+            userCommand = userCommand.Substring(0, redirect.Index).TrimEnd();
+        }
 
         var prefix = new StringBuilder("curl");
         if (addOutput) prefix.Append(" --output '").Append(outFile.Replace("'", "'\\''")).Append('\'');
@@ -143,7 +156,8 @@ public static class CurlSuiteRunner
         catch (CurlException ex)
         {
             exitCode = ex.CurlErrorCode ?? 1;
-            stdout = string.Empty;
+            // what curl would already have written to stdout before failing (-i headers, -w, partial body)
+            stdout = (ex.Data["CurlDotNet.Stdout"] as string ?? string.Empty) + (ex.Data["CurlDotNet.WriteOut"] as string ?? string.Empty);
         }
         catch (Exception ex)
         {
@@ -165,6 +179,14 @@ public static class CurlSuiteRunner
 
         // Give the server a moment to log the last request.
         await Task.Delay(30);
+
+        if (redirectFile != null)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(redirectFile)!);
+            if (redirectAppend) File.AppendAllText(redirectFile, stdout, Encoding.Latin1);
+            else File.WriteAllText(redirectFile, stdout, Encoding.Latin1);
+            stdout = string.Empty;
+        }
 
         var problems = new List<string>();
         var strict = true;
@@ -248,6 +270,7 @@ public static class CurlSuiteRunner
             if (hasStripFile) break; // perl post-processing we cannot replay
             var fileName = pre.Process(section.Attr("name") ?? string.Empty).Trim();
             if (fileName.Length == 0) continue;
+            fileName = Path.IsPathRooted(fileName) ? fileName : Path.Combine(root, fileName);
             var expected = pre.ProcessSection(section);
             if (!File.Exists(fileName))
             {
@@ -255,11 +278,12 @@ public static class CurlSuiteRunner
                 continue;
             }
             var actual = File.ReadAllText(fileName, Encoding.Latin1);
-            if (Normalize(expected) != Normalize(actual))
+            var fileCmp = HttpDumpComparer.Compare(expected, actual, Array.Empty<string>());
+            if (!fileCmp.Match)
             {
-                problems.Add($"file {Path.GetFileName(fileName)}: " + HttpDumpComparer.Describe(expected, actual));
+                problems.Add($"file {Path.GetFileName(fileName)}: " + fileCmp.Message);
             }
-            strict &= expected == actual;
+            strict &= fileCmp.Strict;
         }
 
         var notExists = test.Get("verify", "notexists");
@@ -268,6 +292,7 @@ public static class CurlSuiteRunner
             foreach (var line in notExists.Lines.Where(l => l.Trim().Length > 0))
             {
                 var fileName = pre.Process(line).Trim();
+                fileName = Path.IsPathRooted(fileName) ? fileName : Path.Combine(root, fileName);
                 if (File.Exists(fileName)) problems.Add($"{Path.GetFileName(fileName)} must not exist");
             }
         }
@@ -361,7 +386,7 @@ public static class CurlSuiteRunner
             ["VERSION"] = CurlVersion,
             ["VERNUM"] = CurlVersion,
             ["CURL"] = "curl",
-            ["LOGDIR"] = logDir,
+            ["LOGDIR"] = "log", // relative, like curl's globalconfig.pm; the command runs with cwd = %PWD
             ["PWD"] = root,
             ["POSIX_PWD"] = root,
             ["FILE_PWD"] = root,
@@ -405,10 +430,26 @@ public static class HttpDumpComparer
 
     public readonly record struct CompareResult(bool Match, bool Strict, string Message);
 
+    private static readonly Regex Alternatives = new(@"%alternatives\[([^,\]]*),([^\]]*)\]", RegexOptions.Compiled);
+
     public static CompareResult Compare(string expected, string actual, IReadOnlyList<string> strips)
     {
         var expectedLines = Strip(Lines(expected), strips);
         var actualLines = Strip(Lines(actual), strips);
+
+        // %days[N] expands to %alternatives[a,b]: pick whichever alternative the actual output used
+        if (expectedLines.Any(l => l.Contains("%alternatives[", StringComparison.Ordinal)))
+        {
+            var actualSet = new HashSet<string>(actualLines, StringComparer.Ordinal);
+            expectedLines = expectedLines.Select(l =>
+            {
+                if (!l.Contains("%alternatives[", StringComparison.Ordinal)) return l;
+                var first = Alternatives.Replace(l, m => m.Groups[1].Value);
+                var second = Alternatives.Replace(l, m => m.Groups[2].Value);
+                return actualSet.Contains(second) ? second : first;
+            }).ToList();
+            expected = string.Join("\n", expectedLines) + "\n";
+        }
 
         var strict = expected == actual;
         if (expectedLines.SequenceEqual(actualLines))
