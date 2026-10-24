@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlSslCipherException\(string, string\)](CurlDotNet.Exceptions.CurlSslCipherException.CurlSslCipherException(string,string).md 'CurlDotNet\.Exceptions\.CurlSslCipherException\.CurlSslCipherException\(string, string\)') | |
+| [CurlSslCipherException\(string, string\)](CurlDotNet.Exceptions.CurlSslCipherException.CurlSslCipherException(string,string).md 'CurlDotNet\.Exceptions\.CurlSslCipherException\.CurlSslCipherException\(string, string\)') | Initializes a new instance of the [CurlSslCipherException](CurlDotNet.Exceptions.CurlSslCipherException.md 'CurlDotNet\.Exceptions\.CurlSslCipherException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [CipherName](CurlDotNet.Exceptions.CurlSslCipherException.CipherName.md 'CurlDotNet\.Exceptions\.CurlSslCipherException\.CipherName') | |
+| [CipherName](CurlDotNet.Exceptions.CurlSslCipherException.CipherName.md 'CurlDotNet\.Exceptions\.CurlSslCipherException\.CipherName') | Gets the name of the SSL cipher that could not be used |

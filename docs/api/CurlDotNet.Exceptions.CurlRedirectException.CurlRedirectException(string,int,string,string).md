@@ -3,6 +3,8 @@
 
 ## CurlRedirectException\(string, int, string, string\) Constructor
 
+Initializes a new instance of the [CurlRedirectException](CurlDotNet.Exceptions.CurlRedirectException.md 'CurlDotNet\.Exceptions\.CurlRedirectException') class\.
+
 ```csharp
 public CurlRedirectException(string message, int redirectCount, string lastUrl=null, string command=null);
 ```
@@ -12,14 +14,22 @@ public CurlRedirectException(string message, int redirectCount, string lastUrl=n
 
 `message` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
+The error message describing the redirect limit exceeded\.
+
 <a name='CurlDotNet.Exceptions.CurlRedirectException.CurlRedirectException(string,int,string,string).redirectCount'></a>
 
 `redirectCount` [System\.Int32](https://learn.microsoft.com/en-us/dotnet/api/system.int32 'System\.Int32')
+
+The number of redirects that were attempted\.
 
 <a name='CurlDotNet.Exceptions.CurlRedirectException.CurlRedirectException(string,int,string,string).lastUrl'></a>
 
 `lastUrl` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
+The last URL in the redirect chain\.
+
 <a name='CurlDotNet.Exceptions.CurlRedirectException.CurlRedirectException(string,int,string,string).command'></a>
 
 `command` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+
+The curl command that was executing\.

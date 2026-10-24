@@ -3,6 +3,8 @@
 
 ## CurlTooManyRedirectsException\.RedirectCount Property
 
+Gets the number of redirects that were attempted before failing
+
 ```csharp
 public int RedirectCount { get; }
 ```

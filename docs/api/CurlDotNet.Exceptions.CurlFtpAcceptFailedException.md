@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlFtpAcceptFailedException\(string, string\)](CurlDotNet.Exceptions.CurlFtpAcceptFailedException.CurlFtpAcceptFailedException(string,string).md 'CurlDotNet\.Exceptions\.CurlFtpAcceptFailedException\.CurlFtpAcceptFailedException\(string, string\)') | |
+| [CurlFtpAcceptFailedException\(string, string\)](CurlDotNet.Exceptions.CurlFtpAcceptFailedException.CurlFtpAcceptFailedException(string,string).md 'CurlDotNet\.Exceptions\.CurlFtpAcceptFailedException\.CurlFtpAcceptFailedException\(string, string\)') | Initializes a new instance of the CurlFtpAcceptFailedException class\. |

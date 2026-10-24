@@ -4,6 +4,8 @@
 
 | Classes | |
 | :--- | :--- |
+| [AwsSigV4Config](CurlDotNet.Core.AwsSigV4Config.md 'CurlDotNet\.Core\.AwsSigV4Config') | Configuration parsed from the \-\-aws\-sigv4 parameter value\. |
+| [AwsSigV4Signer](CurlDotNet.Core.AwsSigV4Signer.md 'CurlDotNet\.Core\.AwsSigV4Signer') | Implements AWS Signature Version 4 request signing in pure C\#\. |
 | [CommandParser](CurlDotNet.Core.CommandParser.md 'CurlDotNet\.Core\.CommandParser') | Parses curl command strings into CurlOptions, following curl's command\-line syntax exactly\. This parser is inspired by curl's tool\_getparam\.c which handles all parameter parsing\.    Supports all curl options including short forms (-X POST), long forms (--request POST), combined short options (-sS), option arguments, quote handling, and line continuations. The parser normalizes different shell syntaxes (bash, PowerShell, cmd, zsh) into a consistent format.  <b>Cross-Shell Compatibility:</b> Paste curl commands from any shell and they work:\.\.\.  For curl option reference: https://curl.se/docs/manpage.html#OPTIONS |
 | [CurlEngine](CurlDotNet.Core.CurlEngine.md 'CurlDotNet\.Core\.CurlEngine') | Core engine that processes and executes curl commands\. |
 | [CurlFtpException](CurlDotNet.Core.CurlFtpException.md 'CurlDotNet\.Core\.CurlFtpException') | FTP\-specific exception\. |
@@ -16,6 +18,7 @@
 | [FileHandler](CurlDotNet.Core.FileHandler.md 'CurlDotNet\.Core\.FileHandler') | Handler for file:// protocol\. |
 | [FtpHandler](CurlDotNet.Core.FtpHandler.md 'CurlDotNet\.Core\.FtpHandler') | Handler for FTP and FTPS protocols\. |
 | [HttpHandler](CurlDotNet.Core.HttpHandler.md 'CurlDotNet\.Core\.HttpHandler') | Handler for HTTP and HTTPS protocols\. |
+| [TraceWriter](CurlDotNet.Core.TraceWriter.md 'CurlDotNet\.Core\.TraceWriter') | Writes a detailed, human\-readable diagnostic trace of an HTTP transfer to a file \(or standard output\), mirroring curl's `--trace`, `--trace-ascii` and `--trace-time` options\. |
 | [ValidationResult](CurlDotNet.Core.ValidationResult.md 'CurlDotNet\.Core\.ValidationResult') | Result of command validation\. |
 
 | Interfaces | |

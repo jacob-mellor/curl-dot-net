@@ -1,116 +1,97 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using CurlDotNet;
+using CurlDotNet.Core;
 
 namespace CurlDotNet.Examples.FileOperations
 {
     /// <summary>
-    /// Example: Download files with progress tracking
+    /// Example: Download files to disk - with curl -o, Curl.DownloadAsync,
+    /// the fluent builder, byte ranges and parallel downloads.
     /// </summary>
     public class DownloadFileExample
     {
         public static async Task RunAsync()
         {
             Console.WriteLine("=== File Download Example ===\n");
+            Directory.CreateDirectory("downloads");
 
             // Example 1: Simple file download using curl -o
             Console.WriteLine("Example 1: Download file using curl -o");
-            var result1 = await Curl.ExecuteAsync(@"
-                curl -o example-download.html https://example.com
-            ");
+            var result1 = await Curl.ExecuteAsync("curl -o downloads/example.html https://httpbin.org/html");
             Console.WriteLine($"Download status: {result1.StatusCode}");
-            if (File.Exists("example-download.html"))
+            Console.WriteLine($"File saved: {new FileInfo("downloads/example.html").Length} bytes\n");
+
+            // Example 2: Download with the Curl.DownloadAsync helper (no command syntax needed)
+            Console.WriteLine("Example 2: Download with Curl.DownloadAsync");
+            var result2 = await Curl.DownloadAsync(
+                "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+                "downloads/sample.pdf");
+            Console.WriteLine($"Status {result2.StatusCode}, wrote: {string.Join(", ", result2.OutputFiles)}");
+
+            // Example 3: Download binary content with custom headers via the fluent builder
+            Console.WriteLine("\nExample 3: Download a repository archive");
+            var builder = CurlRequestBuilder
+                .Get("https://api.github.com/repos/jacob-mellor/curl-dot-net/zipball/master")
+                .WithHeader("Accept", "application/vnd.github+json")
+                .FollowRedirects(); // GitHub answers with a redirect to the archive
+
+            var githubToken = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+            if (!string.IsNullOrEmpty(githubToken))
             {
-                var fileInfo = new FileInfo("example-download.html");
-                Console.WriteLine($"File saved: {fileInfo.Length} bytes\n");
+                builder = builder.WithBearerToken(githubToken); // optional: higher rate limit
             }
 
-            // Example 2: Download with progress callback
-            Console.WriteLine("Example 2: Download with progress tracking");
-            await Curl.DownloadFileAsync(
-                "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-                "downloads/sample.pdf",
-                progress: (percent) => {
-                    Console.Write($"\rDownloading: {percent:F1}%");
-                    if (percent >= 100)
-                        Console.WriteLine(" - Complete!");
-                }
-            );
-
-            // Example 3: Download with custom headers
-            Console.WriteLine("\nExample 3: Download with authentication");
-            var result3 = await Curl.GetAsync("https://api.github.com/repos/jacob-mellor/curl-dot-net/zipball/master")
-                .WithHeader("Authorization", "token github_pat_fake_token")
-                .WithHeader("Accept", "application/vnd.github.v3+json")
-                .ExecuteAsync();
-
-            if (result3.BinaryData != null)
+            var result3 = await builder.ExecuteAsync();
+            if (result3.IsBinary) // binary responses land in BinaryData, not Body
             {
                 await File.WriteAllBytesAsync("downloads/repo.zip", result3.BinaryData);
-                Console.WriteLine($"Repository archive saved: {result3.BinaryData.Length} bytes");
+                Console.WriteLine($"Repository archive saved: {result3.BinaryData.Length:N0} bytes");
             }
 
-            // Example 4: Resume partial download
-            Console.WriteLine("\nExample 4: Resume partial download");
-            var partialFile = "downloads/large-file.bin";
-            long existingBytes = 0;
+            // Example 4: Partial download - just the first 100 bytes with a byte range (-r)
+            Console.WriteLine("\nExample 4: Byte-range download");
+            var result4 = await Curl.ExecuteAsync(
+                "curl -r 0-99 -o downloads/first-100-bytes.bin https://httpbin.org/range/1024");
+            Console.WriteLine($"Status {result4.StatusCode} (206 = Partial Content), " +
+                              $"{new FileInfo("downloads/first-100-bytes.bin").Length} bytes on disk");
 
-            if (File.Exists(partialFile))
-            {
-                existingBytes = new FileInfo(partialFile).Length;
-                Console.WriteLine($"Resuming from byte {existingBytes}");
-            }
-
-            var result4 = await Curl.ExecuteAsync($@"
-                curl -C {existingBytes} -o {partialFile} https://example.com/large-file.bin
-            ");
-            Console.WriteLine($"Resume status: {(result4.IsSuccess ? "Success" : "Failed")}");
-
-            // Example 5: Download multiple files
+            // Example 5: Download multiple files in parallel
             Console.WriteLine("\nExample 5: Batch download");
-            string[] urls = {
-                "https://example.com/file1.txt",
-                "https://example.com/file2.txt",
-                "https://example.com/file3.txt"
-            };
+            int[] sizes = { 1024, 2048, 4096 };
 
-            var downloadTasks = new Task[urls.Length];
-            for (int i = 0; i < urls.Length; i++)
+            var downloads = sizes.Select(size =>
+                Curl.DownloadAsync($"https://httpbin.org/bytes/{size}", $"downloads/file-{size}.bin"));
+            var results = await Task.WhenAll(downloads);
+
+            foreach (var result in results)
             {
-                int index = i; // Capture for closure
-                downloadTasks[i] = Task.Run(async () =>
-                {
-                    var fileName = $"downloads/file{index + 1}.txt";
-                    var result = await Curl.ExecuteAsync($"curl -o {fileName} {urls[index]}");
-                    Console.WriteLine($"Downloaded {fileName}: {result.StatusCode}");
-                });
+                Console.WriteLine($"Downloaded {result.OutputFiles.FirstOrDefault()}: {result.StatusCode}");
             }
-            await Task.WhenAll(downloadTasks);
-            Console.WriteLine("All downloads complete!");
 
-            // Example 6: Save response to file with metadata
+            // Example 6: Save a response to file, plus metadata about it
             Console.WriteLine("\nExample 6: Save with metadata");
-            var result6 = await Curl.GetAsync("https://api.github.com/users/octocat")
-                .WithHeader("Accept", "application/json")
-                .ExecuteAsync();
+            var result6 = await Curl.GetAsync("https://api.github.com/users/octocat");
 
             if (result6.IsSuccess)
             {
-                // Save response body
-                await File.WriteAllTextAsync("downloads/response.json", result6.Body);
+                // SaveToFile writes Body (or BinaryData for binary responses)
+                result6.SaveToFile("downloads/response.json");
 
-                // Save metadata
                 var metadata = new
                 {
                     url = "https://api.github.com/users/octocat",
                     statusCode = result6.StatusCode,
                     headers = result6.Headers,
                     downloadTime = DateTime.Now,
+                    totalMs = result6.Timings?.Total,
                     contentLength = result6.Body.Length
                 };
 
-                var metadataJson = System.Text.Json.JsonSerializer.Serialize(metadata, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                var metadataJson = JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true });
                 await File.WriteAllTextAsync("downloads/response.meta.json", metadataJson);
                 Console.WriteLine("Response and metadata saved");
             }

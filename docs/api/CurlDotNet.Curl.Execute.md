@@ -5,9 +5,39 @@
 
 | Overloads | |
 | :--- | :--- |
+| [Execute\(CurlOptions\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.Execute\(CurlDotNet\.Core\.CurlOptions\)') |   <b>⚠️ SYNCHRONOUS execution of a <see cref="T:CurlDotNet.Core.CurlOptions"/> object - blocks the thread.</b>  Nothing is parsed, so data containing quotes or spaces needs no escaping.             Prefer [ExecuteAsync\(CurlOptions\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions\)') in async code.\`\.\.\.\` |
 | [Execute\(string\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string) 'CurlDotNet\.Curl\.Execute\(string\)') |   <b>⚠️ SYNCHRONOUS - Execute curl command and WAIT for it to complete (BLOCKS thread).</b>  This method BLOCKS your thread until the HTTP request completes. Your application              will FREEZE during this time. Only use when async is not possible.  <b>When to use SYNC (this method):</b>\.\.\.  <b>Example - When sync is OK:</b>\`\.\.\.\`  <b>⚠️ WARNING:</b> This blocks your thread. The application cannot do anything else              while waiting for the HTTP response. Use ExecuteAsync instead whenever possible! |
 | [Execute\(string, CurlSettings\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string,CurlDotNet.Core.CurlSettings) 'CurlDotNet\.Curl\.Execute\(string, CurlDotNet\.Core\.CurlSettings\)') |   <b>⚠️ SYNCHRONOUS with settings - Blocks thread with advanced options.</b> |
 | [Execute\(string, CancellationToken\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string,System.Threading.CancellationToken) 'CurlDotNet\.Curl\.Execute\(string, System\.Threading\.CancellationToken\)') |   <b>⚠️ SYNCHRONOUS with cancellation - Blocks thread but can be cancelled.</b>  Still BLOCKS your thread, but can be cancelled. Prefer ExecuteAsync with cancellation.\`\.\.\.\` |
+
+<a name='CurlDotNet.Curl.Execute(CurlDotNet.Core.CurlOptions)'></a>
+
+## Curl\.Execute\(CurlOptions\) Method
+
+
+<b>⚠️ SYNCHRONOUS execution of a <see cref="T:CurlDotNet.Core.CurlOptions"/> object - blocks the thread.</b>
+
+Nothing is parsed, so data containing quotes or spaces needs no escaping.
+            Prefer [ExecuteAsync\(CurlOptions\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions\)') in async code.
+
+```csharp
+var result = Curl.Execute(new CurlOptions { Url = "https://api.example.com", Method = "DELETE" });
+```
+
+```csharp
+public static CurlDotNet.Core.CurlResult Execute(CurlDotNet.Core.CurlOptions options);
+```
+#### Parameters
+
+<a name='CurlDotNet.Curl.Execute(CurlDotNet.Core.CurlOptions).options'></a>
+
+`options` [CurlOptions](CurlDotNet.Core.CurlOptions.md 'CurlDotNet\.Core\.CurlOptions')
+
+The fully populated request options\. [Url](CurlDotNet.Core.CurlOptions.Url.md 'CurlDotNet\.Core\.CurlOptions\.Url') is required\.
+
+#### Returns
+[CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')  
+A [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult') with the response\.
 
 <a name='CurlDotNet.Curl.Execute(string)'></a>
 

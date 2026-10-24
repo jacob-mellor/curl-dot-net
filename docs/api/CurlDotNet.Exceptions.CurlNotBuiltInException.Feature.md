@@ -3,6 +3,8 @@
 
 ## CurlNotBuiltInException\.Feature Property
 
+Gets the feature that is not available
+
 ```csharp
 public string Feature { get; }
 ```

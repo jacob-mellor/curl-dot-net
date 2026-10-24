@@ -74,7 +74,8 @@ jobs:
             "lib/net472/CurlDotNet.dll",
             "lib/net48/CurlDotNet.dll",
             "lib/net8.0/CurlDotNet.dll",
-            "lib/net9.0/CurlDotNet.dll"
+            "lib/net9.0/CurlDotNet.dll",
+            "lib/net10.0/CurlDotNet.dll"
         )
 
         foreach ($framework in $requiredFrameworks) {

@@ -3,6 +3,8 @@
 
 ## CurlRetryException\.RetryCount Property
 
+Gets the number of retry attempts that were made before failing
+
 ```csharp
 public int RetryCount { get; }
 ```

@@ -3,6 +3,8 @@
 
 ## CurlNotSupportedException\.Feature Property
 
+Gets the name of the feature that is not supported
+
 ```csharp
 public string Feature { get; }
 ```

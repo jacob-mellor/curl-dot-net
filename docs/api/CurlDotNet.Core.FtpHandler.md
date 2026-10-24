@@ -16,8 +16,3 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 Implements FTP operations using .NET's FtpWebRequest.
 
 AI-Usage: This handler supports FTP file operations matching curl's FTP functionality.
-
-| Methods | |
-| :--- | :--- |
-| [ExecuteAsync\(CurlOptions, CancellationToken\)](CurlDotNet.Core.FtpHandler.ExecuteAsync(CurlDotNet.Core.CurlOptions,System.Threading.CancellationToken).md 'CurlDotNet\.Core\.FtpHandler\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions, System\.Threading\.CancellationToken\)') | |
-| [SupportsProtocol\(string\)](CurlDotNet.Core.FtpHandler.SupportsProtocol(string).md 'CurlDotNet\.Core\.FtpHandler\.SupportsProtocol\(string\)') | |

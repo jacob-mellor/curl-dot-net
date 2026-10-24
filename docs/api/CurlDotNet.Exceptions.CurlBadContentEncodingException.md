@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlBadContentEncodingException\(string, string\)](CurlDotNet.Exceptions.CurlBadContentEncodingException.CurlBadContentEncodingException(string,string).md 'CurlDotNet\.Exceptions\.CurlBadContentEncodingException\.CurlBadContentEncodingException\(string, string\)') | |
+| [CurlBadContentEncodingException\(string, string\)](CurlDotNet.Exceptions.CurlBadContentEncodingException.CurlBadContentEncodingException(string,string).md 'CurlDotNet\.Exceptions\.CurlBadContentEncodingException\.CurlBadContentEncodingException\(string, string\)') | Initializes a new instance of the [CurlBadContentEncodingException](CurlDotNet.Exceptions.CurlBadContentEncodingException.md 'CurlDotNet\.Exceptions\.CurlBadContentEncodingException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [Encoding](CurlDotNet.Exceptions.CurlBadContentEncodingException.Encoding.md 'CurlDotNet\.Exceptions\.CurlBadContentEncodingException\.Encoding') | |
+| [Encoding](CurlDotNet.Exceptions.CurlBadContentEncodingException.Encoding.md 'CurlDotNet\.Exceptions\.CurlBadContentEncodingException\.Encoding') | Gets the content encoding that was not recognized or could not be decoded |

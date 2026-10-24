@@ -3,6 +3,8 @@
 
 ## LoggingMiddleware\(Action\<string\>\) Constructor
 
+Initializes a new instance of the [LoggingMiddleware](CurlDotNet.Middleware.LoggingMiddleware.md 'CurlDotNet\.Middleware\.LoggingMiddleware') class\.
+
 ```csharp
 public LoggingMiddleware(System.Action<string> logger=null);
 ```
@@ -11,3 +13,5 @@ public LoggingMiddleware(System.Action<string> logger=null);
 <a name='CurlDotNet.Middleware.LoggingMiddleware.LoggingMiddleware(System.Action_string_).logger'></a>
 
 `logger` [System\.Action&lt;](https://learn.microsoft.com/en-us/dotnet/api/system.action-1 'System\.Action\`1')[System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')[&gt;](https://learn.microsoft.com/en-us/dotnet/api/system.action-1 'System\.Action\`1')
+
+Optional custom logger\. If null, uses Console\.WriteLine\.

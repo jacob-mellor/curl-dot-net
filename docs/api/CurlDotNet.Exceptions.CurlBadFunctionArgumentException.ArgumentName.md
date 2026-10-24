@@ -3,6 +3,8 @@
 
 ## CurlBadFunctionArgumentException\.ArgumentName Property
 
+Gets the name of the argument that was invalid
+
 ```csharp
 public string ArgumentName { get; }
 ```

@@ -4,7 +4,7 @@
 
 ### README Maintenance Requirements
 - **Main README.md**: Always update when adding new features or documentation
-- **NuGet README**: Update nuget-readme.md and run `./scripts/prepare-nuget-readme.sh`
+- **NuGet README**: `nuget-readme.md` (repo root) is the short, absolute-link README packed into the NuGet package; keep it in sync with README.md by hand and run `dotnet script scripts/prepare-nuget-readme.csx` to validate it
 - **New to curl Section**: Keep prominent at the top for beginners
 - **Author Metadata**: Ensure Jacob Mellor's author info is present
 - **Index Files**: Always update directory index files when adding new content

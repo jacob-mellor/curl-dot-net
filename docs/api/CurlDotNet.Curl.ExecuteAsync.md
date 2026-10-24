@@ -5,9 +5,91 @@
 
 | Overloads | |
 | :--- | :--- |
-| [ExecuteAsync\(string\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string) 'CurlDotNet\.Curl\.ExecuteAsync\(string\)') |   <b>🎯 THE MAIN METHOD - Executes any curl command and returns the response.</b>  Just paste ANY curl command as a string. It works exactly like running curl from the command line,              but returns the result as a nice C# object you can work with.  <b>Simple Example:</b>\`\.\.\.\`  <b>Real-World Example from Stripe Docs:</b>\`\.\.\.\`  <b>All HTTP Methods Supported:</b>\`\.\.\.\`  <b>Common Options:</b>\`\.\.\.\` |
+| [ExecuteAsync\(CurlOptions\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions\)') |   <b>Execute a request described by a <see cref="T:CurlDotNet.Core.CurlOptions"/> object - no command string, no quoting.</b>  Use this when the values come from variables and you do not want to think about shell              quoting at all. Nothing is parsed: data containing quotes, spaces or backslashes is sent              exactly as given. The convenience helpers ([PostAsync\(string, string\)](CurlDotNet.Curl.PostAsync(string,string).md 'CurlDotNet\.Curl\.PostAsync\(string, string\)'), [PostJsonAsync\(string, object\)](CurlDotNet.Curl.PostJsonAsync(string,object).md 'CurlDotNet\.Curl\.PostJsonAsync\(string, object\)'),              [DownloadAsync\(string, string\)](CurlDotNet.Curl.DownloadAsync(string,string).md 'CurlDotNet\.Curl\.DownloadAsync\(string, string\)')) are built on this method.  <b>Example:</b>\`\.\.\.\` |
+| [ExecuteAsync\(CurlOptions, CancellationToken\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions,System.Threading.CancellationToken) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions, System\.Threading\.CancellationToken\)') |   <b>Execute a <see cref="T:CurlDotNet.Core.CurlOptions"/> request with cancellation support.</b>  See [ExecuteAsync\(CurlOptions\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions\)') for details. |
+| [ExecuteAsync\(string\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string) 'CurlDotNet\.Curl\.ExecuteAsync\(string\)') |   <b>🎯 THE MAIN METHOD - Executes any curl command and returns the response.</b>  Just paste ANY curl command as a string. It works exactly like running curl from the command line,              but returns the result as a nice C# object you can work with.\<example\>   \<code language="csharp"\>              // Copy any curl command from documentation and paste it here:              var response = await Curl\.ExecuteAsync\("curl https://api\.github\.com/users/octocat"\);                           // Work with the response:              Console\.WriteLine\($"Status: \{response\.StatusCode\}"\);  // 200              Console\.WriteLine\($"Body: \{response\.Body\}"\);          // JSON data              var user = response\.ParseJson&lt;GitHubUser&gt;\(\);        // Parse to object                           // Use CurlSettings for retries/timeouts:              var settings = new CurlSettings\(\)                  \.WithTimeout\(seconds: 10\)                  \.WithRetries\(count: 2, delayMs: 250\);              var resilient = await Curl\.ExecuteAsync\("curl \-\-max\-time 5 https://httpbin\.org/json", settings\);              resilient\.EnsureSuccess\(\);              \</code\> \</example\>  <b>Real-World Example from Stripe Docs:</b>\`\.\.\.\`  <b>All HTTP Methods Supported:</b>\`\.\.\.\`  <b>Common Options:</b>\`\.\.\.\` |
 | [ExecuteAsync\(string, CurlSettings\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,CurlDotNet.Core.CurlSettings) 'CurlDotNet\.Curl\.ExecuteAsync\(string, CurlDotNet\.Core\.CurlSettings\)') |   <b>Execute with advanced settings - for when you need more control.</b>  Use this overload when you need features beyond what curl command strings provide,              like progress callbacks, custom HTTP handlers, or retry policies.  <b>Example with Progress Reporting:</b>\`\.\.\.\`  <b>Example with Custom Retry Policy:</b>\`\.\.\.\` |
 | [ExecuteAsync\(string, CancellationToken\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,System.Threading.CancellationToken) 'CurlDotNet\.Curl\.ExecuteAsync\(string, System\.Threading\.CancellationToken\)') |   <b>Execute a curl command with cancellation support - perfect for long-running operations.</b>  This lets you cancel the HTTP request if it's taking too long or if the user cancels.              Essential for good user experience in desktop and mobile apps.  <b>Basic Example:</b>\`\.\.\.\`  <b>User-Cancellable Download:</b>\`\.\.\.\`  <b>Web API with Request Timeout:</b>\`\.\.\.\` |
+
+<a name='CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions)'></a>
+
+## Curl\.ExecuteAsync\(CurlOptions\) Method
+
+
+<b>Execute a request described by a <see cref="T:CurlDotNet.Core.CurlOptions"/> object - no command string, no quoting.</b>
+
+Use this when the values come from variables and you do not want to think about shell
+             quoting at all. Nothing is parsed: data containing quotes, spaces or backslashes is sent
+             exactly as given. The convenience helpers ([PostAsync\(string, string\)](CurlDotNet.Curl.PostAsync(string,string).md 'CurlDotNet\.Curl\.PostAsync\(string, string\)'), [PostJsonAsync\(string, object\)](CurlDotNet.Curl.PostJsonAsync(string,object).md 'CurlDotNet\.Curl\.PostJsonAsync\(string, object\)'),
+             [DownloadAsync\(string, string\)](CurlDotNet.Curl.DownloadAsync(string,string).md 'CurlDotNet\.Curl\.DownloadAsync\(string, string\)')) are built on this method.
+
+<b>Example:</b>
+
+```csharp
+var options = new CurlOptions
+{
+    Url = "https://api.example.com/users",
+    Method = "POST",
+    Data = "{\"name\":\"O'Brien\"}",
+    Headers = { ["Content-Type"] = "application/json" },
+    FollowLocation = true
+};
+
+var result = await Curl.ExecuteAsync(options);
+```
+
+```csharp
+public static System.Threading.Tasks.Task<CurlDotNet.Core.CurlResult> ExecuteAsync(CurlDotNet.Core.CurlOptions options);
+```
+#### Parameters
+
+<a name='CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions).options'></a>
+
+`options` [CurlOptions](CurlDotNet.Core.CurlOptions.md 'CurlDotNet\.Core\.CurlOptions')
+
+The fully populated request options\. [Url](CurlDotNet.Core.CurlOptions.Url.md 'CurlDotNet\.Core\.CurlOptions\.Url') is required\.
+
+#### Returns
+[System\.Threading\.Tasks\.Task&lt;](https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1 'System\.Threading\.Tasks\.Task\`1')[CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')[&gt;](https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1 'System\.Threading\.Tasks\.Task\`1')  
+A [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult') with the response\.
+
+#### Exceptions
+
+[System\.ArgumentNullException](https://learn.microsoft.com/en-us/dotnet/api/system.argumentnullexception 'System\.ArgumentNullException')  
+Thrown when [options](CurlDotNet.Curl.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions).options 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions\)\.options') is null\.
+
+[CurlException](CurlDotNet.Exceptions.CurlException.md 'CurlDotNet\.Exceptions\.CurlException')  
+Thrown when no URL is set or the request fails\.
+
+<a name='CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions,System.Threading.CancellationToken)'></a>
+
+## Curl\.ExecuteAsync\(CurlOptions, CancellationToken\) Method
+
+
+<b>Execute a <see cref="T:CurlDotNet.Core.CurlOptions"/> request with cancellation support.</b>
+
+See [ExecuteAsync\(CurlOptions\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Curl\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions\)') for details.
+
+```csharp
+public static System.Threading.Tasks.Task<CurlDotNet.Core.CurlResult> ExecuteAsync(CurlDotNet.Core.CurlOptions options, System.Threading.CancellationToken cancellationToken);
+```
+#### Parameters
+
+<a name='CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions,System.Threading.CancellationToken).options'></a>
+
+`options` [CurlOptions](CurlDotNet.Core.CurlOptions.md 'CurlDotNet\.Core\.CurlOptions')
+
+The fully populated request options\. [Url](CurlDotNet.Core.CurlOptions.Url.md 'CurlDotNet\.Core\.CurlOptions\.Url') is required\.
+
+<a name='CurlDotNet.Curl.ExecuteAsync(CurlDotNet.Core.CurlOptions,System.Threading.CancellationToken).cancellationToken'></a>
+
+`cancellationToken` [System\.Threading\.CancellationToken](https://learn.microsoft.com/en-us/dotnet/api/system.threading.cancellationtoken 'System\.Threading\.CancellationToken')
+
+Token used to cancel the request\.
+
+#### Returns
+[System\.Threading\.Tasks\.Task&lt;](https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1 'System\.Threading\.Tasks\.Task\`1')[CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')[&gt;](https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1 'System\.Threading\.Tasks\.Task\`1')  
+A [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult') with the response\.
 
 <a name='CurlDotNet.Curl.ExecuteAsync(string)'></a>
 
@@ -17,19 +99,24 @@
 <b>🎯 THE MAIN METHOD - Executes any curl command and returns the response.</b>
 
 Just paste ANY curl command as a string. It works exactly like running curl from the command line,
-             but returns the result as a nice C# object you can work with.
-
-<b>Simple Example:</b>
-
-```csharp
-// Copy any curl command from documentation and paste it here:
-var response = await Curl.Execute("curl https://api.github.com/users/octocat");
-
-// Work with the response:
-Console.WriteLine($"Status: {response.StatusCode}");  // 200
-Console.WriteLine($"Body: {response.Body}");          // JSON data
-var user = response.ParseJson<GitHubUser>();        // Parse to object
-```
+             but returns the result as a nice C# object you can work with.\<example\>
+  \<code language="csharp"\>
+             // Copy any curl command from documentation and paste it here:
+             var response = await Curl\.ExecuteAsync\("curl https://api\.github\.com/users/octocat"\);
+            
+             // Work with the response:
+             Console\.WriteLine\($"Status: \{response\.StatusCode\}"\);  // 200
+             Console\.WriteLine\($"Body: \{response\.Body\}"\);          // JSON data
+             var user = response\.ParseJson&lt;GitHubUser&gt;\(\);        // Parse to object
+            
+             // Use CurlSettings for retries/timeouts:
+             var settings = new CurlSettings\(\)
+                 \.WithTimeout\(seconds: 10\)
+                 \.WithRetries\(count: 2, delayMs: 250\);
+             var resilient = await Curl\.ExecuteAsync\("curl \-\-max\-time 5 https://httpbin\.org/json", settings\);
+             resilient\.EnsureSuccess\(\);
+             \</code\>
+\</example\>
 
 <b>Real-World Example from Stripe Docs:</b>
 
@@ -134,12 +221,12 @@ await Curl.Execute("");
 await Curl.Execute("   ");
 ```
 
-[CurlParseException](https://learn.microsoft.com/en-us/dotnet/api/curlparseexception 'CurlParseException')  
+[CurlParsingException](CurlDotNet.Exceptions.CurlParsingException.md 'CurlDotNet\.Exceptions\.CurlParsingException')  
 
 Thrown when the curl command can't be understood. Usually means typo or unsupported option.
 
 ```csharp
-// ❌ This will throw CurlParseException:
+// ❌ This will throw CurlParsingException:
 await Curl.Execute("curl --invalid-option https://example.com");
 ```
 
@@ -147,7 +234,7 @@ Error codes: CURLE_URL_MALFORMAT (3), CURLE_UNSUPPORTED_PROTOCOL (1)
 
 See: [curl error codes](https://curl.se/libcurl/c/libcurl-errors.html 'https://curl\.se/libcurl/c/libcurl\-errors\.html')
 
-[CurlDnsException](https://learn.microsoft.com/en-us/dotnet/api/curldnsexception 'CurlDnsException')  
+[CurlCouldntResolveHostException](CurlDotNet.Exceptions.CurlCouldntResolveHostException.md 'CurlDotNet\.Exceptions\.CurlCouldntResolveHostException')  
 
 Thrown when the hostname cannot be resolved (DNS failure).
 
@@ -156,7 +243,7 @@ try
 {
     await Curl.Execute("curl https://this-domain-does-not-exist.com");
 }
-catch (CurlDnsException ex)
+catch (Exceptions.CurlCouldntResolveHostException ex)
 {
     Console.WriteLine($"Could not find server: {ex.Hostname}");
 }
@@ -164,7 +251,7 @@ catch (CurlDnsException ex)
 
 Error code: CURLE_COULDNT_RESOLVE_HOST (6)
 
-[CurlTimeoutException](https://learn.microsoft.com/en-us/dotnet/api/curltimeoutexception 'CurlTimeoutException')  
+[CurlTimeoutException](CurlDotNet.Exceptions.CurlTimeoutException.md 'CurlDotNet\.Exceptions\.CurlTimeoutException')  
 
 Thrown when the operation takes longer than the timeout specified by [command](CurlDotNet.Curl.md#CurlDotNet.Curl.ExecuteAsync(string).command 'CurlDotNet\.Curl\.ExecuteAsync\(string\)\.command') (via `--max-time`) 
              or [DefaultMaxTimeSeconds](CurlDotNet.Curl.DefaultMaxTimeSeconds.md 'CurlDotNet\.Curl\.DefaultMaxTimeSeconds').
@@ -174,7 +261,7 @@ try
 {
     await Curl.ExecuteAsync("curl --max-time 5 https://very-slow-api.com");
 }
-catch (CurlTimeoutException ex)
+catch (Exceptions.CurlTimeoutException ex)
 {
     Console.WriteLine($"Timed out after {ex.Timeout} seconds");
 }
@@ -184,17 +271,17 @@ Error code: `CURLE_OPERATION_TIMEDOUT` (28)
 
 To cancel operations without waiting for timeout, use the [overload with ](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,System.Threading.CancellationToken) 'CurlDotNet\.Curl\.ExecuteAsync\(string, System\.Threading\.CancellationToken\)').
 
-[CurlSslException](https://learn.microsoft.com/en-us/dotnet/api/curlsslexception 'CurlSslException')  
+[CurlSslException](CurlDotNet.Exceptions.CurlSslException.md 'CurlDotNet\.Exceptions\.CurlSslException')  
 
-Thrown for SSL/TLS certificate problems. This can occur when certificates are self-signed, expired, 
-             or don't match the domain. Check [CurlSslException\.CertificateError](https://learn.microsoft.com/en-us/dotnet/api/curlsslexception.certificateerror 'CurlSslException\.CertificateError') for details.
+Thrown for SSL/TLS certificate problems. This can occur when certificates are self-signed, expired,
+             or don't match the domain. Check [CertificateError](CurlDotNet.Exceptions.CurlSslException.CertificateError.md 'CurlDotNet\.Exceptions\.CurlSslException\.CertificateError') for details.
 
 ```csharp
 try
 {
     await Curl.ExecuteAsync("curl https://self-signed-cert.example.com");
 }
-catch (CurlSslException ex)
+catch (Exceptions.CurlSslException ex)
 {
     Console.WriteLine($"SSL problem: {ex.Message}");
     if (ex.CertificateError != null)
@@ -207,10 +294,10 @@ Error codes: `CURLE_SSL_CONNECT_ERROR` (35), `CURLE_PEER_FAILED_VERIFICATION` (6
 
 <b>⚠️ WARNING:</b> Using `-k` or `--insecure` disables certificate validation and makes you vulnerable to man-in-the-middle attacks. Only use in development!
 
-[CurlException](https://learn.microsoft.com/en-us/dotnet/api/curlexception 'CurlException')  
+[CurlException](CurlDotNet.Exceptions.CurlException.md 'CurlDotNet\.Exceptions\.CurlException')  
 
-Base exception for all curl-related errors. All specific exceptions inherit from this. 
-             See [CurlException\.ErrorCode](https://learn.microsoft.com/en-us/dotnet/api/curlexception.errorcode 'CurlException\.ErrorCode') for the specific curl error code.
+Base exception for all curl-related errors. All specific exceptions inherit from this.
+             See [CurlErrorCode](CurlDotNet.Exceptions.CurlException.CurlErrorCode.md 'CurlDotNet\.Exceptions\.CurlException\.CurlErrorCode') for the specific curl error code.
 
 Common error codes:
 
@@ -219,8 +306,8 @@ Common error codes:
 |The URL uses an unsupported protocol (not http, https, ftp, or file)|
 |The URL is malformed (missing protocol, invalid characters, etc.)|
 |DNS lookup failed - hostname doesn't exist|
-|Operation timed out (see [CurlTimeoutException](https://learn.microsoft.com/en-us/dotnet/api/curltimeoutexception 'CurlTimeoutException'))|
-|SSL certificate verification failed (see [CurlSslException](https://learn.microsoft.com/en-us/dotnet/api/curlsslexception 'CurlSslException'))|
+|Operation timed out (see [CurlTimeoutException](CurlDotNet.Exceptions.CurlTimeoutException.md 'CurlDotNet\.Exceptions\.CurlTimeoutException'))|
+|SSL certificate verification failed (see [CurlSslException](CurlDotNet.Exceptions.CurlSslException.md 'CurlDotNet\.Exceptions\.CurlSslException'))|
 
 For a complete list of all curl error codes, see [curl error codes](https://curl.se/libcurl/c/libcurl-errors.html 'https://curl\.se/libcurl/c/libcurl\-errors\.html').
 

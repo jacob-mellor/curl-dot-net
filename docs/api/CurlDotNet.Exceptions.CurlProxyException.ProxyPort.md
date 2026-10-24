@@ -3,6 +3,8 @@
 
 ## CurlProxyException\.ProxyPort Property
 
+Gets the proxy port number, if specified
+
 ```csharp
 public System.Nullable<int> ProxyPort { get; }
 ```

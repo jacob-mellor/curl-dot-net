@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlBadFunctionArgumentException\(string, string\)](CurlDotNet.Exceptions.CurlBadFunctionArgumentException.CurlBadFunctionArgumentException(string,string).md 'CurlDotNet\.Exceptions\.CurlBadFunctionArgumentException\.CurlBadFunctionArgumentException\(string, string\)') | |
+| [CurlBadFunctionArgumentException\(string, string\)](CurlDotNet.Exceptions.CurlBadFunctionArgumentException.CurlBadFunctionArgumentException(string,string).md 'CurlDotNet\.Exceptions\.CurlBadFunctionArgumentException\.CurlBadFunctionArgumentException\(string, string\)') | Initializes a new instance of the [CurlBadFunctionArgumentException](CurlDotNet.Exceptions.CurlBadFunctionArgumentException.md 'CurlDotNet\.Exceptions\.CurlBadFunctionArgumentException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [ArgumentName](CurlDotNet.Exceptions.CurlBadFunctionArgumentException.ArgumentName.md 'CurlDotNet\.Exceptions\.CurlBadFunctionArgumentException\.ArgumentName') | |
+| [ArgumentName](CurlDotNet.Exceptions.CurlBadFunctionArgumentException.ArgumentName.md 'CurlDotNet\.Exceptions\.CurlBadFunctionArgumentException\.ArgumentName') | Gets the name of the argument that was invalid |

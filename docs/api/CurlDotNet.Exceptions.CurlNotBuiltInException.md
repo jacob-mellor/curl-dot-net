@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlNotBuiltInException\(string, string\)](CurlDotNet.Exceptions.CurlNotBuiltInException.CurlNotBuiltInException(string,string).md 'CurlDotNet\.Exceptions\.CurlNotBuiltInException\.CurlNotBuiltInException\(string, string\)') | |
+| [CurlNotBuiltInException\(string, string\)](CurlDotNet.Exceptions.CurlNotBuiltInException.CurlNotBuiltInException(string,string).md 'CurlDotNet\.Exceptions\.CurlNotBuiltInException\.CurlNotBuiltInException\(string, string\)') | Initializes a new instance of the [CurlNotBuiltInException](CurlDotNet.Exceptions.CurlNotBuiltInException.md 'CurlDotNet\.Exceptions\.CurlNotBuiltInException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [Feature](CurlDotNet.Exceptions.CurlNotBuiltInException.Feature.md 'CurlDotNet\.Exceptions\.CurlNotBuiltInException\.Feature') | |
+| [Feature](CurlDotNet.Exceptions.CurlNotBuiltInException.Feature.md 'CurlDotNet\.Exceptions\.CurlNotBuiltInException\.Feature') | Gets the feature that is not available |

@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlTooManyRedirectsException\(int, string\)](CurlDotNet.Exceptions.CurlTooManyRedirectsException.CurlTooManyRedirectsException(int,string).md 'CurlDotNet\.Exceptions\.CurlTooManyRedirectsException\.CurlTooManyRedirectsException\(int, string\)') | |
+| [CurlTooManyRedirectsException\(int, string\)](CurlDotNet.Exceptions.CurlTooManyRedirectsException.CurlTooManyRedirectsException(int,string).md 'CurlDotNet\.Exceptions\.CurlTooManyRedirectsException\.CurlTooManyRedirectsException\(int, string\)') | Initializes a new instance of the [CurlTooManyRedirectsException](CurlDotNet.Exceptions.CurlTooManyRedirectsException.md 'CurlDotNet\.Exceptions\.CurlTooManyRedirectsException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [RedirectCount](CurlDotNet.Exceptions.CurlTooManyRedirectsException.RedirectCount.md 'CurlDotNet\.Exceptions\.CurlTooManyRedirectsException\.RedirectCount') | |
+| [RedirectCount](CurlDotNet.Exceptions.CurlTooManyRedirectsException.RedirectCount.md 'CurlDotNet\.Exceptions\.CurlTooManyRedirectsException\.RedirectCount') | Gets the number of redirects that were attempted before failing |

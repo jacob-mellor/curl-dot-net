@@ -3,6 +3,8 @@
 
 ## CurlUnsupportedProtocolException\.Protocol Property
 
+Gets the unsupported protocol that was attempted
+
 ```csharp
 public string Protocol { get; }
 ```

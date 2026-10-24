@@ -3,6 +3,8 @@
 
 ## CurlCouldntConnectException\.Port Property
 
+Gets the port number that could not be connected to
+
 ```csharp
 public int Port { get; }
 ```

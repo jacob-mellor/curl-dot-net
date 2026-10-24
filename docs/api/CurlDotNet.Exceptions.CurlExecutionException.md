@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlExecutionException\(string, string, Exception\)](CurlDotNet.Exceptions.CurlExecutionException.CurlExecutionException(string,string,System.Exception).md 'CurlDotNet\.Exceptions\.CurlExecutionException\.CurlExecutionException\(string, string, System\.Exception\)') | |
+| [CurlExecutionException\(string, string, Exception\)](CurlDotNet.Exceptions.CurlExecutionException.CurlExecutionException(string,string,System.Exception).md 'CurlDotNet\.Exceptions\.CurlExecutionException\.CurlExecutionException\(string, string, System\.Exception\)') | Initializes a new instance of the [CurlExecutionException](CurlDotNet.Exceptions.CurlExecutionException.md 'CurlDotNet\.Exceptions\.CurlExecutionException') class |

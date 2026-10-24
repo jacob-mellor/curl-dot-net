@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlCouldntResolveProxyException\(string, string\)](CurlDotNet.Exceptions.CurlCouldntResolveProxyException.CurlCouldntResolveProxyException(string,string).md 'CurlDotNet\.Exceptions\.CurlCouldntResolveProxyException\.CurlCouldntResolveProxyException\(string, string\)') | |
+| [CurlCouldntResolveProxyException\(string, string\)](CurlDotNet.Exceptions.CurlCouldntResolveProxyException.CurlCouldntResolveProxyException(string,string).md 'CurlDotNet\.Exceptions\.CurlCouldntResolveProxyException\.CurlCouldntResolveProxyException\(string, string\)') | Initializes a new instance of the [CurlCouldntResolveProxyException](CurlDotNet.Exceptions.CurlCouldntResolveProxyException.md 'CurlDotNet\.Exceptions\.CurlCouldntResolveProxyException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [ProxyHost](CurlDotNet.Exceptions.CurlCouldntResolveProxyException.ProxyHost.md 'CurlDotNet\.Exceptions\.CurlCouldntResolveProxyException\.ProxyHost') | |
+| [ProxyHost](CurlDotNet.Exceptions.CurlCouldntResolveProxyException.ProxyHost.md 'CurlDotNet\.Exceptions\.CurlCouldntResolveProxyException\.ProxyHost') | Gets the proxy host that could not be resolved |

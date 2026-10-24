@@ -7,27 +7,26 @@
 <b>Parse the JSON response into your C# class.</b>
 
 The most common operation - turning JSON into objects. This method uses [System\.Text\.Json\.JsonSerializer](https://learn.microsoft.com/en-us/dotnet/api/system.text.json.jsonserializer 'System\.Text\.Json\.JsonSerializer') 
-             in .NET 6+ and [Newtonsoft\.Json\.JsonConvert](https://learn.microsoft.com/en-us/dotnet/api/newtonsoft.json.jsonconvert 'Newtonsoft\.Json\.JsonConvert') in .NET Standard 2.0 for maximum compatibility.
-
-<b>Example:</b>
-
-```csharp
-// Define your class matching the JSON structure
-public class User
-{
-    public string Name { get; set; }
-    public string Email { get; set; }
-    public int Id { get; set; }
-}
-
-// Parse the response
-var user = result.ParseJson<User>();
-Console.WriteLine($"Hello {user.Name}!");
-
-// Or parse arrays
-var users = result.ParseJson<List<User>>();
-Console.WriteLine($"Found {users.Count} users");
-```
+             in .NET 6+ and [Newtonsoft\.Json\.JsonConvert](https://learn.microsoft.com/en-us/dotnet/api/newtonsoft.json.jsonconvert 'Newtonsoft\.Json\.JsonConvert') in .NET Standard 2.0 for maximum compatibility.\<example\>
+  \<code language="csharp"\>
+             // Define your class matching the JSON structure
+             public class User
+             \{
+                 public string Name \{ get; set; \}
+                 public string Email \{ get; set; \}
+                 public int Id \{ get; set; \}
+             \}
+            
+             var response = await Curl\.ExecuteAsync\("curl https://api\.example\.com/users/42"\);
+             var user = response\.ParseJson&lt;User&gt;\(\);
+             Console\.WriteLine\($"Hello \{user\.Name\}\!"\);
+            
+             // Or parse arrays
+             var listResponse = await Curl\.ExecuteAsync\("curl https://api\.example\.com/users"\);
+             var users = listResponse\.ParseJson&lt;List&lt;User&gt;&gt;\(\);
+             Console\.WriteLine\($"Found \{users\.Count\} users"\);
+             \</code\>
+\</example\>
 
 <b>Tip:</b> Use https://json2csharp.com to generate C# classes from JSON!
 
@@ -48,13 +47,13 @@ An instance of [T](CurlDotNet.Core.CurlResult.ParseJson_T_().md#CurlDotNet.Core.
 
 #### Exceptions
 
-[System\.ArgumentNullException](https://learn.microsoft.com/en-us/dotnet/api/system.argumentnullexception 'System\.ArgumentNullException')  
+[System\.InvalidOperationException](https://learn.microsoft.com/en-us/dotnet/api/system.invalidoperationexception 'System\.InvalidOperationException')  
 Thrown when [Body](CurlDotNet.Core.CurlResult.Body.md 'CurlDotNet\.Core\.CurlResult\.Body') is null or empty\.
 
 [System\.InvalidOperationException](https://learn.microsoft.com/en-us/dotnet/api/system.invalidoperationexception 'System\.InvalidOperationException')  
 Thrown when JSON deserialization fails or JSON doesn't match type [T](CurlDotNet.Core.CurlResult.ParseJson_T_().md#CurlDotNet.Core.CurlResult.ParseJson_T_().T 'CurlDotNet\.Core\.CurlResult\.ParseJson\<T\>\(\)\.T')\.
 
-[JsonException](https://learn.microsoft.com/en-us/dotnet/api/jsonexception 'JsonException')  
+[System\.Exception](https://learn.microsoft.com/en-us/dotnet/api/system.exception 'System\.Exception')  
 Thrown when the JSON syntax is invalid\. See [System\.Exception\.InnerException](https://learn.microsoft.com/en-us/dotnet/api/system.exception.innerexception 'System\.Exception\.InnerException') for details\.
 
 ### Remarks
@@ -63,7 +62,7 @@ This method automatically detects whether to use System.Text.Json or Newtonsoft.
 
 For complex JSON structures, consider using [AsJsonDynamic\(\)](CurlDotNet.Core.CurlResult.AsJsonDynamic().md 'CurlDotNet\.Core\.CurlResult\.AsJsonDynamic\(\)') for exploration, then creating a typed class.
 
-If T doesn't match the JSON structure, properties that don't match will be left at their default values.
+If [T](CurlDotNet.Core.CurlResult.ParseJson_T_().md#CurlDotNet.Core.CurlResult.ParseJson_T_().T 'CurlDotNet\.Core\.CurlResult\.ParseJson\<T\>\(\)\.T') doesn't match the JSON structure, properties that don't match will be left at their default values.
 
 ### See Also
 - [Alternative method name for parsing JSON](CurlDotNet.Core.CurlResult.AsJson_T_().md 'CurlDotNet\.Core\.CurlResult\.AsJson\<T\>\(\)')

@@ -12,6 +12,10 @@ public static class ErgonomicExtensions
 
 Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system.object 'System\.Object') &#129106; ErgonomicExtensions
 
+| Fields | |
+| :--- | :--- |
+| [DefaultJsonOptions](CurlDotNet.ErgonomicExtensions.DefaultJsonOptions.md 'CurlDotNet\.ErgonomicExtensions\.DefaultJsonOptions') | Case\-insensitive property matching: camelCase JSON binds to PascalCase C\# properties\. |
+
 | Methods | |
 | :--- | :--- |
 | [EnsureSuccessStatusCode\(this CurlResult\)](CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode(thisCurlDotNet.Core.CurlResult).md 'CurlDotNet\.ErgonomicExtensions\.EnsureSuccessStatusCode\(this CurlDotNet\.Core\.CurlResult\)') | Throw an exception if the request was not successful\. Similar to HttpResponseMessage\.EnsureSuccessStatusCode\(\)\. |

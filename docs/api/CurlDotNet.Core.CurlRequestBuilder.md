@@ -43,6 +43,7 @@ You can convert a builder to a curl command string using [ToCurlCommand\(\)](Cur
 
 | Methods | |
 | :--- | :--- |
+| [AsBinary\(\)](CurlDotNet.Core.CurlRequestBuilder.AsBinary().md 'CurlDotNet\.Core\.CurlRequestBuilder\.AsBinary\(\)') | Force the response to be treated as binary data, regardless of Content\-Type header\. |
 | [Compressed\(bool\)](CurlDotNet.Core.CurlRequestBuilder.Compressed(bool).md 'CurlDotNet\.Core\.CurlRequestBuilder\.Compressed\(bool\)') | Enable compression \(gzip, deflate, etc\.\)\. |
 | [Delete\(string\)](CurlDotNet.Core.CurlRequestBuilder.Delete(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.Delete\(string\)') | Create a DELETE request builder\. |
 | [Execute\(\)](CurlDotNet.Core.CurlRequestBuilder.Execute().md 'CurlDotNet\.Core\.CurlRequestBuilder\.Execute\(\)') | Execute the request synchronously\. |
@@ -59,7 +60,7 @@ You can convert a builder to a curl command string using [ToCurlCommand\(\)](Cur
 | [Post\(string\)](CurlDotNet.Core.CurlRequestBuilder.Post(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.Post\(string\)') | Create a POST request builder\. |
 | [Put\(string\)](CurlDotNet.Core.CurlRequestBuilder.Put(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.Put\(string\)') | Create a PUT request builder\. |
 | [Request\(string, string\)](CurlDotNet.Core.CurlRequestBuilder.Request(string,string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.Request\(string, string\)') | Create a custom method request builder\. |
-| [SaveToFile\(string\)](CurlDotNet.Core.CurlRequestBuilder.SaveToFile(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.SaveToFile\(string\)') | Save response to file \(like curl \-o\)\. |
+| [SaveToFile\(string\)](CurlDotNet.Core.CurlRequestBuilder.SaveToFile(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.SaveToFile\(string\)') | Save output to a file\. Alias for WithOutput\. |
 | [SaveWithRemoteName\(\)](CurlDotNet.Core.CurlRequestBuilder.SaveWithRemoteName().md 'CurlDotNet\.Core\.CurlRequestBuilder\.SaveWithRemoteName\(\)') | Use remote filename for output \(like curl \-O\)\. |
 | [Silent\(bool\)](CurlDotNet.Core.CurlRequestBuilder.Silent(bool).md 'CurlDotNet\.Core\.CurlRequestBuilder\.Silent\(bool\)') | Enable silent mode \(like curl \-s\)\. |
 | [ToCurlCommand\(\)](CurlDotNet.Core.CurlRequestBuilder.ToCurlCommand().md 'CurlDotNet\.Core\.CurlRequestBuilder\.ToCurlCommand\(\)') | Convert this builder to a curl command string\. Useful for debugging or logging what will be executed\. |
@@ -67,12 +68,14 @@ You can convert a builder to a curl command string using [ToCurlCommand\(\)](Cur
 | [WithAuth\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithAuth(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithAuth\(string\)') | Set custom authentication header\. |
 | [WithBasicAuth\(string, string\)](CurlDotNet.Core.CurlRequestBuilder.WithBasicAuth(string,string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithBasicAuth\(string, string\)') | Set basic authentication \(username:password\)\. |
 | [WithBearerToken\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithBearerToken(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithBearerToken\(string\)') | Set bearer token authentication\. |
+| [WithBinaryContentType\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithBinaryContentType(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithBinaryContentType\(string\)') | Register a MIME type that should always be treated as binary data\. |
 | [WithBinaryData\(byte\[\]\)](CurlDotNet.Core.CurlRequestBuilder.WithBinaryData(byte[]).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithBinaryData\(byte\[\]\)') | Add binary data for upload\. |
 | [WithConnectTimeout\(TimeSpan\)](CurlDotNet.Core.CurlRequestBuilder.WithConnectTimeout(System.TimeSpan).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithConnectTimeout\(System\.TimeSpan\)') | Set connection timeout\. |
 | [WithCookie\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithCookie(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithCookie\(string\)') | Set cookie string\. |
 | [WithCookieJar\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithCookieJar(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithCookieJar\(string\)') | Set cookie jar file path\. |
 | [WithData\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithData(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithData\(string\)') | Add POST/PUT data as string\. |
-| [WithFile\(string, string\)](CurlDotNet.Core.CurlRequestBuilder.WithFile(string,string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithFile\(string, string\)') | Upload a file\. |
+| [WithFile\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithFile.md#CurlDotNet.Core.CurlRequestBuilder.WithFile(string) 'CurlDotNet\.Core\.CurlRequestBuilder\.WithFile\(string\)') | Upload a file \(multipart/form\-data\)\. Alias for WithUploadFile\. |
+| [WithFile\(string, string\)](CurlDotNet.Core.CurlRequestBuilder.WithFile.md#CurlDotNet.Core.CurlRequestBuilder.WithFile(string,string) 'CurlDotNet\.Core\.CurlRequestBuilder\.WithFile\(string, string\)') | Upload a file\. |
 | [WithFormData\(Dictionary&lt;string,string&gt;\)](CurlDotNet.Core.CurlRequestBuilder.WithFormData(System.Collections.Generic.Dictionary_string,string_).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithFormData\(System\.Collections\.Generic\.Dictionary\<string,string\>\)') | Add form data \(application/x\-www\-form\-urlencoded\)\. |
 | [WithHeader\(string, string\)](CurlDotNet.Core.CurlRequestBuilder.WithHeader(string,string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithHeader\(string, string\)') | Add a header to the request\. |
 | [WithHeaders\(Dictionary&lt;string,string&gt;\)](CurlDotNet.Core.CurlRequestBuilder.WithHeaders(System.Collections.Generic.Dictionary_string,string_).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithHeaders\(System\.Collections\.Generic\.Dictionary\<string,string\>\)') | Add multiple headers at once\. |
@@ -80,9 +83,14 @@ You can convert a builder to a curl command string using [ToCurlCommand\(\)](Cur
 | [WithJson\(object\)](CurlDotNet.Core.CurlRequestBuilder.WithJson(object).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithJson\(object\)') | Add POST/PUT data as JSON \(automatically serializes and sets Content\-Type\)\. |
 | [WithMaxRedirects\(int\)](CurlDotNet.Core.CurlRequestBuilder.WithMaxRedirects(int).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithMaxRedirects\(int\)') | Set maximum number of redirects to follow\. |
 | [WithMultipartForm\(Dictionary&lt;string,string&gt;, Dictionary&lt;string,string&gt;\)](CurlDotNet.Core.CurlRequestBuilder.WithMultipartForm(System.Collections.Generic.Dictionary_string,string_,System.Collections.Generic.Dictionary_string,string_).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithMultipartForm\(System\.Collections\.Generic\.Dictionary\<string,string\>, System\.Collections\.Generic\.Dictionary\<string,string\>\)') | Add multipart form data with file uploads\. |
+| [WithOutput\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithOutput(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithOutput\(string\)') | Save output to a file\. |
 | [WithProxy\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithProxy.md#CurlDotNet.Core.CurlRequestBuilder.WithProxy(string) 'CurlDotNet\.Core\.CurlRequestBuilder\.WithProxy\(string\)') | Set proxy URL\. |
 | [WithProxy\(string, string, string\)](CurlDotNet.Core.CurlRequestBuilder.WithProxy.md#CurlDotNet.Core.CurlRequestBuilder.WithProxy(string,string,string) 'CurlDotNet\.Core\.CurlRequestBuilder\.WithProxy\(string, string, string\)') | Set proxy with authentication\. |
 | [WithRange\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithRange(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithRange\(string\)') | Set range for partial downloads \(like curl \-r\)\. |
 | [WithReferer\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithReferer(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithReferer\(string\)') | Set the Referer header\. |
+| [WithTextContentType\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithTextContentType(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithTextContentType\(string\)') | Register a MIME type that should always be treated as text content\. |
 | [WithTimeout\(TimeSpan\)](CurlDotNet.Core.CurlRequestBuilder.WithTimeout(System.TimeSpan).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithTimeout\(System\.TimeSpan\)') | Set timeout for the entire operation\. |
+| [WithTrace\(string, bool\)](CurlDotNet.Core.CurlRequestBuilder.WithTrace(string,bool).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithTrace\(string, bool\)') | Write a full diagnostic trace of the transfer to a file \(like curl `--trace`\)\. |
+| [WithTraceAscii\(string, bool\)](CurlDotNet.Core.CurlRequestBuilder.WithTraceAscii(string,bool).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithTraceAscii\(string, bool\)') | Write an ASCII\-only diagnostic trace of the transfer to a file \(like curl `--trace-ascii`\)\. |
+| [WithUploadFile\(string, string\)](CurlDotNet.Core.CurlRequestBuilder.WithUploadFile(string,string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithUploadFile\(string, string\)') | Upload a file \(multipart/form\-data\)\. |
 | [WithUserAgent\(string\)](CurlDotNet.Core.CurlRequestBuilder.WithUserAgent(string).md 'CurlDotNet\.Core\.CurlRequestBuilder\.WithUserAgent\(string\)') | Set the User\-Agent header\. |

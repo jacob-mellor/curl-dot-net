@@ -3,6 +3,8 @@
 
 ## CurlInterfaceFailedException\.InterfaceName Property
 
+Gets the name of the network interface that failed
+
 ```csharp
 public string InterfaceName { get; }
 ```

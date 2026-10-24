@@ -12,6 +12,8 @@ public interface ICurlMiddleware
 Derived  
 &#8627; [AuthenticationMiddleware](CurlDotNet.Middleware.AuthenticationMiddleware.md 'CurlDotNet\.Middleware\.AuthenticationMiddleware')  
 &#8627; [CachingMiddleware](CurlDotNet.Middleware.CachingMiddleware.md 'CurlDotNet\.Middleware\.CachingMiddleware')  
+&#8627; [DelegateMiddleware](CurlDotNet.Middleware.CurlMiddlewarePipeline.DelegateMiddleware.md 'CurlDotNet\.Middleware\.CurlMiddlewarePipeline\.DelegateMiddleware')  
+&#8627; [DelegateMiddleware](CurlDotNet.Middleware.CurlMiddlewarePipelineBuilder.DelegateMiddleware.md 'CurlDotNet\.Middleware\.CurlMiddlewarePipelineBuilder\.DelegateMiddleware')  
 &#8627; [LoggingMiddleware](CurlDotNet.Middleware.LoggingMiddleware.md 'CurlDotNet\.Middleware\.LoggingMiddleware')  
 &#8627; [RateLimitMiddleware](CurlDotNet.Middleware.RateLimitMiddleware.md 'CurlDotNet\.Middleware\.RateLimitMiddleware')  
 &#8627; [RequestModifierMiddleware](CurlDotNet.Middleware.RequestModifierMiddleware.md 'CurlDotNet\.Middleware\.RequestModifierMiddleware')  

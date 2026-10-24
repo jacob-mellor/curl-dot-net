@@ -3,6 +3,8 @@
 
 ## ResponseModifierMiddleware\(Func\<CurlResult,Task\<CurlResult\>\>\) Constructor
 
+Initializes a new instance of the [ResponseModifierMiddleware](CurlDotNet.Middleware.ResponseModifierMiddleware.md 'CurlDotNet\.Middleware\.ResponseModifierMiddleware') class\.
+
 ```csharp
 public ResponseModifierMiddleware(System.Func<CurlDotNet.Core.CurlResult,System.Threading.Tasks.Task<CurlDotNet.Core.CurlResult>> modifier);
 ```
@@ -11,3 +13,5 @@ public ResponseModifierMiddleware(System.Func<CurlDotNet.Core.CurlResult,System.
 <a name='CurlDotNet.Middleware.ResponseModifierMiddleware.ResponseModifierMiddleware(System.Func_CurlDotNet.Core.CurlResult,System.Threading.Tasks.Task_CurlDotNet.Core.CurlResult__).modifier'></a>
 
 `modifier` [System\.Func&lt;](https://learn.microsoft.com/en-us/dotnet/api/system.func-2 'System\.Func\`2')[CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')[,](https://learn.microsoft.com/en-us/dotnet/api/system.func-2 'System\.Func\`2')[System\.Threading\.Tasks\.Task&lt;](https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1 'System\.Threading\.Tasks\.Task\`1')[CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')[&gt;](https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.task-1 'System\.Threading\.Tasks\.Task\`1')[&gt;](https://learn.microsoft.com/en-us/dotnet/api/system.func-2 'System\.Func\`2')
+
+A function that modifies the response after execution\.

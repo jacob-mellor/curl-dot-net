@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlMalformedUrlException\(string, string\)](CurlDotNet.Exceptions.CurlMalformedUrlException.CurlMalformedUrlException(string,string).md 'CurlDotNet\.Exceptions\.CurlMalformedUrlException\.CurlMalformedUrlException\(string, string\)') | |
+| [CurlMalformedUrlException\(string, string\)](CurlDotNet.Exceptions.CurlMalformedUrlException.CurlMalformedUrlException(string,string).md 'CurlDotNet\.Exceptions\.CurlMalformedUrlException\.CurlMalformedUrlException\(string, string\)') | Initializes a new instance of the [CurlMalformedUrlException](CurlDotNet.Exceptions.CurlMalformedUrlException.md 'CurlDotNet\.Exceptions\.CurlMalformedUrlException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [MalformedUrl](CurlDotNet.Exceptions.CurlMalformedUrlException.MalformedUrl.md 'CurlDotNet\.Exceptions\.CurlMalformedUrlException\.MalformedUrl') | |
+| [MalformedUrl](CurlDotNet.Exceptions.CurlMalformedUrlException.MalformedUrl.md 'CurlDotNet\.Exceptions\.CurlMalformedUrlException\.MalformedUrl') | Gets the malformed URL that caused the error |

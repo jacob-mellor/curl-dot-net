@@ -6,7 +6,7 @@
 | Overloads | |
 | :--- | :--- |
 | [CurlEngine\(\)](CurlDotNet.Core.CurlEngine.#ctor.md#CurlDotNet.Core.CurlEngine.CurlEngine() 'CurlDotNet\.Core\.CurlEngine\.CurlEngine\(\)') | Create a new CurlEngine with default HttpClient\. |
-| [CurlEngine\(HttpClient\)](CurlDotNet.Core.CurlEngine.#ctor.md#CurlDotNet.Core.CurlEngine.CurlEngine(System.Net.Http.HttpClient) 'CurlDotNet\.Core\.CurlEngine\.CurlEngine\(System\.Net\.Http\.HttpClient\)') | Create a new CurlEngine with custom HttpClient\. |
+| [CurlEngine\(HttpClient\)](CurlDotNet.Core.CurlEngine.#ctor.md#CurlDotNet.Core.CurlEngine.CurlEngine(System.Net.Http.HttpClient) 'CurlDotNet\.Core\.CurlEngine\.CurlEngine\(System\.Net\.Http\.HttpClient\)') | Create a new CurlEngine with custom HttpClient\. The client is used exactly as given: its handler decides TLS validation and proxy behaviour, so `-k` / `-x` do not replace it\. |
 
 <a name='ctor.md#CurlDotNet.Core.CurlEngine.CurlEngine()'></a>
 
@@ -22,7 +22,8 @@ public CurlEngine();
 
 ## CurlEngine\(HttpClient\) Constructor
 
-Create a new CurlEngine with custom HttpClient\.
+Create a new CurlEngine with custom HttpClient\. The client is used exactly as given: its
+handler decides TLS validation and proxy behaviour, so `-k` / `-x` do not replace it\.
 
 ```csharp
 public CurlEngine(System.Net.Http.HttpClient httpClient);

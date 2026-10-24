@@ -3,6 +3,8 @@
 
 ## CurlCouldntResolveProxyException\.ProxyHost Property
 
+Gets the proxy host that could not be resolved
+
 ```csharp
 public string ProxyHost { get; }
 ```

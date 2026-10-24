@@ -3,6 +3,8 @@
 
 ## CurlParsingException\.ContentType Property
 
+Gets the content type of the data that failed to parse
+
 ```csharp
 public string ContentType { get; }
 ```

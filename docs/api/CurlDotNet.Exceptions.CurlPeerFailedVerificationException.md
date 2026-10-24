@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlPeerFailedVerificationException\(string, string\)](CurlDotNet.Exceptions.CurlPeerFailedVerificationException.CurlPeerFailedVerificationException(string,string).md 'CurlDotNet\.Exceptions\.CurlPeerFailedVerificationException\.CurlPeerFailedVerificationException\(string, string\)') | |
+| [CurlPeerFailedVerificationException\(string, string\)](CurlDotNet.Exceptions.CurlPeerFailedVerificationException.CurlPeerFailedVerificationException(string,string).md 'CurlDotNet\.Exceptions\.CurlPeerFailedVerificationException\.CurlPeerFailedVerificationException\(string, string\)') | Initializes a new instance of the [CurlPeerFailedVerificationException](CurlDotNet.Exceptions.CurlPeerFailedVerificationException.md 'CurlDotNet\.Exceptions\.CurlPeerFailedVerificationException') class\. |

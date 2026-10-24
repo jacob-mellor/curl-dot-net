@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlGotNothingException\(string\)](CurlDotNet.Exceptions.CurlGotNothingException.CurlGotNothingException(string).md 'CurlDotNet\.Exceptions\.CurlGotNothingException\.CurlGotNothingException\(string\)') | |
+| [CurlGotNothingException\(string\)](CurlDotNet.Exceptions.CurlGotNothingException.CurlGotNothingException(string).md 'CurlDotNet\.Exceptions\.CurlGotNothingException\.CurlGotNothingException\(string\)') | Initializes a new instance of the [CurlGotNothingException](CurlDotNet.Exceptions.CurlGotNothingException.md 'CurlDotNet\.Exceptions\.CurlGotNothingException') class\. |

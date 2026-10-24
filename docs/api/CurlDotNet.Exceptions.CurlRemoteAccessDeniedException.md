@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlRemoteAccessDeniedException\(string, string\)](CurlDotNet.Exceptions.CurlRemoteAccessDeniedException.CurlRemoteAccessDeniedException(string,string).md 'CurlDotNet\.Exceptions\.CurlRemoteAccessDeniedException\.CurlRemoteAccessDeniedException\(string, string\)') | |
+| [CurlRemoteAccessDeniedException\(string, string\)](CurlDotNet.Exceptions.CurlRemoteAccessDeniedException.CurlRemoteAccessDeniedException(string,string).md 'CurlDotNet\.Exceptions\.CurlRemoteAccessDeniedException\.CurlRemoteAccessDeniedException\(string, string\)') | Initializes a new instance of the [CurlRemoteAccessDeniedException](CurlDotNet.Exceptions.CurlRemoteAccessDeniedException.md 'CurlDotNet\.Exceptions\.CurlRemoteAccessDeniedException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [Resource](CurlDotNet.Exceptions.CurlRemoteAccessDeniedException.Resource.md 'CurlDotNet\.Exceptions\.CurlRemoteAccessDeniedException\.Resource') | |
+| [Resource](CurlDotNet.Exceptions.CurlRemoteAccessDeniedException.Resource.md 'CurlDotNet\.Exceptions\.CurlRemoteAccessDeniedException\.Resource') | Gets the resource that was denied access |

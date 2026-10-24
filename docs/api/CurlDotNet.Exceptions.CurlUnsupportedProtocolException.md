@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlUnsupportedProtocolException\(string, string\)](CurlDotNet.Exceptions.CurlUnsupportedProtocolException.CurlUnsupportedProtocolException(string,string).md 'CurlDotNet\.Exceptions\.CurlUnsupportedProtocolException\.CurlUnsupportedProtocolException\(string, string\)') | |
+| [CurlUnsupportedProtocolException\(string, string\)](CurlDotNet.Exceptions.CurlUnsupportedProtocolException.CurlUnsupportedProtocolException(string,string).md 'CurlDotNet\.Exceptions\.CurlUnsupportedProtocolException\.CurlUnsupportedProtocolException\(string, string\)') | Initializes a new instance of the [CurlUnsupportedProtocolException](CurlDotNet.Exceptions.CurlUnsupportedProtocolException.md 'CurlDotNet\.Exceptions\.CurlUnsupportedProtocolException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [Protocol](CurlDotNet.Exceptions.CurlUnsupportedProtocolException.Protocol.md 'CurlDotNet\.Exceptions\.CurlUnsupportedProtocolException\.Protocol') | |
+| [Protocol](CurlDotNet.Exceptions.CurlUnsupportedProtocolException.Protocol.md 'CurlDotNet\.Exceptions\.CurlUnsupportedProtocolException\.Protocol') | Gets the unsupported protocol that was attempted |

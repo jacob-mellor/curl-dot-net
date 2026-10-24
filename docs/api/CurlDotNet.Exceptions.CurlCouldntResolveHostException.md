@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlCouldntResolveHostException\(string, string\)](CurlDotNet.Exceptions.CurlCouldntResolveHostException.CurlCouldntResolveHostException(string,string).md 'CurlDotNet\.Exceptions\.CurlCouldntResolveHostException\.CurlCouldntResolveHostException\(string, string\)') | |
+| [CurlCouldntResolveHostException\(string, string\)](CurlDotNet.Exceptions.CurlCouldntResolveHostException.CurlCouldntResolveHostException(string,string).md 'CurlDotNet\.Exceptions\.CurlCouldntResolveHostException\.CurlCouldntResolveHostException\(string, string\)') | Initializes a new instance of the [CurlCouldntResolveHostException](CurlDotNet.Exceptions.CurlCouldntResolveHostException.md 'CurlDotNet\.Exceptions\.CurlCouldntResolveHostException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [Hostname](CurlDotNet.Exceptions.CurlCouldntResolveHostException.Hostname.md 'CurlDotNet\.Exceptions\.CurlCouldntResolveHostException\.Hostname') | |
+| [Hostname](CurlDotNet.Exceptions.CurlCouldntResolveHostException.Hostname.md 'CurlDotNet\.Exceptions\.CurlCouldntResolveHostException\.Hostname') | Gets the hostname that could not be resolved |

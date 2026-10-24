@@ -3,6 +3,8 @@
 
 ## CurlProxyException\.ProxyHost Property
 
+Gets the proxy hostname or IP address that failed to connect
+
 ```csharp
 public string ProxyHost { get; }
 ```

@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlFileCouldntReadException\(string, string\)](CurlDotNet.Exceptions.CurlFileCouldntReadException.CurlFileCouldntReadException(string,string).md 'CurlDotNet\.Exceptions\.CurlFileCouldntReadException\.CurlFileCouldntReadException\(string, string\)') | |
+| [CurlFileCouldntReadException\(string, string\)](CurlDotNet.Exceptions.CurlFileCouldntReadException.CurlFileCouldntReadException(string,string).md 'CurlDotNet\.Exceptions\.CurlFileCouldntReadException\.CurlFileCouldntReadException\(string, string\)') | Initializes a new instance of the [CurlFileCouldntReadException](CurlDotNet.Exceptions.CurlFileCouldntReadException.md 'CurlDotNet\.Exceptions\.CurlFileCouldntReadException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [FilePath](CurlDotNet.Exceptions.CurlFileCouldntReadException.FilePath.md 'CurlDotNet\.Exceptions\.CurlFileCouldntReadException\.FilePath') | |
+| [FilePath](CurlDotNet.Exceptions.CurlFileCouldntReadException.FilePath.md 'CurlDotNet\.Exceptions\.CurlFileCouldntReadException\.FilePath') | Gets the file path that could not be read |

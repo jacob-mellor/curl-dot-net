@@ -8,7 +8,9 @@
 | [CachingMiddleware](CurlDotNet.Middleware.CachingMiddleware.md 'CurlDotNet\.Middleware\.CachingMiddleware') | Simple in\-memory caching middleware\. |
 | [CurlContext](CurlDotNet.Middleware.CurlContext.md 'CurlDotNet\.Middleware\.CurlContext') | Context object containing information about the curl request\. |
 | [CurlMiddlewarePipeline](CurlDotNet.Middleware.CurlMiddlewarePipeline.md 'CurlDotNet\.Middleware\.CurlMiddlewarePipeline') | Manages the middleware pipeline for curl operations\. |
+| [CurlMiddlewarePipeline\.DelegateMiddleware](CurlDotNet.Middleware.CurlMiddlewarePipeline.DelegateMiddleware.md 'CurlDotNet\.Middleware\.CurlMiddlewarePipeline\.DelegateMiddleware') | Delegate\-based middleware implementation\. |
 | [CurlMiddlewarePipelineBuilder](CurlDotNet.Middleware.CurlMiddlewarePipelineBuilder.md 'CurlDotNet\.Middleware\.CurlMiddlewarePipelineBuilder') | Fluent builder for creating middleware pipelines\. |
+| [CurlMiddlewarePipelineBuilder\.DelegateMiddleware](CurlDotNet.Middleware.CurlMiddlewarePipelineBuilder.DelegateMiddleware.md 'CurlDotNet\.Middleware\.CurlMiddlewarePipelineBuilder\.DelegateMiddleware') | Delegate\-based middleware implementation\. |
 | [LoggingMiddleware](CurlDotNet.Middleware.LoggingMiddleware.md 'CurlDotNet\.Middleware\.LoggingMiddleware') | Middleware for logging curl operations\. |
 | [RateLimitMiddleware](CurlDotNet.Middleware.RateLimitMiddleware.md 'CurlDotNet\.Middleware\.RateLimitMiddleware') | Simple rate limiting middleware\. |
 | [RequestModifierMiddleware](CurlDotNet.Middleware.RequestModifierMiddleware.md 'CurlDotNet\.Middleware\.RequestModifierMiddleware') | Middleware for modifying requests\. |

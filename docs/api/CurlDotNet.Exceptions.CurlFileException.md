@@ -13,7 +13,7 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlFileException\(string, string, FileOperation, string, Exception\)](CurlDotNet.Exceptions.CurlFileException.CurlFileException(string,string,CurlDotNet.Exceptions.CurlFileException.FileOperation,string,System.Exception).md 'CurlDotNet\.Exceptions\.CurlFileException\.CurlFileException\(string, string, CurlDotNet\.Exceptions\.CurlFileException\.FileOperation, string, System\.Exception\)') | |
+| [CurlFileException\(string, string, FileOperation, string, Exception\)](CurlDotNet.Exceptions.CurlFileException.CurlFileException(string,string,CurlDotNet.Exceptions.CurlFileException.FileOperation,string,System.Exception).md 'CurlDotNet\.Exceptions\.CurlFileException\.CurlFileException\(string, string, CurlDotNet\.Exceptions\.CurlFileException\.FileOperation, string, System\.Exception\)') | Initializes a new instance of the [CurlFileException](CurlDotNet.Exceptions.CurlFileException.md 'CurlDotNet\.Exceptions\.CurlFileException') class |
 
 | Properties | |
 | :--- | :--- |

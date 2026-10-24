@@ -3,6 +3,8 @@
 
 ## CurlRateLimitException\.RetryAfter Property
 
+Gets the time to wait before retrying, if provided by the server
+
 ```csharp
 public System.Nullable<System.TimeSpan> RetryAfter { get; }
 ```

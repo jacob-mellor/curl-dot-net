@@ -13,9 +13,9 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlParsingException\(string, string, Type, string, Exception\)](CurlDotNet.Exceptions.CurlParsingException.CurlParsingException(string,string,System.Type,string,System.Exception).md 'CurlDotNet\.Exceptions\.CurlParsingException\.CurlParsingException\(string, string, System\.Type, string, System\.Exception\)') | |
+| [CurlParsingException\(string, string, Type, string, Exception\)](CurlDotNet.Exceptions.CurlParsingException.CurlParsingException(string,string,System.Type,string,System.Exception).md 'CurlDotNet\.Exceptions\.CurlParsingException\.CurlParsingException\(string, string, System\.Type, string, System\.Exception\)') | Initializes a new instance of the [CurlParsingException](CurlDotNet.Exceptions.CurlParsingException.md 'CurlDotNet\.Exceptions\.CurlParsingException') class |
 
 | Properties | |
 | :--- | :--- |
-| [ContentType](CurlDotNet.Exceptions.CurlParsingException.ContentType.md 'CurlDotNet\.Exceptions\.CurlParsingException\.ContentType') | |
-| [ExpectedType](CurlDotNet.Exceptions.CurlParsingException.ExpectedType.md 'CurlDotNet\.Exceptions\.CurlParsingException\.ExpectedType') | |
+| [ContentType](CurlDotNet.Exceptions.CurlParsingException.ContentType.md 'CurlDotNet\.Exceptions\.CurlParsingException\.ContentType') | Gets the content type of the data that failed to parse |
+| [ExpectedType](CurlDotNet.Exceptions.CurlParsingException.ExpectedType.md 'CurlDotNet\.Exceptions\.CurlParsingException\.ExpectedType') | Gets the expected type that the content could not be parsed into |

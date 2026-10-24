@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlAbortedByCallbackException\(string\)](CurlDotNet.Exceptions.CurlAbortedByCallbackException.CurlAbortedByCallbackException(string).md 'CurlDotNet\.Exceptions\.CurlAbortedByCallbackException\.CurlAbortedByCallbackException\(string\)') | |
+| [CurlAbortedByCallbackException\(string\)](CurlDotNet.Exceptions.CurlAbortedByCallbackException.CurlAbortedByCallbackException(string).md 'CurlDotNet\.Exceptions\.CurlAbortedByCallbackException\.CurlAbortedByCallbackException\(string\)') | Initializes a new instance of the [CurlAbortedByCallbackException](CurlDotNet.Exceptions.CurlAbortedByCallbackException.md 'CurlDotNet\.Exceptions\.CurlAbortedByCallbackException') class\. |

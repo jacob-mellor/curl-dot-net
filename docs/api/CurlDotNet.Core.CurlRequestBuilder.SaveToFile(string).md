@@ -3,7 +3,7 @@
 
 ## CurlRequestBuilder\.SaveToFile\(string\) Method
 
-Save response to file \(like curl \-o\)\.
+Save output to a file\. Alias for WithOutput\.
 
 ```csharp
 public CurlDotNet.Core.CurlRequestBuilder SaveToFile(string filePath);
@@ -13,6 +13,8 @@ public CurlDotNet.Core.CurlRequestBuilder SaveToFile(string filePath);
 <a name='CurlDotNet.Core.CurlRequestBuilder.SaveToFile(string).filePath'></a>
 
 `filePath` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+
+Path to save the file
 
 #### Returns
 [CurlRequestBuilder](CurlDotNet.Core.CurlRequestBuilder.md 'CurlDotNet\.Core\.CurlRequestBuilder')

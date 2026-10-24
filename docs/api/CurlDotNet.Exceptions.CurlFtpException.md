@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlFtpException\(string, int, string\)](CurlDotNet.Exceptions.CurlFtpException.CurlFtpException(string,int,string).md 'CurlDotNet\.Exceptions\.CurlFtpException\.CurlFtpException\(string, int, string\)') | |
+| [CurlFtpException\(string, int, string\)](CurlDotNet.Exceptions.CurlFtpException.CurlFtpException(string,int,string).md 'CurlDotNet\.Exceptions\.CurlFtpException\.CurlFtpException\(string, int, string\)') | Initializes a new instance of the [CurlFtpException](CurlDotNet.Exceptions.CurlFtpException.md 'CurlDotNet\.Exceptions\.CurlFtpException') class |
 
 | Properties | |
 | :--- | :--- |
-| [FtpCode](CurlDotNet.Exceptions.CurlFtpException.FtpCode.md 'CurlDotNet\.Exceptions\.CurlFtpException\.FtpCode') | |
+| [FtpCode](CurlDotNet.Exceptions.CurlFtpException.FtpCode.md 'CurlDotNet\.Exceptions\.CurlFtpException\.FtpCode') | Gets the FTP response code that caused the error |

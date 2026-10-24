@@ -13,9 +13,9 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlRetryException\(string, string, int, Exception\)](CurlDotNet.Exceptions.CurlRetryException.CurlRetryException(string,string,int,System.Exception).md 'CurlDotNet\.Exceptions\.CurlRetryException\.CurlRetryException\(string, string, int, System\.Exception\)') | |
+| [CurlRetryException\(string, string, int, Exception\)](CurlDotNet.Exceptions.CurlRetryException.CurlRetryException(string,string,int,System.Exception).md 'CurlDotNet\.Exceptions\.CurlRetryException\.CurlRetryException\(string, string, int, System\.Exception\)') | Initializes a new instance of the [CurlRetryException](CurlDotNet.Exceptions.CurlRetryException.md 'CurlDotNet\.Exceptions\.CurlRetryException') class |
 
 | Properties | |
 | :--- | :--- |
-| [LastAttemptException](CurlDotNet.Exceptions.CurlRetryException.LastAttemptException.md 'CurlDotNet\.Exceptions\.CurlRetryException\.LastAttemptException') | |
-| [RetryCount](CurlDotNet.Exceptions.CurlRetryException.RetryCount.md 'CurlDotNet\.Exceptions\.CurlRetryException\.RetryCount') | |
+| [LastAttemptException](CurlDotNet.Exceptions.CurlRetryException.LastAttemptException.md 'CurlDotNet\.Exceptions\.CurlRetryException\.LastAttemptException') | Gets the exception from the last retry attempt |
+| [RetryCount](CurlDotNet.Exceptions.CurlRetryException.RetryCount.md 'CurlDotNet\.Exceptions\.CurlRetryException\.RetryCount') | Gets the number of retry attempts that were made before failing |

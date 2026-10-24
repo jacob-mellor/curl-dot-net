@@ -3,6 +3,8 @@
 
 ## CurlRemoteAccessDeniedException\.Resource Property
 
+Gets the resource that was denied access
+
 ```csharp
 public string Resource { get; }
 ```

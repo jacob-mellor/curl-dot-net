@@ -15,8 +15,8 @@ Implements [ICurlMiddleware](CurlDotNet.Middleware.ICurlMiddleware.md 'CurlDotNe
 
 | Constructors | |
 | :--- | :--- |
-| [RequestModifierMiddleware\(Action&lt;CurlContext&gt;\)](CurlDotNet.Middleware.RequestModifierMiddleware.RequestModifierMiddleware(System.Action_CurlDotNet.Middleware.CurlContext_).md 'CurlDotNet\.Middleware\.RequestModifierMiddleware\.RequestModifierMiddleware\(System\.Action\<CurlDotNet\.Middleware\.CurlContext\>\)') | |
+| [RequestModifierMiddleware\(Action&lt;CurlContext&gt;\)](CurlDotNet.Middleware.RequestModifierMiddleware.RequestModifierMiddleware(System.Action_CurlDotNet.Middleware.CurlContext_).md 'CurlDotNet\.Middleware\.RequestModifierMiddleware\.RequestModifierMiddleware\(System\.Action\<CurlDotNet\.Middleware\.CurlContext\>\)') | Initializes a new instance of the [RequestModifierMiddleware](CurlDotNet.Middleware.RequestModifierMiddleware.md 'CurlDotNet\.Middleware\.RequestModifierMiddleware') class\. |
 
 | Methods | |
 | :--- | :--- |
-| [ExecuteAsync\(CurlContext, Func&lt;Task&lt;CurlResult&gt;&gt;\)](CurlDotNet.Middleware.RequestModifierMiddleware.ExecuteAsync(CurlDotNet.Middleware.CurlContext,System.Func_System.Threading.Tasks.Task_CurlDotNet.Core.CurlResult__).md 'CurlDotNet\.Middleware\.RequestModifierMiddleware\.ExecuteAsync\(CurlDotNet\.Middleware\.CurlContext, System\.Func\<System\.Threading\.Tasks\.Task\<CurlDotNet\.Core\.CurlResult\>\>\)') | |
+| [ExecuteAsync\(CurlContext, Func&lt;Task&lt;CurlResult&gt;&gt;\)](CurlDotNet.Middleware.RequestModifierMiddleware.ExecuteAsync(CurlDotNet.Middleware.CurlContext,System.Func_System.Threading.Tasks.Task_CurlDotNet.Core.CurlResult__).md 'CurlDotNet\.Middleware\.RequestModifierMiddleware\.ExecuteAsync\(CurlDotNet\.Middleware\.CurlContext, System\.Func\<System\.Threading\.Tasks\.Task\<CurlDotNet\.Core\.CurlResult\>\>\)') | Executes the middleware, modifying the request before passing it to the next middleware\. |

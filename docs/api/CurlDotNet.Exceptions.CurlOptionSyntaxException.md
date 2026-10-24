@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlOptionSyntaxException\(string, string\)](CurlDotNet.Exceptions.CurlOptionSyntaxException.CurlOptionSyntaxException(string,string).md 'CurlDotNet\.Exceptions\.CurlOptionSyntaxException\.CurlOptionSyntaxException\(string, string\)') | |
+| [CurlOptionSyntaxException\(string, string\)](CurlDotNet.Exceptions.CurlOptionSyntaxException.CurlOptionSyntaxException(string,string).md 'CurlDotNet\.Exceptions\.CurlOptionSyntaxException\.CurlOptionSyntaxException\(string, string\)') | Initializes a new instance of the [CurlOptionSyntaxException](CurlDotNet.Exceptions.CurlOptionSyntaxException.md 'CurlDotNet\.Exceptions\.CurlOptionSyntaxException') class\. |

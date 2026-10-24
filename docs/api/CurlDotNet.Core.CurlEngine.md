@@ -22,17 +22,18 @@ AI-Usage: This class handles the actual curl command execution.
 | Constructors | |
 | :--- | :--- |
 | [CurlEngine\(\)](CurlDotNet.Core.CurlEngine.#ctor.md#CurlDotNet.Core.CurlEngine.CurlEngine() 'CurlDotNet\.Core\.CurlEngine\.CurlEngine\(\)') | Create a new CurlEngine with default HttpClient\. |
-| [CurlEngine\(HttpClient\)](CurlDotNet.Core.CurlEngine.#ctor.md#CurlDotNet.Core.CurlEngine.CurlEngine(System.Net.Http.HttpClient) 'CurlDotNet\.Core\.CurlEngine\.CurlEngine\(System\.Net\.Http\.HttpClient\)') | Create a new CurlEngine with custom HttpClient\. |
+| [CurlEngine\(HttpClient\)](CurlDotNet.Core.CurlEngine.#ctor.md#CurlDotNet.Core.CurlEngine.CurlEngine(System.Net.Http.HttpClient) 'CurlDotNet\.Core\.CurlEngine\.CurlEngine\(System\.Net\.Http\.HttpClient\)') | Create a new CurlEngine with custom HttpClient\. The client is used exactly as given: its handler decides TLS validation and proxy behaviour, so `-k` / `-x` do not replace it\. |
 
 | Methods | |
 | :--- | :--- |
-| [Dispose\(\)](CurlDotNet.Core.CurlEngine.Dispose().md 'CurlDotNet\.Core\.CurlEngine\.Dispose\(\)') | |
+| [CreateDefaultHttpClient\(\)](CurlDotNet.Core.CurlEngine.CreateDefaultHttpClient().md 'CurlDotNet\.Core\.CurlEngine\.CreateDefaultHttpClient\(\)') | Creates an HttpClient configured for curl\-like behavior\. |
+| [CsString\(string\)](CurlDotNet.Core.CurlEngine.CsString(string).md 'CurlDotNet\.Core\.CurlEngine\.CsString\(string\)') | C\# string literal for generated code \(verbatim form keeps JSON readable\)\. |
 | [ExecuteAsync\(CurlOptions\)](CurlDotNet.Core.CurlEngine.ExecuteAsync.md#CurlDotNet.Core.CurlEngine.ExecuteAsync(CurlDotNet.Core.CurlOptions) 'CurlDotNet\.Core\.CurlEngine\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions\)') | Execute with parsed options\. |
 | [ExecuteAsync\(CurlOptions, CancellationToken\)](CurlDotNet.Core.CurlEngine.ExecuteAsync.md#CurlDotNet.Core.CurlEngine.ExecuteAsync(CurlDotNet.Core.CurlOptions,System.Threading.CancellationToken) 'CurlDotNet\.Core\.CurlEngine\.ExecuteAsync\(CurlDotNet\.Core\.CurlOptions, System\.Threading\.CancellationToken\)') | Execute with parsed options and cancellation\. |
 | [ExecuteAsync\(string\)](CurlDotNet.Core.CurlEngine.ExecuteAsync.md#CurlDotNet.Core.CurlEngine.ExecuteAsync(string) 'CurlDotNet\.Core\.CurlEngine\.ExecuteAsync\(string\)') | Execute a curl command string\. |
 | [ExecuteAsync\(string, CurlSettings\)](CurlDotNet.Core.CurlEngine.ExecuteAsync.md#CurlDotNet.Core.CurlEngine.ExecuteAsync(string,CurlDotNet.Core.CurlSettings) 'CurlDotNet\.Core\.CurlEngine\.ExecuteAsync\(string, CurlDotNet\.Core\.CurlSettings\)') | Execute a curl command with custom settings\. |
 | [ExecuteAsync\(string, CancellationToken\)](CurlDotNet.Core.CurlEngine.ExecuteAsync.md#CurlDotNet.Core.CurlEngine.ExecuteAsync(string,System.Threading.CancellationToken) 'CurlDotNet\.Core\.CurlEngine\.ExecuteAsync\(string, System\.Threading\.CancellationToken\)') | Execute a curl command with cancellation support\. |
-| [ToFetchCode\(string\)](CurlDotNet.Core.CurlEngine.ToFetchCode(string).md 'CurlDotNet\.Core\.CurlEngine\.ToFetchCode\(string\)') | Convert curl command to JavaScript fetch\. |
+| [PyString\(string\)](CurlDotNet.Core.CurlEngine.PyString(string).md 'CurlDotNet\.Core\.CurlEngine\.PyString\(string\)') | Python string literal for generated code\. |
 | [ToHttpClientCode\(string\)](CurlDotNet.Core.CurlEngine.ToHttpClientCode(string).md 'CurlDotNet\.Core\.CurlEngine\.ToHttpClientCode\(string\)') | Convert curl command to HttpClient code\. |
 | [ToPythonCode\(string\)](CurlDotNet.Core.CurlEngine.ToPythonCode(string).md 'CurlDotNet\.Core\.CurlEngine\.ToPythonCode\(string\)') | Convert curl command to Python requests\. |
 | [Validate\(string\)](CurlDotNet.Core.CurlEngine.Validate(string).md 'CurlDotNet\.Core\.CurlEngine\.Validate\(string\)') | Validate a curl command without executing it\. |

@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlUploadFailedException\(string, string, string\)](CurlDotNet.Exceptions.CurlUploadFailedException.CurlUploadFailedException(string,string,string).md 'CurlDotNet\.Exceptions\.CurlUploadFailedException\.CurlUploadFailedException\(string, string, string\)') | |
+| [CurlUploadFailedException\(string, string, string\)](CurlDotNet.Exceptions.CurlUploadFailedException.CurlUploadFailedException(string,string,string).md 'CurlDotNet\.Exceptions\.CurlUploadFailedException\.CurlUploadFailedException\(string, string, string\)') | Initializes a new instance of the [CurlUploadFailedException](CurlDotNet.Exceptions.CurlUploadFailedException.md 'CurlDotNet\.Exceptions\.CurlUploadFailedException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [FileName](CurlDotNet.Exceptions.CurlUploadFailedException.FileName.md 'CurlDotNet\.Exceptions\.CurlUploadFailedException\.FileName') | |
+| [FileName](CurlDotNet.Exceptions.CurlUploadFailedException.FileName.md 'CurlDotNet\.Exceptions\.CurlUploadFailedException\.FileName') | Gets the file name that failed to upload |

@@ -15,8 +15,8 @@ Implements [ICurlMiddleware](CurlDotNet.Middleware.ICurlMiddleware.md 'CurlDotNe
 
 | Constructors | |
 | :--- | :--- |
-| [RetryMiddleware\(int, Nullable&lt;TimeSpan&gt;\)](CurlDotNet.Middleware.RetryMiddleware.RetryMiddleware(int,System.Nullable_System.TimeSpan_).md 'CurlDotNet\.Middleware\.RetryMiddleware\.RetryMiddleware\(int, System\.Nullable\<System\.TimeSpan\>\)') | |
+| [RetryMiddleware\(int, Nullable&lt;TimeSpan&gt;\)](CurlDotNet.Middleware.RetryMiddleware.RetryMiddleware(int,System.Nullable_System.TimeSpan_).md 'CurlDotNet\.Middleware\.RetryMiddleware\.RetryMiddleware\(int, System\.Nullable\<System\.TimeSpan\>\)') | Initializes a new instance of the [RetryMiddleware](CurlDotNet.Middleware.RetryMiddleware.md 'CurlDotNet\.Middleware\.RetryMiddleware') class\. |
 
 | Methods | |
 | :--- | :--- |
-| [ExecuteAsync\(CurlContext, Func&lt;Task&lt;CurlResult&gt;&gt;\)](CurlDotNet.Middleware.RetryMiddleware.ExecuteAsync(CurlDotNet.Middleware.CurlContext,System.Func_System.Threading.Tasks.Task_CurlDotNet.Core.CurlResult__).md 'CurlDotNet\.Middleware\.RetryMiddleware\.ExecuteAsync\(CurlDotNet\.Middleware\.CurlContext, System\.Func\<System\.Threading\.Tasks\.Task\<CurlDotNet\.Core\.CurlResult\>\>\)') | |
+| [ExecuteAsync\(CurlContext, Func&lt;Task&lt;CurlResult&gt;&gt;\)](CurlDotNet.Middleware.RetryMiddleware.ExecuteAsync(CurlDotNet.Middleware.CurlContext,System.Func_System.Threading.Tasks.Task_CurlDotNet.Core.CurlResult__).md 'CurlDotNet\.Middleware\.RetryMiddleware\.ExecuteAsync\(CurlDotNet\.Middleware\.CurlContext, System\.Func\<System\.Threading\.Tasks\.Task\<CurlDotNet\.Core\.CurlResult\>\>\)') | Executes the middleware with retry logic and exponential backoff\. |

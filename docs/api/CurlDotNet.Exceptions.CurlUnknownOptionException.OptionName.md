@@ -3,6 +3,8 @@
 
 ## CurlUnknownOptionException\.OptionName Property
 
+Gets the name of the unknown option that was specified
+
 ```csharp
 public string OptionName { get; }
 ```

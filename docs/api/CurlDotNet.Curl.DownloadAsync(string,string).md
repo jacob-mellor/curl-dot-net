@@ -70,6 +70,6 @@ A [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult') wit
 
 ### Remarks
 
-This is equivalent to: `Curl.Execute($"curl -o {outputPath} {url}")`
+Equivalent to `curl -o <outputPath> <url>`; paths with spaces or quotes need no escaping.
 
 For large files with progress, use [Execute\(string, CurlSettings\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string,CurlDotNet.Core.CurlSettings) 'CurlDotNet\.Curl\.Execute\(string, CurlDotNet\.Core\.CurlSettings\)') with OnProgress callback.

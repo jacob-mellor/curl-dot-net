@@ -1,43 +1,80 @@
 # CurlDotNet Examples
 
-Comprehensive examples demonstrating the power and simplicity of CurlDotNet for C# and .NET developers.
+Runnable C# samples for CurlDotNet. Every file in this folder is compiled by
+[CurlDotNet.Examples.csproj](CurlDotNet.Examples.csproj) against the real library, so the
+samples cannot drift from the API:
 
-## 📚 Example Categories
+```bash
+dotnet build examples/CurlDotNet.Examples.csproj -c Release
+```
 
-### 🎯 Basic Examples
-Foundation examples for getting started with CurlDotNet:
+The project is a compile check (a library), not an app. To run a sample, copy the file into a
+console project that references the `CurlDotNet` package, then call its `Main` or `RunAsync`.
+The samples call public test services (httpbin.org, JSONPlaceholder, api.github.com,
+quotes.toscrape.com), so they need network access.
 
-- **[00-CompleteSample.cs](BasicExamples/00-CompleteSample.cs)** - Complete end-to-end example
-- **[01-SimpleGetRequest.cs](BasicExamples/01-SimpleGetRequest.cs)** - Simple GET requests
-- **[02-PostJsonData.cs](BasicExamples/02-PostJsonData.cs)** - POST JSON data
-- **[03-ErrorHandling.cs](BasicExamples/03-ErrorHandling.cs)** - Robust error handling
-- **[04-SimpleGetFromOld.cs](BasicExamples/04-SimpleGetFromOld.cs)** - Legacy GET example
-- **[05-PostJsonFromOld.cs](BasicExamples/05-PostJsonFromOld.cs)** - Legacy POST example
+## Example Categories
 
-### 🔐 Authentication
-Examples for various authentication methods:
+### Basic Examples
 
-- **[01-BearerToken.cs](Authentication/01-BearerToken.cs)** - Bearer token authentication
-- **[02-BearerTokenFromOld.cs](Authentication/02-BearerTokenFromOld.cs)** - Legacy bearer token example
+- **[00-CompleteSample.cs](BasicExamples/00-CompleteSample.cs)** - A tour of the main entry points:
+  a pasted command, `Curl.GetAsync` with `Timings.Total`, `Curl.PostJsonAsync`, the fluent
+  `CurlRequestBuilder`, `EnsureSuccess()` with `CurlHttpException`, and a multi-line command with an
+  `Authorization` header.
+- **[01-SimpleGetRequest.cs](BasicExamples/01-SimpleGetRequest.cs)** - One GET request three ways:
+  command string, `CurlRequestBuilder.Get(...).WithHeader(...)`, and `Curl.GetAsync(url)`.
+- **[02-PostJsonData.cs](BasicExamples/02-PostJsonData.cs)** - POSTing JSON as a raw `-d` command,
+  with `WithJson(object)`, with `Curl.PostJsonAsync`, and with extra headers; reading the reply with
+  `ParseJson<T>()`.
+- **[03-ErrorHandling.cs](BasicExamples/03-ErrorHandling.cs)** - `IsSuccess`, switching on
+  `StatusCode`, `EnsureSuccess()`, and the typed exceptions for a malformed URL
+  (`CurlMalformedUrlException`), a timeout (`CurlOperationTimeoutException`), an unreachable host
+  (`CurlCouldntConnectException`) and caller cancellation (`OperationCanceledException`), plus
+  built-in retries with `CurlSettings.WithRetries`.
+- **[04-SimpleGetFromOld.cs](BasicExamples/04-SimpleGetFromOld.cs)** - The `CurlResult` object:
+  `IsSuccess`, `StatusCode`, `Body`, `Headers` and `GetHeader`, with query parameters in the URL.
+- **[05-PostJsonFromOld.cs](BasicExamples/05-PostJsonFromOld.cs)** - Sending a JSON string with
+  `WithData` and a `Content-Type` header, sending C# objects with `PostJsonAsync`, parsing the created
+  resource with `ParseJson<T>()`, and JSON POSTs written as curl commands with custom headers.
 
-### 📁 File Operations
-Working with files - uploads, downloads, and more:
+### Authentication
 
-- **[01-DownloadFile.cs](FileOperations/01-DownloadFile.cs)** - Download files with progress
-- **[02-DownloadFileFromOld.cs](FileOperations/02-DownloadFileFromOld.cs)** - Legacy download example
+- **[01-BearerToken.cs](Authentication/01-BearerToken.cs)** - Bearer tokens via a `-H` command and
+  `WithBearerToken`, combining a token with API-key headers, a refresh-on-401 pattern that posts
+  `WithFormData`, and a reusable `LibCurl` client that sends the token on every request.
+- **[02-BearerTokenFromOld.cs](Authentication/02-BearerTokenFromOld.cs)** - Authentication in pasted
+  commands: Bearer token, API-key header, an optional `GITHUB_TOKEN` against the GitHub rate-limit
+  endpoint, several auth headers at once, and Basic auth with `-u user:pass`.
 
-### 🚀 Advanced Scenarios
-Complex scenarios and advanced features:
+### File Operations
 
-- **[01-ProxyUsage.cs](AdvancedScenarios/01-ProxyUsage.cs)** - Complete proxy examples (HTTP, SOCKS5, rotating)
+- **[01-DownloadFile.cs](FileOperations/01-DownloadFile.cs)** - Saving to disk with `curl -o`,
+  `Curl.DownloadAsync` and `OutputFiles`, a binary download through the builder (`FollowRedirects`,
+  `IsBinary`, `BinaryData`), a byte-range download with `-r`, parallel downloads with
+  `Task.WhenAll`, and `SaveToFile` plus a metadata file.
+- **[02-DownloadFileFromOld.cs](FileOperations/02-DownloadFileFromOld.cs)** - Saving a text body
+  yourself, `-o` with a quoted path, reading binary payloads from `BinaryData`, checking headers
+  first with `-I`, and saving and parsing a JSON download.
 
-### 🌍 Real World Examples
-Complete implementations for real-world use cases:
+### Advanced Scenarios
 
-- **[01-GitHubApi.cs](RealWorld/01-GitHubApi.cs)** - Full GitHub API integration
-- **[02-WebScraping.cs](RealWorld/02-WebScraping.cs)** - Web scraping with cookies, proxies, pagination
+- **[01-ProxyUsage.cs](AdvancedScenarios/01-ProxyUsage.cs)** - HTTP proxies with `-x` and
+  `WithProxy(url, user, pass)`, SOCKS5 with `--socks5`, rotating proxies, session-style proxy
+  usernames, `--proxy-user` in a command, and `ToCurlCommand()` to see the equivalent command. The
+  proxy hosts are placeholders; each failure is caught and printed.
 
-## 🚀 Quick Start
+### Real World Examples
+
+- **[01-GitHubApi.cs](RealWorld/01-GitHubApi.cs)** - A GitHub REST client built on
+  `CurlRequestBuilder.Request(...)` with shared headers and an optional token: user profile,
+  repository list, issue creation (token only), search with an escaped query, rate limit, and a
+  zipball download. Responses are parsed into typed models with `ParseJson<T>()`.
+- **[02-WebScraping.cs](RealWorld/02-WebScraping.cs)** - Browser-like headers, reading a
+  `Set-Cookie` header and sending it back with `WithCookie`, parallel requests limited by a
+  `SemaphoreSlim`, a request through a (placeholder) proxy, regex data extraction, and following
+  "next" links across pages.
+
+## Quick Start
 
 ### Install CurlDotNet
 
@@ -45,145 +82,149 @@ Complete implementations for real-world use cases:
 dotnet add package CurlDotNet
 ```
 
-### Run an Example
+### First Request
 
 ```csharp
 using CurlDotNet;
+using CurlDotNet.Core;
 
-// Simple GET request - paste any curl command!
+// Paste any curl command
 var result = await Curl.ExecuteAsync("curl https://api.github.com");
 Console.WriteLine(result.Body);
 
-// Or use the fluent API
-var response = await Curl.GetAsync("https://api.github.com/users/octocat")
+// Or use the fluent builder
+var response = await CurlRequestBuilder.Get("https://api.github.com/users/octocat")
     .WithHeader("Accept", "application/json")
     .ExecuteAsync();
 ```
 
-## 📖 Example Highlights
+## Example Highlights
 
-### 🔄 Direct curl Command Execution
+### Direct curl Command Execution
+
 ```csharp
-// Paste curl commands directly from documentation
+// Paste curl commands directly from documentation; trailing backslashes work
 var result = await Curl.ExecuteAsync(@"
-    curl -X POST https://api.example.com/users \
+    curl -X POST https://httpbin.org/post \
       -H 'Content-Type: application/json' \
       -H 'Authorization: Bearer token123' \
-      -d '{"name":"John","email":"john@example.com"}'
+      -d '{""name"":""John"",""email"":""john@example.com""}'
 ");
 ```
 
-### 🛠️ Fluent Builder Pattern
+### Fluent Builder
+
 ```csharp
-var result = await Curl.PostAsync("https://api.example.com/users")
+var result = await CurlRequestBuilder.Post("https://httpbin.org/post")
     .WithBearerToken("token123")
     .WithJson(new { name = "John", email = "john@example.com" })
     .WithTimeout(TimeSpan.FromSeconds(30))
     .ExecuteAsync();
 ```
 
-### 🌐 Proxy Support
+### Proxy Support
+
 ```csharp
 // HTTP proxy with authentication
-var result = await Curl.GetAsync("https://api.example.com")
-    .WithProxy("http://proxy.company.com:8080")
-    .WithProxyAuth("username", "password")
+var result = await CurlRequestBuilder.Get("https://httpbin.org/ip")
+    .WithProxy("http://proxy.company.com:8080", "username", "password")
     .ExecuteAsync();
 
-// SOCKS5 proxy (Tor)
-var torResult = await Curl.GetAsync("https://check.torproject.org")
-    .WithSocks5Proxy("socks5://127.0.0.1:9050")
-    .ExecuteAsync();
+// SOCKS5 proxy (Tor) - available through the command string
+var torResult = await Curl.ExecuteAsync("curl --socks5 127.0.0.1:9050 https://check.torproject.org");
 ```
 
-### 📊 Progress Tracking
+### Downloads
+
 ```csharp
-await Curl.DownloadFileAsync(
-    "https://example.com/large-file.zip",
-    "local-file.zip",
-    progress: (percent) => Console.WriteLine($"Progress: {percent:F1}%")
-);
+var download = await Curl.DownloadAsync("https://httpbin.org/bytes/1024", "local-file.bin");
+Console.WriteLine($"Saved: {string.Join(", ", download.OutputFiles)}");
 ```
 
-### 🔄 Retry Logic
+### Retry Logic
+
 ```csharp
-var result = await Curl.GetAsync("https://api.example.com")
-    .WithRetry(maxAttempts: 3)
-    .WithExponentialBackoff()
-    .ExecuteAsync();
+// Retries any failure, waiting 1 second between attempts
+var settings = new CurlSettings().WithRetries(3, delayMs: 1000);
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/503", settings);
 ```
 
-### 🍪 Cookie Management
+### Cookie Management
+
 ```csharp
 // Send cookies
-var result = await Curl.GetAsync("https://example.com")
+var result = await CurlRequestBuilder.Get("https://httpbin.org/cookies")
     .WithCookie("session=abc123; user=john")
     .ExecuteAsync();
 
-// Extract cookies from response
-if (result.Headers.ContainsKey("Set-Cookie"))
-{
-    var cookies = result.Headers["Set-Cookie"];
-    // Use cookies in subsequent requests
-}
+// Read a cookie the server sets, to send on later requests
+var login = await Curl.ExecuteAsync("curl https://httpbin.org/cookies/set?session=abc123");
+var setCookie = login.GetHeader("Set-Cookie"); // "session=abc123; Path=/"
 ```
 
-## 📝 Key Concepts
+## Key Concepts
 
 ### The CurlResult Object
 
-Every CurlDotNet operation returns a `CurlResult`:
+Every CurlDotNet call returns a `CurlResult`:
 
 ```csharp
-var result = await Curl.GetAsync("https://api.example.com");
+var result = await Curl.GetAsync("https://httpbin.org/get");
 
-// Check success (2xx status codes)
-if (result.IsSuccess)
+if (result.IsSuccess)                    // true for 2xx status codes
 {
-    string body = result.Body;           // Response body as string
+    string body = result.Body;           // response body as text
     int status = result.StatusCode;      // HTTP status code
-    var headers = result.Headers;        // Response headers dictionary
-    byte[] binary = result.BinaryData;   // Binary data (if applicable)
+    var headers = result.Headers;        // case-insensitive header dictionary
+    byte[] binary = result.BinaryData;   // set instead of Body for binary responses
+    double ms = result.Timings.Total;    // total time in milliseconds
 }
 ```
 
 ### Error Handling Patterns
 
+An HTTP error status (404, 500, ...) is a normal result. Transport failures throw.
+
 ```csharp
+using CurlDotNet.Exceptions;
+
 // Pattern 1: Check IsSuccess
+var result = await Curl.GetAsync("https://httpbin.org/status/404");
 if (!result.IsSuccess)
 {
     Console.WriteLine($"Failed: {result.StatusCode}");
 }
 
-// Pattern 2: Use try-catch for specific exceptions
+// Pattern 2: Turn a bad status into an exception, and catch transport failures
 try
 {
-    var result = await Curl.GetAsync("https://api.example.com")
-        .EnsureSuccessStatusCode()
-        .ExecuteAsync();
+    var checkedResult = (await Curl.GetAsync("https://httpbin.org/status/404")).EnsureSuccess();
 }
-catch (CurlHttpException ex)
+catch (CurlDotNet.Core.CurlHttpException ex)   // thrown by EnsureSuccess()
 {
     Console.WriteLine($"HTTP {ex.StatusCode}: {ex.Message}");
 }
 catch (CurlTimeoutException ex)
 {
-    Console.WriteLine($"Timeout after {ex.TimeoutSeconds}s");
+    Console.WriteLine($"Timeout after {ex.Timeout?.TotalSeconds}s");
+}
+catch (CurlException ex)                       // base class for all curl failures
+{
+    Console.WriteLine($"curl error {ex.CurlErrorCode}: {ex.Message}");
 }
 ```
 
-## 🔗 Useful Links
+`CurlDotNet.Core.CurlHttpException` (from `EnsureSuccess()`) and
+`CurlDotNet.Exceptions.CurlHttpException` are different types; qualify the name when both
+namespaces are imported.
+
+## Useful Links
 
 - **[Full Documentation](https://jacob-mellor.github.io/curl-dot-net/)**
 - **[API Reference](https://jacob-mellor.github.io/curl-dot-net/api/)**
 - **[NuGet Package](https://www.nuget.org/packages/CurlDotNet/)**
 - **[GitHub Repository](https://github.com/jacob-mellor/curl-dot-net)**
 
-## 📄 License
+## License
 
 All examples are MIT licensed and free to use in your projects.
-
----
-
-*Built with ❤️ by the CurlDotNet community*

@@ -3,6 +3,8 @@
 
 ## CurlSslCipherException\.CipherName Property
 
+Gets the name of the SSL cipher that could not be used
+
 ```csharp
 public string CipherName { get; }
 ```

@@ -3,6 +3,8 @@
 
 ## CurlUploadFailedException\.FileName Property
 
+Gets the file name that failed to upload
+
 ```csharp
 public string FileName { get; }
 ```

@@ -3,6 +3,8 @@
 
 ## CurlCouldntResolveHostException\.Hostname Property
 
+Gets the hostname that could not be resolved
+
 ```csharp
 public string Hostname { get; }
 ```

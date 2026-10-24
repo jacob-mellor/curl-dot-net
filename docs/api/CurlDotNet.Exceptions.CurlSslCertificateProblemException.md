@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlSslCertificateProblemException\(string, string\)](CurlDotNet.Exceptions.CurlSslCertificateProblemException.CurlSslCertificateProblemException(string,string).md 'CurlDotNet\.Exceptions\.CurlSslCertificateProblemException\.CurlSslCertificateProblemException\(string, string\)') | |
+| [CurlSslCertificateProblemException\(string, string\)](CurlDotNet.Exceptions.CurlSslCertificateProblemException.CurlSslCertificateProblemException(string,string).md 'CurlDotNet\.Exceptions\.CurlSslCertificateProblemException\.CurlSslCertificateProblemException\(string, string\)') | Initializes a new instance of the [CurlSslCertificateProblemException](CurlDotNet.Exceptions.CurlSslCertificateProblemException.md 'CurlDotNet\.Exceptions\.CurlSslCertificateProblemException') class\. |

@@ -3,6 +3,8 @@
 
 ## RateLimitMiddleware\(int\) Constructor
 
+Initializes a new instance of the [RateLimitMiddleware](CurlDotNet.Middleware.RateLimitMiddleware.md 'CurlDotNet\.Middleware\.RateLimitMiddleware') class\.
+
 ```csharp
 public RateLimitMiddleware(int requestsPerSecond);
 ```
@@ -11,3 +13,5 @@ public RateLimitMiddleware(int requestsPerSecond);
 <a name='CurlDotNet.Middleware.RateLimitMiddleware.RateLimitMiddleware(int).requestsPerSecond'></a>
 
 `requestsPerSecond` [System\.Int32](https://learn.microsoft.com/en-us/dotnet/api/system.int32 'System\.Int32')
+
+Maximum number of requests allowed per second\.

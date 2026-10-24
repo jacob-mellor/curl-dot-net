@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlOperationTimeoutException\(double, string\)](CurlDotNet.Exceptions.CurlOperationTimeoutException.CurlOperationTimeoutException(double,string).md 'CurlDotNet\.Exceptions\.CurlOperationTimeoutException\.CurlOperationTimeoutException\(double, string\)') | |
+| [CurlOperationTimeoutException\(double, string\)](CurlDotNet.Exceptions.CurlOperationTimeoutException.CurlOperationTimeoutException(double,string).md 'CurlDotNet\.Exceptions\.CurlOperationTimeoutException\.CurlOperationTimeoutException\(double, string\)') | Initializes a new instance of the [CurlOperationTimeoutException](CurlDotNet.Exceptions.CurlOperationTimeoutException.md 'CurlDotNet\.Exceptions\.CurlOperationTimeoutException') class\. |

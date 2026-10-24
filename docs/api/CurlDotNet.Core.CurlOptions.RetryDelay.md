@@ -6,8 +6,8 @@
 Retry delay in seconds \(\-\-retry\-delay\)\.
 
 ```csharp
-public int RetryDelay { get; set; }
+public double RetryDelay { get; set; }
 ```
 
 #### Property Value
-[System\.Int32](https://learn.microsoft.com/en-us/dotnet/api/system.int32 'System\.Int32')
+[System\.Double](https://learn.microsoft.com/en-us/dotnet/api/system.double 'System\.Double')

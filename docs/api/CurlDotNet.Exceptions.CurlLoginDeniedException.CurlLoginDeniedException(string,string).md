@@ -3,6 +3,8 @@
 
 ## CurlLoginDeniedException\(string, string\) Constructor
 
+Initializes a new instance of the [CurlLoginDeniedException](CurlDotNet.Exceptions.CurlLoginDeniedException.md 'CurlDotNet\.Exceptions\.CurlLoginDeniedException') class\.
+
 ```csharp
 public CurlLoginDeniedException(string message, string command=null);
 ```
@@ -12,6 +14,10 @@ public CurlLoginDeniedException(string message, string command=null);
 
 `message` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
+The error message that explains the reason for the exception\.
+
 <a name='CurlDotNet.Exceptions.CurlLoginDeniedException.CurlLoginDeniedException(string,string).command'></a>
 
 `command` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+
+The curl command that caused the exception\.

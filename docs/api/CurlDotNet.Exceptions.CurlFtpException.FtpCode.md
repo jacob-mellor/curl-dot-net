@@ -3,6 +3,8 @@
 
 ## CurlFtpException\.FtpCode Property
 
+Gets the FTP response code that caused the error
+
 ```csharp
 public int FtpCode { get; }
 ```

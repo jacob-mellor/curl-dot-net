@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlNotSupportedException\(string, string\)](CurlDotNet.Exceptions.CurlNotSupportedException.CurlNotSupportedException(string,string).md 'CurlDotNet\.Exceptions\.CurlNotSupportedException\.CurlNotSupportedException\(string, string\)') | |
+| [CurlNotSupportedException\(string, string\)](CurlDotNet.Exceptions.CurlNotSupportedException.CurlNotSupportedException(string,string).md 'CurlDotNet\.Exceptions\.CurlNotSupportedException\.CurlNotSupportedException\(string, string\)') | Initializes a new instance of the [CurlNotSupportedException](CurlDotNet.Exceptions.CurlNotSupportedException.md 'CurlDotNet\.Exceptions\.CurlNotSupportedException') class |
 
 | Properties | |
 | :--- | :--- |
-| [Feature](CurlDotNet.Exceptions.CurlNotSupportedException.Feature.md 'CurlDotNet\.Exceptions\.CurlNotSupportedException\.Feature') | |
+| [Feature](CurlDotNet.Exceptions.CurlNotSupportedException.Feature.md 'CurlDotNet\.Exceptions\.CurlNotSupportedException\.Feature') | Gets the name of the feature that is not supported |

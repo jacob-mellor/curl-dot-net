@@ -3,6 +3,8 @@
 
 ## RequestModifierMiddleware\(Action\<CurlContext\>\) Constructor
 
+Initializes a new instance of the [RequestModifierMiddleware](CurlDotNet.Middleware.RequestModifierMiddleware.md 'CurlDotNet\.Middleware\.RequestModifierMiddleware') class\.
+
 ```csharp
 public RequestModifierMiddleware(System.Action<CurlDotNet.Middleware.CurlContext> modifier);
 ```
@@ -11,3 +13,5 @@ public RequestModifierMiddleware(System.Action<CurlDotNet.Middleware.CurlContext
 <a name='CurlDotNet.Middleware.RequestModifierMiddleware.RequestModifierMiddleware(System.Action_CurlDotNet.Middleware.CurlContext_).modifier'></a>
 
 `modifier` [System\.Action&lt;](https://learn.microsoft.com/en-us/dotnet/api/system.action-1 'System\.Action\`1')[CurlContext](CurlDotNet.Middleware.CurlContext.md 'CurlDotNet\.Middleware\.CurlContext')[&gt;](https://learn.microsoft.com/en-us/dotnet/api/system.action-1 'System\.Action\`1')
+
+An action that modifies the request context before execution\.

@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlOutOfMemoryException\(string\)](CurlDotNet.Exceptions.CurlOutOfMemoryException.CurlOutOfMemoryException(string).md 'CurlDotNet\.Exceptions\.CurlOutOfMemoryException\.CurlOutOfMemoryException\(string\)') | |
+| [CurlOutOfMemoryException\(string\)](CurlDotNet.Exceptions.CurlOutOfMemoryException.CurlOutOfMemoryException(string).md 'CurlDotNet\.Exceptions\.CurlOutOfMemoryException\.CurlOutOfMemoryException\(string\)') | Initializes a new instance of the [CurlOutOfMemoryException](CurlDotNet.Exceptions.CurlOutOfMemoryException.md 'CurlDotNet\.Exceptions\.CurlOutOfMemoryException') class\. |

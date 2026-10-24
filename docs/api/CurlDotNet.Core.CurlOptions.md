@@ -19,6 +19,9 @@ AI-Usage: This is the intermediate representation between curl syntax and HTTP o
 
 | Properties | |
 | :--- | :--- |
+| [AuthScheme](CurlDotNet.Core.CurlOptions.AuthScheme.md 'CurlDotNet\.Core\.CurlOptions\.AuthScheme') | HTTP authentication scheme selected on the command line \(\-\-basic, \-\-digest, \-\-ntlm, \-\-negotiate, \-\-anyauth\)\. Null means curl's default: preemptive Basic when credentials are present\. Challenge\-based schemes \(digest/ntlm/negotiate/anyauth\) are performed via the HTTP 401 challenge\-response flow instead of a preemptive Authorization header\. |
+| [AwsSigV4](CurlDotNet.Core.CurlOptions.AwsSigV4.md 'CurlDotNet\.Core\.CurlOptions\.AwsSigV4') | AWS Signature Version 4 configuration for authenticating requests to AWS services\. Set by the `--aws-sigv4` flag\. |
+| [BinaryContentTypes](CurlDotNet.Core.CurlOptions.BinaryContentTypes.md 'CurlDotNet\.Core\.CurlOptions\.BinaryContentTypes') | Additional MIME types that should be treated as binary data\. |
 | [BinaryData](CurlDotNet.Core.CurlOptions.BinaryData.md 'CurlDotNet\.Core\.CurlOptions\.BinaryData') | Binary data for upload\. |
 | [CaCert](CurlDotNet.Core.CurlOptions.CaCert.md 'CurlDotNet\.Core\.CurlOptions\.CaCert') | Alias for CaCertFile for test compatibility\. |
 | [CaCertFile](CurlDotNet.Core.CurlOptions.CaCertFile.md 'CurlDotNet\.Core\.CurlOptions\.CaCertFile') | CA certificate file \(\-\-cacert\)\. |
@@ -31,6 +34,7 @@ AI-Usage: This is the intermediate representation between curl syntax and HTTP o
 | [Credentials](CurlDotNet.Core.CurlOptions.Credentials.md 'CurlDotNet\.Core\.CurlOptions\.Credentials') | Basic authentication \(\-u or \-\-user\)\. |
 | [CustomMethod](CurlDotNet.Core.CurlOptions.CustomMethod.md 'CurlDotNet\.Core\.CurlOptions\.CustomMethod') | Request method override \(\-X flag value\)\. |
 | [Data](CurlDotNet.Core.CurlOptions.Data.md 'CurlDotNet\.Core\.CurlOptions\.Data') | Request body data\. |
+| [DataRaw](CurlDotNet.Core.CurlOptions.DataRaw.md 'CurlDotNet\.Core\.CurlOptions\.DataRaw') | Whether the data was provided via \-\-data\-raw, which prevents @file expansion\. When true, a leading @ in [Data](CurlDotNet.Core.CurlOptions.Data.md 'CurlDotNet\.Core\.CurlOptions\.Data') is treated as a literal character rather than a file reference\. This matches curl's \-\-data\-raw behavior\. |
 | [DataUrlEncode](CurlDotNet.Core.CurlOptions.DataUrlEncode.md 'CurlDotNet\.Core\.CurlOptions\.DataUrlEncode') | Whether to URL encode the data \(\-\-data\-urlencode flag\)\. |
 | [DisableEprt](CurlDotNet.Core.CurlOptions.DisableEprt.md 'CurlDotNet\.Core\.CurlOptions\.DisableEprt') | Whether to disable EPRT for FTP \(\-\-disable\-eprt\)\. |
 | [DisableEpsv](CurlDotNet.Core.CurlOptions.DisableEpsv.md 'CurlDotNet\.Core\.CurlOptions\.DisableEpsv') | Whether to disable EPSV for FTP \(\-\-disable\-epsv\)\. |
@@ -39,6 +43,7 @@ AI-Usage: This is the intermediate representation between curl syntax and HTTP o
 | [Files](CurlDotNet.Core.CurlOptions.Files.md 'CurlDotNet\.Core\.CurlOptions\.Files') | Files to upload \(for \-F flag with @file\)\. |
 | [FollowLocation](CurlDotNet.Core.CurlOptions.FollowLocation.md 'CurlDotNet\.Core\.CurlOptions\.FollowLocation') | Whether to follow redirects \(\-L flag\)\. |
 | [FollowRedirects](CurlDotNet.Core.CurlOptions.FollowRedirects.md 'CurlDotNet\.Core\.CurlOptions\.FollowRedirects') | Alias for FollowLocation for test compatibility\. |
+| [ForceBinary](CurlDotNet.Core.CurlOptions.ForceBinary.md 'CurlDotNet\.Core\.CurlOptions\.ForceBinary') | Forces all response content to be treated as binary data, regardless of Content\-Type header\. |
 | [FormData](CurlDotNet.Core.CurlOptions.FormData.md 'CurlDotNet\.Core\.CurlOptions\.FormData') | Form data for multipart/form\-data\. |
 | [FtpPassive](CurlDotNet.Core.CurlOptions.FtpPassive.md 'CurlDotNet\.Core\.CurlOptions\.FtpPassive') | Whether to use passive mode for FTP \(\-\-ftp\-pasv\)\. |
 | [FtpSsl](CurlDotNet.Core.CurlOptions.FtpSsl.md 'CurlDotNet\.Core\.CurlOptions\.FtpSsl') | Whether to use SSL/TLS for FTP \(\-\-ftp\-ssl\)\. |
@@ -66,6 +71,8 @@ AI-Usage: This is the intermediate representation between curl syntax and HTTP o
 | [Resolve](CurlDotNet.Core.CurlOptions.Resolve.md 'CurlDotNet\.Core\.CurlOptions\.Resolve') | Resolve host to IP \(\-\-resolve\)\. |
 | [ResumeFrom](CurlDotNet.Core.CurlOptions.ResumeFrom.md 'CurlDotNet\.Core\.CurlOptions\.ResumeFrom') | Resume from byte offset \(\-C or \-\-continue\-at\)\. |
 | [Retry](CurlDotNet.Core.CurlOptions.Retry.md 'CurlDotNet\.Core\.CurlOptions\.Retry') | Retry count \(\-\-retry\)\. |
+| [RetryAllErrors](CurlDotNet.Core.CurlOptions.RetryAllErrors.md 'CurlDotNet\.Core\.CurlOptions\.RetryAllErrors') | `--retry-all-errors`: retry on every failure, not only on the transient ones curl             retries by default \(timeouts and HTTP 408/429/500/502/503/504\)\. |
+| [RetryConnRefused](CurlDotNet.Core.CurlOptions.RetryConnRefused.md 'CurlDotNet\.Core\.CurlOptions\.RetryConnRefused') | `--retry-connrefused`: also treat "connection refused" as a transient error worth retrying\. |
 | [RetryDelay](CurlDotNet.Core.CurlOptions.RetryDelay.md 'CurlDotNet\.Core\.CurlOptions\.RetryDelay') | Retry delay in seconds \(\-\-retry\-delay\)\. |
 | [RetryMaxTime](CurlDotNet.Core.CurlOptions.RetryMaxTime.md 'CurlDotNet\.Core\.CurlOptions\.RetryMaxTime') | Maximum retry time \(\-\-retry\-max\-time\)\. |
 | [ShowError](CurlDotNet.Core.CurlOptions.ShowError.md 'CurlDotNet\.Core\.CurlOptions\.ShowError') | Show error even in silent mode \(\-S flag\)\. |
@@ -73,6 +80,11 @@ AI-Usage: This is the intermediate representation between curl syntax and HTTP o
 | [Socks5Proxy](CurlDotNet.Core.CurlOptions.Socks5Proxy.md 'CurlDotNet\.Core\.CurlOptions\.Socks5Proxy') | SOCKS proxy \(\-\-socks5\)\. |
 | [SpeedLimit](CurlDotNet.Core.CurlOptions.SpeedLimit.md 'CurlDotNet\.Core\.CurlOptions\.SpeedLimit') | Speed limit in bytes per second \(\-\-limit\-rate\)\. |
 | [SpeedTime](CurlDotNet.Core.CurlOptions.SpeedTime.md 'CurlDotNet\.Core\.CurlOptions\.SpeedTime') | Speed time period for limit \(\-\-speed\-time\)\. |
+| [TextContentTypes](CurlDotNet.Core.CurlOptions.TextContentTypes.md 'CurlDotNet\.Core\.CurlOptions\.TextContentTypes') | Additional MIME types that should be treated as text content\. |
+| [TraceAsciiFile](CurlDotNet.Core.CurlOptions.TraceAsciiFile.md 'CurlDotNet\.Core\.CurlOptions\.TraceAsciiFile') | Path to write an ASCII\-only diagnostic trace \(no hex column\), set by the `--trace-ascii` option\. Use `"-"` to write the trace to standard output\. |
+| [TraceFile](CurlDotNet.Core.CurlOptions.TraceFile.md 'CurlDotNet\.Core\.CurlOptions\.TraceFile') | Path to write a full diagnostic trace \(request/response headers and bodies dumped as hex \+ ASCII\), set by the `--trace` option\. Use `"-"` to write the trace to standard output\. |
+| [TraceTime](CurlDotNet.Core.CurlOptions.TraceTime.md 'CurlDotNet\.Core\.CurlOptions\.TraceTime') | Whether to prefix every trace line with a high\-resolution timestamp \(`--trace-time`\)\. Useful for spotting where time is spent or where a request stalls\. |
+| [UnknownOptions](CurlDotNet.Core.CurlOptions.UnknownOptions.md 'CurlDotNet\.Core\.CurlOptions\.UnknownOptions') | Options on the command line that CurlDotNet did not recognise\. Execution ignores them \(curl itself would exit with code 2\), and [Validate\(string\)](CurlDotNet.Core.CurlEngine.Validate(string).md 'CurlDotNet\.Core\.CurlEngine\.Validate\(string\)') reports them so typos such as `--hedaer` are caught before a request is made\. |
 | [Url](CurlDotNet.Core.CurlOptions.Url.md 'CurlDotNet\.Core\.CurlOptions\.Url') | The target URL\. |
 | [UserAgent](CurlDotNet.Core.CurlOptions.UserAgent.md 'CurlDotNet\.Core\.CurlOptions\.UserAgent') | User agent string \(\-A or \-\-user\-agent\)\. |
 | [UserAuth](CurlDotNet.Core.CurlOptions.UserAuth.md 'CurlDotNet\.Core\.CurlOptions\.UserAuth') | Alias for Credentials for test compatibility\. |

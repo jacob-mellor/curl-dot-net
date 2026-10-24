@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlBadDownloadResumeException\(long, string\)](CurlDotNet.Exceptions.CurlBadDownloadResumeException.CurlBadDownloadResumeException(long,string).md 'CurlDotNet\.Exceptions\.CurlBadDownloadResumeException\.CurlBadDownloadResumeException\(long, string\)') | |
+| [CurlBadDownloadResumeException\(long, string\)](CurlDotNet.Exceptions.CurlBadDownloadResumeException.CurlBadDownloadResumeException(long,string).md 'CurlDotNet\.Exceptions\.CurlBadDownloadResumeException\.CurlBadDownloadResumeException\(long, string\)') | Initializes a new instance of the [CurlBadDownloadResumeException](CurlDotNet.Exceptions.CurlBadDownloadResumeException.md 'CurlDotNet\.Exceptions\.CurlBadDownloadResumeException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [ResumeOffset](CurlDotNet.Exceptions.CurlBadDownloadResumeException.ResumeOffset.md 'CurlDotNet\.Exceptions\.CurlBadDownloadResumeException\.ResumeOffset') | |
+| [ResumeOffset](CurlDotNet.Exceptions.CurlBadDownloadResumeException.ResumeOffset.md 'CurlDotNet\.Exceptions\.CurlBadDownloadResumeException\.ResumeOffset') | Gets the offset where the bad download resume occurred |

@@ -3,6 +3,8 @@
 
 ## CurlFailedInitException\(string, string\) Constructor
 
+Initializes a new instance of the [CurlFailedInitException](CurlDotNet.Exceptions.CurlFailedInitException.md 'CurlDotNet\.Exceptions\.CurlFailedInitException') class\.
+
 ```csharp
 public CurlFailedInitException(string message, string command=null);
 ```
@@ -12,6 +14,10 @@ public CurlFailedInitException(string message, string command=null);
 
 `message` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
+The error message describing the initialization failure\.
+
 <a name='CurlDotNet.Exceptions.CurlFailedInitException.CurlFailedInitException(string,string).command'></a>
 
 `command` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+
+The curl command that was executing when the error occurred\.

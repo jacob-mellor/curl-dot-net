@@ -3,6 +3,8 @@
 
 ## CurlGotNothingException\(string\) Constructor
 
+Initializes a new instance of the [CurlGotNothingException](CurlDotNet.Exceptions.CurlGotNothingException.md 'CurlDotNet\.Exceptions\.CurlGotNothingException') class\.
+
 ```csharp
 public CurlGotNothingException(string command=null);
 ```
@@ -11,3 +13,5 @@ public CurlGotNothingException(string command=null);
 <a name='CurlDotNet.Exceptions.CurlGotNothingException.CurlGotNothingException(string).command'></a>
 
 `command` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+
+The curl command that caused the exception\.

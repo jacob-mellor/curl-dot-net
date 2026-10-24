@@ -38,67 +38,100 @@ else
     AnsiConsole.MarkupLine("\n[dim]Skipping build (--no-build flag set)[/]");
 }
 
-// 2. Check if DocFX is installed, if not install it
-AnsiConsole.MarkupLine("\n[yellow]Checking DocFX installation...[/]");
-var (checkExitCode, toolListOutput) = await RunCommandWithOutput("dotnet", "tool list -g");
-var docfxInstalled = toolListOutput.Contains("docfx", StringComparison.OrdinalIgnoreCase);
-
-if (!docfxInstalled)
+// 2. Regenerate the Markdown API reference (docs/api) with DefaultDocumentation.
+//    The GitHub Pages site is built by Jekyll from docs/, so these .md files ARE the public API docs.
+AnsiConsole.MarkupLine("\n[yellow]Regenerating docs/api with DefaultDocumentation...[/]");
+var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+var toolCandidates = new[]
 {
-    AnsiConsole.MarkupLine("[yellow]Installing DocFX...[/]");
-    var installResult = await RunCommand("dotnet", "tool install -g docfx");
+    "defaultdocumentation",
+    Path.Combine(home, ".dotnet", "tools", "defaultdocumentation"),
+    Path.Combine(home, ".dotnet", "tools", "defaultdocumentation.exe"),
+};
+var toolPath = toolCandidates.FirstOrDefault(c => c == "defaultdocumentation" ? false : File.Exists(c)) ?? "defaultdocumentation";
+var toolAvailable = false;
+try
+{
+    var (toolCheck, _) = await RunCommandWithOutput(toolPath, "--help");
+    toolAvailable = toolCheck == 0;
+}
+catch (System.ComponentModel.Win32Exception)
+{
+    toolAvailable = false; // not on PATH and not in ~/.dotnet/tools
+}
+if (!toolAvailable)
+{
+    AnsiConsole.MarkupLine("[yellow]Installing DefaultDocumentation.Console...[/]");
+    var installResult = await RunCommand("dotnet", "tool install -g DefaultDocumentation.Console");
     if (installResult != 0)
     {
-        AnsiConsole.MarkupLine("[red]Failed to install DocFX[/]");
+        AnsiConsole.MarkupLine("[red]Failed to install DefaultDocumentation.Console (dotnet tool install -g DefaultDocumentation.Console)[/]");
         Environment.Exit(1);
     }
-}
-AnsiConsole.MarkupLine("[green]DocFX is ready[/]");
-
-// 3. Generate API documentation with DocFX
-AnsiConsole.MarkupLine("\n[yellow]Generating API documentation with DocFX...[/]");
-
-// Clean previous DocFX output only - do NOT delete root obj/ as it contains NuGet restore cache
-if (Directory.Exists("_site"))
-{
-    Directory.Delete("_site", recursive: true);
-}
-// Only clean DocFX-specific artifacts, not the entire obj/ tree
-var docfxApiDir = Path.Combine("obj", "api");
-if (Directory.Exists(docfxApiDir))
-{
-    Directory.Delete(docfxApiDir, recursive: true);
+    toolPath = Path.Combine(home, ".dotnet", "tools", "defaultdocumentation");
 }
 
-// Run DocFX metadata and build using docfx.json in project root
-var metadataResult = await RunCommand("docfx", "metadata docfx.json");
-if (metadataResult != 0)
+var assemblyCandidates = new[] { "net10.0", "net9.0", "net8.0", "netstandard2.0" }
+    .Select(tfm => Path.Combine("src", "CurlDotNet", "bin", "Release", tfm, "CurlDotNet.dll"))
+    .Where(File.Exists)
+    .ToList();
+if (assemblyCandidates.Count == 0)
 {
-    AnsiConsole.MarkupLine("[red]DocFX metadata generation failed[/]");
+    AnsiConsole.MarkupLine("[red]No built CurlDotNet.dll found under src/CurlDotNet/bin/Release. Build first (or drop --no-build).[/]");
     Environment.Exit(1);
 }
+var assembly = assemblyCandidates[0];
 
-var docfxResult = await RunCommand("docfx", "build docfx.json");
-if (docfxResult != 0)
+var apiDir = Path.Combine("docs", "api");
+if (Directory.Exists(apiDir))
 {
-    AnsiConsole.MarkupLine("[red]DocFX build failed[/]");
+    // Replace the whole set: members that no longer exist must not keep a page
+    foreach (var stale in Directory.GetFiles(apiDir, "*.md"))
+    {
+        File.Delete(stale);
+    }
+}
+Directory.CreateDirectory(apiDir);
+
+var apiResult = await RunCommand(toolPath, $"-a \"{assembly}\" -o \"{apiDir}\"");
+if (apiResult != 0)
+{
+    AnsiConsole.MarkupLine("[red]DefaultDocumentation failed[/]");
     Environment.Exit(1);
 }
+var apiPages = Directory.GetFiles(apiDir, "*.md").Length;
+AnsiConsole.MarkupLine($"[green]docs/api: {apiPages} pages generated from {assembly}[/]");
 
-// Count generated files
-if (Directory.Exists("_site"))
+// 3. Optional local HTML preview with DocFX (pass --docfx). Not deployed: GitHub Pages renders docs/ with Jekyll.
+if (Args.Any(a => a == "--docfx"))
 {
-    var htmlFileCount = Directory.GetFiles("_site", "*.html", SearchOption.AllDirectories).Length;
-    var totalSize = GetDirectorySize("_site") / (1024 * 1024); // Convert to MB
-
-    AnsiConsole.MarkupLine($"[green]Generated {htmlFileCount} HTML files ({totalSize:F1} MB)[/]");
+    AnsiConsole.MarkupLine("\n[yellow]Building DocFX preview site (_site)...[/]");
+    if (Directory.Exists("_site"))
+    {
+        Directory.Delete("_site", recursive: true);
+    }
+    var docfxApiDir = Path.Combine("obj", "api");
+    if (Directory.Exists(docfxApiDir))
+    {
+        Directory.Delete(docfxApiDir, recursive: true);
+    }
+    var metadataResult = await RunCommand("docfx", "metadata docfx.json");
+    var docfxResult = metadataResult == 0 ? await RunCommand("docfx", "build docfx.json") : metadataResult;
+    if (docfxResult != 0)
+    {
+        AnsiConsole.MarkupLine("[yellow]DocFX preview failed (this does not affect the published site)[/]");
+    }
+    else if (Directory.Exists("_site"))
+    {
+        var htmlFileCount = Directory.GetFiles("_site", "*.html", SearchOption.AllDirectories).Length;
+        AnsiConsole.MarkupLine($"[green]DocFX preview: {htmlFileCount} HTML files in _site/ (docfx serve _site)[/]");
+    }
 }
 
-// 4. Create summary
+// 4. Summary
 AnsiConsole.Write(new Rule("[green]Generation Complete[/]").LeftJustified());
 AnsiConsole.MarkupLine("\n[green]Documentation generated successfully![/]");
-AnsiConsole.MarkupLine("[cyan]Output location: _site/[/]");
-AnsiConsole.MarkupLine("[cyan]View locally: docfx serve _site[/]");
+AnsiConsole.MarkupLine("[cyan]API reference: docs/api/ (commit it; the site is built from docs/ by GitHub Pages)[/]");
 AnsiConsole.MarkupLine("[cyan]GitHub Pages: https://jacob-mellor.github.io/curl-dot-net/[/]");
 
 // Helper function to run shell commands - reads streams concurrently to prevent deadlocks

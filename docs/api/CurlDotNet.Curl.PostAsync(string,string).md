@@ -48,6 +48,7 @@ A [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult') wit
 
 ### Remarks
 
-This is equivalent to: `Curl.Execute($"curl -X POST -d '{data}' {url}")`
+Equivalent to `curl -X POST -d <data> <url>`, but the data is passed straight to the
+             engine, so quotes, apostrophes and spaces in [data](CurlDotNet.Curl.PostAsync(string,string).md#CurlDotNet.Curl.PostAsync(string,string).data 'CurlDotNet\.Curl\.PostAsync\(string, string\)\.data') need no escaping.
 
 For POST with headers, use [PostJson\(string, object\)](CurlDotNet.Curl.PostJson(string,object).md 'CurlDotNet\.Curl\.PostJson\(string, object\)') or the full [Execute\(string\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string) 'CurlDotNet\.Curl\.Execute\(string\)') method.

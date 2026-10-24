@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlSslEngineNotFoundException\(string, string\)](CurlDotNet.Exceptions.CurlSslEngineNotFoundException.CurlSslEngineNotFoundException(string,string).md 'CurlDotNet\.Exceptions\.CurlSslEngineNotFoundException\.CurlSslEngineNotFoundException\(string, string\)') | |
+| [CurlSslEngineNotFoundException\(string, string\)](CurlDotNet.Exceptions.CurlSslEngineNotFoundException.CurlSslEngineNotFoundException(string,string).md 'CurlDotNet\.Exceptions\.CurlSslEngineNotFoundException\.CurlSslEngineNotFoundException\(string, string\)') | Initializes a new instance of the [CurlSslEngineNotFoundException](CurlDotNet.Exceptions.CurlSslEngineNotFoundException.md 'CurlDotNet\.Exceptions\.CurlSslEngineNotFoundException') class\. |

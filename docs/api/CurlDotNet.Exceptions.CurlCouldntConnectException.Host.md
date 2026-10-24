@@ -3,6 +3,8 @@
 
 ## CurlCouldntConnectException\.Host Property
 
+Gets the host that could not be connected to
+
 ```csharp
 public string Host { get; }
 ```

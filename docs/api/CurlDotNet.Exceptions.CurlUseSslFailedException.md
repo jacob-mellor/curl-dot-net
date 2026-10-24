@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlUseSslFailedException\(string, string\)](CurlDotNet.Exceptions.CurlUseSslFailedException.CurlUseSslFailedException(string,string).md 'CurlDotNet\.Exceptions\.CurlUseSslFailedException\.CurlUseSslFailedException\(string, string\)') | |
+| [CurlUseSslFailedException\(string, string\)](CurlDotNet.Exceptions.CurlUseSslFailedException.CurlUseSslFailedException(string,string).md 'CurlDotNet\.Exceptions\.CurlUseSslFailedException\.CurlUseSslFailedException\(string, string\)') | Initializes a new instance of the [CurlUseSslFailedException](CurlDotNet.Exceptions.CurlUseSslFailedException.md 'CurlDotNet\.Exceptions\.CurlUseSslFailedException') class\. |

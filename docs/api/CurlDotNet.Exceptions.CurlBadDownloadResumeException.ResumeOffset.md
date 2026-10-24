@@ -3,6 +3,8 @@
 
 ## CurlBadDownloadResumeException\.ResumeOffset Property
 
+Gets the offset where the bad download resume occurred
+
 ```csharp
 public long ResumeOffset { get; }
 ```

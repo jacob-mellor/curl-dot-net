@@ -43,6 +43,6 @@ A [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult') wit
 
 ### Remarks
 
-This is equivalent to: `Curl.Execute($"curl {url}")`
+Equivalent to `curl <url>`.
 
 For GET requests with headers or auth, use the full [Execute\(string\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string) 'CurlDotNet\.Curl\.Execute\(string\)') method.

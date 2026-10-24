@@ -30,13 +30,13 @@ An instance of [T](CurlDotNet.Core.CurlResult.AsJson_T_().md#CurlDotNet.Core.Cur
 
 #### Exceptions
 
-[System\.ArgumentNullException](https://learn.microsoft.com/en-us/dotnet/api/system.argumentnullexception 'System\.ArgumentNullException')  
+[System\.InvalidOperationException](https://learn.microsoft.com/en-us/dotnet/api/system.invalidoperationexception 'System\.InvalidOperationException')  
 Thrown when [Body](CurlDotNet.Core.CurlResult.Body.md 'CurlDotNet\.Core\.CurlResult\.Body') is null or empty\.
 
 [System\.InvalidOperationException](https://learn.microsoft.com/en-us/dotnet/api/system.invalidoperationexception 'System\.InvalidOperationException')  
 Thrown when JSON deserialization fails\.
 
-[JsonException](https://learn.microsoft.com/en-us/dotnet/api/jsonexception 'JsonException')  
+[System\.Exception](https://learn.microsoft.com/en-us/dotnet/api/system.exception 'System\.Exception')  
 Thrown when the JSON syntax is invalid\.
 
 ### Remarks

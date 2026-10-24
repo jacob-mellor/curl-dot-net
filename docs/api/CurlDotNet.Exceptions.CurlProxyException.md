@@ -13,9 +13,9 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlProxyException\(string, string, Nullable&lt;int&gt;, string\)](CurlDotNet.Exceptions.CurlProxyException.CurlProxyException(string,string,System.Nullable_int_,string).md 'CurlDotNet\.Exceptions\.CurlProxyException\.CurlProxyException\(string, string, System\.Nullable\<int\>, string\)') | |
+| [CurlProxyException\(string, string, Nullable&lt;int&gt;, string\)](CurlDotNet.Exceptions.CurlProxyException.CurlProxyException(string,string,System.Nullable_int_,string).md 'CurlDotNet\.Exceptions\.CurlProxyException\.CurlProxyException\(string, string, System\.Nullable\<int\>, string\)') | Initializes a new instance of the [CurlProxyException](CurlDotNet.Exceptions.CurlProxyException.md 'CurlDotNet\.Exceptions\.CurlProxyException') class |
 
 | Properties | |
 | :--- | :--- |
-| [ProxyHost](CurlDotNet.Exceptions.CurlProxyException.ProxyHost.md 'CurlDotNet\.Exceptions\.CurlProxyException\.ProxyHost') | |
-| [ProxyPort](CurlDotNet.Exceptions.CurlProxyException.ProxyPort.md 'CurlDotNet\.Exceptions\.CurlProxyException\.ProxyPort') | |
+| [ProxyHost](CurlDotNet.Exceptions.CurlProxyException.ProxyHost.md 'CurlDotNet\.Exceptions\.CurlProxyException\.ProxyHost') | Gets the proxy hostname or IP address that failed to connect |
+| [ProxyPort](CurlDotNet.Exceptions.CurlProxyException.ProxyPort.md 'CurlDotNet\.Exceptions\.CurlProxyException\.ProxyPort') | Gets the proxy port number, if specified |

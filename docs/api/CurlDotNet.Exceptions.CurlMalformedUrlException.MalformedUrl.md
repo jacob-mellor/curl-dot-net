@@ -3,6 +3,8 @@
 
 ## CurlMalformedUrlException\.MalformedUrl Property
 
+Gets the malformed URL that caused the error
+
 ```csharp
 public string MalformedUrl { get; }
 ```

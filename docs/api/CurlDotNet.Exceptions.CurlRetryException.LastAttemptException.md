@@ -3,6 +3,8 @@
 
 ## CurlRetryException\.LastAttemptException Property
 
+Gets the exception from the last retry attempt
+
 ```csharp
 public System.Exception LastAttemptException { get; }
 ```

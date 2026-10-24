@@ -13,9 +13,9 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlFileSizeExceededException\(long, long, string\)](CurlDotNet.Exceptions.CurlFileSizeExceededException.CurlFileSizeExceededException(long,long,string).md 'CurlDotNet\.Exceptions\.CurlFileSizeExceededException\.CurlFileSizeExceededException\(long, long, string\)') | |
+| [CurlFileSizeExceededException\(long, long, string\)](CurlDotNet.Exceptions.CurlFileSizeExceededException.CurlFileSizeExceededException(long,long,string).md 'CurlDotNet\.Exceptions\.CurlFileSizeExceededException\.CurlFileSizeExceededException\(long, long, string\)') | Initializes a new instance of the [CurlFileSizeExceededException](CurlDotNet.Exceptions.CurlFileSizeExceededException.md 'CurlDotNet\.Exceptions\.CurlFileSizeExceededException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [ActualSize](CurlDotNet.Exceptions.CurlFileSizeExceededException.ActualSize.md 'CurlDotNet\.Exceptions\.CurlFileSizeExceededException\.ActualSize') | |
-| [MaxSize](CurlDotNet.Exceptions.CurlFileSizeExceededException.MaxSize.md 'CurlDotNet\.Exceptions\.CurlFileSizeExceededException\.MaxSize') | |
+| [ActualSize](CurlDotNet.Exceptions.CurlFileSizeExceededException.ActualSize.md 'CurlDotNet\.Exceptions\.CurlFileSizeExceededException\.ActualSize') | Gets the actual file size in bytes that exceeded the limit |
+| [MaxSize](CurlDotNet.Exceptions.CurlFileSizeExceededException.MaxSize.md 'CurlDotNet\.Exceptions\.CurlFileSizeExceededException\.MaxSize') | Gets the maximum allowed file size in bytes |

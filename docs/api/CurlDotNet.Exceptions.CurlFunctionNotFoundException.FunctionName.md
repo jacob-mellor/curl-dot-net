@@ -3,6 +3,8 @@
 
 ## CurlFunctionNotFoundException\.FunctionName Property
 
+Gets the function name that was not found
+
 ```csharp
 public string FunctionName { get; }
 ```

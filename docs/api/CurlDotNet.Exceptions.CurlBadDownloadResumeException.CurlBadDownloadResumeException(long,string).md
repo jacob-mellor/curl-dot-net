@@ -3,6 +3,8 @@
 
 ## CurlBadDownloadResumeException\(long, string\) Constructor
 
+Initializes a new instance of the [CurlBadDownloadResumeException](CurlDotNet.Exceptions.CurlBadDownloadResumeException.md 'CurlDotNet\.Exceptions\.CurlBadDownloadResumeException') class\.
+
 ```csharp
 public CurlBadDownloadResumeException(long offset, string command=null);
 ```
@@ -12,6 +14,10 @@ public CurlBadDownloadResumeException(long offset, string command=null);
 
 `offset` [System\.Int64](https://learn.microsoft.com/en-us/dotnet/api/system.int64 'System\.Int64')
 
+The offset where the bad download resume occurred\.
+
 <a name='CurlDotNet.Exceptions.CurlBadDownloadResumeException.CurlBadDownloadResumeException(long,string).command'></a>
 
 `command` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
+
+The curl command that caused the exception\.

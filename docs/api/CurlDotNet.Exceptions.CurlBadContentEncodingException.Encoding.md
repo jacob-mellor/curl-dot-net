@@ -3,6 +3,8 @@
 
 ## CurlBadContentEncodingException\.Encoding Property
 
+Gets the content encoding that was not recognized or could not be decoded
+
 ```csharp
 public string Encoding { get; }
 ```

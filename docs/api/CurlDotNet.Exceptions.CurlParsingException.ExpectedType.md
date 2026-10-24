@@ -3,6 +3,8 @@
 
 ## CurlParsingException\.ExpectedType Property
 
+Gets the expected type that the content could not be parsed into
+
 ```csharp
 public System.Type ExpectedType { get; }
 ```

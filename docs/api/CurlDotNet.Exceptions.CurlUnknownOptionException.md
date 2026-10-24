@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlUnknownOptionException\(string, string\)](CurlDotNet.Exceptions.CurlUnknownOptionException.CurlUnknownOptionException(string,string).md 'CurlDotNet\.Exceptions\.CurlUnknownOptionException\.CurlUnknownOptionException\(string, string\)') | |
+| [CurlUnknownOptionException\(string, string\)](CurlDotNet.Exceptions.CurlUnknownOptionException.CurlUnknownOptionException(string,string).md 'CurlDotNet\.Exceptions\.CurlUnknownOptionException\.CurlUnknownOptionException\(string, string\)') | Initializes a new instance of the [CurlUnknownOptionException](CurlDotNet.Exceptions.CurlUnknownOptionException.md 'CurlDotNet\.Exceptions\.CurlUnknownOptionException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [OptionName](CurlDotNet.Exceptions.CurlUnknownOptionException.OptionName.md 'CurlDotNet\.Exceptions\.CurlUnknownOptionException\.OptionName') | |
+| [OptionName](CurlDotNet.Exceptions.CurlUnknownOptionException.OptionName.md 'CurlDotNet\.Exceptions\.CurlUnknownOptionException\.OptionName') | Gets the name of the unknown option that was specified |

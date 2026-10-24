@@ -3,6 +3,8 @@
 
 ## CurlFileSizeExceededException\.ActualSize Property
 
+Gets the actual file size in bytes that exceeded the limit
+
 ```csharp
 public long ActualSize { get; }
 ```

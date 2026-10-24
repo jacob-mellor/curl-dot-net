@@ -3,6 +3,8 @@
 
 ## CurlRateLimitException\.RemainingLimit Property
 
+Gets the number of remaining requests allowed, if provided
+
 ```csharp
 public System.Nullable<int> RemainingLimit { get; }
 ```

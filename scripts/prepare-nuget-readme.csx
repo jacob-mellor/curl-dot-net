@@ -4,138 +4,58 @@
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Spectre.Console;
 
-// Script to prepare README for NuGet package with absolute links
-// .NET-friendly NuGet README converter for CurlDotNet
+// Validates nuget-readme.md, the short README packed into the NuGet package.
+//
+// nuget.org renders a sanitised Markdown subset: raw HTML is stripped and relative links or
+// images do not resolve. nuget-readme.md is therefore hand-maintained (it is NOT a copy of
+// README.md) and this script only rewrites any relative link it finds to an absolute GitHub
+// URL and fails if HTML or a relative image slipped in.
 
-AnsiConsole.Write(new FigletText("NuGet README")
-    .Color(Color.Magenta1));
+AnsiConsole.Write(new FigletText("NuGet README").Color(Color.Magenta1));
 
-AnsiConsole.MarkupLine("[magenta]📄 Preparing README for NuGet package...[/]");
-AnsiConsole.Write(new Rule("[blue]README Conversion[/]").LeftJustified());
-
-const string REPO_BASE = "https://github.com/jacob-mellor/curl-dot-net";
-const string DOCS_BASE = "https://jacob-mellor.github.io/curl-dot-net";
-const string SOURCE_README = "README.md";
+const string REPO_BLOB = "https://github.com/jacob-mellor/curl-dot-net/blob/master/";
 const string NUGET_README = "nuget-readme.md";
 
-if (!File.Exists(SOURCE_README))
+if (!File.Exists(NUGET_README))
 {
-    AnsiConsole.MarkupLine($"[red]❌ Source README not found: {SOURCE_README}[/]");
+    AnsiConsole.MarkupLine($"[red]❌ {NUGET_README} not found. It is packed as README.md by src/CurlDotNet/CurlDotNet.csproj.[/]");
     Environment.Exit(1);
 }
 
-// Copy the main README
-AnsiConsole.MarkupLine("[yellow]→ Copying source README...[/]");
-File.Copy(SOURCE_README, NUGET_README, overwrite: true);
+var content = File.ReadAllText(NUGET_README);
+var converted = 0;
 
-// Read the content
-var content = await File.ReadAllTextAsync(NUGET_README);
-var originalLength = content.Length;
-
-AnsiConsole.MarkupLine("[yellow]🔗 Converting relative links to absolute...[/]");
-
-// Convert relative GitHub links to absolute
-// [text](relative/path.md) -> [text](https://github.com/jacob-mellor/curl-dot-net/blob/master/relative/path.md)
-var mdLinkPattern = @"\[([^\]]+)\]\(([^)]+\.md)\)";
-content = Regex.Replace(content, mdLinkPattern, m =>
+// [text](relative/path) -> absolute GitHub URL (anchors and absolute URLs are left alone)
+content = Regex.Replace(content, @"\[([^\]]+)\]\((?!https?://|#|mailto:)([^)\s]+)\)", m =>
 {
-    var text = m.Groups[1].Value;
-    var path = m.Groups[2].Value;
-
-    // Skip if already absolute
-    if (path.StartsWith("http://") || path.StartsWith("https://"))
-        return m.Value;
-
-    return $"[{text}]({REPO_BASE}/blob/master/{path})";
+    converted++;
+    return $"[{m.Groups[1].Value}]({REPO_BLOB}{m.Groups[2].Value.TrimStart('.', '/')})";
 });
 
-// Convert documentation links to absolute
-var docPatterns = new[]
+var problems = 0;
+if (Regex.IsMatch(content, @"<(div|img|br|p|span|table|a)\b", RegexOptions.IgnoreCase))
 {
-    ("tutorials", $"{DOCS_BASE}/tutorials/"),
-    ("cookbook", $"{DOCS_BASE}/cookbook/"),
-    ("api-guide", $"{DOCS_BASE}/api-guide/"),
-    ("guides", $"{DOCS_BASE}/guides/"),
-    ("troubleshooting", $"{DOCS_BASE}/troubleshooting/"),
-    ("getting-started", $"{DOCS_BASE}/getting-started/"),
-    ("api", $"{DOCS_BASE}/api/"),
-    ("reference", $"{DOCS_BASE}/reference/"),
-    ("exceptions", $"{DOCS_BASE}/exceptions/")
-};
-
-foreach (var (folder, baseUrl) in docPatterns)
+    AnsiConsole.MarkupLine("[red]❌ Raw HTML found: nuget.org strips it. Use Markdown only.[/]");
+    problems++;
+}
+if (Regex.IsMatch(content, @"!\[[^\]]*\]\((?!https?://)"))
 {
-    var pattern = $@"\[([^\]]+)\]\({folder}/([^)]+)\)";
-    content = Regex.Replace(content, pattern, m =>
-    {
-        var text = m.Groups[1].Value;
-        var path = m.Groups[2].Value;
-        return $"[{text}]({baseUrl}{path})";
-    });
+    AnsiConsole.MarkupLine("[red]❌ Relative image found: images must use absolute https:// URLs on nuget.org.[/]");
+    problems++;
+}
+var lines = content.Split('\n').Length;
+if (lines > 200)
+{
+    AnsiConsole.MarkupLine($"[yellow]⚠️  {lines} lines: keep the NuGet README short and link to the docs for detail.[/]");
 }
 
-// Write the updated content
-await File.WriteAllTextAsync(NUGET_README, content);
+File.WriteAllText(NUGET_README, content);
 
-// Count the changes
-var linkPattern = @"\[([^\]]+)\]\(([^)]+)\)";
-var originalLinks = Regex.Matches(File.ReadAllText(SOURCE_README), linkPattern).Count;
-var convertedLinks = Regex.Matches(content, linkPattern)
-    .Count(m => m.Groups[2].Value.StartsWith("http"));
-
-AnsiConsole.MarkupLine($"[green]✅ Converted {convertedLinks} links to absolute URLs[/]");
-
-// Copy to the src/CurlDotNet directory for packaging
-var targetPath = Path.Combine("src", "CurlDotNet", "README.md");
-if (File.Exists(targetPath))
+if (problems > 0)
 {
-    AnsiConsole.MarkupLine("[yellow]→ Copying to package directory...[/]");
-    File.Copy(NUGET_README, targetPath, overwrite: true);
-    AnsiConsole.MarkupLine($"[green]📦 README copied to {targetPath} for NuGet packaging[/]");
+    Environment.Exit(1);
 }
 
-// Summary
-AnsiConsole.WriteLine();
-AnsiConsole.Write(new Rule().DoubleBorder());
-
-var panel = new Panel(new Markup("[green]✅ NuGet README prepared successfully![/]"))
-    .Header("[green]Complete[/]")
-    .Border(BoxBorder.Rounded)
-    .BorderColor(Color.Green);
-
-AnsiConsole.Write(panel);
-
-var table = new Table();
-table.AddColumn("File");
-table.AddColumn("Size");
-table.Border(TableBorder.Rounded);
-
-var sourceInfo = new FileInfo(SOURCE_README);
-var nugetInfo = new FileInfo(NUGET_README);
-
-table.AddRow("Source README", FormatBytes(sourceInfo.Length));
-table.AddRow("NuGet README", FormatBytes(nugetInfo.Length));
-table.AddRow("Links Converted", convertedLinks.ToString());
-
-AnsiConsole.Write(table);
-
-AnsiConsole.MarkupLine("\n[dim]The NuGet README is ready with all absolute links[/]");
-
-// Helper function
-string FormatBytes(long bytes)
-{
-    string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-    int order = 0;
-    double size = bytes;
-
-    while (size >= 1024 && order < sizes.Length - 1)
-    {
-        order++;
-        size = size / 1024;
-    }
-
-    return $"{size:0.##} {sizes[order]}";
-}
+AnsiConsole.MarkupLine($"[green]✅ {NUGET_README} is ready ({lines} lines, {converted} relative link(s) made absolute).[/]");

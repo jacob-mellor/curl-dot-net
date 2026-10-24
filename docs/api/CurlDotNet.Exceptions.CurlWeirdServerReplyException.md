@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlWeirdServerReplyException\(string, string\)](CurlDotNet.Exceptions.CurlWeirdServerReplyException.CurlWeirdServerReplyException(string,string).md 'CurlDotNet\.Exceptions\.CurlWeirdServerReplyException\.CurlWeirdServerReplyException\(string, string\)') | |
+| [CurlWeirdServerReplyException\(string, string\)](CurlDotNet.Exceptions.CurlWeirdServerReplyException.CurlWeirdServerReplyException(string,string).md 'CurlDotNet\.Exceptions\.CurlWeirdServerReplyException\.CurlWeirdServerReplyException\(string, string\)') | Initializes a new instance of the [CurlWeirdServerReplyException](CurlDotNet.Exceptions.CurlWeirdServerReplyException.md 'CurlDotNet\.Exceptions\.CurlWeirdServerReplyException') class\. |

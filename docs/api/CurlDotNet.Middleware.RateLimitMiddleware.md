@@ -15,8 +15,8 @@ Implements [ICurlMiddleware](CurlDotNet.Middleware.ICurlMiddleware.md 'CurlDotNe
 
 | Constructors | |
 | :--- | :--- |
-| [RateLimitMiddleware\(int\)](CurlDotNet.Middleware.RateLimitMiddleware.RateLimitMiddleware(int).md 'CurlDotNet\.Middleware\.RateLimitMiddleware\.RateLimitMiddleware\(int\)') | |
+| [RateLimitMiddleware\(int\)](CurlDotNet.Middleware.RateLimitMiddleware.RateLimitMiddleware(int).md 'CurlDotNet\.Middleware\.RateLimitMiddleware\.RateLimitMiddleware\(int\)') | Initializes a new instance of the [RateLimitMiddleware](CurlDotNet.Middleware.RateLimitMiddleware.md 'CurlDotNet\.Middleware\.RateLimitMiddleware') class\. |
 
 | Methods | |
 | :--- | :--- |
-| [ExecuteAsync\(CurlContext, Func&lt;Task&lt;CurlResult&gt;&gt;\)](CurlDotNet.Middleware.RateLimitMiddleware.ExecuteAsync(CurlDotNet.Middleware.CurlContext,System.Func_System.Threading.Tasks.Task_CurlDotNet.Core.CurlResult__).md 'CurlDotNet\.Middleware\.RateLimitMiddleware\.ExecuteAsync\(CurlDotNet\.Middleware\.CurlContext, System\.Func\<System\.Threading\.Tasks\.Task\<CurlDotNet\.Core\.CurlResult\>\>\)') | |
+| [ExecuteAsync\(CurlContext, Func&lt;Task&lt;CurlResult&gt;&gt;\)](CurlDotNet.Middleware.RateLimitMiddleware.ExecuteAsync(CurlDotNet.Middleware.CurlContext,System.Func_System.Threading.Tasks.Task_CurlDotNet.Core.CurlResult__).md 'CurlDotNet\.Middleware\.RateLimitMiddleware\.ExecuteAsync\(CurlDotNet\.Middleware\.CurlContext, System\.Func\<System\.Threading\.Tasks\.Task\<CurlDotNet\.Core\.CurlResult\>\>\)') | Executes the middleware, enforcing rate limits on requests\. |

@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlFtpAcceptTimeoutException\(string, string\)](CurlDotNet.Exceptions.CurlFtpAcceptTimeoutException.CurlFtpAcceptTimeoutException(string,string).md 'CurlDotNet\.Exceptions\.CurlFtpAcceptTimeoutException\.CurlFtpAcceptTimeoutException\(string, string\)') | |
+| [CurlFtpAcceptTimeoutException\(string, string\)](CurlDotNet.Exceptions.CurlFtpAcceptTimeoutException.CurlFtpAcceptTimeoutException(string,string).md 'CurlDotNet\.Exceptions\.CurlFtpAcceptTimeoutException\.CurlFtpAcceptTimeoutException\(string, string\)') | Initializes a new instance of the [CurlFtpAcceptTimeoutException](CurlDotNet.Exceptions.CurlFtpAcceptTimeoutException.md 'CurlDotNet\.Exceptions\.CurlFtpAcceptTimeoutException') class\. |

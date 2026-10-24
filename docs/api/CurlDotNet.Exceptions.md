@@ -10,7 +10,7 @@
 | [CurlBadDownloadResumeException](CurlDotNet.Exceptions.CurlBadDownloadResumeException.md 'CurlDotNet\.Exceptions\.CurlBadDownloadResumeException') | CURLE\_BAD\_DOWNLOAD\_RESUME \(36\) \- Bad download resume |
 | [CurlBadFunctionArgumentException](CurlDotNet.Exceptions.CurlBadFunctionArgumentException.md 'CurlDotNet\.Exceptions\.CurlBadFunctionArgumentException') | CURLE\_BAD\_FUNCTION\_ARGUMENT \(43\) \- Bad function argument |
 | [CurlConnectionException](CurlDotNet.Exceptions.CurlConnectionException.md 'CurlDotNet\.Exceptions\.CurlConnectionException') | Thrown when a network connection cannot be established to the target host\. |
-| [CurlCookieException](CurlDotNet.Exceptions.CurlCookieException.md 'CurlDotNet\.Exceptions\.CurlCookieException') | Thrown when cookie operations fail |
+| [CurlCookieException](CurlDotNet.Exceptions.CurlCookieException.md 'CurlDotNet\.Exceptions\.CurlCookieException') | Thrown when cookie operations fail during HTTP requests\. |
 | [CurlCouldntConnectException](CurlDotNet.Exceptions.CurlCouldntConnectException.md 'CurlDotNet\.Exceptions\.CurlCouldntConnectException') | CURLE\_COULDNT\_CONNECT \(7\) \- Failed to connect to host |
 | [CurlCouldntResolveHostException](CurlDotNet.Exceptions.CurlCouldntResolveHostException.md 'CurlDotNet\.Exceptions\.CurlCouldntResolveHostException') | CURLE\_COULDNT\_RESOLVE\_HOST \(6\) \- Couldn't resolve host |
 | [CurlCouldntResolveProxyException](CurlDotNet.Exceptions.CurlCouldntResolveProxyException.md 'CurlDotNet\.Exceptions\.CurlCouldntResolveProxyException') | CURLE\_COULDNT\_RESOLVE\_PROXY \(5\) \- Couldn't resolve proxy |
@@ -45,7 +45,7 @@
 | [CurlRateLimitException](CurlDotNet.Exceptions.CurlRateLimitException.md 'CurlDotNet\.Exceptions\.CurlRateLimitException') | Thrown when rate limiting is encountered |
 | [CurlReadErrorException](CurlDotNet.Exceptions.CurlReadErrorException.md 'CurlDotNet\.Exceptions\.CurlReadErrorException') | CURLE\_READ\_ERROR \(26\) \- Read error |
 | [CurlReceiveErrorException](CurlDotNet.Exceptions.CurlReceiveErrorException.md 'CurlDotNet\.Exceptions\.CurlReceiveErrorException') | CURLE\_RECV\_ERROR \(56\) \- Receive error |
-| [CurlRedirectException](CurlDotNet.Exceptions.CurlRedirectException.md 'CurlDotNet\.Exceptions\.CurlRedirectException') | Thrown when redirect limit is exceeded |
+| [CurlRedirectException](CurlDotNet.Exceptions.CurlRedirectException.md 'CurlDotNet\.Exceptions\.CurlRedirectException') | Thrown when redirect limit is exceeded during HTTP requests\. |
 | [CurlRemoteAccessDeniedException](CurlDotNet.Exceptions.CurlRemoteAccessDeniedException.md 'CurlDotNet\.Exceptions\.CurlRemoteAccessDeniedException') | CURLE\_REMOTE\_ACCESS\_DENIED \(9\) \- Access denied to remote resource |
 | [CurlRetryException](CurlDotNet.Exceptions.CurlRetryException.md 'CurlDotNet\.Exceptions\.CurlRetryException') | Thrown when retry attempts are exhausted |
 | [CurlSendErrorException](CurlDotNet.Exceptions.CurlSendErrorException.md 'CurlDotNet\.Exceptions\.CurlSendErrorException') | CURLE\_SEND\_ERROR \(55\) \- Send error |

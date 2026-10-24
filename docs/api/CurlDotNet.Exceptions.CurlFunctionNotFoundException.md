@@ -13,8 +13,8 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlFunctionNotFoundException\(string, string\)](CurlDotNet.Exceptions.CurlFunctionNotFoundException.CurlFunctionNotFoundException(string,string).md 'CurlDotNet\.Exceptions\.CurlFunctionNotFoundException\.CurlFunctionNotFoundException\(string, string\)') | |
+| [CurlFunctionNotFoundException\(string, string\)](CurlDotNet.Exceptions.CurlFunctionNotFoundException.CurlFunctionNotFoundException(string,string).md 'CurlDotNet\.Exceptions\.CurlFunctionNotFoundException\.CurlFunctionNotFoundException\(string, string\)') | Initializes a new instance of the [CurlFunctionNotFoundException](CurlDotNet.Exceptions.CurlFunctionNotFoundException.md 'CurlDotNet\.Exceptions\.CurlFunctionNotFoundException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [FunctionName](CurlDotNet.Exceptions.CurlFunctionNotFoundException.FunctionName.md 'CurlDotNet\.Exceptions\.CurlFunctionNotFoundException\.FunctionName') | |
+| [FunctionName](CurlDotNet.Exceptions.CurlFunctionNotFoundException.FunctionName.md 'CurlDotNet\.Exceptions\.CurlFunctionNotFoundException\.FunctionName') | Gets the function name that was not found |

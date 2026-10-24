@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlLoginDeniedException\(string, string\)](CurlDotNet.Exceptions.CurlLoginDeniedException.CurlLoginDeniedException(string,string).md 'CurlDotNet\.Exceptions\.CurlLoginDeniedException\.CurlLoginDeniedException\(string, string\)') | |
+| [CurlLoginDeniedException\(string, string\)](CurlDotNet.Exceptions.CurlLoginDeniedException.CurlLoginDeniedException(string,string).md 'CurlDotNet\.Exceptions\.CurlLoginDeniedException\.CurlLoginDeniedException\(string, string\)') | Initializes a new instance of the [CurlLoginDeniedException](CurlDotNet.Exceptions.CurlLoginDeniedException.md 'CurlDotNet\.Exceptions\.CurlLoginDeniedException') class\. |

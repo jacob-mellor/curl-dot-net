@@ -13,9 +13,9 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlCouldntConnectException\(string, int, string\)](CurlDotNet.Exceptions.CurlCouldntConnectException.CurlCouldntConnectException(string,int,string).md 'CurlDotNet\.Exceptions\.CurlCouldntConnectException\.CurlCouldntConnectException\(string, int, string\)') | |
+| [CurlCouldntConnectException\(string, int, string\)](CurlDotNet.Exceptions.CurlCouldntConnectException.CurlCouldntConnectException(string,int,string).md 'CurlDotNet\.Exceptions\.CurlCouldntConnectException\.CurlCouldntConnectException\(string, int, string\)') | Initializes a new instance of the [CurlCouldntConnectException](CurlDotNet.Exceptions.CurlCouldntConnectException.md 'CurlDotNet\.Exceptions\.CurlCouldntConnectException') class\. |
 
 | Properties | |
 | :--- | :--- |
-| [Host](CurlDotNet.Exceptions.CurlCouldntConnectException.Host.md 'CurlDotNet\.Exceptions\.CurlCouldntConnectException\.Host') | |
-| [Port](CurlDotNet.Exceptions.CurlCouldntConnectException.Port.md 'CurlDotNet\.Exceptions\.CurlCouldntConnectException\.Port') | |
+| [Host](CurlDotNet.Exceptions.CurlCouldntConnectException.Host.md 'CurlDotNet\.Exceptions\.CurlCouldntConnectException\.Host') | Gets the host that could not be connected to |
+| [Port](CurlDotNet.Exceptions.CurlCouldntConnectException.Port.md 'CurlDotNet\.Exceptions\.CurlCouldntConnectException\.Port') | Gets the port number that could not be connected to |

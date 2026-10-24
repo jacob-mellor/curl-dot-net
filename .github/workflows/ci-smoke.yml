@@ -48,11 +48,26 @@ jobs:
     - name: Build solution (Release)
       run: dotnet build --configuration Release --no-restore
 
-    # Step 5: Run DevOps/smoke tests only
-    # NOTE: This workflow runs ONLY DevOps category tests - reliable, fast tests for CI/CD
-    - name: Run DevOps & Smoke Tests
-      run: dotnet test --configuration Release --no-build --filter "Category=DevOps|Category=Smoke"
+    # Step 5: Unit, synthetic, smoke and DevOps tests. Everything runs against an in-process
+    # HttpListener server (no fixed ports, no internet), so the whole suite takes seconds.
+    - name: Run unit, synthetic, smoke and DevOps tests
+      run: dotnet test tests/CurlDotNet.Tests/CurlDotNet.Tests.csproj --configuration Release --no-build --filter "Category=Synthetic|Category=Unit|Category=Smoke|Category=DevOps" --blame-hang --blame-hang-timeout 180s --blame-hang-dump-type none
       continue-on-error: false  # Explicitly fail the workflow if tests fail
+
+    # Step 6: Replay curl's own test suite (tests/CurlDotNet.CurlSuite) against the local stub server.
+    # Tests listed in known-failures.txt are expected to fail; one that starts passing fails the run
+    # so the list stays honest. Ubuntu only: the result is OS-independent and this keeps CI time down.
+    - name: Replay curl test suite
+      if: matrix.os == 'ubuntu-latest'
+      run: dotnet test tests/CurlDotNet.CurlSuite/CurlDotNet.CurlSuite.csproj --configuration Release --no-build --framework net10.0 --blame-hang --blame-hang-timeout 300s --blame-hang-dump-type none
+
+    - name: Upload curl suite report
+      if: matrix.os == 'ubuntu-latest' && always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: curl-suite-report
+        path: tests/CurlDotNet.CurlSuite/curl-suite-report.md
+        if-no-files-found: ignore
 
     # Optional: Report test results summary
     - name: Test Results Summary
@@ -63,8 +78,8 @@ jobs:
 
 # Workflow Notes:
 # ================
-# - This workflow runs ONLY smoke and integration tests (filtered by Category)
-# - Full unit test suite is expected to be run locally before pushing code
+# - Runs the full offline unit suite on all three OSes and the curl test-suite replay on Ubuntu
+# - The solution build also compiles examples/ so samples cannot drift from the API
 # - Triggers on: push to 'main' branch, and PRs to any branch
 # - Uses .NET SDK 8.0.x across all platforms (Ubuntu, Windows, macOS)
 # - Will exit with failure if any smoke/integration test fails

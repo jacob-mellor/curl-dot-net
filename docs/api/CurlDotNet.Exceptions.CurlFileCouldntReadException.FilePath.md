@@ -3,6 +3,8 @@
 
 ## CurlFileCouldntReadException\.FilePath Property
 
+Gets the file path that could not be read
+
 ```csharp
 public string FilePath { get; }
 ```

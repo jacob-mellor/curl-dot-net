@@ -13,4 +13,4 @@ Inheritance [System\.Object](https://learn.microsoft.com/en-us/dotnet/api/system
 
 | Constructors | |
 | :--- | :--- |
-| [CurlFtpWeirdPassReplyException\(string, string\)](CurlDotNet.Exceptions.CurlFtpWeirdPassReplyException.CurlFtpWeirdPassReplyException(string,string).md 'CurlDotNet\.Exceptions\.CurlFtpWeirdPassReplyException\.CurlFtpWeirdPassReplyException\(string, string\)') | |
+| [CurlFtpWeirdPassReplyException\(string, string\)](CurlDotNet.Exceptions.CurlFtpWeirdPassReplyException.CurlFtpWeirdPassReplyException(string,string).md 'CurlDotNet\.Exceptions\.CurlFtpWeirdPassReplyException\.CurlFtpWeirdPassReplyException\(string, string\)') | Initializes a new instance of the [CurlFtpWeirdPassReplyException](CurlDotNet.Exceptions.CurlFtpWeirdPassReplyException.md 'CurlDotNet\.Exceptions\.CurlFtpWeirdPassReplyException') class\. |

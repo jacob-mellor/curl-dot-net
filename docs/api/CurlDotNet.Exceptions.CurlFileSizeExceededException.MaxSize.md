@@ -3,6 +3,8 @@
 
 ## CurlFileSizeExceededException\.MaxSize Property
 
+Gets the maximum allowed file size in bytes
+
 ```csharp
 public long MaxSize { get; }
 ```
