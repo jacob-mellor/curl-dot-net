@@ -1879,6 +1879,14 @@ namespace CurlDotNet.Core
             // curl keeps the value byte for byte after the separating whitespace ("X-Test: foo; " keeps its trailing space)
             var value = header.Substring(colonIndex + 1).TrimStart(' ', '\t').TrimEnd('\r', '\n');
 
+            // curl sends the line exactly as written, even "Authorization : x" or " Odd Name : y"; HttpClient
+            // cannot, so the written form is kept for the request-head rewrite (RequestRewrite)
+            var writtenName = header.Substring(0, colonIndex);
+            if (value.Trim().Length > 0 && (writtenName != key || !RequestRewrite.IsToken(key)))
+            {
+                options.RawHeaderLines[key] = header.TrimEnd('\r', '\n');
+            }
+
             if (value.Trim().Length == 0)
             {
                 // "Name:" removes curl's own header; a custom value given earlier for the same name is still sent

@@ -590,6 +590,54 @@ namespace CurlDotNet.Tests
             (await act.Should().ThrowAsync<CurlWeirdServerReplyException>()).Which.CurlErrorCode.Should().Be(8);
         }
 
+        // ------------------------------------------------------------------ request head as curl writes it
+
+        [Fact]
+        public async Task RequestTarget_ReplacesThePathOnTheRequestLine()
+        {
+            using var server = new RawReplyServer(Hello);
+
+            await Curl.ExecuteAsync($"curl --request-target \"*\" -X OPTIONS {server.Url("/")}");
+
+            FirstLine(server.Requests.Single()).Should().Be("OPTIONS * HTTP/1.1");
+        }
+
+        [Fact]
+        public async Task BlankHostHeader_RemovesHost_AndNameSemicolonSendsAnEmptyHeader()
+        {
+            using var server = new RawReplyServer(Hello, World);
+
+            await Curl.ExecuteAsync($"curl -H host: {server.Url("/1")}");
+            await Curl.ExecuteAsync($"curl -H \"X-Empty;\" -H \"Accept;\" {server.Url("/2")}");
+
+            Line(server.Requests[0], "Host").Should().BeNull();
+            server.Requests[1].Should().Contain("\r\nX-Empty:\r\n").And.Contain("\r\nAccept:\r\n");
+        }
+
+        [Fact]
+        public async Task HeaderLinesWithOddNames_AreSentAsWritten()
+        {
+            using var server = new RawReplyServer(Hello);
+
+            await Curl.ExecuteAsync($"curl -H \"Authorization : s3cr3t\" -H \" And A Funny One : wohoo\" {server.Url("/")}");
+
+            server.Requests.Single().Should().Contain("\r\nAuthorization : s3cr3t\r\n").And.Contain("\r\n And A Funny One : wohoo\r\n");
+        }
+
+        [Fact]
+        public void ChunkSizes_AreLowerCased_AcrossWrites()
+        {
+            var lowercaser = new ChunkSizeLowercaser();
+            var first = Encoding.ASCII.GetBytes("1E\r\nabcdefghijklmnopqrstuvwxyzABCD");
+            var second = Encoding.ASCII.GetBytes("\r\nA\r\nABCDEFGHIJ\r\n0\r\nX-T: AB\r\n\r\n");
+
+            lowercaser.Transform(first, 0, first.Length);
+            lowercaser.Transform(second, 0, second.Length);
+
+            (Encoding.ASCII.GetString(first) + Encoding.ASCII.GetString(second))
+                .Should().Be("1e\r\nabcdefghijklmnopqrstuvwxyzABCD\r\na\r\nABCDEFGHIJ\r\n0\r\nX-T: AB\r\n\r\n");
+        }
+
         private static int ClosedPortNumber()
         {
             var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);

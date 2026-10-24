@@ -36,6 +36,7 @@ namespace CurlDotNet.Core
             "--etag-save",
             "--etag-compare",
             "--netrc-file",
+            "--request-target",
         };
 
         /// <summary>
@@ -113,6 +114,10 @@ namespace CurlDotNet.Core
 
                 case "--fail-early":
                     options.FailEarly = true;
+                    return true;
+
+                case "--request-target":
+                    options.RequestTarget = value;
                     return true;
 
                 // --- .netrc --------------------------------------------------------------------

@@ -385,6 +385,7 @@ namespace CurlDotNet.Core
         public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption completion, CancellationToken cancellationToken)
         {
             var exchange = Transcript.Begin(request.Method == HttpMethod.Head);
+            exchange.Rewrite = RequestRewrite.For(HopOptions);
             LastExchange = exchange;
             RequestsSent++;
             WireExchange.Current = exchange;

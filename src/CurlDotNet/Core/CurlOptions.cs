@@ -809,6 +809,15 @@ namespace CurlDotNet.Core
         /// </summary>
         internal CurlDotNet.Exceptions.CurlException? SetupError { get; set; }
 
+        /// <summary>
+        /// <c>-H</c> lines whose name HttpClient cannot write as given (white space around or inside the
+        /// name), keyed by the trimmed name; the request head carries them verbatim like curl.
+        /// </summary>
+        internal Dictionary<string, string> RawHeaderLines { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary><c>--request-target</c>: the target written on the request line instead of the URL's path (for example <c>*</c>).</summary>
+        internal string? RequestTarget { get; set; }
+
         /// <summary>The 0-based <c>--next</c> group this transfer belongs to.</summary>
         internal int GroupNumber { get; set; }
 
@@ -890,6 +899,8 @@ namespace CurlDotNet.Core
             clone.CookieFiles = new List<string>(CookieFiles);
             clone.DiscardOutput = DiscardOutput;
             clone.NetrcMode = NetrcMode;
+            clone.RequestTarget = RequestTarget;
+            clone.RawHeaderLines = new Dictionary<string, string>(RawHeaderLines, StringComparer.OrdinalIgnoreCase);
             clone.ConnectTo = new List<string>(ConnectTo);
             clone.NetrcFile = NetrcFile;
             clone.ProxyTunnelRequested = ProxyTunnelRequested;
