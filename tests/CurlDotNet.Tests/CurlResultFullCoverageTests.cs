@@ -665,7 +665,7 @@ namespace CurlDotNet.Tests
             using var stream = result.ToStream();
 
             var buffer = new byte[3];
-            stream.Read(buffer, 0, 3);
+            stream.Read(buffer, 0, 3).Should().Be(3);
             buffer.Should().BeEquivalentTo(binaryData);
         }
 

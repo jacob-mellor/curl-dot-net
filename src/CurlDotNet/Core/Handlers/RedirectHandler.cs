@@ -341,6 +341,9 @@ namespace CurlDotNet.Core.Handlers
             return sb.ToString();
         }
 
+        /// <summary>The most bytes of a skipped (redirect or authentication) response body that are read to keep the connection.</summary>
+        private const long DrainLimit = 1024 * 1024;
+
         internal static async Task DrainAsync(HttpResponseMessage response, CancellationToken cancellationToken)
         {
             if (response.Content == null)
@@ -350,11 +353,24 @@ namespace CurlDotNet.Core.Handlers
 
             try
             {
+                // read and discard, like curl; a body over 1 MB is abandoned (the connection is then not
+                // reused) instead of being held in memory
 #if NETSTANDARD2_0 || NET472 || NET48
-                await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 #else
-                await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+                using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
 #endif
+                var buffer = new byte[16384];
+                long total = 0;
+                int n;
+                while ((n = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    total += n;
+                    if (total > DrainLimit)
+                    {
+                        return;
+                    }
+                }
             }
             catch (HttpRequestException)
             {

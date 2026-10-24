@@ -649,13 +649,13 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
-        public void FormDataPartWithFileName_GetsTheContentTypeOfTheExtension()
+        public async Task FormDataPartWithFileName_GetsTheContentTypeOfTheExtension()
         {
             var options = new CommandParser().Parse("curl -F \"name=a;filename=a.pdf\" -F \"other=b;filename=b.unknown\" http://example.invalid/");
             var parts = MultipartFormBuilder.PartsFor(options);
             using var content = MultipartFormBuilder.Build(parts, options);
 
-            var text = content.ReadAsStringAsync().GetAwaiter().GetResult();
+            var text = await content.ReadAsStringAsync();
             text.Should().Contain("filename=\"a.pdf\"\r\nContent-Type: application/pdf\r\n");
             text.Should().Contain("filename=\"b.unknown\"\r\n\r\nb");
         }
