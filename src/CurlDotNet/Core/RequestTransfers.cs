@@ -317,11 +317,11 @@ namespace CurlDotNet.Core
             var http = scheme.Equals("http", StringComparison.OrdinalIgnoreCase) || scheme.Equals("https", StringComparison.OrdinalIgnoreCase);
             if (upload && http)
             {
-                throw new CurlException(
+                throw new CurlDotNet.Exceptions.CurlBadFunctionArgumentException(
+                    "--continue-at",
                     "HTTP upload cannot be resumed: -C/--continue-at resumes downloads, but this command also sends a body " +
                     "(-d, -F or -T). Remove -C to send the whole body, or use -r/--range to fetch part of a download. " +
                     "See " + RequestShaping.DocsBase + "http-errors.md",
-                    43,
                     options.OriginalCommand);
             }
         }

@@ -158,14 +158,6 @@ namespace CurlDotNet.Core
                     options.EtagCompare = value;
                     return true;
 
-                case "--max-filesize":
-                    var size = ParseByteSize(value);
-                    if (size.HasValue)
-                    {
-                        options.MaxFileSize = size.Value;
-                    }
-                    return true;
-
                 case "--show-headers":
                     options.IncludeHeaders = true; // curl 8.10's name for -i/--include
                     return true;

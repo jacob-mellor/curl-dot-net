@@ -208,15 +208,6 @@ namespace CurlDotNet.Core
         public double? Expect100TimeoutSeconds { get; set; }
 
         /// <summary>
-        /// Largest download allowed, in bytes.
-        /// </summary>
-        /// <remarks>
-        /// <para>Set by <c>--max-filesize BYTES</c> (suffixes k, M and G allowed). A larger announced
-        /// <c>Content-Length</c> or body ends the transfer with exit code 63.</para>
-        /// </remarks>
-        public long? MaxFileSize { get; set; }
-
-        /// <summary>
         /// File that receives the response's <c>ETag</c>.
         /// </summary>
         /// <remarks><para>Set by <c>--etag-save FILE</c>.</para></remarks>

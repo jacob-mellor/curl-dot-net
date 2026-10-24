@@ -787,8 +787,6 @@ namespace CurlDotNet.Core
         /// <summary>The proxy authentication method (<c>--proxy-basic</c>, <c>--proxy-digest</c>...); null means Basic.</summary>
         internal string? ProxyAuthMethod { get; set; }
 
-        /// <summary>True for <c>--proxy1.0</c>, which talks HTTP/1.0 to the proxy.</summary>
-        internal bool ProxyHttp10 { get; set; }
 
         /// <summary>The scheme <c>--proto-default</c> gives URLs written without one.</summary>
         internal string? DefaultProtocol { get; set; }

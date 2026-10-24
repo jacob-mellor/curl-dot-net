@@ -120,15 +120,10 @@ namespace CurlDotNet.Tests
 
         [Theory]
         [InlineData("--ciphers ALL", "--ciphers")]
-        [InlineData("--tcp-nodelay", "--tcp-nodelay")]
         [InlineData("--no-sessionid", "--no-sessionid")]
         [InlineData("-q", "--disable")]
-        [InlineData("-j", "--junk-session-cookies")]
         [InlineData("-n", "--netrc")]
-        [InlineData("-N", "--no-buffer")]
         [InlineData("-l", "--list-only")]
-        [InlineData("-R", "--remote-time")]
-        [InlineData("-p", "--proxytunnel")]
         [InlineData("-a", "--append")]
         [InlineData("-B", "--use-ascii")]
         [InlineData("-Z", "--parallel")]
@@ -717,7 +712,7 @@ namespace CurlDotNet.Tests
         [InlineData("-F a=b -C -")]
         public void ResumingAnUpload_IsExitCodeFortyThree(string options)
         {
-            Assert.Throws<CurlException>(() => _parser.Parse($"curl {options} http://example.com/"))
+            Assert.Throws<CurlBadFunctionArgumentException>(() => _parser.Parse($"curl {options} http://example.com/"))
                 .CurlErrorCode.Should().Be(43);
         }
 

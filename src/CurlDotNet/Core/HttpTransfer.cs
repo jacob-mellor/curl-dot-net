@@ -153,13 +153,14 @@ namespace CurlDotNet.Core
             if (plainProxy)
             {
                 // curl adds this for every request sent to an HTTP proxy without a tunnel
-                if (!hop.Headers.ContainsKey("Proxy-Connection"))
+                // (CreateRequest may already have added it from the parsed command; never send it twice)
+                if (!hop.Headers.ContainsKey("Proxy-Connection") && !request.Headers.Contains("Proxy-Connection"))
                 {
                     request.Headers.TryAddWithoutValidation("Proxy-Connection", "Keep-Alive");
                 }
 
                 var auth = Proxy!.PreemptiveAuthorization;
-                if (auth != null && !hop.Headers.ContainsKey("Proxy-Authorization"))
+                if (auth != null && !hop.Headers.ContainsKey("Proxy-Authorization") && !request.Headers.Contains("Proxy-Authorization"))
                 {
                     request.Headers.TryAddWithoutValidation("Proxy-Authorization", auth);
                 }
