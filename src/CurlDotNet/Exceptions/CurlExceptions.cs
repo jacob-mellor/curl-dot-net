@@ -313,12 +313,15 @@ namespace CurlDotNet.Exceptions
                 7 => "CURLE_COULDNT_CONNECT",
                 8 => "CURLE_WEIRD_SERVER_REPLY",
                 9 => "CURLE_FTP_ACCESS_DENIED",
+                18 => "CURLE_PARTIAL_FILE",
                 22 => "CURLE_HTTP_RETURNED_ERROR",
                 23 => "CURLE_WRITE_ERROR",
                 26 => "CURLE_READ_ERROR",
                 27 => "CURLE_OUT_OF_MEMORY",
                 28 => "CURLE_OPERATION_TIMEDOUT",
                 35 => "CURLE_SSL_CONNECT_ERROR",
+                33 => "CURLE_RANGE_ERROR",
+                43 => "CURLE_BAD_FUNCTION_ARGUMENT",
                 47 => "CURLE_TOO_MANY_REDIRECTS",
                 51 => "CURLE_PEER_FAILED_VERIFICATION",
                 52 => "CURLE_GOT_NOTHING",
@@ -330,7 +333,10 @@ namespace CurlDotNet.Exceptions
                 59 => "CURLE_SSL_CIPHER",
                 60 => "CURLE_PEER_FAILED_VERIFICATION",
                 61 => "CURLE_BAD_CONTENT_ENCODING",
+                63 => "CURLE_FILESIZE_EXCEEDED",
                 67 => "CURLE_LOGIN_DENIED",
+                94 => "CURLE_AUTH_ERROR",
+                100 => "CURLE_TOO_LARGE",
                 _ => $"CURLE_UNKNOWN_{CurlErrorCode}"
             };
         }
@@ -701,6 +707,21 @@ namespace CurlDotNet.Exceptions
         {
             CertificateError = certError;
         }
+
+        /// <summary>
+        /// Initializes a new instance with a specific curl exit code, such as 35 (CURLE_SSL_CONNECT_ERROR)
+        /// for a TLS handshake that failed for a reason other than certificate verification.
+        /// </summary>
+        /// <param name="message">What happened and how to fix it (the documentation link is appended).</param>
+        /// <param name="certError">Details about the certificate error, if any.</param>
+        /// <param name="command">The curl command that failed.</param>
+        /// <param name="curlErrorCode">The curl exit code.</param>
+        protected CurlSslException(string message, string? certError, string? command, int curlErrorCode)
+            : base($"{message}\nFor SSL/TLS troubleshooting, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md",
+                   curlErrorCode, command)
+        {
+            CertificateError = certError;
+        }
     }
 
     /// <summary>
@@ -769,6 +790,26 @@ namespace CurlDotNet.Exceptions
             ResponseBody = responseBody;
 
             // Add automatic suggestions based on status code
+            AutoAddSuggestions();
+        }
+
+        /// <summary>
+        /// Initializes a new instance that also carries a curl exit code, for HTTP failures that end a
+        /// command (such as <c>-f</c>/<c>--fail</c>, exit code 22) rather than being returned as a result.
+        /// </summary>
+        /// <param name="message">What happened and how to fix it (the documentation link is appended).</param>
+        /// <param name="statusCode">The HTTP status code.</param>
+        /// <param name="statusText">The reason phrase from the status line.</param>
+        /// <param name="responseBody">The response body, when it was read.</param>
+        /// <param name="command">The curl command that caused the error.</param>
+        /// <param name="curlErrorCode">The curl exit code, for example 22 (CURLE_HTTP_RETURNED_ERROR).</param>
+        protected CurlHttpException(string message, int statusCode, string? statusText, string? responseBody, string? command, int curlErrorCode)
+            : base($"{message}\nFor HTTP error handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md",
+                   curlErrorCode, command)
+        {
+            StatusCode = statusCode;
+            StatusText = statusText;
+            ResponseBody = responseBody;
             AutoAddSuggestions();
         }
 

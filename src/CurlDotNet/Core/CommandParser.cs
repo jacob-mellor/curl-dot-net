@@ -1897,25 +1897,15 @@ namespace CurlDotNet.Core
             options.Headers[key] = value;
         }
 
+        /// <summary>
+        /// Parses one <c>-F</c> argument with curl's rules (<c>name=value</c>, <c>name=@file</c>,
+        /// <c>name=&lt;file</c>, quoted words, <c>;type=</c>, <c>;filename=</c>, <c>;headers=</c>) into
+        /// <see cref="CurlOptions.FormParts"/>, keeping <see cref="CurlOptions.FormData"/> and
+        /// <see cref="CurlOptions.Files"/> filled for code that reads them.
+        /// </summary>
         private void ParseFormField(string field, CurlOptions options)
         {
-            var equalIndex = field.IndexOf('=');
-            if (equalIndex > 0)
-            {
-                var key = field.Substring(0, equalIndex);
-                var value = field.Substring(equalIndex + 1);
-
-                if (value.StartsWith("@"))
-                {
-                    // File upload
-                    options.Files[key] = value.Substring(1);
-                }
-                else
-                {
-                    // Regular form field
-                    options.FormData[key] = value;
-                }
-            }
+            AddFormPart(field, literal: false, options);
         }
 
         private void ParseCredentials(string userPass, CurlOptions options)
