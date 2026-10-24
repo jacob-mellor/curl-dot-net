@@ -14,7 +14,7 @@ Console.WriteLine(result.Body);            // JSON body
 var user = result.ParseJson<GitHubUser>(); // typed JSON
 ```
 
-Commands may span lines with `\`, `^` or PowerShell backticks, use single or double quotes, read bodies from `@file`, and omit the leading `curl`. `Curl.Execute(...)` is the synchronous form.
+Commands may span lines with `\`, `^` or PowerShell backticks, use single or double quotes, read bodies from `@file`, and omit the leading `curl`. `Curl.Execute(...)` is the synchronous form. Commands pasted from bash, Windows CMD, PowerShell or PowerShell's `Invoke-WebRequest` alias are detected automatically, or forced with `Curl.ExecuteAsync(command, CurlFlavor.PowerShell)`.
 
 ## The curl commands people actually paste
 
@@ -51,7 +51,8 @@ var g = await CurlRequestBuilder.Post("https://httpbin.org/post").WithJson(new {
 
 - Zero translation: the command in the docs is the code in your app, including `--digest`, `--ntlm`, `--aws-sigv4`, `--json`, `@file`, `-F`, `--retry`, `--compressed` and `--trace`.
 - Behaves like curl: default `User-Agent` and `Accept` headers, curl's redirect and `-d`/`--data-binary`/`--data-urlencode` semantics, exit codes surfaced as typed exceptions that explain how to fix the problem.
-- Verified against curl's own test suite, replayed offline against a local stub server, plus about 1,000 unit tests.
+- Verified against curl's own test suite: 606 of 620 runnable HTTP tests from curl/curl pass byte-for-byte on the wire (v9.8.0), replayed offline against a local stub server, plus about 1,400 unit tests.
+- Cookie jars (-b/-c), .netrc, -K config files, --variable, URL globbing, multiple URLs and --next, every -w variable, pure-C# Digest and NTLM.
 - Binary-safe downloads even when a server lies about `Content-Type`.
 
 ## Documentation

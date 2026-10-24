@@ -39,7 +39,21 @@ Console.WriteLine(result.GetHeader("Content-Type"));  // application/json; chars
 var user = result.ParseJson<GitHubUser>();            // typed JSON, case-insensitive property matching
 ```
 
-Commands can span lines with `\`, `^` or PowerShell backticks, use single or double quotes, read bodies from `@file`, and omit the leading `curl`. A synchronous `Curl.Execute(...)` exists for console apps and scripts, and `Curl.ExecuteAsync(command, cancellationToken)` cancels like any other .NET call.
+Commands can span lines with `\`, `^` or PowerShell backticks, use single or double quotes, read bodies from `@file`, and omit the leading `curl`. A synchronous `Curl.Execute(...)` exists for console apps and scripts, and `Curl.ExecuteAsync(command, cancellationToken)` cancels like any other .NET call. Several URLs, `--next` groups, `{a,b}` and `[1-10]` globbing, `-K` config files, `--variable` expansion and `.netrc` all work as in curl.
+
+### Pasted from bash, CMD, PowerShell or Invoke-WebRequest? The curl flavor flag
+
+The same text means different bytes in different shells: single quotes are literal in bash but ordinary characters in CMD, PowerShell needs `\"` for a quote inside JSON, and PowerShell's `curl` alias is really `Invoke-WebRequest` with its own `-Uri -Method -Headers @{}` syntax. CurlDotNet detects the flavor automatically and lets you force one:
+
+```csharp
+var auto = await Curl.ExecuteAsync("curl -d '{\"name\":\"Ada\"}' https://httpbin.org/post");          // Auto: detected rules
+var cmd  = await Curl.ExecuteAsync("curl -d \"{\"\"name\"\":\"\"Ada\"\"}\" %HOST%/post", CurlFlavor.WindowsCmd);
+var iwr  = await Curl.ExecuteAsync("Invoke-WebRequest -Uri https://httpbin.org/post -Method Post -Body '{\"name\":\"Ada\"}' -ContentType 'application/json'");
+Curl.DefaultFlavor = CurlFlavor.PowerShell;   // process-wide, e.g. for a Windows-only tool
+Console.WriteLine(Curl.DetectFlavor("curl -H 'Accept: application/json' https://x"));  // Posix
+```
+
+Each flavor's quoting, escaping, line-continuation and variable rules are spelled out in the [curl flavors guide](docs/how-to/curl-flavors-bash-cmd-powershell/README.md).
 
 ## Convert curl to C#
 
@@ -91,7 +105,7 @@ var ntlm   = await Curl.ExecuteAsync("curl --ntlm -u 'DOMAIN\\alice:secret' http
 var fluent = await CurlRequestBuilder.Get("https://httpbin.org/basic-auth/alice/secret").WithBasicAuth("alice", "secret").ExecuteAsync();
 ```
 
-`-u` sends preemptive Basic like curl; `--digest`, `--ntlm`, `--negotiate` and `--anyauth` perform the proper 401 challenge flow. `--aws-sigv4` signs requests for AWS, GCP and compatible providers:
+`-u` sends preemptive Basic like curl; `--digest`, `--ntlm` and `--anyauth` are negotiated in pure C# with the same bytes curl sends (`--negotiate` uses the platform's Kerberos/SPNEGO), `-n`/`--netrc` reads credentials from `.netrc`, and `--aws-sigv4` signs requests for AWS, GCP and compatible providers:
 
 ```csharp
 var s3 = await Curl.ExecuteAsync(@"curl --aws-sigv4 ""aws:amz:us-east-1:s3"" -u ""AKID:SECRET"" https://s3.us-east-1.amazonaws.com/my-bucket");
@@ -137,14 +151,16 @@ Curl.DefaultFollowRedirects = true;   // process-wide default
 
 With `-L -i` the header block of every hop is printed, as curl does.
 
-### curl with cookies in C# (curl -b)
+### curl with cookies in C# (curl -b, -c cookie jar)
 
 ```csharp
 var a = await Curl.ExecuteAsync("curl -b 'session=abc; theme=dark' https://httpbin.org/cookies");
-var b = await CurlRequestBuilder.Get("https://httpbin.org/cookies").WithCookie("session=abc").ExecuteAsync();
+await Curl.ExecuteAsync("curl -c cookies.txt https://httpbin.org/cookies/set?session=abc");   // save a Netscape cookie jar
+var c = await Curl.ExecuteAsync("curl -b cookies.txt -L https://httpbin.org/cookies");          // load it, cookies follow redirects
+var d = await CurlRequestBuilder.Get("https://httpbin.org/cookies").WithCookie("session=abc").ExecuteAsync();
 ```
 
-Like curl, no cookie engine runs unless you ask for one, so cookies never leak between unrelated requests.
+Like curl, the cookie engine only runs when you ask for it with `-b FILE`, `-c` or `-j`, so cookies never leak between unrelated requests. Jars use curl's Netscape format, including the `#HttpOnly_` prefix and the 400-day cap.
 
 ### curl proxy in C# (curl -x, SOCKS5)
 
@@ -219,9 +235,9 @@ A trace file records proxy selection, TLS verification, every header and body, t
 
 ## How close to curl is it?
 
-CurlDotNet is tested against curl's own test suite. The `tests/CurlDotNet.CurlSuite` project replays the HTTP tests from [curl/curl tests/data](https://github.com/curl/curl/tree/master/tests/data) against a local stub server and compares the exact bytes CurlDotNet puts on the wire with what curl sends. The current pass rate is published in each release's notes, and the remaining gaps are tracked in `tests/CurlDotNet.CurlSuite/known-failures.txt`. The unit suite (about 1,000 tests) runs offline against an in-process server in a few seconds.
+CurlDotNet is tested against curl's own test suite. The `tests/CurlDotNet.CurlSuite` project replays 1,092 HTTP tests from [curl/curl tests/data](https://github.com/curl/curl/tree/master/tests/data) against a local stub server and compares the exact bytes CurlDotNet puts on the wire, the files it writes and its exit code with curl's. As of v9.8.0, 606 of the 620 runnable tests pass (97.7%, 215 of them byte-exact including header order); the 14 remaining are listed with reasons in `tests/CurlDotNet.CurlSuite/known-failures.txt` (HttpClient's own CONNECT/NTLM handling, .NET refusing the host `domain..tld`, and the deliberate decision never to read `~/.curlrc` implicitly). The parser knows every option of curl 8.7.1; 114 are implemented, and the rest are accepted and recorded in `CurlOptions.UnsupportedOptions` so a pasted command is never misread. See [how CurlDotNet is tested against curl's suite](docs/reference/curl-test-suite.md) and the [option compatibility table](docs/reference/curl-cli-compatibility.md). The unit suite (about 1,400 tests) runs offline against an in-process server in about five seconds.
 
-Behaviour matches curl where a C# developer would notice: default headers, `-d` versus `--data-binary` versus `--data-urlencode`, `-L` semantics, `-i`/`-o` output, exit codes surfaced as exception types (`CurlCouldntConnectException` is 7, `CurlOperationTimeoutException` is 28, `CurlHttpReturnedErrorException` is 22), and the stripping of `Authorization` across hosts. Where .NET's `HttpClient` cannot do what curl does (HTTP/0.9, custom header ordering) the difference is documented rather than hidden.
+Behaviour matches curl where a C# developer would notice: default headers, `-d` versus `--data-binary` versus `--data-urlencode`, `-L` semantics (301/302/303 turn POST into GET, `Authorization` is dropped across hosts unless `--location-trusted`), `-i`/`-o`/`-D` output, `-w` with every curl variable, and exit codes surfaced as exception types (`CurlCouldntConnectException` is 7, `CurlOperationTimeoutException` is 28, `CurlHttpReturnedErrorException` is 22; the full table is in [curl exit codes](docs/reference/curl-exit-codes.md)). Every exception says what happened, how to fix it, and links to the matching page here. Where .NET's `HttpClient` cannot do what curl does (HTTP/0.9, proxy CONNECT with NTLM) the difference is documented rather than hidden.
 
 ## Supported platforms
 
