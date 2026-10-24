@@ -306,8 +306,12 @@ namespace CurlDotNet.Core
                 // Send request
                 timings.PreTransfer = (DateTime.UtcNow - startTime).TotalMilliseconds;
                 response = await transfer.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-                timings.StartTransfer = (DateTime.UtcNow - startTime).TotalMilliseconds;
                 AppendVerboseResponseHeaders(verboseLog, response);
+                // 401/407 challenges (Digest, NTLM, --anyauth) and auth probes are answered like curl
+                var authenticated = await transfer.AuthenticateAsync(response, request, options, token);
+                response = authenticated.Response;
+                request = authenticated.Request;
+                timings.StartTransfer = (DateTime.UtcNow - startTime).TotalMilliseconds;
 
                 // Redirects are followed by hand, like curl (and redirect_url is computed without -L)
                 if (_redirectHandler.IsRedirect(response.StatusCode))
@@ -430,7 +434,9 @@ namespace CurlDotNet.Core
         /// </summary>
         internal static bool UsesChallengeAuth(CurlOptions options)
         {
-            if (options.Credentials == null || string.IsNullOrEmpty(options.AuthScheme))
+            // decided by the scheme alone: credentials may also come from the URL or .netrc, and a
+            // preemptive Basic header must never leak to a server that is asked for Digest/NTLM
+            if (string.IsNullOrEmpty(options.AuthScheme))
                 return false;
             switch (options.AuthScheme.ToLowerInvariant())
             {

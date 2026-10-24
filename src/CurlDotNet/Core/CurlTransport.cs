@@ -151,14 +151,17 @@ namespace CurlDotNet.Core
         private readonly Uri? _httpsProxy;
         private readonly NoProxyList _noProxy;
 
-        private CurlProxy(Uri? httpProxy, Uri? httpsProxy, NoProxyList noProxy, NetworkCredential? credentials, string? authScheme)
+        private CurlProxy(Uri? httpProxy, Uri? httpsProxy, NoProxyList noProxy, NetworkCredential? credentials, string? authScheme, bool plainRequests)
         {
             _httpProxy = httpProxy;
             _httpsProxy = httpsProxy;
             _noProxy = noProxy;
             UserCredentials = credentials;
             AuthScheme = string.IsNullOrEmpty(authScheme) ? "basic" : authScheme!.ToLowerInvariant();
-            if (credentials != null && (AuthScheme != "basic" || !CurlTransport.SupportsRecording))
+            // Requests sent to the proxy as-is (http:// URLs without -p) have their 407 answered by
+            // CurlDotNet's own negotiation (Core/Auth), like curl; CONNECT tunnels keep HttpClient's.
+            NegotiatesPlainRequests = plainRequests && AuthScheme != "basic" && AuthScheme != "negotiate";
+            if (credentials != null && !NegotiatesPlainRequests && (AuthScheme != "basic" || !CurlTransport.SupportsRecording))
             {
                 // Challenge schemes are answered by the handler after the proxy's 407. Where CurlDotNet
                 // cannot open the CONNECT tunnel itself (.NET Framework/netstandard2.0) Basic is
@@ -169,6 +172,12 @@ namespace CurlDotNet.Core
 
         /// <summary>Credentials for the proxy (from -U/--proxy-user or the proxy URL).</summary>
         public NetworkCredential? UserCredentials { get; }
+
+        /// <summary>
+        /// True when the 407 challenges of plain proxy requests (Digest, NTLM, --proxy-anyauth) are
+        /// answered by CurlDotNet rather than by HttpClient.
+        /// </summary>
+        public bool NegotiatesPlainRequests { get; }
 
         /// <summary>basic, digest, ntlm, negotiate or anyauth.</summary>
         public string AuthScheme { get; }
@@ -268,7 +277,10 @@ namespace CurlDotNet.Core
             }
 
             var credentials = options.ProxyCredentials ?? CredentialsFromUserInfo(httpProxy ?? httpsProxy);
-            return new CurlProxy(StripUserInfo(httpProxy), StripUserInfo(httpsProxy), noProxy, credentials, options.ProxyAuthScheme);
+            var plainRequests = !options.ProxyTunnel && options.Url.StartsWith("http:", StringComparison.OrdinalIgnoreCase)
+                && httpProxy != null && (httpProxy.Scheme == "http" || httpProxy.Scheme == "https");
+            return new CurlProxy(StripUserInfo(httpProxy), StripUserInfo(httpsProxy), noProxy, credentials,
+                options.ProxyAuthScheme ?? options.ProxyAuthMethod, plainRequests);
         }
 
         /// <summary>True when the command or the environment configures any proxy.</summary>
@@ -497,13 +509,14 @@ namespace CurlDotNet.Core
         /// </summary>
         private static void ApplyServerAuth(CurlOptions options, Action<ICredentials> set)
         {
-            if (!HttpHandler.UsesChallengeAuth(options))
+            // Basic, Digest, NTLM and --anyauth are negotiated by CurlDotNet itself (Core/Auth), exactly
+            // like curl; only Negotiate (Kerberos/SPNEGO) is left to the platform's HttpClient.
+            if (options.Credentials == null || !string.Equals(options.AuthScheme, "negotiate", StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            if (options.AuthScheme!.Equals("anyauth", StringComparison.OrdinalIgnoreCase)
-                || !Uri.TryCreate(options.Url, UriKind.Absolute, out var authUri)
+            if (!Uri.TryCreate(options.Url, UriKind.Absolute, out var authUri)
                 || (authUri.Scheme != Uri.UriSchemeHttp && authUri.Scheme != Uri.UriSchemeHttps))
             {
                 set(options.Credentials!);

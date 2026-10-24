@@ -15,6 +15,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using CurlDotNet.Core.Auth;
 
 namespace CurlDotNet.Core
 {
@@ -52,7 +53,14 @@ namespace CurlDotNet.Core
             _headerBlock = headerBlock;
             OriginalUrl = options.Url;
             FirstUri = new Uri(options.Url);
+            Auth = HttpAuth.Create(options, proxy?.NegotiatesPlainRequests ?? false, proxy?.AuthScheme, proxy?.UserCredentials);
         }
+
+        /// <summary>curl's authentication negotiation for this transfer, or null when no challenge method is involved.</summary>
+        public HttpAuth? Auth { get; }
+
+        /// <summary>True when the current request goes to a plain HTTP proxy (no tunnel).</summary>
+        public bool CurrentViaPlainProxy { get; private set; }
 
         /// <summary>The command's options (never modified).</summary>
         public CurlOptions Options { get; }
@@ -153,6 +161,7 @@ namespace CurlDotNet.Core
             var tunnel = proxyUri != null && (Options.ProxyTunnel || !string.Equals(uri.Scheme, "http", StringComparison.OrdinalIgnoreCase));
             var plainProxy = proxyUri != null && !tunnel && !proxyUri.Scheme.StartsWith("socks", StringComparison.OrdinalIgnoreCase);
             CurrentViaProxy = proxyUri != null;
+            CurrentViaPlainProxy = plainProxy;
 
             if (plainProxy)
             {
@@ -171,6 +180,7 @@ namespace CurlDotNet.Core
             }
 
             Cookies?.ApplyTo(request, hop);
+            Auth?.Apply(request, hop, plainProxy);
             ApplyExpect(request, hop);
             ApplyEtag(request, hop);
             ApplyResume(request, hop);
@@ -298,6 +308,57 @@ namespace CurlDotNet.Core
             request.Headers.TryAddWithoutValidation("If-None-Match", etag);
         }
 
+        /// <summary>
+        /// Answers authentication challenges like curl: while the response is a 401/407 that offers a
+        /// usable method (or an auth probe that the server accepted without credentials), the response
+        /// is drained (its headers stay in the -i output, its body is dropped) and the same URL is
+        /// requested again with the next Authorization / Proxy-Authorization value.
+        /// </summary>
+        public async Task<(HttpResponseMessage Response, HttpRequestMessage Request)> AuthenticateAsync(
+            HttpResponseMessage response, HttpRequestMessage request, CurlOptions hop, CancellationToken cancellationToken)
+        {
+            for (var round = 0; Auth != null && round < 8; round++)
+            {
+                var status = (int)response.StatusCode;
+                var hasHost = RequestShaping.GetCredentials(hop, request.RequestUri!) != null;
+                var hasProxy = CurrentViaPlainProxy && Proxy?.UserCredentials != null;
+                if (!Auth.ShouldResend(status, Challenges(response, "WWW-Authenticate"), Challenges(response, "Proxy-Authenticate"), hasHost, hasProxy))
+                {
+                    break;
+                }
+
+                RecordFallbackHeaders(response);
+                await Handlers.RedirectHandler.DrainAsync(response, cancellationToken).ConfigureAwait(false);
+                response.Dispose();
+
+                request = PrepareRequest(hop);
+                AppendVerboseRequest(request);
+                response = await SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                AppendVerboseResponse(response);
+            }
+            return (response, request);
+        }
+
+        /// <summary>The raw values of a challenge header of the last response (recorded bytes when available).</summary>
+        private IReadOnlyList<string> Challenges(HttpResponseMessage response, string name)
+        {
+            var head = FinalHead;
+            if (head != null)
+            {
+                return head.GetHeaders(name).ToList();
+            }
+
+#if NET6_0_OR_GREATER
+            if (response.Headers.NonValidated.TryGetValues(name, out var values))
+            {
+                return values.ToList();
+            }
+            return new List<string>();
+#else
+            return response.Headers.TryGetValues(name, out var values) ? values.ToList() : new List<string>();
+#endif
+        }
+
         /// <summary>Sends a request while recording its bytes, and stores any cookies it sets.</summary>
         public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption completion, CancellationToken cancellationToken)
         {
@@ -309,6 +370,10 @@ namespace CurlDotNet.Core
             try
             {
                 TransportErrors.ValidateHeads(exchange, this);
+                if (Auth != null && ClosesConnection(response))
+                {
+                    Auth.ConnectionClosed();
+                }
 
                 if (Cookies != null)
                 {
@@ -334,6 +399,21 @@ namespace CurlDotNet.Core
             }
 
             return response;
+        }
+
+        /// <summary>True when the server ends the connection after this response (Connection: close, or HTTP/1.0 without keep-alive).</summary>
+        private bool ClosesConnection(HttpResponseMessage response)
+        {
+            var head = FinalHead;
+            var connection = head != null
+                ? string.Join(",", head.GetHeaders("Connection"))
+                : string.Join(",", response.Headers.Connection);
+            if (connection.IndexOf("close", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+            var version = head?.HttpVersion ?? $"{response.Version.Major}.{response.Version.Minor}";
+            return version == "1.0" && connection.IndexOf("keep-alive", StringComparison.OrdinalIgnoreCase) < 0;
         }
 
         /// <summary>The raw header block of the final response of the last exchange, if recorded.</summary>

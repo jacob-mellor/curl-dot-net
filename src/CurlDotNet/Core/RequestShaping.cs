@@ -349,7 +349,8 @@ namespace CurlDotNet.Core
             }
 
             var credentials = options.ProxyCredentials ?? GetUrlCredentials(proxy);
-            var basic = options.ProxyAuthMethod == null || options.ProxyAuthMethod == "basic";
+            var scheme = options.ProxyAuthScheme ?? options.ProxyAuthMethod;
+            var basic = scheme == null || string.Equals(scheme, "basic", StringComparison.OrdinalIgnoreCase);
             if (credentials != null && basic && !suppressed.Contains("Proxy-Authorization") && !request.Headers.Contains("Proxy-Authorization"))
             {
                 var token = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{credentials.UserName}:{credentials.Password}"));

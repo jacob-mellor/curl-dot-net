@@ -89,6 +89,7 @@ namespace CurlDotNet.Core.Handlers
 
                 transfer.RedirectCount++;
                 transfer.HopOptions = hop;
+                transfer.Auth?.Redirected(SameOrigin(currentRequest.RequestUri!, target));
                 currentRequest = transfer.PrepareRequest(hop);
                 transfer.AppendVerboseRequest(currentRequest);
                 var previous = current;
@@ -98,6 +99,9 @@ namespace CurlDotNet.Core.Handlers
                     previous.Dispose(); // drained intermediate hop (the first response belongs to the caller)
                 }
                 transfer.AppendVerboseResponse(current);
+                var authenticated = await transfer.AuthenticateAsync(current, currentRequest, hop, cancellationToken).ConfigureAwait(false);
+                current = authenticated.Response;
+                currentRequest = authenticated.Request;
                 transfer.Timings.Redirect = (DateTime.UtcNow - transfer.StartTime).TotalMilliseconds;
             }
             }
@@ -337,7 +341,7 @@ namespace CurlDotNet.Core.Handlers
             return sb.ToString();
         }
 
-        private static async Task DrainAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+        internal static async Task DrainAsync(HttpResponseMessage response, CancellationToken cancellationToken)
         {
             if (response.Content == null)
             {

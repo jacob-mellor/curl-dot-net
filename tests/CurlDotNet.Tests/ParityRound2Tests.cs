@@ -391,5 +391,219 @@ namespace CurlDotNet.Tests
 
             result.Body.Should().Be("moo\nhey\n");
         }
+
+        // ------------------------------------------------------------------ crypto primitives
+
+        private static string Hex(byte[] bytes) => string.Concat(bytes.Select(b => b.ToString("x2")));
+
+        private static byte[] FromHex(string hex) =>
+            Enumerable.Range(0, hex.Length / 2).Select(i => Convert.ToByte(hex.Substring(i * 2, 2), 16)).ToArray();
+
+        [Fact]
+        public void Des_MatchesTheClassicTestVector()
+        {
+            var output = new byte[8];
+            CurlDotNet.Core.Auth.Des.Encrypt(FromHex("133457799bbcdff1"), FromHex("0123456789abcdef"), output, 0);
+
+            Hex(output).Should().Be("85e813540f0ab405");
+        }
+
+        [Fact]
+        public void Md4_MatchesRfc1320Vectors()
+        {
+            Hex(CurlDotNet.Core.Auth.Md4.Hash(Array.Empty<byte>())).Should().Be("31d6cfe0d16ae931b73c59d7e0c089c0");
+            Hex(CurlDotNet.Core.Auth.Md4.Hash(Encoding.ASCII.GetBytes("abc"))).Should().Be("a448017aaf21d8525fc10ae87aa6729d");
+            Hex(CurlDotNet.Core.Auth.Md4.Hash(Encoding.ASCII.GetBytes("12345678901234567890123456789012345678901234567890123456789012345678901234567890")))
+                .Should().Be("e33b4ddc9c38f2199c3e7b164fcc0536");
+        }
+
+        // ------------------------------------------------------------------ challenge authentication
+
+        // curl's test 67: the server's type-2 challenge and the exact type-3 answer curl sends for testuser:testpass
+        private const string Type2 = "TlRMTVNTUAACAAAAAgACADAAAACGggEAc51AYVDgyNcAAAAAAAAAAG4AbgAyAAAAQ0MCAAQAQwBDAAEAEgBFAEwASQBTAEEAQgBFAFQASAAEABgAYwBjAC4AaQBjAGUAZABlAHYALgBuAHUAAwAsAGUAbABpAHMAYQBiAGUAdABoAC4AYwBjAC4AaQBjAGUAZABlAHYALgBuAHUAAAAAAA==";
+        private const string Type1 = "TlRMTVNTUAABAAAABoIIAAAAAAAAAAAAAAAAAAAAAAA=";
+        private const string Type3 = "TlRMTVNTUAADAAAAGAAYAEAAAAAYABgAWAAAAAAAAABwAAAACAAIAHAAAAALAAsAeAAAAAAAAAAAAAAAhoIBAFpkQwKRCZFMhjj0tw47wEjKHRHlvzfxQamFcheMuv8v+xeqphEO5V41xRd7R9deOXRlc3R1c2VyV09SS1NUQVRJT04=";
+
+        [Fact]
+        public async Task Ntlm_SendsCurlsType1AndType3_ByteForByte()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 401 Auth\r\nWWW-Authenticate: NTLM " + Type2 + "\r\nContent-Length: 4\r\n\r\nnope",
+                Hello);
+
+            var result = await Curl.ExecuteAsync($"curl -u testuser:testpass --ntlm {server.Url("/67")}");
+
+            result.Body.Should().Be("hello\n", "the 401 body is not part of the output");
+            Line(server.Requests[0], "Authorization").Should().Be("Authorization: NTLM " + Type1);
+            Line(server.Requests[1], "Authorization").Should().Be("Authorization: NTLM " + Type3);
+        }
+
+        [Fact]
+        public async Task Ntlm_PostIsProbedWithContentLengthZero_ThenSentWithType3()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 401 Auth\r\nWWW-Authenticate: NTLM " + Type2 + "\r\nContent-Length: 0\r\n\r\n",
+                Hello);
+
+            await Curl.ExecuteAsync($"curl -u testuser:testpass --ntlm -d payload {server.Url("/")}");
+
+            Line(server.Requests[0], "Content-Length").Should().Be("Content-Length: 0");
+            server.Requests[0].Should().EndWith("\r\n\r\n");
+            Line(server.Requests[1], "Content-Length").Should().Be("Content-Length: 7");
+            server.Requests[1].Should().EndWith("payload");
+        }
+
+        [Fact]
+        public async Task Digest_ProbeThenAnswer_LikeCurlTest245()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 401 authentication please\r\nWWW-Authenticate: Digest realm=\"testrealm\", nonce=\"1053604144\"\r\nContent-Length: 0\r\n\r\n",
+                "HTTP/1.1 200 A OK\r\nContent-Length: 3\r\n\r\nok\n");
+
+            var result = await Curl.ExecuteAsync($"curl -u auser:apasswd --digest -d junkelijunk {server.Url("/245")}");
+
+            result.Body.Should().Be("ok\n");
+            var first = server.Requests[0];
+            Line(first, "Authorization").Should().BeNull();
+            Line(first, "Content-Length").Should().Be("Content-Length: 0");
+            Line(first, "Content-Type").Should().Be("Content-Type: application/x-www-form-urlencoded");
+            Line(server.Requests[1], "Authorization").Should().Be(
+                "Authorization: Digest username=\"auser\", realm=\"testrealm\", nonce=\"1053604144\", uri=\"/245\", response=\"379a439b1737ba257c1d2f103914b18b\"");
+            server.Requests[1].Should().EndWith("junkelijunk");
+        }
+
+        [Fact]
+        public async Task Digest_WithQop_UsesCnonceAndNonceCount()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 401 Auth\r\nWWW-Authenticate: Digest realm=\"r\", nonce=\"n1\", qop=\"auth-int, auth\", opaque=\"o\", algorithm=MD5\r\nContent-Length: 0\r\n\r\n",
+                Hello);
+
+            await Curl.ExecuteAsync($"curl -u u:p --digest {server.Url("/q?x=1")}");
+
+            var header = Line(server.Requests[1], "Authorization")!;
+            header.Should().StartWith("Authorization: Digest username=\"u\", realm=\"r\", nonce=\"n1\", uri=\"/q?x=1\", cnonce=\"");
+            header.Should().Contain(", nc=00000001, qop=auth, response=\"").And.EndWith("\", opaque=\"o\", algorithm=MD5");
+
+            var cnonce = System.Text.RegularExpressions.Regex.Match(header, "cnonce=\"([^\"]+)\"").Groups[1].Value;
+            string Md5(string s)
+            {
+                using var md5 = System.Security.Cryptography.MD5.Create();
+                return Hex(md5.ComputeHash(Encoding.UTF8.GetBytes(s)));
+            }
+            var expected = Md5(Md5("u:r:p") + ":n1:00000001:" + cnonce + ":auth:" + Md5("GET:/q?x=1"));
+            header.Should().Contain("response=\"" + expected + "\"");
+        }
+
+        [Fact]
+        public async Task Digest_RejectedTwice_StopsAndReturnsThe401()
+        {
+            const string challenge = "HTTP/1.1 401 Auth\r\nWWW-Authenticate: Digest realm=\"r\", nonce=\"n\"\r\nContent-Length: 5\r\n\r\ndenied";
+            using var server = new RawReplyServer(challenge, challenge, Hello);
+
+            var result = await Curl.ExecuteAsync($"curl -u u:wrong --digest {server.Url("/")}");
+
+            server.Requests.Should().HaveCount(2, "a second nonce without stale=true means the password was wrong");
+            result.StatusCode.Should().Be(401);
+            result.Body.Should().Be("denie");
+        }
+
+        [Fact]
+        public async Task AnyAuth_PicksBasicWhenThatIsAllTheServerOffers()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 401 Auth\r\nWWW-Authenticate: Basic realm=\"x\"\r\nContent-Length: 0\r\n\r\n",
+                Hello);
+
+            await Curl.ExecuteAsync($"curl -u iam:myself --anyauth {server.Url("/")}");
+
+            Line(server.Requests[0], "Authorization").Should().BeNull("--anyauth asks first");
+            Line(server.Requests[1], "Authorization").Should().Be(Basic("iam:myself"));
+        }
+
+        [Fact]
+        public async Task AnyAuth_PrefersDigestOverNtlm()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 401 Auth\r\nWWW-Authenticate: NTLM\r\nWWW-Authenticate: Digest realm=\"r\", nonce=\"n\"\r\nWWW-Authenticate: Basic\r\nContent-Length: 0\r\n\r\n",
+                Hello);
+
+            await Curl.ExecuteAsync($"curl -u u:p --anyauth {server.Url("/")}");
+
+            Line(server.Requests[1], "Authorization").Should().StartWith("Authorization: Digest username=\"u\"");
+        }
+
+        [Fact]
+        public async Task Digest_WithNetrcCredentials_NeverSendsBasic()
+        {
+            var netrc = P("netrc");
+            File.WriteAllText(netrc, "machine 127.0.0.1 login nu password np\n");
+            using var server = new RawReplyServer(
+                "HTTP/1.1 401 Auth\r\nWWW-Authenticate: Digest realm=\"r\", nonce=\"n\"\r\nContent-Length: 0\r\n\r\n",
+                Hello);
+
+            await Curl.ExecuteAsync($"curl --netrc-file {Q(netrc)} --digest {server.Url("/")}");
+
+            Line(server.Requests[0], "Authorization").Should().BeNull();
+            Line(server.Requests[1], "Authorization").Should().StartWith("Authorization: Digest username=\"nu\"");
+        }
+
+        [Fact]
+        public async Task ProxyDigest_Answers407WithProxyAuthorization()
+        {
+            using var proxy = new RawReplyServer(
+                "HTTP/1.1 407 Proxy auth\r\nProxy-Authenticate: Digest realm=\"p\", nonce=\"pn\"\r\nContent-Length: 0\r\n\r\n",
+                Hello);
+
+            var result = await Curl.ExecuteAsync($"curl -x 127.0.0.1:{proxy.Port} -U pu:pp --proxy-digest http://example.invalid/path");
+
+            result.Body.Should().Be("hello\n");
+            Line(proxy.Requests[0], "Proxy-Authorization").Should().BeNull("Digest needs the proxy's challenge first; no Basic may leak");
+            Line(proxy.Requests[1], "Proxy-Authorization").Should().StartWith(
+                "Proxy-Authorization: Digest username=\"pu\", realm=\"p\", nonce=\"pn\", uri=\"/path\", response=\"");
+        }
+
+        [Fact]
+        public async Task ProxyNtlm_ProbesAPostAndAnswersTheChallenge()
+        {
+            using var proxy = new RawReplyServer(
+                "HTTP/1.1 407 Proxy auth\r\nProxy-Authenticate: NTLM " + Type2 + "\r\nContent-Length: 0\r\n\r\n",
+                Hello);
+
+            await Curl.ExecuteAsync($"curl -x 127.0.0.1:{proxy.Port} -U testuser:testpass --proxy-ntlm -d postit http://example.invalid/");
+
+            Line(proxy.Requests[0], "Proxy-Authorization").Should().Be("Proxy-Authorization: NTLM " + Type1);
+            Line(proxy.Requests[0], "Content-Length").Should().Be("Content-Length: 0");
+            Line(proxy.Requests[1], "Proxy-Authorization").Should().Be("Proxy-Authorization: NTLM " + Type3);
+            proxy.Requests[1].Should().EndWith("postit");
+        }
+
+        [Fact]
+        public async Task Ntlm_OverlongUser_FailsWithCode100()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 401 Auth\r\nWWW-Authenticate: NTLM " + Type2 + "\r\nContent-Length: 0\r\n\r\n",
+                Hello);
+            var user = new string('u', 1100);
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl -u {user}:p --ntlm {server.Url("/")}");
+
+            var thrown = await act.Should().ThrowAsync<CurlException>();
+            thrown.Which.CurlErrorCode.Should().Be(100);
+            thrown.Which.Message.Should().Contain("too long");
+        }
+
+        [Fact]
+        public async Task OAuth2Bearer_IsNotSentToAnotherHost_AndNoBasicReplacesIt()
+        {
+            using var proxy = new RawReplyServer(
+                "HTTP/1.1 302 Found\r\nLocation: http://second.example/\r\nContent-Length: 0\r\n\r\n",
+                Hello);
+
+            await Curl.ExecuteAsync($"curl -L -x 127.0.0.1:{proxy.Port} -u a:b --oauth2-bearer tok http://first.example/");
+
+            Line(proxy.Requests[0], "Authorization").Should().Be("Authorization: Bearer tok");
+            Line(proxy.Requests[1], "Authorization").Should().BeNull();
+        }
     }
 }
