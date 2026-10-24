@@ -38,6 +38,41 @@ namespace CurlDotNet.Exceptions
         {
             Protocol = protocol;
         }
+
+        /// <summary>
+        /// Initializes a new instance for a redirect (<c>Location:</c>) that points at a scheme curl
+        /// refuses to follow.
+        /// </summary>
+        /// <remarks>
+        /// <para>With <c>-L</c>, curl only follows redirects to <c>http://</c> and <c>https://</c>; a server
+        /// sending <c>Location: gopher://...</c> or <c>file:///etc/passwd</c> ends the transfer with exit
+        /// code 1 instead of silently switching protocols.</para>
+        /// </remarks>
+        /// <param name="protocol">The scheme of the redirect target, such as <c>gopher</c>.</param>
+        /// <param name="command">The curl command that was executing.</param>
+        /// <param name="redirect">Must be true; distinguishes this overload.</param>
+        public CurlUnsupportedProtocolException(string protocol, string? command, bool redirect)
+            : base($"Protocol \"{protocol}\" not supported for redirects: the server's Location header points to a {protocol}:// URL, " +
+                   "and curl only follows redirects to http:// and https://. Fetch that URL explicitly if you trust it, " +
+                   "or drop -L to see the redirect response itself.\nFor redirect handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/redirect-errors.md",
+                   1, command)
+        {
+            Protocol = protocol;
+        }
+
+        /// <summary>
+        /// Initializes a new instance for a server reply whose status line uses a protocol version
+        /// curl does not speak (HTTP/0.9 without <c>--http0.9</c>, <c>HTTP/1.2</c>, or a malformed
+        /// status code).
+        /// </summary>
+        /// <param name="protocol">What the server announced, such as <c>HTTP/1.2</c> or <c>HTTP/0.9</c>.</param>
+        /// <param name="detail">Explanation and fix, already worded for the reader.</param>
+        /// <param name="command">The curl command that was executing.</param>
+        public CurlUnsupportedProtocolException(string protocol, string detail, string? command)
+            : base($"{detail}\nFor HTTP error handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md", 1, command)
+        {
+            Protocol = protocol;
+        }
     }
 
     /// <summary>
@@ -122,6 +157,21 @@ namespace CurlDotNet.Exceptions
         {
             ProxyHost = proxyHost;
         }
+
+        /// <summary>
+        /// Initializes a new instance with an explanation of why the proxy name failed.
+        /// </summary>
+        /// <param name="proxyHost">The proxy host name (from <c>-x</c>/<c>--proxy</c> or a proxy environment variable).</param>
+        /// <param name="detail">What the resolver reported.</param>
+        /// <param name="command">The curl command that was executing.</param>
+        public CurlCouldntResolveProxyException(string proxyHost, string detail, string? command)
+            : base($"Could not resolve proxy: {proxyHost} ({detail}). Check the -x/--proxy value (or the http_proxy, https_proxy " +
+                   "and all_proxy environment variables), or use --noproxy to reach the host directly." +
+                   "\nFor proxy and connection errors, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md",
+                   5, command)
+        {
+            ProxyHost = proxyHost;
+        }
     }
 
     /// <summary>
@@ -142,6 +192,21 @@ namespace CurlDotNet.Exceptions
         /// <param name="command">The curl command that was executing when the error occurred.</param>
         public CurlCouldntResolveHostException(string hostname, string command = null)
             : base($"Could not resolve host: {hostname}", 6, command)
+        {
+            Hostname = hostname;
+        }
+
+        /// <summary>
+        /// Initializes a new instance with an explanation of why the name failed to resolve.
+        /// </summary>
+        /// <param name="hostname">The host name from the URL.</param>
+        /// <param name="detail">What the resolver reported.</param>
+        /// <param name="command">The curl command that was executing.</param>
+        public CurlCouldntResolveHostException(string hostname, string detail, string? command)
+            : base($"Could not resolve host: {hostname} ({detail}). Check the spelling of the host in the URL and your DNS settings; " +
+                   "--resolve HOST:PORT:ADDRESS pins a name to an address without DNS." +
+                   "\nFor DNS and connection errors, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md",
+                   6, command)
         {
             Hostname = hostname;
         }
@@ -174,6 +239,40 @@ namespace CurlDotNet.Exceptions
             Host = host;
             Port = port;
         }
+
+        /// <summary>
+        /// Initializes a new instance that says whether the server or the proxy was unreachable.
+        /// </summary>
+        /// <remarks>
+        /// <para>When a proxy is in use (<c>-x</c>, <c>--socks5</c> or a proxy environment variable) curl
+        /// connects to the proxy, not to the URL's host, so <paramref name="host"/> and
+        /// <paramref name="port"/> name the proxy and <see cref="ViaProxy"/> is true.</para>
+        /// </remarks>
+        /// <param name="host">The host that refused or did not answer (the proxy when <paramref name="viaProxy"/> is true).</param>
+        /// <param name="port">The port that was tried.</param>
+        /// <param name="detail">What the socket layer reported, such as <c>Connection refused</c>.</param>
+        /// <param name="viaProxy">True when <paramref name="host"/> is the proxy.</param>
+        /// <param name="command">The curl command that was executing.</param>
+        public CurlCouldntConnectException(string host, int port, string detail, bool viaProxy, string? command)
+            : base(viaProxy
+                    ? $"Failed to connect to proxy {host} port {port}: {detail}. Check that the proxy given with -x/--proxy " +
+                      "(or the http_proxy/https_proxy/all_proxy environment variable) is running and reachable, or add the " +
+                      "target host to --noproxy to connect directly." +
+                      "\nFor proxy and connection errors, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md"
+                    : $"Failed to connect to {host} port {port}: {detail}. Check that the server is running, that the host and " +
+                      "port in the URL are right, and that no firewall blocks the connection; --retry-connrefused retries refused connections." +
+                      "\nFor DNS and connection errors, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md",
+                   7, command)
+        {
+            Host = host;
+            Port = port;
+            ViaProxy = viaProxy;
+        }
+
+        /// <summary>
+        /// True when the failed connection was to a proxy rather than to the URL's host.
+        /// </summary>
+        public bool ViaProxy { get; }
     }
 
     /// <summary>
@@ -275,7 +374,31 @@ namespace CurlDotNet.Exceptions
         /// <param name="body">The response body.</param>
         /// <param name="command">The curl command that failed.</param>
         public CurlHttpReturnedErrorException(int statusCode, string statusText, string body, string? command = null)
-            : base($"HTTP error {statusCode}: {statusText}", statusCode, statusText, body, command)
+            : base($"HTTP error {statusCode}: {statusText}", statusCode, statusText, body, command, 22)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance for <c>-f</c>/<c>--fail</c> or <c>--fail-with-body</c>, using curl's
+        /// wording <c>The requested URL returned error: 404</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>With <c>-f</c> the body was not written anywhere; with <c>--fail-with-body</c> it was written
+        /// to the output as usual and is also available in <see cref="CurlHttpException.ResponseBody"/>.
+        /// <see cref="CurlException.CurlErrorCode"/> is 22 either way.</para>
+        /// </remarks>
+        /// <param name="statusCode">The HTTP status code (400 or above).</param>
+        /// <param name="statusText">The reason phrase from the status line.</param>
+        /// <param name="body">The response body text, if any.</param>
+        /// <param name="url">The URL that returned the error.</param>
+        /// <param name="bodyKept">True for <c>--fail-with-body</c>.</param>
+        /// <param name="command">The curl command that failed.</param>
+        public CurlHttpReturnedErrorException(int statusCode, string? statusText, string? body, string url, bool bodyKept, string? command)
+            : base($"The requested URL returned error: {statusCode}{(string.IsNullOrEmpty(statusText) ? string.Empty : " " + statusText)} ({url}). " +
+                   (bodyKept
+                       ? "--fail-with-body wrote the response body to the output; it is also in ResponseBody."
+                       : "-f/--fail turns HTTP errors into exit code 22 and discards the body; use --fail-with-body to keep it, or drop -f to get a CurlResult with the status code."),
+                   statusCode, statusText, body, command, 22)
         {
         }
     }
@@ -379,6 +502,18 @@ namespace CurlDotNet.Exceptions
         /// <param name="command">The curl command that caused the exception.</param>
         public CurlOperationTimeoutException(double timeoutSeconds, string command = null)
             : base($"Operation timed out after {timeoutSeconds} seconds", command, TimeSpan.FromSeconds(timeoutSeconds))
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance with a message describing which limit expired and what had been
+        /// received, such as curl's <c>Connection timed out after 2000 milliseconds</c>.
+        /// </summary>
+        /// <param name="timeoutSeconds">The limit that expired (<c>--connect-timeout</c> or <c>-m/--max-time</c>).</param>
+        /// <param name="message">What happened and how to fix it.</param>
+        /// <param name="command">The curl command that was executing.</param>
+        public CurlOperationTimeoutException(double timeoutSeconds, string message, string? command)
+            : base(message, command, TimeSpan.FromSeconds(timeoutSeconds))
         {
         }
     }
@@ -565,6 +700,21 @@ namespace CurlDotNet.Exceptions
         {
             RedirectCount = count;
         }
+
+        /// <summary>
+        /// Initializes a new instance using curl's wording, <c>Maximum (N) redirects followed</c>.
+        /// </summary>
+        /// <param name="count">How many redirects were followed before the next one was refused.</param>
+        /// <param name="limit">The <c>--max-redirs</c> limit (default 50).</param>
+        /// <param name="command">The curl command that was executing.</param>
+        public CurlTooManyRedirectsException(int count, int limit, string? command)
+            : base($"Maximum ({limit}) redirects followed: the server sent another redirect after {count} hop(s). " +
+                   "Raise the limit with --max-redirs N (-1 means unlimited), or check for a redirect loop with -i -L." +
+                   "\nFor redirect handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/redirect-errors.md",
+                   47, command)
+        {
+            RedirectCount = count;
+        }
     }
 
     /// <summary>
@@ -619,6 +769,19 @@ namespace CurlDotNet.Exceptions
         /// <param name="command">The curl command that caused the exception.</param>
         public CurlGotNothingException(string command = null)
             : base("Got nothing (empty reply from server)", 52, command) { }
+
+        /// <summary>
+        /// Initializes a new instance naming the server that closed the connection without replying.
+        /// </summary>
+        /// <param name="host">The server (or proxy) that accepted the request and closed the connection.</param>
+        /// <param name="command">The curl command that was executing.</param>
+        /// <param name="detail">Extra context, such as the request that was sent.</param>
+        public CurlGotNothingException(string host, string? command, string detail)
+            : base($"Empty reply from server: {host} accepted the connection and the request, then closed it without sending a single byte. " +
+                   $"{detail}This usually means the server crashed or rejected the request (wrong port, TLS expected, request too large); " +
+                   "check the server's logs, try -v, or retry with --retry." +
+                   "\nFor HTTP error handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md",
+                   52, command) { }
     }
 
     /// <summary>

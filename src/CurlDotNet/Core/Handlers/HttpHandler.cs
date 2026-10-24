@@ -60,7 +60,7 @@ namespace CurlDotNet.Core
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _ownsHttpClient = ownsHttpClient;
-            _redirectHandler = new RedirectHandler(_httpClient);
+            _redirectHandler = new RedirectHandler();
         }
 
         public async Task<CurlResult> ExecuteAsync(CurlOptions options, CancellationToken cancellationToken)
@@ -72,23 +72,33 @@ namespace CurlDotNet.Core
 
             // curl --retry: transient errors are timeouts and HTTP 408/429/500/502/503/504; the wait
             // doubles from 1 s up to 10 minutes unless --retry-delay fixes it; --retry-max-time caps it all.
+            // Output that went to stdout cannot be taken back, so each attempt's stdout is kept, like curl.
             var retryStarted = DateTime.UtcNow;
+            var earlierStdout = new StringBuilder();
+            var toStdout = string.IsNullOrEmpty(options.OutputFile) && !options.UseRemoteFileName;
             for (var attempt = 0; ; attempt++)
             {
                 var retriesLeft = options.Retry - attempt;
                 CurlResult? result = null;
                 string? reason = null;
+                TimeSpan? retryAfter = null;
                 try
                 {
                     result = await ExecuteAttemptAsync(options, cancellationToken);
                     if (retriesLeft > 0 && IsTransientStatus(result.StatusCode))
                     {
                         reason = $"HTTP {result.StatusCode}";
+                        retryAfter = RetryAfter(result.Headers);
                     }
                 }
                 catch (CurlOperationTimeoutException) when (retriesLeft > 0)
                 {
                     reason = "timeout";
+                }
+                catch (CurlHttpReturnedErrorException ex) when (retriesLeft > 0 && (IsTransientStatus(ex.StatusCode) || options.RetryAllErrors))
+                {
+                    reason = $"HTTP {ex.StatusCode}";
+                    retryAfter = RetryAfter(ex.ResponseHeaders);
                 }
                 catch (CurlCouldntConnectException) when (retriesLeft > 0 && (options.RetryAllErrors || options.RetryConnRefused))
                 {
@@ -101,12 +111,26 @@ namespace CurlDotNet.Core
 
                 if (reason == null)
                 {
+                    if (earlierStdout.Length > 0 && result != null)
+                    {
+                        result.Body = earlierStdout + (result.Body ?? string.Empty);
+                    }
                     return result!;
                 }
 
-                var delaySeconds = options.RetryDelay > 0 ? options.RetryDelay : Math.Min(Math.Pow(2, attempt), 600);
+                if (toStdout && result?.Body != null)
+                {
+                    earlierStdout.Append(result.Body);
+                }
+
+                var delaySeconds = retryAfter?.TotalSeconds
+                    ?? (options.RetryDelay > 0 ? options.RetryDelay : Math.Min(Math.Pow(2, attempt), 600));
                 if (options.RetryMaxTime > 0 && (DateTime.UtcNow - retryStarted).TotalSeconds + delaySeconds > options.RetryMaxTime)
                 {
+                    if (result != null && earlierStdout.Length > 0)
+                    {
+                        result.Body = earlierStdout.ToString();
+                    }
                     return result ?? throw new CurlOperationTimeoutException(options.RetryMaxTime, options.OriginalCommand);
                 }
 
@@ -118,37 +142,54 @@ namespace CurlDotNet.Core
         private static bool IsTransientStatus(int statusCode) =>
             statusCode == 408 || statusCode == 429 || statusCode == 500 || statusCode == 502 || statusCode == 503 || statusCode == 504;
 
+        /// <summary>A Retry-After header in seconds (curl honours it for --retry), capped at 10 minutes.</summary>
+        private static TimeSpan? RetryAfter(IDictionary<string, string>? headers)
+        {
+            if (headers != null && headers.TryGetValue("Retry-After", out var value)
+                && int.TryParse(value.Trim(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var seconds))
+            {
+                return TimeSpan.FromSeconds(Math.Min(seconds, 600));
+            }
+            return null;
+        }
+
         private async Task<CurlResult> ExecuteAttemptAsync(CurlOptions options, CancellationToken cancellationToken)
         {
-            var request = CreateRequest(options);
-            var startTime = DateTime.UtcNow;
-            var timings = new CurlTimings();
             var verboseLog = options.Verbose ? new StringBuilder() : null;
             var trace = TraceWriter.TryCreate(options);
 
-            // Choose the transport. Most requests share the pooled HttpClient, but when
-            // the command asks for a specific proxy or relaxed TLS we build a dedicated
-            // client so those settings are actually honored (and visible in the trace).
+            // Choose the transport. Most requests share the pooled HttpClient, but when the command
+            // asks for a proxy, relaxed TLS, challenge auth or pinned name resolution we build a
+            // dedicated client so those settings are honored (and visible in the trace).
+            var proxy = CurlProxy.Resolve(options);
             var client = _httpClient;
-            var redirectHandler = _redirectHandler;
             HttpClient? perRequestClient = null;
-            if (_ownsHttpClient && NeedsCustomTransport(options))
+            if (_ownsHttpClient && (NeedsCustomTransport(options) || proxy != null))
             {
-                perRequestClient = CreateConfiguredClient(options);
+                perRequestClient = CurlTransport.CreateClient(options, options.ProxyTunnel ? null : proxy);
                 client = perRequestClient;
-                redirectHandler = new RedirectHandler(perRequestClient);
             }
 
+            var cookies = CookieEngine.Create(options);
+            var transfer = new HttpTransfer(options, client, proxy, cookies, verboseLog,
+                CreateRequest, AppendVerboseRequest, AppendVerboseResponseHeaders, BuildHeaderBlock);
+            var timings = transfer.Timings;
+            var startTime = transfer.StartTime;
+            HttpResponseMessage? response = null;
+
+            // Configure timeout. Without --max-time the caller's token is used as-is.
+            var timeoutSeconds = GetTimeoutSeconds(options);
+            using var cts = timeoutSeconds > 0 ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken) : null;
+            if (cts != null)
+            {
+                cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+            }
+            var token = cts?.Token ?? cancellationToken;
+
+            var readingBody = false;
             try
             {
-                // Configure timeout. Without --max-time the caller's token is used as-is.
-                var timeoutSeconds = GetTimeoutSeconds(options);
-                using var cts = timeoutSeconds > 0 ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken) : null;
-                if (cts != null)
-                {
-                    cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
-                }
-                var token = cts?.Token ?? cancellationToken;
+                var request = transfer.PrepareRequest(options);
 
                 if (trace != null)
                 {
@@ -174,41 +215,33 @@ namespace CurlDotNet.Core
 
                 // Send request
                 timings.PreTransfer = (DateTime.UtcNow - startTime).TotalMilliseconds;
-                var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+                response = await transfer.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
                 timings.StartTransfer = (DateTime.UtcNow - startTime).TotalMilliseconds;
                 AppendVerboseResponseHeaders(verboseLog, response);
 
-                // Handle redirects manually if needed
-                List<string>? redirectHeaderBlocks = null;
-                if (options.FollowLocation && redirectHandler.IsRedirect(response.StatusCode))
+                // Redirects are followed by hand, like curl (and redirect_url is computed without -L)
+                if (_redirectHandler.IsRedirect(response.StatusCode))
                 {
-                    trace?.Info($"Received HTTP {(int)response.StatusCode}; following redirect (-L)");
-                    if (options.IncludeHeaders)
+                    if (options.FollowLocation)
                     {
-                        // curl -iL prints the header block of every hop, not just the final one
-                        redirectHeaderBlocks = new List<string>();
+                        trace?.Info($"Received HTTP {(int)response.StatusCode}; following redirect (-L)");
                     }
 
-                    var hops = redirectHeaderBlocks;
-                    Action<HttpResponseMessage>? onHop = null;
-                    if (hops != null)
-                    {
-                        onHop = hop => hops.Add(BuildHeaderBlock(hop));
-                    }
-
-                    var redirectResult = await redirectHandler.HandleRedirectAsync(
-                        response, request, options, token, timings, startTime, verboseLog,
-                        CreateRequest, AppendVerboseRequest, AppendVerboseResponseHeaders, onHop);
-
-                    response = redirectResult.Response;
-                    request = redirectResult.Request;
+                    var followed = await _redirectHandler.FollowAsync(transfer, response, request, token);
+                    response = followed.Response;
+                    request = followed.Request;
                 }
 
                 trace?.RecvHeaders(response);
 
-                return await BuildResultAsync(request, response, options, timings, startTime, token, verboseLog, trace, redirectHeaderBlocks);
+                readingBody = true;
+                return await FinishTransferAsync(transfer, request, response, token, verboseLog, trace);
             }
-            catch (TaskCanceledException)
+            catch (CurlException)
+            {
+                throw;
+            }
+            catch (OperationCanceledException)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -217,22 +250,31 @@ namespace CurlDotNet.Core
                 }
 
                 // Only our own linked token can have fired: this is --max-time (exit code 28), like curl
-                var timeoutSeconds = GetTimeoutSeconds(options);
+                var received = transfer.LastExchange?.BytesReceived ?? 0;
                 trace?.Error($"Operation timed out after {timeoutSeconds} seconds.");
-                throw new CurlOperationTimeoutException(timeoutSeconds, options.OriginalCommand);
+                throw new CurlOperationTimeoutException(timeoutSeconds,
+                    $"Operation timed out after {(long)(timeoutSeconds * 1000)} milliseconds with {received} bytes received " +
+                    $"(-m/--max-time {timeoutSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture)}). Raise --max-time for slow servers or large downloads.",
+                    options.OriginalCommand);
             }
-            catch (HttpRequestException ex)
+            catch (Exception ex) when (ex is HttpRequestException || ex is IOException)
             {
-                trace?.Error($"Connection failed: {ex.Message}");
+                trace?.Error($"Transfer failed: {ex.Message}");
                 for (var inner = ex.InnerException; inner != null; inner = inner.InnerException)
                 {
                     trace?.Error($"  caused by: {inner.GetType().Name}: {inner.Message}");
                 }
-                var uri = new Uri(options.Url);
-                throw new CurlCouldntConnectException(uri.Host, uri.Port > 0 ? uri.Port : (uri.Scheme == "https" ? 443 : 80), options.OriginalCommand);
+
+                var mapped = TransportErrors.Translate(ex, transfer, readingBody);
+                if (mapped != null)
+                {
+                    throw mapped;
+                }
+                throw;
             }
             finally
             {
+                response?.Dispose();
                 perRequestClient?.Dispose();
                 trace?.Dispose();
             }
@@ -240,15 +282,17 @@ namespace CurlDotNet.Core
 
         /// <summary>
         /// Determines whether the request needs a dedicated HttpClient because it
-        /// specifies transport-level options (explicit proxy or relaxed TLS) that the
-        /// shared pooled client does not carry.
+        /// specifies transport-level options (proxy, relaxed TLS, challenge auth, --resolve,
+        /// --expect100-timeout) that the shared pooled client does not carry.
         /// </summary>
         private static bool NeedsCustomTransport(CurlOptions options)
         {
-            return !string.IsNullOrEmpty(options.Proxy)
-                || !string.IsNullOrEmpty(options.Socks5Proxy)
+            return CurlProxy.IsConfigured(options)
                 || options.Insecure
-                || UsesChallengeAuth(options);
+                || UsesChallengeAuth(options)
+                || options.Resolve.Count > 0
+                || options.ProxyTunnel
+                || options.Expect100TimeoutSeconds.HasValue;
         }
 
         /// <summary>
@@ -274,107 +318,26 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Builds an HttpClient configured with the command's proxy and TLS options so
-        /// that <c>--proxy</c>, <c>--socks5</c>, <c>--proxy-user</c> and <c>-k</c> are honored.
-        /// </summary>
-        private static HttpClient CreateConfiguredClient(CurlOptions options)
-        {
-            var handler = new HttpClientHandler
-            {
-                AllowAutoRedirect = false, // We handle redirects manually like curl
-                AutomaticDecompression = DecompressionMethods.None, // decoded in CreateResult when --compressed
-                // curl only engages a cookie engine when -b/-c is given; with UseCookies=true
-                // the container would also swallow manually supplied Cookie headers (issue #41)
-                UseCookies = false
-            };
-
-            if (UsesChallengeAuth(options))
-            {
-                // Challenge-based auth (--digest/--ntlm/--negotiate/--anyauth): let the
-                // handler answer the 401 challenge instead of sending a preemptive header.
-                if (options.AuthScheme.Equals("anyauth", StringComparison.OrdinalIgnoreCase)
-                    || !Uri.TryCreate(options.Url, UriKind.Absolute, out var authUri)
-                    || (authUri.Scheme != Uri.UriSchemeHttp && authUri.Scheme != Uri.UriSchemeHttps))
-                {
-                    handler.Credentials = options.Credentials;
-                }
-                else
-                {
-                    var cache = new CredentialCache();
-                    var scheme = options.AuthScheme.ToLowerInvariant() switch
-                    {
-                        "digest" => "Digest",
-                        "ntlm" => "NTLM",
-                        _ => "Negotiate"
-                    };
-                    cache.Add(new Uri(authUri, "/"), scheme, options.Credentials);
-                    handler.Credentials = cache;
-                }
-                handler.PreAuthenticate = false;
-            }
-
-            string? proxyUrl = null;
-            if (!string.IsNullOrEmpty(options.Proxy))
-            {
-                proxyUrl = NormalizeProxyUrl(options.Proxy, "http");
-            }
-            else if (!string.IsNullOrEmpty(options.Socks5Proxy))
-            {
-                proxyUrl = NormalizeProxyUrl(options.Socks5Proxy, "socks5");
-            }
-
-            if (!string.IsNullOrEmpty(proxyUrl))
-            {
-                var webProxy = new WebProxy(proxyUrl);
-                if (options.ProxyCredentials != null)
-                {
-                    webProxy.Credentials = options.ProxyCredentials;
-                }
-                handler.Proxy = webProxy;
-                handler.UseProxy = true;
-            }
-
-            if (options.Insecure)
-            {
-                // Accept any server certificate (curl -k / --insecure).
-                handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
-            }
-
-            return new HttpClient(handler);
-        }
-
-        /// <summary>
-        /// Prepends a default scheme to a proxy address when the user supplied a bare
-        /// host:port (curl allows <c>proxy.example.com:8080</c>), since WebProxy requires a scheme.
-        /// </summary>
-        private static string NormalizeProxyUrl(string proxy, string defaultScheme)
-        {
-            if (proxy.Contains("://"))
-            {
-                return proxy;
-            }
-            return $"{defaultScheme}://{proxy}";
-        }
-
-        /// <summary>
         /// Produces a human-readable description of the proxy that will be used for the
-        /// request (explicit, SOCKS5, system, or none) for inclusion in the trace.
+        /// request (explicit, environment, system, or none) for inclusion in the trace.
         /// </summary>
         private static string DescribeProxy(CurlOptions options, Uri uri)
         {
-            if (!string.IsNullOrEmpty(options.Proxy))
-            {
-                var creds = options.ProxyCredentials != null ? " (with credentials)" : string.Empty;
-                return $"Using explicit proxy {NormalizeProxyUrl(options.Proxy, "http")}{creds}";
-            }
-
-            if (!string.IsNullOrEmpty(options.Socks5Proxy))
-            {
-                return $"Using SOCKS5 proxy {NormalizeProxyUrl(options.Socks5Proxy, "socks5")}";
-            }
-
             try
             {
+                var proxy = CurlProxy.Resolve(options);
+                if (proxy != null)
+                {
+                    var target = proxy.ProxyFor(uri);
+                    if (target == null)
+                    {
+                        return "Proxy bypassed for this host (--noproxy / NO_PROXY)";
+                    }
+                    var creds = proxy.UserCredentials != null ? " (with credentials)" : string.Empty;
+                    var origin = options.Proxy != null || !string.IsNullOrEmpty(options.Socks5Proxy) ? "explicit" : "environment";
+                    return $"Using {origin} proxy {target.Scheme}://{target.Host}:{target.Port}{creds}";
+                }
+
                 var systemProxy = WebRequest.DefaultWebProxy;
                 if (systemProxy != null && uri != null && !systemProxy.IsBypassed(uri))
                 {
@@ -564,29 +527,16 @@ namespace CurlDotNet.Core
             return !string.IsNullOrEmpty(options.Data) ||
                    options.BinaryData != null ||
                    options.FormData.Any() ||
-                   options.Files.Any();
+                   options.Files.Any() ||
+                   options.FormParts.Count > 0;
         }
 
         private HttpContent CreateContent(CurlOptions options)
         {
-            // Multipart form data
-            if (options.Files.Any() || options.FormData.Any())
+            // Multipart form data (-F / --form-string), laid out byte-for-byte like curl's
+            if (options.FormParts.Count > 0 || options.Files.Any() || options.FormData.Any())
             {
-                var content = new MultipartFormDataContent();
-
-                foreach (var field in options.FormData)
-                {
-                    content.Add(new StringContent(field.Value), field.Key);
-                }
-
-                foreach (var file in options.Files)
-                {
-                    var fileContent = new ByteArrayContent(File.ReadAllBytes(file.Value));
-                    fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
-                    content.Add(fileContent, file.Key, Path.GetFileName(file.Value));
-                }
-
-                return content;
+                return MultipartFormBuilder.Build(MultipartFormBuilder.PartsFor(options), options);
             }
 
             // Binary data
@@ -647,71 +597,71 @@ namespace CurlDotNet.Core
             return null;
         }
 
-        private async Task<(CurlResult Result, string? ResponseText, byte[]? ResponseBinary)> CreateResult(HttpResponseMessage response, CurlOptions options,
-            CurlTimings timings, DateTime startTime)
+        /// <summary>
+        /// Reads the body, applies -f/--fail, writes -D/-o/-O output, expands -w and saves the
+        /// cookie jar, in the order curl does.
+        /// </summary>
+        private async Task<CurlResult> FinishTransferAsync(HttpTransfer transfer, HttpRequestMessage request, HttpResponseMessage response,
+            CancellationToken cancellationToken, StringBuilder? verboseLog, TraceWriter? trace)
         {
-            // FIX: Use StringComparer.OrdinalIgnoreCase for case-insensitive headers
-            var result = new CurlResult
-            {
-                StatusCode = (int)response.StatusCode,
-                Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                Command = options.OriginalCommand
-            };
+            var options = transfer.Options;
+            var command = options.OriginalCommand;
+            var status = (int)response.StatusCode;
+            var isHead = request.Method == HttpMethod.Head || options.HeadOnly;
+            var finalHead = transfer.FinalHead;
+            var timings = transfer.Timings;
 
-            // Populate headers
-            foreach (var header in response.Headers)
+            // --max-filesize refuses an announced size before reading anything, like curl
+            var announced = response.Content?.Headers.ContentLength;
+            if (options.MaxFileSize.HasValue && announced.HasValue && announced.Value > options.MaxFileSize.Value && !isHead)
             {
-                result.Headers[header.Key] = string.Join(", ", header.Value);
+                throw new CurlFileSizeExceededException(options.MaxFileSize.Value, announced.Value, command);
             }
 
-            string? responseText = null;
-            byte[]? responseBinary = null;
-
-            // Add content headers
-            if (response.Content != null)
+            var rawBody = Array.Empty<byte>();
+            Exception? bodyError = null;
+            if (!isHead && response.Content != null)
             {
-                foreach (var header in response.Content.Headers)
-                {
-                    result.Headers[header.Key] = string.Join(", ", header.Value);
-                }
+                (rawBody, bodyError) = await ReadBodyAsync(response.Content, cancellationToken, options.MaxFileSize);
+            }
+            timings.Total = (DateTime.UtcNow - transfer.StartTime).TotalMilliseconds;
 
-                // Read body. Always read raw bytes first so binary data served under a
-                // lying text Content-Type (e.g. an .xlsx sent as text/plain) is never
-                // corrupted by string decoding; curl writes wire bytes verbatim.
-                // HEAD (-I or -X HEAD) never has a body to print, even if a misbehaving server sends one
-                var isHead = options.HeadOnly
-                    || string.Equals(options.Method, "HEAD", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(options.CustomMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
-                if (!isHead)
-                {
-                    var bodyBytes = await response.Content.ReadAsByteArrayAsync();
-                    if (options.Compressed)
-                    {
-                        bodyBytes = DecodeContentEncoding(bodyBytes, response.Content.Headers.ContentEncoding);
-                    }
-                    var charset = response.Content.Headers.ContentType?.CharSet;
-
-                    if (IsTextContent(response.Content, options)
-                        && (IsUserForcedText(response.Content, options) || !LooksBinary(bodyBytes, charset)))
-                    {
-                        responseText = DecodeTextBody(bodyBytes, charset);
-                    }
-                    else
-                    {
-                        responseBinary = bodyBytes;
-                    }
-                }
+            if (bodyError is OperationCanceledException canceled)
+            {
+                throw canceled;
             }
 
-            return (result, responseText, responseBinary);
-        }
+            // curl's -I means "no body, show headers" (tool_getparam sets both); options built through
+            // the API (LibCurl.HeadAsync) only ask for no body, so they keep headers in result.Headers.
+            var includeHeaders = options.IncludeHeaders || (options.HeadOnly && !string.IsNullOrEmpty(options.OriginalCommand));
+            var headerText = transfer.BuildHeaderText(response);
 
-        private async Task<CurlResult> BuildResultAsync(HttpRequestMessage request, HttpResponseMessage response, CurlOptions options,
-            CurlTimings timings, DateTime startTime, CancellationToken cancellationToken, StringBuilder? verboseLog, TraceWriter? trace = null,
-            IReadOnlyList<string>? redirectHeaderBlocks = null)
-        {
-            var (result, responseText, responseBinary) = await CreateResult(response, options, timings, startTime);
-            var downloadSize = responseBinary?.Length ?? (responseText != null ? Encoding.UTF8.GetByteCount(responseText) : 0);
+            // -D FILE gets the header blocks as soon as they arrived, even if the body then fails
+            if (!string.IsNullOrEmpty(options.DumpHeaderFile) && options.DumpHeaderFile != "-")
+            {
+                TransferOutput.DumpHeaders(options, headerText);
+            }
+
+            CurlException? failure = null;
+            if (bodyError is FileSizeLimitReached)
+            {
+                failure = new CurlFileSizeExceededException(options.MaxFileSize!.Value, rawBody.Length, command);
+            }
+            else if (bodyError != null)
+            {
+                failure = TransportErrors.Translate(bodyError, transfer, readingBody: true)
+                          ?? new CurlReceiveErrorException(bodyError.Message, command);
+            }
+
+            var body = rawBody;
+            if (failure == null && options.Compressed)
+            {
+                body = DecodeContentEncoding(rawBody, response.Content!.Headers.ContentEncoding);
+            }
+
+            var (result, responseText, responseBinary) = CreateResult(response, options, isHead ? null : body, finalHead);
+            result.Timings = timings;
+            FillTimings(transfer, timings);
 
             if (trace != null)
             {
@@ -723,117 +673,373 @@ namespace CurlDotNet.Core
                 {
                     trace.RecvData(responseText);
                 }
-                trace.Info($"Transfer complete: HTTP {result.StatusCode}, {downloadSize} bytes received.");
+                trace.Info($"Transfer complete: HTTP {result.StatusCode}, {rawBody.Length} bytes received.");
             }
 
-            var includedHeaders = options.IncludeHeaders ? BuildIncludedHeaderText(response, redirectHeaderBlocks) : null;
-            await HandleOutputFilesAsync(options, result, responseText, responseBinary, includedHeaders, cancellationToken);
-
-            result.Body = BuildFinalBody(options, request, response, responseText, verboseLog, downloadSize, redirectHeaderBlocks);
-            timings.Total = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            result.Timings = timings;
-
-            return result;
-        }
-
-        private async Task HandleOutputFilesAsync(CurlOptions options, CurlResult result, string? responseText, byte[]? responseBinary, string? includedHeaders, CancellationToken cancellationToken)
-        {
-            var fileText = responseText;
-            var fileBinary = responseBinary;
-            if (!string.IsNullOrEmpty(includedHeaders) && (!string.IsNullOrEmpty(options.OutputFile) || options.UseRemoteFileName))
+            if (!string.IsNullOrEmpty(options.EtagSave) && failure == null)
             {
-                // curl -i -o file writes the header block into the file ahead of the body
-                var headerBytes = Encoding.UTF8.GetBytes(includedHeaders);
-                var bodyBytes = responseBinary ?? Encoding.UTF8.GetBytes(responseText ?? string.Empty);
-                var combined = new byte[headerBytes.Length + bodyBytes.Length];
-                Buffer.BlockCopy(headerBytes, 0, combined, 0, headerBytes.Length);
-                Buffer.BlockCopy(bodyBytes, 0, combined, headerBytes.Length, bodyBytes.Length);
-                fileBinary = combined;
-                fileText = null;
+                SaveEtag(options, finalHead?.GetHeader("ETag") ?? result.GetHeader("ETag"));
             }
 
-            if (!string.IsNullOrEmpty(options.OutputFile))
+            var effectiveUrl = request.RequestUri!.AbsoluteUri;
+            var failOnHttp = status >= 400 && (options.FailOnError || options.FailWithBody);
+            string? outputPath = null;
+            string? writtenPath = null;
+            if (!failOnHttp || options.FailWithBody)
             {
-                await WriteOutputFile(options.OutputFile, fileText, fileBinary, cancellationToken);
-                result.OutputFiles.Add(options.OutputFile);
+                outputPath = TransferOutput.ResolveOutputPath(options, transfer, finalHead, effectiveUrl);
             }
-            else if (options.UseRemoteFileName)
+
+            if (outputPath != null && (failure == null || !options.RemoveOnError))
             {
-                var remoteFile = DetermineRemoteFileName(options);
-                await WriteOutputFile(remoteFile, fileText, fileBinary, cancellationToken);
-                result.OutputFiles.Add(remoteFile);
+                var fromHeader = options.UseRemoteFileName && options.RemoteHeaderName && string.IsNullOrEmpty(options.OutputFile)
+                                 && TransferOutput.ContentDispositionFileName(finalHead?.GetHeader("Content-Disposition") ?? result.GetHeader("Content-Disposition")) != null;
+                writtenPath = TransferOutput.PrepareTarget(outputPath, options, fromHeader);
+                var bytes = BuildOutputBytes(includeHeaders ? headerText : null, failure == null ? body : rawBody, includeHeaders ? finalHead?.Trailers : null);
+                TransferOutput.WriteFile(writtenPath, bytes, append: false, options, options.UseRemoteFileName && string.IsNullOrEmpty(options.OutputFile) ? "-O/--remote-name" : "-o/--output");
+                result.OutputFiles.Add(writtenPath);
+                if (options.RemoteTime && failure == null)
+                {
+                    TransferOutput.ApplyRemoteTime(writtenPath, finalHead?.GetHeader("Last-Modified") ?? result.GetHeader("Last-Modified"));
+                }
+            }
+
+            var jarText = SaveCookies(transfer);
+
+            if (failure != null)
+            {
+                throw failure;
+            }
+
+            if (failOnHttp)
+            {
+                throw new CurlHttpReturnedErrorException(status, finalHead?.ReasonPhrase ?? response.ReasonPhrase, responseText,
+                    effectiveUrl, options.FailWithBody, command)
+                {
+                    ResponseHeaders = result.Headers
+                };
             }
 
             result.BinaryData = responseBinary;
-        }
 
-        private async Task WriteOutputFile(string outputFile, string? body, byte[]? binary, CancellationToken cancellationToken)
-        {
-            if (binary != null)
-            {
-#if NETSTANDARD2_0 || NET472 || NET48
-                await Task.Run(() => File.WriteAllBytes(outputFile, binary), cancellationToken);
-#else
-                await File.WriteAllBytesAsync(outputFile, binary, cancellationToken);
-#endif
-            }
-            else if (!string.IsNullOrEmpty(body))
-            {
-#if NETSTANDARD2_0 || NET472 || NET48
-                await Task.Run(() => File.WriteAllText(outputFile, body), cancellationToken);
-#else
-                await File.WriteAllTextAsync(outputFile, body, cancellationToken);
-#endif
-            }
-        }
-
-        private string BuildFinalBody(CurlOptions options, HttpRequestMessage request, HttpResponseMessage response, string? responseText, StringBuilder? verboseLog, int downloadSize,
-            IReadOnlyList<string>? redirectHeaderBlocks = null)
-        {
+            // Standard output: -v log, -D - headers, -i/-I headers, body, -w text
             var builder = new StringBuilder();
-
             if (options.Verbose && verboseLog != null)
             {
                 builder.AppendLine(verboseLog.ToString().TrimEnd());
             }
 
-            // Include headers BEFORE body when -i flag is used (like curl); with -o they are in the file instead
-            if (options.IncludeHeaders && string.IsNullOrEmpty(options.OutputFile) && !options.UseRemoteFileName)
+            if (options.DumpHeaderFile == "-")
             {
-                if (builder.Length > 0)
-                    builder.AppendLine();
-
-                builder.Append(BuildIncludedHeaderText(response, redirectHeaderBlocks));
+                builder.Append(headerText);
             }
 
-            // With -o/-O the body (and -i headers) went to the file; like curl, stdout gets only -w output
-            var wroteToFile = !string.IsNullOrEmpty(options.OutputFile) || options.UseRemoteFileName;
-            if (!string.IsNullOrEmpty(responseText) && !wroteToFile)
+            if (includeHeaders && outputPath == null)
             {
-                if (!options.IncludeHeaders && builder.Length > 0)
+                if (options.Verbose && builder.Length > 0)
+                    builder.AppendLine();
+                builder.Append(headerText);
+            }
+
+            if (outputPath == null && !string.IsNullOrEmpty(responseText))
+            {
+                if (options.Verbose && !includeHeaders && builder.Length > 0)
                     builder.AppendLine();
                 builder.Append(responseText);
             }
 
+            if (outputPath == null && includeHeaders && finalHead?.Trailers != null)
+            {
+                builder.Append(finalHead.Trailers);
+            }
+
             if (!string.IsNullOrEmpty(options.WriteOut))
             {
-                var writeOut = FormatWriteOut(options.WriteOut, response, options, downloadSize);
-                if (!string.IsNullOrWhiteSpace(writeOut))
+                var context = BuildWriteOutContext(transfer, request, response, finalHead, result, rawBody.Length, writtenPath);
+                var expanded = WriteOutFormatter.Format(options.WriteOut!, context);
+                builder.Append(expanded.Stdout);
+                WriteStderr(options, expanded.Stderr);
+            }
+
+            if (jarText != null)
+            {
+                builder.Append(jarText);
+            }
+
+            result.Body = builder.ToString();
+            return result;
+        }
+
+        /// <summary>Signals that --max-filesize was exceeded while reading.</summary>
+        private sealed class FileSizeLimitReached : Exception
+        {
+        }
+
+        private static async Task<(byte[] Body, Exception? Error)> ReadBodyAsync(HttpContent content, CancellationToken cancellationToken, long? maxFileSize)
+        {
+            var buffer = new MemoryStream();
+            try
+            {
+#if NETSTANDARD2_0 || NET472 || NET48
+                using var stream = await content.ReadAsStreamAsync().ConfigureAwait(false);
+#else
+                using var stream = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+#endif
+                var chunk = new byte[81920];
+                while (true)
                 {
-                    if (builder.Length > 0)
-                        builder.AppendLine();
-                    builder.Append(writeOut);
+                    // --max-time bounds the body download too
+                    var n = await stream.ReadAsync(chunk, 0, chunk.Length, cancellationToken).ConfigureAwait(false);
+                    if (n <= 0)
+                    {
+                        break;
+                    }
+                    buffer.Write(chunk, 0, n);
+                    if (maxFileSize.HasValue && buffer.Length > maxFileSize.Value)
+                    {
+                        return (buffer.ToArray(), new FileSizeLimitReached());
+                    }
+                }
+                return (buffer.ToArray(), null);
+            }
+            catch (OperationCanceledException ex)
+            {
+                return (buffer.ToArray(), ex);
+            }
+            catch (Exception ex) when (ex is IOException || ex is HttpRequestException)
+            {
+                return (buffer.ToArray(), ex);
+            }
+        }
+
+        private static byte[] BuildOutputBytes(string? headerText, byte[] body, string? trailers)
+        {
+            if (headerText == null)
+            {
+                return body;
+            }
+
+            var head = WireText.Latin1.GetBytes(headerText);
+            var tail = trailers == null ? Array.Empty<byte>() : WireText.Latin1.GetBytes(trailers);
+            var combined = new byte[head.Length + body.Length + tail.Length];
+            Buffer.BlockCopy(head, 0, combined, 0, head.Length);
+            Buffer.BlockCopy(body, 0, combined, head.Length, body.Length);
+            Buffer.BlockCopy(tail, 0, combined, head.Length + body.Length, tail.Length);
+            return combined;
+        }
+
+        /// <summary>--etag-save: the ETag (or nothing) followed by a newline.</summary>
+        private static void SaveEtag(CurlOptions options, string? etag)
+        {
+            TransferOutput.EnsureDirectory(options.EtagSave!, options, "--etag-save");
+            var text = string.IsNullOrEmpty(etag) ? string.Empty : etag + "\n";
+            TransferOutput.WriteFile(options.EtagSave!, WireText.Latin1.GetBytes(text), append: false, options, "--etag-save");
+        }
+
+        private static string? SaveCookies(HttpTransfer transfer)
+        {
+            return transfer.Cookies?.Save(transfer.Options.OriginalCommand);
+        }
+
+        /// <summary>The %{stderr} part of -w goes to --stderr FILE (or standard error).</summary>
+        private static void WriteStderr(CurlOptions options, string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(options.StderrFile) && options.StderrFile != "-")
+            {
+                try
+                {
+                    File.AppendAllText(options.StderrFile!, text);
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    // curl falls back to the terminal when --stderr cannot be opened
+                    Console.Error.Write(text);
+                }
+                return;
+            }
+
+            Console.Error.Write(text);
+        }
+
+        /// <summary>Fills CurlResult.Timings (milliseconds) from the recorded connection facts.</summary>
+        private static void FillTimings(HttpTransfer transfer, CurlTimings timings)
+        {
+            var transcript = transfer.Transcript;
+            var connection = transcript.Exchanges.Select(e => e.FirstNewConnection).FirstOrDefault(c => c != null);
+            if (connection == null)
+            {
+                return;
+            }
+            timings.NameLookup = transcript.SecondsSinceStart(connection.ResolvedTimestamp) * 1000;
+            timings.Connect = transcript.SecondsSinceStart(connection.ConnectedTimestamp) * 1000;
+            if (connection.Secure)
+            {
+                timings.AppConnect = transcript.SecondsSinceStart(connection.ReadyTimestamp) * 1000;
+            }
+        }
+
+        private static WriteOutContext BuildWriteOutContext(HttpTransfer transfer, HttpRequestMessage request, HttpResponseMessage response,
+            RawResponseHead? finalHead, CurlResult result, long downloadSize, string? writtenPath)
+        {
+            var transcript = transfer.Transcript;
+            var timings = transfer.Timings;
+            var uri = request.RequestUri!;
+            var ctx = new WriteOutContext
+            {
+                ResponseCode = (int)response.StatusCode,
+                HttpVersion = finalHead != null
+                    ? (finalHead.HttpVersion == "2.0" ? "2" : finalHead.HttpVersion)
+                    : (response.Version.Major >= 2 ? response.Version.Major.ToString(System.Globalization.CultureInfo.InvariantCulture) : $"{response.Version.Major}.{response.Version.Minor}"),
+                ContentType = finalHead != null ? finalHead.GetHeader("Content-Type") : response.Content?.Headers.ContentType?.ToString(),
+                SizeDownload = downloadSize,
+                SizeUpload = request.Content?.Headers.ContentLength ?? 0,
+                Url = transfer.OriginalUrl,
+                UrlEffective = uri.AbsoluteUri,
+                RedirectUrl = transfer.RedirectUrl ?? string.Empty,
+                Method = request.Method.Method,
+                Scheme = uri.Scheme.ToLowerInvariant(),
+                Referer = request.Headers.Referrer?.OriginalString ?? string.Empty,
+                NumRedirects = transfer.RedirectCount,
+                FilenameEffective = writtenPath ?? string.Empty,
+                ProxyUsed = transfer.CurrentViaProxy,
+            };
+
+            if (finalHead != null)
+            {
+                ctx.Headers = finalHead.Headers;
+                ctx.NumHeaders = finalHead.Headers.Count;
+            }
+            else
+            {
+                foreach (var h in result.Headers)
+                {
+                    ctx.Headers.Add(new KeyValuePair<string, string>(h.Key, h.Value));
+                }
+                ctx.NumHeaders = result.Headers.Count;
+            }
+
+            if (transcript.HasRecording)
+            {
+                ctx.SizeHeader = transcript.HeaderBytes;
+                var sent = transcript.Exchanges.Sum(e => e.BytesSent);
+                ctx.SizeRequest = Math.Max(0, sent - ctx.SizeUpload * Math.Max(1, transfer.RequestsSent));
+                ctx.NumConnects = transcript.NewConnections;
+
+                var first = transcript.Exchanges.Select(e => e.FirstNewConnection).FirstOrDefault(c => c != null);
+                if (first != null)
+                {
+                    ctx.TimeNameLookup = transcript.SecondsSinceStart(first.ResolvedTimestamp);
+                    ctx.TimeConnect = transcript.SecondsSinceStart(first.ConnectedTimestamp);
+                    ctx.TimeAppConnect = first.Secure ? transcript.SecondsSinceStart(first.ReadyTimestamp) : 0;
+                }
+
+                var last = transfer.LastExchange!;
+                var connection = last.LastConnection;
+                if (connection != null)
+                {
+                    ctx.LocalIp = connection.LocalEndPoint?.Address.ToString() ?? string.Empty;
+                    ctx.LocalPort = connection.LocalEndPoint?.Port ?? 0;
+                    ctx.RemoteIp = connection.RemoteEndPoint?.Address.ToString() ?? string.Empty;
+                    ctx.RemotePort = connection.RemoteEndPoint?.Port ?? 0;
+                }
+
+                ctx.TimePreTransfer = transcript.SecondsSinceStart(last.FirstWriteTimestamp);
+                ctx.TimeStartTransfer = transcript.SecondsSinceStart(last.FirstByteTimestamp);
+                ctx.TimeRedirect = transfer.RedirectCount > 0 ? transcript.SecondsSinceStart(last.StartedTimestamp) : 0;
+            }
+            else
+            {
+                ctx.SizeHeader = Encoding.UTF8.GetByteCount(transfer.BuildHeaderText(response));
+                ctx.NumConnects = 1;
+                ctx.TimePreTransfer = timings.PreTransfer / 1000;
+                ctx.TimeStartTransfer = timings.StartTransfer / 1000;
+                ctx.TimeRedirect = timings.Redirect / 1000;
+                if (uri.HostNameType == UriHostNameType.IPv4 || uri.HostNameType == UriHostNameType.IPv6)
+                {
+                    ctx.RemoteIp = uri.Host.Trim('[', ']');
+                    ctx.RemotePort = uri.Port;
                 }
             }
 
-            if (builder.Length > 0)
-                return builder.ToString();
-            return wroteToFile ? string.Empty : responseText ?? string.Empty;
+            ctx.TimeTotal = (DateTime.UtcNow - transfer.StartTime).TotalSeconds;
+            ctx.TimePostTransfer = ctx.TimePreTransfer;
+            if (ctx.TimeStartTransfer < ctx.TimePreTransfer) ctx.TimeStartTransfer = ctx.TimePreTransfer;
+            if (ctx.TimeTotal < ctx.TimeStartTransfer) ctx.TimeTotal = ctx.TimeStartTransfer;
+            return ctx;
+        }
+
+        private (CurlResult Result, string? ResponseText, byte[]? ResponseBinary) CreateResult(HttpResponseMessage response, CurlOptions options,
+            byte[]? bodyBytes, RawResponseHead? finalHead)
+        {
+            // FIX: Use StringComparer.OrdinalIgnoreCase for case-insensitive headers
+            var result = new CurlResult
+            {
+                StatusCode = (int)response.StatusCode,
+                Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+                Command = options.OriginalCommand
+            };
+
+            if (finalHead != null)
+            {
+                // Header values exactly as sent (HttpClient would split "Server: a b" into tokens);
+                // repeated headers are joined with ", " as before.
+                foreach (var header in finalHead.Headers)
+                {
+                    result.Headers[header.Key] = result.Headers.TryGetValue(header.Key, out var existing)
+                        ? existing + ", " + header.Value
+                        : header.Value;
+                }
+            }
+            else
+            {
+                foreach (var header in response.Headers)
+                {
+                    result.Headers[header.Key] = string.Join(", ", header.Value);
+                }
+                if (response.Content != null)
+                {
+                    foreach (var header in response.Content.Headers)
+                    {
+                        result.Headers[header.Key] = string.Join(", ", header.Value);
+                    }
+                }
+            }
+
+            string? responseText = null;
+            byte[]? responseBinary = null;
+
+            // Always read raw bytes first so binary data served under a lying text Content-Type
+            // (e.g. an .xlsx sent as text/plain) is never corrupted by string decoding; curl writes
+            // wire bytes verbatim. HEAD (-I or -X HEAD) never has a body to print.
+            if (response.Content != null && bodyBytes != null)
+            {
+                var charset = response.Content.Headers.ContentType?.CharSet;
+                var mediaType = response.Content.Headers.ContentType?.MediaType;
+
+                var text = mediaType == null
+                    ? !options.ForceBinary && !LooksBinary(bodyBytes, charset)   // no Content-Type: sniff, like curl writes it either way
+                    : IsTextContent(response.Content, options) && (IsUserForcedText(response.Content, options) || !LooksBinary(bodyBytes, charset));
+                if (text)
+                {
+                    responseText = DecodeTextBody(bodyBytes, charset);
+                }
+                else
+                {
+                    responseBinary = bodyBytes;
+                }
+            }
+
+            return (result, responseText, responseBinary);
         }
 
         /// <summary>
         /// Rebuilds the response header block the way curl -i prints it: status line, one header per
-        /// line, CRLF line endings, no trailing blank line.
+        /// line, CRLF line endings, no trailing blank line. Used when the raw bytes were not recorded.
         /// </summary>
         private string BuildHeaderBlock(HttpResponseMessage response)
         {
@@ -873,24 +1079,6 @@ namespace CurlDotNet.Core
             }
 #endif
             return builder.ToString().TrimEnd();
-        }
-
-        /// <summary>
-        /// The complete header text curl -i emits before the body: every redirect hop's block
-        /// (with -L), then the final block, each followed by an empty line.
-        /// </summary>
-        private string BuildIncludedHeaderText(HttpResponseMessage response, IReadOnlyList<string>? redirectHeaderBlocks)
-        {
-            var builder = new StringBuilder();
-            if (redirectHeaderBlocks != null)
-            {
-                foreach (var hop in redirectHeaderBlocks)
-                {
-                    builder.Append(hop).Append("\r\n\r\n");
-                }
-            }
-            builder.Append(BuildHeaderBlock(response)).Append("\r\n\r\n");
-            return builder.ToString();
         }
 
         /// <summary>
@@ -1000,35 +1188,6 @@ namespace CurlDotNet.Core
                 }
             }
             verboseLog.AppendLine("<");
-        }
-
-        private string FormatWriteOut(string format, HttpResponseMessage response, CurlOptions options, int downloadSize)
-        {
-            if (string.IsNullOrEmpty(format))
-                return string.Empty;
-
-            var formatted = format
-                .Replace("\\n", Environment.NewLine)
-                .Replace("\\t", "\t");
-
-            formatted = formatted
-                .Replace("%{http_code}", ((int)response.StatusCode).ToString())
-                .Replace("%{size_download}", downloadSize.ToString())
-                .Replace("%{url_effective}", options.Url ?? string.Empty)
-                .Replace("%{content_type}", response.Content?.Headers?.ContentType?.MediaType ?? string.Empty);
-
-            return formatted;
-        }
-
-        private string DetermineRemoteFileName(CurlOptions options)
-        {
-            var uri = new Uri(options.Url);
-            var fileName = Path.GetFileName(uri.LocalPath);
-            if (string.IsNullOrWhiteSpace(fileName))
-            {
-                fileName = "curl-download";
-            }
-            return Path.Combine(Directory.GetCurrentDirectory(), fileName);
         }
 
         /// <summary>
@@ -1371,17 +1530,9 @@ namespace CurlDotNet.Core
 
         private static HttpClient CreateDefaultHttpClient()
         {
-            var handler = new HttpClientHandler
-            {
-                AllowAutoRedirect = false, // We handle redirects manually
-                AutomaticDecompression = DecompressionMethods.None, // decoded in CreateResult when --compressed
-                // curl only engages a cookie engine when -b/-c is given; with UseCookies=true
-                // the shared container would swallow manual Cookie headers and leak session
-                // cookies across unrelated Curl.Execute calls (issue #41)
-                UseCookies = false
-            };
-
-            return new HttpClient(handler);
+            // Pooled client with curl's transport behaviour (no automatic redirects, decompression or
+            // cookies - issue #41 - plus wire recording on .NET 5+), see CurlTransport.
+            return CurlTransport.CreateSharedClient();
         }
     }
 }

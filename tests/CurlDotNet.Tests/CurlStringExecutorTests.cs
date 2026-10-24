@@ -391,12 +391,13 @@ namespace CurlDotNet.Tests
             var url = _serverAdapter.StatusEndpoint(404);
             var command = $"curl -f {url}";
 
-            // Act
-            var result = await Curl.ExecuteAsync(command);
+            // Act: like curl, -f turns an HTTP error into exit code 22 instead of a result
+            Func<Task> act = () => Curl.ExecuteAsync(command);
 
             // Assert
-            result.Should().NotBeNull();
-            result.IsSuccess.Should().BeFalse();
+            var thrown = await act.Should().ThrowAsync<CurlDotNet.Exceptions.CurlHttpReturnedErrorException>();
+            thrown.Which.CurlErrorCode.Should().Be(22);
+            thrown.Which.StatusCode.Should().Be(404);
         }
 
         #endregion

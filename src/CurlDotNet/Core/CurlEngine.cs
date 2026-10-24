@@ -621,18 +621,12 @@ namespace CurlDotNet.Core
         /// </summary>
         private static HttpClient CreateDefaultHttpClient()
         {
-            var handler = new HttpClientHandler
-            {
-                AllowAutoRedirect = false, // We handle redirects manually like curl
-                // curl only sends Accept-Encoding with --compressed; HttpHandler decodes the body itself
-                AutomaticDecompression = System.Net.DecompressionMethods.None,
-                // curl only engages a cookie engine when -b/-c is given; with UseCookies=true
-                // the shared container would swallow manual Cookie headers and leak session
-                // cookies across unrelated requests (issue #41)
-                UseCookies = false
-            };
-            // curl has no implicit transfer timeout; --max-time / Curl.DefaultMaxTimeSeconds implement it
-            return new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
+            // No automatic redirects (RedirectHandler follows them like curl), no automatic
+            // decompression (--compressed is decoded by HttpHandler), no cookie container (curl only
+            // engages its cookie engine for -b FILE / -c, issue #41), no implicit timeout
+            // (--max-time / Curl.DefaultMaxTimeSeconds implement it), and on .NET 5+ a recording
+            // connection layer so headers and exit codes match curl byte for byte.
+            return CurlTransport.CreateSharedClient();
         }
 
         public void Dispose()

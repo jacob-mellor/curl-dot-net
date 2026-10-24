@@ -313,6 +313,7 @@ namespace CurlDotNet.Exceptions
                 7 => "CURLE_COULDNT_CONNECT",
                 8 => "CURLE_WEIRD_SERVER_REPLY",
                 9 => "CURLE_FTP_ACCESS_DENIED",
+                18 => "CURLE_PARTIAL_FILE",
                 22 => "CURLE_HTTP_RETURNED_ERROR",
                 23 => "CURLE_WRITE_ERROR",
                 26 => "CURLE_READ_ERROR",
@@ -330,7 +331,9 @@ namespace CurlDotNet.Exceptions
                 59 => "CURLE_SSL_CIPHER",
                 60 => "CURLE_PEER_FAILED_VERIFICATION",
                 61 => "CURLE_BAD_CONTENT_ENCODING",
+                63 => "CURLE_FILESIZE_EXCEEDED",
                 67 => "CURLE_LOGIN_DENIED",
+                100 => "CURLE_TOO_LARGE",
                 _ => $"CURLE_UNKNOWN_{CurlErrorCode}"
             };
         }
@@ -769,6 +772,26 @@ namespace CurlDotNet.Exceptions
             ResponseBody = responseBody;
 
             // Add automatic suggestions based on status code
+            AutoAddSuggestions();
+        }
+
+        /// <summary>
+        /// Initializes a new instance that also carries a curl exit code, for HTTP failures that end a
+        /// command (such as <c>-f</c>/<c>--fail</c>, exit code 22) rather than being returned as a result.
+        /// </summary>
+        /// <param name="message">What happened and how to fix it (the documentation link is appended).</param>
+        /// <param name="statusCode">The HTTP status code.</param>
+        /// <param name="statusText">The reason phrase from the status line.</param>
+        /// <param name="responseBody">The response body, when it was read.</param>
+        /// <param name="command">The curl command that caused the error.</param>
+        /// <param name="curlErrorCode">The curl exit code, for example 22 (CURLE_HTTP_RETURNED_ERROR).</param>
+        protected CurlHttpException(string message, int statusCode, string? statusText, string? responseBody, string? command, int curlErrorCode)
+            : base($"{message}\nFor HTTP error handling, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md",
+                   curlErrorCode, command)
+        {
+            StatusCode = statusCode;
+            StatusText = statusText;
+            ResponseBody = responseBody;
             AutoAddSuggestions();
         }
 
