@@ -31,8 +31,9 @@ namespace CurlDotNet
         //   ASP.NET Core and any async code, and to run requests in parallel.
         // - The methods without the suffix block the calling thread until the response has arrived. They exist for
         //   console tools, scripts, tests and legacy code that cannot be async. Exceptions are the same (not wrapped
-        //   in AggregateException). Do not call them on a UI thread or in classic ASP.NET request code, where blocking
-        //   on async work can deadlock.
+        //   in AggregateException). The library's own awaits use ConfigureAwait(false), so blocking on them does not
+        //   deadlock on a UI or classic ASP.NET SynchronizationContext; they still tie up the calling thread, and
+        //   user callbacks that wait for that context can still deadlock (see each method's remarks).
         // - A CancellationToken does not make a call asynchronous: Execute(command, token) still blocks.
 
         #region SYNCHRONOUS Methods (Compatibility) - Blocks the thread
@@ -42,10 +43,15 @@ namespace CurlDotNet
         /// <see cref="ExecuteAsync(string)"/> for console tools, scripts and code that cannot be async.
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>Behaves exactly like <see cref="ExecuteAsync(string)"/> (same command format, same result, same
         /// exceptions - thrown directly, not wrapped in <see cref="AggregateException"/>) but waits for the result. The
-        /// thread does nothing else meanwhile, so do not call it on a UI thread (the window freezes) or in classic
-        /// ASP.NET request code (it can deadlock and reduces throughput); use the async method there.</para>
+        /// thread does nothing else meanwhile, so on a UI thread the window freezes and in ASP.NET request code it reduces
+        /// throughput; use the async method there.</para>
         /// <para>Example: <c>var result = Curl.Execute("curl -s https://api.example.com/status");</c> then
         /// <c>Console.WriteLine(result.Body);</c> in a <c>static void Main()</c>.</para>
         /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-synchronously-in-csharp/README.md</para>
@@ -84,6 +90,11 @@ namespace CurlDotNet
         /// <see cref="ExecuteAsync(string, CancellationToken)"/>.
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>The token lets another thread (or a timer) stop the request; the call still blocks until then. Cancelling
         /// throws <see cref="OperationCanceledException"/>. Prefer the async overload whenever the caller can await.</para>
         /// <para>Example: <c>using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));</c> then
@@ -124,6 +135,11 @@ namespace CurlDotNet
         /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</exception>
         /// <exception cref="CurlException">The request fails; see <see cref="ExecuteAsync(string)"/>.</exception>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>Blocks the thread; prefer <see cref="ExecuteAsync(string, CurlFlavor)"/> in async code. See that method
         /// for what changes between flavors.</para>
         /// <para>Example: <c>var result = Curl.Execute("curl -H \"Accept: application/json\" -d \"{\\\"a\\\":1}\" https://api.example.com", CurlFlavor.WindowsCmd);</c>
@@ -143,6 +159,11 @@ namespace CurlDotNet
         /// <see cref="CurlSettings"/> object, blocking the calling thread until the response arrives.
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>Applies the same settings as <see cref="ExecuteAsync(string, CurlSettings)"/>: <c>MaxTimeSeconds</c>
         /// (<c>-m</c>), <c>ConnectTimeoutSeconds</c> (<c>--connect-timeout</c>), <c>FollowRedirects</c> (<c>-L</c>),
         /// <c>Insecure</c> (<c>-k</c>), <c>Headers</c> (<c>-H</c>), <c>OnProgress</c>, <c>RetryCount</c>/<c>RetryDelayMs</c>,
@@ -173,6 +194,11 @@ namespace CurlDotNet
         /// response arrives; nothing is parsed, so data with quotes or spaces needs no escaping.
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>The synchronous twin of <see cref="ExecuteAsync(CurlOptions)"/>; see it for how options map to curl flags.</para>
         /// <para>Example: <c>var result = Curl.Execute(new CurlOptions { Url = "https://api.example.com/items/7", Method = "DELETE" });</c>
         /// then <c>Console.WriteLine(result.StatusCode);</c>.</para>
@@ -186,7 +212,7 @@ namespace CurlDotNet
         /// <param name="options">The request to send; <see cref="CurlOptions.Url"/> must be set to an absolute URL.</param>
         /// <returns>The <see cref="CurlResult"/>, as described on <see cref="ExecuteAsync(string)"/>.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="options"/> is null.</exception>
-        /// <exception cref="CurlException">No URL (exit code 3) or the transfer failed; see <see cref="ExecuteAsync(string)"/>.
+        /// <exception cref="CurlException">No URL (exit code 2, like curl's "no URL specified") or the transfer failed; see <see cref="ExecuteAsync(string)"/>.
         /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
         /// <seealso cref="ExecuteAsync(CurlOptions)">Async version (preferred)</seealso>
         /// <seealso cref="Lib.LibCurl.PerformAsync(CurlOptions, CancellationToken)"/>
@@ -205,6 +231,11 @@ namespace CurlDotNet
         /// twin of <see cref="GetAsync(string)"/> (like <c>curl URL</c>).
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>No headers or options; the <c>Default*</c> properties apply. HTTP errors are returned, not thrown.
         /// Do not call it on a UI thread.</para>
         /// <para>Example: <c>var result = Curl.Get("https://api.example.com/health");</c> then
@@ -234,6 +265,11 @@ namespace CurlDotNet
         /// synchronous twin of <see cref="PostAsync(string, string)"/> (like <c>curl -d DATA URL</c>).
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>The data is sent exactly as given (no escaping needed, no URL-encoding done for you), with curl's default
         /// <c>Content-Type: application/x-www-form-urlencoded</c>; use <see cref="PostJson(string, object)"/> for JSON.</para>
         /// <para>Example: <c>var result = Curl.Post("https://api.example.com/login", "user=john&amp;pass=" + Uri.EscapeDataString(pw));</c></para>
@@ -258,6 +294,11 @@ namespace CurlDotNet
         /// until the response arrives; the synchronous twin of <see cref="PostJsonAsync(string, object)"/>.
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>Serialization uses System.Text.Json (Newtonsoft.Json on the .NET Standard 2.0 build); apostrophes and
         /// non-ASCII characters are sent literally.</para>
         /// <para>Example: <c>var result = Curl.PostJson("https://api.example.com/users", new { name = "John", age = 30 });</c>
@@ -284,6 +325,11 @@ namespace CurlDotNet
         /// synchronous twin of <see cref="DownloadAsync(string, string)"/> (like <c>curl -o PATH URL</c>).
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>The folder must exist; an existing file is overwritten; the file is written even for an HTTP error
         /// status, so check <see cref="CurlResult.IsSuccess"/>. Redirects are followed only with
         /// <see cref="DefaultFollowRedirects"/>.</para>

@@ -9,6 +9,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 
 namespace CurlDotNet.Core
@@ -32,10 +33,12 @@ namespace CurlDotNet.Core
     /// <para>Thread safety: an instance is not thread-safe. Executing it normalises <see cref="Url"/> and applies
     /// the process-wide <c>Curl.Default*</c> settings to it, so use one instance per request (or call
     /// <see cref="Clone"/>) instead of sharing one object between concurrent calls.</para>
-    /// <para>Several properties are recorded for compatibility but not acted on yet (their remarks say so):
-    /// <see cref="SpeedLimit"/>, <see cref="SpeedTime"/>, <see cref="ProgressBar"/>, <see cref="DnsServers"/>,
-    /// <see cref="Interface"/>, <see cref="Quote"/>, <see cref="CertFile"/>, <see cref="KeyFile"/>,
-    /// <see cref="CaCertFile"/>, <see cref="ShowError"/>, <see cref="DisableEpsv"/> and <see cref="DisableEprt"/>.</para>
+    /// <para>A few properties are recorded for compatibility but cannot be acted on (their remarks say so):
+    /// <see cref="DnsServers"/>, <see cref="Interface"/>, <see cref="Quote"/>, <see cref="DisableEpsv"/> and
+    /// <see cref="DisableEprt"/>, which the parser also lists in <see cref="UnsupportedOptions"/>, and the terminal-only
+    /// <see cref="ProgressBar"/> and <see cref="ShowError"/>. The TLS options (<see cref="CaCertFile"/>, <see cref="CaPath"/>,
+    /// <see cref="CertFile"/>, <see cref="KeyFile"/>, <see cref="PinnedPublicKey"/>, <see cref="Ciphers"/>) need .NET 5 or
+    /// later; on .NET Standard 2.0 and .NET Framework they are listed in <see cref="UnsupportedOptions"/> as well.</para>
     /// <para>How a command becomes a request: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/how-curldotnet-works/README.md
     /// and turning curl commands into C#: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/convert-curl-to-csharp/README.md</para>
     /// </remarks>
@@ -65,7 +68,7 @@ namespace CurlDotNet.Core
         /// equivalent to the URL argument (or <c>--url</c>) of a curl command.
         /// </summary>
         /// <value>An absolute URL with scheme <c>http</c>, <c>https</c>, <c>ftp</c>, <c>ftps</c> or <c>file</c>.
-        /// Default: empty string, which fails with exit code 3 when executed.</value>
+        /// Default: empty string, which fails with exit code 2 ("No URL specified") when executed.</value>
         /// <remarks>
         /// <para>A URL without a scheme (<c>example.com/path</c>) gets <c>http://</c>, like curl. User info in the URL
         /// (<c>https://alice:secret@host/</c>) becomes Basic credentials for that host. Spaces and other characters that
@@ -97,7 +100,7 @@ namespace CurlDotNet.Core
         /// </remarks>
         /// <seealso cref="UnsupportedOptions"/>
         /// <seealso cref="Curl.Validate(string)"/>
-        public List<string> UnknownOptions { get; } = new List<string>();
+        public List<string> UnknownOptions { get; private set; } = new List<string>();
 
         /// <summary>
         /// The HTTP method sent on the request line (<c>GET</c>, <c>POST</c>, <c>PUT</c>, <c>DELETE</c>, <c>PATCH</c>,
@@ -733,31 +736,57 @@ namespace CurlDotNet.Core
         public double? ConnectTimeout { get; set; }
 
         /// <summary>
-        /// Bytes per second parsed from curl's <c>--limit-rate</c> or <c>--speed-limit</c> (both land here); recorded for
-        /// compatibility but not applied, so transfers run at full speed.
+        /// Aborts a transfer that stays slower than this many bytes per second for <see cref="SpeedTime"/> seconds, like
+        /// curl's <c>-Y</c>/<c>--speed-limit</c>; the transfer then fails with exit code 28.
         /// </summary>
-        /// <value>Bytes per second; the parser accepts suffixes <c>k</c>, <c>M</c>, <c>G</c> (powers of 1024). Default: 0. Not acted on.</value>
+        /// <value>Bytes per second; 0 (the default) turns the check off. When <see cref="SpeedTime"/> is 0, curl's default
+        /// of 30 seconds is used.</value>
         /// <remarks>
-        /// <para>curl uses <c>--limit-rate</c> to throttle and <c>--speed-limit</c> with <see cref="SpeedTime"/> to abort slow
-        /// transfers; CurlDotNet does neither yet. Use <see cref="MaxTime"/> to bound a slow transfer.</para>
-        /// <para>Example: <c>curl --limit-rate 100k URL</c> parses to <c>SpeedLimit = 102400</c>.</para>
+        /// <para>The rate is measured while the response body downloads (http and https), over a sliding window of
+        /// <see cref="SpeedTime"/> seconds. When it stays below the limit for the whole window the transfer is aborted with
+        /// <see cref="CurlDotNet.Exceptions.CurlOperationTimeoutException"/> (exit 28) and curl's message
+        /// <c>Operation too slow. Less than N bytes/sec transferred the last S seconds</c>. Use it to give up on stalled
+        /// downloads without capping a healthy one with <see cref="MaxTime"/>. A non-numeric value on the command line fails
+        /// with exit code 2.</para>
+        /// <para>Example: <c>curl --speed-limit 1000 --speed-time 30 URL</c> is
+        /// <c>new CurlOptions { Url = url, SpeedLimit = 1000, SpeedTime = 30 }</c>.</para>
         /// </remarks>
         /// <seealso cref="SpeedTime"/>
+        /// <seealso cref="LimitRate"/>
         /// <seealso cref="MaxTime"/>
         public long SpeedLimit { get; set; }
 
         /// <summary>
-        /// Seconds parsed from curl's <c>--speed-time</c> (abort when slower than <see cref="SpeedLimit"/> for this long);
-        /// recorded for compatibility but not applied.
+        /// How long, in seconds, a transfer may stay below <see cref="SpeedLimit"/> before it is aborted, like curl's
+        /// <c>-y</c>/<c>--speed-time</c>.
         /// </summary>
-        /// <value>Whole seconds. Default: 0. Not acted on.</value>
+        /// <value>Whole seconds. Default: 0, which means curl's 30 seconds when <see cref="SpeedLimit"/> is set (and nothing
+        /// otherwise).</value>
         /// <remarks>
-        /// <para>Use <see cref="MaxTime"/> or a <c>CancellationToken</c> to stop stalled transfers.
-        /// Example: <c>curl --speed-limit 1000 --speed-time 30 URL</c> parses to <c>SpeedLimit = 1000, SpeedTime = 30</c>.</para>
+        /// <para>curl also applies <c>--speed-time</c> alone with a limit of 1 byte per second; CurlDotNet does the same, so
+        /// <c>--speed-time 20</c> aborts a transfer that receives nothing for 20 seconds (exit 28).</para>
+        /// <para>Example: <c>curl -Y 500 -y 10 URL</c> is <c>new CurlOptions { Url = url, SpeedLimit = 500, SpeedTime = 10 }</c>.</para>
         /// </remarks>
         /// <seealso cref="SpeedLimit"/>
         /// <seealso cref="MaxTime"/>
         public int SpeedTime { get; set; }
+
+        /// <summary>
+        /// Caps the download speed at this many bytes per second, like curl's <c>--limit-rate</c>; the body is read more
+        /// slowly so the average rate stays at or below the cap.
+        /// </summary>
+        /// <value>Bytes per second; the parser accepts suffixes <c>k</c>, <c>M</c>, <c>G</c>, <c>T</c>, <c>P</c> (powers of
+        /// 1024), so <c>100k</c> is 102400. Default: 0 (no cap).</value>
+        /// <remarks>
+        /// <para>Applies to http and https response bodies: after each chunk the reader waits until the average rate since
+        /// the body started is back under the cap (curl averages the same way, so short bursts are possible). Uploads are
+        /// not throttled. A malformed value on the command line fails with exit code 2.</para>
+        /// <para>Example: <c>curl --limit-rate 100k -O https://example.com/big.iso</c> is
+        /// <c>new CurlOptions { Url = url, UseRemoteFileName = true, LimitRate = 100 * 1024 }</c>.</para>
+        /// </remarks>
+        /// <seealso cref="SpeedLimit"/>
+        /// <seealso cref="MaxTime"/>
+        public long LimitRate { get; set; }
 
         /// <summary>
         /// Resumes a download at a byte offset by sending <c>Range: bytes=N-</c>, like curl's <c>-C</c>/<c>--continue-at N</c>;
@@ -810,47 +839,123 @@ namespace CurlDotNet.Core
         public bool Compressed { get; set; }
 
         /// <summary>
-        /// Client certificate path from curl's <c>-E</c>/<c>--cert</c>; recorded for compatibility but not yet sent, so
-        /// servers that require mutual TLS will reject the connection.
+        /// Client certificate for mutual TLS, from curl's <c>-E</c>/<c>--cert FILE[:PASSWORD]</c>: the certificate (and,
+        /// for PEM, usually its private key) presented to servers that ask for one.
         /// </summary>
-        /// <value>A certificate file path (curl accepts PEM, DER or P12). Default: null. Not acted on.</value>
+        /// <value>A file path. PEM (default), DER or PKCS#12 as chosen by <see cref="CertType"/> (a <c>.p12</c>/<c>.pfx</c>
+        /// file is read as PKCS#12 without it). Default: null (no client certificate).</value>
         /// <remarks>
-        /// <para>To call an mTLS endpoint today, pass your own <c>HttpClient</c> whose handler has the certificate in
-        /// <c>ClientCertificates</c> to the engine. Example: <c>curl --cert client.pem --key client.key URL</c> parses to
-        /// <c>CertFile = "client.pem", KeyFile = "client.key"</c>.</para>
+        /// <para>Applied on .NET 5 and later. PEM: the key is read from <see cref="KeyFile"/>, or from the same file when
+        /// <see cref="KeyFile"/> is not set; an encrypted key needs <see cref="KeyPassword"/> (<c>--pass</c>) or
+        /// <see cref="CertPassword"/>. DER: needs <see cref="KeyFile"/> (a PEM RSA or ECDSA key). P12: the password is
+        /// <see cref="CertPassword"/> (the part after the colon in <c>--cert file.p12:secret</c>). A file that cannot be
+        /// read, a wrong password or a key that does not match fails before connecting with
+        /// <see cref="CurlDotNet.Exceptions.CurlSslCertificateProblemException"/> (exit 58); a server that rejects the
+        /// certificate fails the handshake with <see cref="CurlDotNet.Exceptions.CurlSslConnectErrorException"/> (exit 35).
+        /// On .NET Standard 2.0 and .NET Framework the option is recorded in <see cref="UnsupportedOptions"/> and no
+        /// certificate is sent. It is not applied when you pass your own <c>HttpClient</c> to the engine (its handler decides).</para>
+        /// <para>Example: <c>curl --cert client.pem --key client.key https://mtls.example.com/</c> is
+        /// <c>new CurlOptions { Url = url, CertFile = "client.pem", KeyFile = "client.key" }</c>; with PKCS#12,
+        /// <c>curl --cert client.p12:secret --cert-type P12 URL</c>.</para>
         /// </remarks>
         /// <seealso cref="KeyFile"/>
+        /// <seealso cref="CertType"/>
+        /// <seealso cref="CertPassword"/>
         /// <seealso cref="CaCertFile"/>
         public string? CertFile { get; set; }
 
         /// <summary>
-        /// Private key path for the client certificate, from curl's <c>--key</c>; recorded for compatibility but not
-        /// applied (see <see cref="CertFile"/>).
+        /// Private key file for <see cref="CertFile"/>, from curl's <c>--key FILE</c>; needed when the certificate file does
+        /// not contain the key.
         /// </summary>
-        /// <value>A key file path. Default: null. Not acted on.</value>
+        /// <value>A PEM key file path (<c>-----BEGIN PRIVATE KEY-----</c>, <c>RSA PRIVATE KEY</c>, <c>EC PRIVATE KEY</c> or
+        /// <c>ENCRYPTED PRIVATE KEY</c>). Default: null (the key is in <see cref="CertFile"/>).</value>
         /// <remarks>
+        /// <para>Applied on .NET 5 and later, together with <see cref="CertFile"/>. An encrypted key needs
+        /// <see cref="KeyPassword"/> (<c>--pass</c>).</para>
         /// <para>Example: <c>curl --cert client.pem --key client.key URL</c> parses to <c>KeyFile = "client.key"</c>.</para>
         /// </remarks>
         /// <seealso cref="CertFile"/>
+        /// <seealso cref="KeyPassword"/>
         public string? KeyFile { get; set; }
 
         /// <summary>
-        /// CA bundle path from curl's <c>--cacert</c>; recorded for compatibility but not applied: server certificates
-        /// are verified against the operating system's trust store.
+        /// The format of <see cref="CertFile"/>, from curl's <c>--cert-type</c>: <c>PEM</c>, <c>DER</c> or <c>P12</c>.
         /// </summary>
-        /// <value>A PEM file path. Default: null. Not acted on.</value>
+        /// <value><c>PEM</c>, <c>DER</c>, <c>P12</c> (also <c>PKCS12</c>, <c>PFX</c>), case-insensitive. Default: null, meaning
+        /// PEM, or P12 for a file ending in <c>.p12</c> or <c>.pfx</c>.</value>
         /// <remarks>
-        /// <para>To trust a private CA, install it in the machine or user certificate store. For local testing only,
-        /// <see cref="Insecure"/> skips verification. Example: <c>curl --cacert corp-ca.pem URL</c> parses to
-        /// <c>CaCertFile = "corp-ca.pem"</c>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md</para>
+        /// <para>Another value fails with <see cref="CurlDotNet.Exceptions.CurlSslCertificateProblemException"/> (exit 58)
+        /// when the transfer starts. Example: <c>curl --cert id.p12:pw --cert-type P12 URL</c> parses to <c>CertType = "P12"</c>.</para>
         /// </remarks>
+        /// <seealso cref="CertFile"/>
+        public string? CertType { get; set; }
+
+        /// <summary>
+        /// The format of <see cref="KeyFile"/>, from curl's <c>--key-type</c>; CurlDotNet reads PEM keys.
+        /// </summary>
+        /// <value><c>PEM</c> (the default) or another curl value. Default: null.</value>
+        /// <remarks>
+        /// <para>Only PEM keys are read: <c>--key-type DER</c> or <c>ENG</c> is recorded in <see cref="UnsupportedOptions"/>.
+        /// Example: <c>curl --key k.pem --key-type PEM URL</c> parses to <c>KeyType = "PEM"</c>.</para>
+        /// </remarks>
+        /// <seealso cref="KeyFile"/>
+        public string? KeyType { get; set; }
+
+        /// <summary>
+        /// The password of <see cref="CertFile"/>, from the part after the colon in curl's <c>--cert FILE:PASSWORD</c>; used
+        /// for PKCS#12 files and encrypted PEM keys.
+        /// </summary>
+        /// <value>The password, or null. Default: null.</value>
+        /// <remarks>
+        /// <para>Like curl, a colon inside the file name can be escaped as <c>\:</c>, and a Windows drive letter
+        /// (<c>C:\certs\id.p12</c>) is not mistaken for the separator. The value is a secret: CurlDotNet never prints it in
+        /// messages or logs. Example: <c>curl --cert id.p12:s3cret --cert-type P12 URL</c> parses to
+        /// <c>CertFile = "id.p12", CertPassword = "s3cret"</c>.</para>
+        /// </remarks>
+        /// <seealso cref="CertFile"/>
+        /// <seealso cref="KeyPassword"/>
+        public string? CertPassword { get; set; }
+
+        /// <summary>
+        /// The passphrase of an encrypted private key, from curl's <c>--pass PHRASE</c>.
+        /// </summary>
+        /// <value>The passphrase, or null. Default: null.</value>
+        /// <remarks>
+        /// <para>Used for <see cref="KeyFile"/> (or a PEM <see cref="CertFile"/> holding an encrypted key), and as the
+        /// PKCS#12 password when <see cref="CertPassword"/> is not given. Never printed in messages or logs.
+        /// Example: <c>curl --cert c.pem --key k.pem --pass phrase URL</c> parses to <c>KeyPassword = "phrase"</c>.</para>
+        /// </remarks>
+        /// <seealso cref="KeyFile"/>
+        /// <seealso cref="CertPassword"/>
+        public string? KeyPassword { get; set; }
+
+        /// <summary>
+        /// A PEM bundle of CA certificates to trust instead of the operating system's store, from curl's <c>--cacert FILE</c>;
+        /// the way to call servers whose certificate comes from a private or corporate CA.
+        /// </summary>
+        /// <value>A path to a PEM file with one or more <c>-----BEGIN CERTIFICATE-----</c> blocks (a single DER certificate
+        /// also works). Default: null (the system store decides).</value>
+        /// <remarks>
+        /// <para>Applied on .NET 5 and later: like curl, only the CAs in the bundle (plus <see cref="CaPath"/>) are trusted,
+        /// the server's intermediates are used to build the chain, the host name must still match, and revocation is not
+        /// checked. An untrusted server fails with <see cref="CurlDotNet.Exceptions.CurlPeerFailedVerificationException"/>
+        /// (exit 60); a missing or empty bundle fails before connecting with
+        /// <see cref="CurlDotNet.Exceptions.CurlSslCaCertBadFileException"/> (exit 77). On .NET Standard 2.0 and .NET
+        /// Framework the option is recorded in <see cref="UnsupportedOptions"/> and the system store is used: install the CA
+        /// there instead. <see cref="Insecure"/> skips verification altogether (testing only).</para>
+        /// <para>Example: <c>curl --cacert corp-ca.pem https://intranet.example/</c> is
+        /// <c>new CurlOptions { Url = url, CaCertFile = "corp-ca.pem" }</c>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md</para>
+        /// </remarks>
+        /// <seealso cref="CaPath"/>
+        /// <seealso cref="PinnedPublicKey"/>
         /// <seealso cref="Insecure"/>
         /// <seealso cref="CaCert"/>
         public string? CaCertFile { get; set; }
 
         /// <summary>
         /// Same setting as <see cref="CaCertFile"/> (curl's <c>--cacert</c>) under a shorter name; reading or writing either
-        /// property changes both. Recorded but not applied.
+        /// property changes both.
         /// </summary>
         /// <value>A PEM file path, or null.</value>
         /// <remarks>
@@ -864,14 +969,98 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Network interface or source address from curl's <c>--interface</c>; recorded for compatibility but not applied,
-        /// so connections use the operating system's default route.
+        /// A folder of CA certificates to trust instead of the operating system's store, from curl's <c>--capath DIR</c>.
+        /// </summary>
+        /// <value>A folder path. Every file in it that holds PEM or DER certificates is loaded (OpenSSL's hashed names such as
+        /// <c>5ed36f99.0</c> included); other files are skipped. Default: null.</value>
+        /// <remarks>
+        /// <para>Combined with <see cref="CaCertFile"/> into one trust store, applied on .NET 5 and later exactly like
+        /// <see cref="CaCertFile"/>; a folder that does not exist or holds no certificate fails with
+        /// <see cref="CurlDotNet.Exceptions.CurlSslCaCertBadFileException"/> (exit 77). Recorded in
+        /// <see cref="UnsupportedOptions"/> on .NET Standard 2.0 and .NET Framework.</para>
+        /// <para>Example: <c>curl --capath /etc/ssl/private-cas https://intranet.example/</c>.</para>
+        /// </remarks>
+        /// <seealso cref="CaCertFile"/>
+        public string? CaPath { get; set; }
+
+        /// <summary>
+        /// Public key pins the server must match, from curl's <c>--pinnedpubkey</c>: <c>sha256//BASE64</c> hashes of the
+        /// server's SubjectPublicKeyInfo (several separated by <c>;</c>), or the path of a PEM/DER public key file.
+        /// </summary>
+        /// <value>The pin text or file path. Default: null (no pinning).</value>
+        /// <remarks>
+        /// <para>Applied on .NET 5 and later, after certificate verification and also with <see cref="Insecure"/>, like curl.
+        /// A server key that matches no pin, or a pin that cannot be read, fails with
+        /// <see cref="CurlDotNet.Exceptions.CurlSslPinnedPublicKeyMismatchException"/> (exit 90); the message shows the pin of
+        /// the key that was presented. Where pinning cannot be applied - on .NET Standard 2.0 and .NET Framework (where the
+        /// parser also records the option in <see cref="UnsupportedOptions"/>), or when you passed your own <c>HttpClient</c> to
+        /// the engine - an https transfer fails with <see cref="CurlDotNet.Exceptions.CurlNotBuiltInException"/> (exit 4) instead
+        /// of silently skipping the check, like curl built without pinning support.</para>
+        /// <para>Example: <c>curl --pinnedpubkey "sha256//YhKJKSzoTt2b5FP18fvpHo7fJYqQCjAa3HWY3tvRMwE=" https://api.example.com/</c>.</para>
+        /// </remarks>
+        /// <seealso cref="CaCertFile"/>
+        public string? PinnedPublicKey { get; set; }
+
+        /// <summary>
+        /// The lowest TLS version to use, from curl's <c>-1</c>/<c>--tlsv1</c>, <c>--tlsv1.0</c>, <c>--tlsv1.1</c>,
+        /// <c>--tlsv1.2</c> and <c>--tlsv1.3</c>.
+        /// </summary>
+        /// <value><c>"1.0"</c>, <c>"1.1"</c>, <c>"1.2"</c> or <c>"1.3"</c>. Default: null (the operating system's default,
+        /// TLS 1.2 or later on current systems).</value>
+        /// <remarks>
+        /// <para>With <c>"1.2"</c> or <c>"1.3"</c> only that version and newer ones are offered (up to <see cref="TlsMaxVersion"/>);
+        /// <c>"1.0"</c> and <c>"1.1"</c> leave the system default in place, which already excludes the old versions on most
+        /// systems. A server that cannot meet the range fails the handshake with
+        /// <see cref="CurlDotNet.Exceptions.CurlSslConnectErrorException"/> (exit 35). Whether TLS 1.3 is available depends on
+        /// the operating system.</para>
+        /// <para>Example: <c>curl --tlsv1.3 https://example.com/</c> is <c>new CurlOptions { Url = url, TlsMinVersion = "1.3" }</c>.</para>
+        /// </remarks>
+        /// <seealso cref="TlsMaxVersion"/>
+        public string? TlsMinVersion { get; set; }
+
+        /// <summary>
+        /// The highest TLS version to use, from curl's <c>--tls-max VERSION</c>.
+        /// </summary>
+        /// <value><c>"1.0"</c>, <c>"1.1"</c>, <c>"1.2"</c> or <c>"1.3"</c>; <c>--tls-max default</c> leaves it null.
+        /// Default: null (no maximum).</value>
+        /// <remarks>
+        /// <para>Without <see cref="TlsMinVersion"/> the minimum is TLS 1.2, like curl. A maximum below the minimum fails with
+        /// <see cref="CurlDotNet.Exceptions.CurlSslConnectErrorException"/> (exit 35); another value fails parsing with exit
+        /// code 2. Example: <c>curl --tls-max 1.2 https://example.com/</c> makes the handshake use TLS 1.2.</para>
+        /// </remarks>
+        /// <seealso cref="TlsMinVersion"/>
+        public string? TlsMaxVersion { get; set; }
+
+        /// <summary>
+        /// The TLS cipher suites to offer, from curl's <c>--ciphers</c> and <c>--tls13-ciphers</c>, as IANA names
+        /// separated by <c>:</c>.
+        /// </summary>
+        /// <value>For example <c>TLS_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</c>. Default: null (the system's list).</value>
+        /// <remarks>
+        /// <para>Like curl, the two versions are kept apart: a list that names only TLS 1.2 suites (<c>..._WITH_...</c>) keeps
+        /// the usual TLS 1.3 suites, and a list of only TLS 1.3 suites keeps the usual ECDHE AES-GCM/ChaCha20 TLS 1.2 suites, so a
+        /// server that speaks only the other version still connects.</para>
+        /// <para>.NET can only restrict cipher suites where <c>CipherSuitesPolicy</c> is supported (Linux with OpenSSL, .NET 5
+        /// and later). Elsewhere, or when a name is not an IANA suite name (OpenSSL-style names such as
+        /// <c>ECDHE-RSA-AES128-GCM-SHA256</c> are not translated), the parser leaves this null and records the option in
+        /// <see cref="UnsupportedOptions"/>. Setting it by hand on such a platform has no effect.</para>
+        /// <para>Example: <c>curl --tls13-ciphers TLS_AES_256_GCM_SHA384 https://example.com/</c>.</para>
+        /// </remarks>
+        /// <seealso cref="TlsMinVersion"/>
+        public string? Ciphers { get; set; }
+
+        /// <summary>
+        /// Network interface or source address from curl's <c>--interface</c>; not applied (connections use the operating
+        /// system's default route), so the parser also records the option in <see cref="UnsupportedOptions"/>.
         /// </summary>
         /// <value>An interface name (<c>eth0</c>) or address. Default: null. Not acted on.</value>
         /// <remarks>
-        /// <para>Example: <c>curl --interface eth1 URL</c> parses to <c>Interface = "eth1"</c>.</para>
+        /// <para>Binding outgoing connections to an interface is not available through HttpClient's connection layer.
+        /// Example: <c>curl --interface eth1 URL</c> parses to <c>Interface = "eth1"</c> and
+        /// <c>UnsupportedOptions</c> containing <c>--interface</c>.</para>
         /// </remarks>
         /// <seealso cref="Resolve"/>
+        /// <seealso cref="UnsupportedOptions"/>
         public string? Interface { get; set; }
 
         /// <summary>
@@ -1013,14 +1202,17 @@ namespace CurlDotNet.Core
         public int? KeepAliveTime { get; set; }
 
         /// <summary>
-        /// DNS server list from curl's <c>--dns-servers</c>; recorded for compatibility but not applied: names are resolved
-        /// by the operating system (use <see cref="Resolve"/> to pin a name to an address).
+        /// DNS server list from curl's <c>--dns-servers</c>; not applied (names are resolved by the operating system), so
+        /// the parser also records the option in <see cref="UnsupportedOptions"/>. Use <see cref="Resolve"/> to pin a name
+        /// to an address.
         /// </summary>
         /// <value>A comma-separated list such as <c>8.8.8.8,1.1.1.1</c>. Default: null. Not acted on.</value>
         /// <remarks>
-        /// <para>Example: <c>curl --dns-servers 1.1.1.1 URL</c> parses to <c>DnsServers = "1.1.1.1"</c>.</para>
+        /// <para>Example: <c>curl --dns-servers 1.1.1.1 URL</c> parses to <c>DnsServers = "1.1.1.1"</c> and
+        /// <c>UnsupportedOptions</c> containing <c>--dns-servers</c>.</para>
         /// </remarks>
         /// <seealso cref="Resolve"/>
+        /// <seealso cref="UnsupportedOptions"/>
         public string? DnsServers { get; set; }
 
         /// <summary>
@@ -1041,14 +1233,16 @@ namespace CurlDotNet.Core
         public Dictionary<string, string> Resolve { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
-        /// FTP commands from curl's <c>-Q</c>/<c>--quote</c> (such as <c>DELE file</c>); recorded for compatibility but not
-        /// sent to the server.
+        /// FTP commands from curl's <c>-Q</c>/<c>--quote</c> (such as <c>DELE file</c>); not sent to the server, so the
+        /// parser also records the option in <see cref="UnsupportedOptions"/>.
         /// </summary>
         /// <value>The commands in command-line order. Default: empty. Not acted on.</value>
         /// <remarks>
-        /// <para>Example: <c>curl -Q "DELE old.txt" ftp://example.com/</c> parses to <c>Quote = ["DELE old.txt"]</c>.</para>
+        /// <para>The .NET FTP client CurlDotNet uses cannot send raw commands. Example: <c>curl -Q "DELE old.txt" ftp://example.com/</c>
+        /// parses to <c>Quote = ["DELE old.txt"]</c> and <c>UnsupportedOptions</c> containing <c>--quote</c>.</para>
         /// </remarks>
         /// <seealso cref="FtpPassive"/>
+        /// <seealso cref="UnsupportedOptions"/>
         public List<string> Quote { get; set; } = new List<string>();
 
         /// <summary>
@@ -1107,14 +1301,16 @@ namespace CurlDotNet.Core
 
         /// <summary>
         /// How many times a transfer that failed with a transient error is retried, like curl's <c>--retry N</c>;
-        /// transient means a timeout or an HTTP 408, 429, 500, 502, 503 or 504.
+        /// transient means a timeout, a host or proxy name that did not resolve, or an HTTP 408, 429, 500, 502, 503 or 504.
         /// </summary>
         /// <value>A retry count. Default: 0 (no retries).</value>
         /// <remarks>
-        /// <para>Between attempts CurlDotNet waits <see cref="RetryDelay"/> seconds, or a server's <c>Retry-After</c>, or curl's
-        /// backoff (1, 2, 4... seconds, at most 10 minutes). <see cref="RetryMaxTime"/> bounds the total time.
-        /// <see cref="RetryAllErrors"/> and <see cref="RetryConnRefused"/> widen what counts as transient. If every attempt
-        /// fails, the last error is thrown.</para>
+        /// <para>Between attempts CurlDotNet waits <see cref="RetryDelay"/> seconds when set; otherwise curl's backoff (1, 2, 4...
+        /// seconds, at most 10 minutes), or the server's <c>Retry-After</c> (whole seconds) when that is longer.
+        /// <see cref="RetryMaxTime"/> bounds the total time. <see cref="RetryAllErrors"/> and <see cref="RetryConnRefused"/>
+        /// widen what counts as transient. When the last attempt fails, its error is thrown. Each attempt's output is kept
+        /// in <see cref="CurlResult.Body"/>; the <see cref="WriteOut"/> text is written once, for the last attempt, with
+        /// <c>%{num_retries}</c> set to the number of retries made.</para>
         /// <para>Example: <c>curl --retry 3 --retry-delay 2 URL</c> is <c>new CurlOptions { Url = url, Retry = 3, RetryDelay = 2 }</c>.</para>
         /// </remarks>
         /// <seealso cref="RetryDelay"/>
@@ -1130,8 +1326,9 @@ namespace CurlDotNet.Core
         /// </summary>
         /// <value>Seconds. Default: 0 (use the server's <c>Retry-After</c> or exponential backoff).</value>
         /// <remarks>
-        /// <para>A <c>Retry-After</c> header from the server takes precedence. Example: <c>curl --retry 5 --retry-delay 0.5 URL</c>
-        /// is <c>new CurlOptions { Url = url, Retry = 5, RetryDelay = 0.5 }</c>.</para>
+        /// <para>A fixed delay is not overridden by the server's <c>Retry-After</c> header; leave it at 0 to honour
+        /// <c>Retry-After</c>. A negative or non-numeric value on the command line fails with exit code 2.
+        /// Example: <c>curl --retry 5 --retry-delay 0.5 URL</c> is <c>new CurlOptions { Url = url, Retry = 5, RetryDelay = 0.5 }</c>.</para>
         /// </remarks>
         /// <seealso cref="Retry"/>
         /// <seealso cref="CurlSettings.RetryDelayMs"/>
@@ -1164,8 +1361,9 @@ namespace CurlDotNet.Core
         public bool RetryConnRefused { get; set; }
 
         /// <summary>
-        /// Stops retrying when the next attempt would start after this many seconds of retrying, like curl's
-        /// <c>--retry-max-time</c>; then the last error is thrown (or a timeout, exit 28).
+        /// Stops retrying once this many seconds have passed since the first attempt (or when the server's
+        /// <c>Retry-After</c> wait would pass it), like curl's <c>--retry-max-time</c>; the last attempt's outcome then
+        /// stands: its result is returned, or its error thrown.
         /// </summary>
         /// <value>Whole seconds. Default: 0 (no limit beyond <see cref="Retry"/>).</value>
         /// <remarks>
@@ -1311,101 +1509,59 @@ namespace CurlDotNet.Core
         /// Returns a new options object with the same request settings, so you can derive several similar requests
         /// from one template without the requests affecting each other.
         /// </summary>
-        /// <returns>A new <see cref="CurlOptions"/>. Dictionaries and lists (<see cref="Headers"/>, <see cref="FormData"/>,
-        /// <see cref="Files"/>, <see cref="Resolve"/>, <see cref="Quote"/>, <see cref="EmptyHeaders"/>, the content-type
-        /// lists) are copied; <see cref="BinaryData"/>, <see cref="Credentials"/>, <see cref="ProxyCredentials"/>,
-        /// <see cref="ProgressHandler"/> and <see cref="AwsSigV4"/> are shared references.</returns>
+        /// <returns>A new <see cref="CurlOptions"/> with every property copied. Dictionaries, lists and sets
+        /// (<see cref="Headers"/>, <see cref="FormData"/>, <see cref="Files"/>, <see cref="Resolve"/>, <see cref="Quote"/>,
+        /// <see cref="EmptyHeaders"/>, <see cref="FormParts"/>, the content-type lists, <see cref="UnknownOptions"/>,
+        /// <see cref="UnsupportedOptions"/>, <see cref="GlobMatches"/>) are new collections with the same entries and the same
+        /// key comparer; <see cref="BinaryData"/> is a copy of the array; each of <see cref="AdditionalTransfers"/> is itself
+        /// cloned. <see cref="Credentials"/>, <see cref="ProxyCredentials"/>, <see cref="ProgressHandler"/>,
+        /// <see cref="AwsSigV4"/> and the <see cref="CurlFormPart"/> objects inside <see cref="FormParts"/> are shared
+        /// references (change them by assigning new ones).</returns>
         /// <remarks>
-        /// <para>Not every property is copied. These keep their defaults on the clone and must be set again if you use them:
-        /// <see cref="RetryAllErrors"/>, <see cref="RetryConnRefused"/>, <see cref="AdditionalTransfers"/>, and every
-        /// transport setting declared in CurlOptions.Transport: <see cref="NoProxy"/>, <see cref="ProxyAuthScheme"/>,
-        /// <see cref="ProxyTunnel"/>, <see cref="Post301"/>, <see cref="Post302"/>, <see cref="Post303"/>,
-        /// <see cref="FollowObeysMethod"/>, <see cref="FailWithBody"/>, <see cref="FailEarly"/>, <see cref="DumpHeaderFile"/>,
-        /// <see cref="RemoteHeaderName"/>, <see cref="OutputDir"/>, <see cref="RemoteTime"/>, <see cref="NoClobber"/>,
-        /// <see cref="RemoveOnError"/>, <see cref="StderrFile"/>, <see cref="JunkSessionCookies"/>, <see cref="FormParts"/>,
-        /// <see cref="FormEscape"/>, <see cref="Expect100TimeoutSeconds"/>, <see cref="EtagSave"/>, <see cref="EtagCompare"/>,
-        /// <see cref="IgnoreContentLength"/>, <see cref="SkipExisting"/>, <see cref="AllowHttp09"/>,
-        /// <see cref="TransferEncoding"/> and <see cref="Raw"/> (<see cref="ProxyHttp10"/> is copied).</para>
-        /// <para>The copied <see cref="Headers"/> dictionary compares names case-sensitively, unlike the original; use the
-        /// exact casing when you look a header up on the clone.</para>
+        /// <para>The clone does not belong to a running command line: the state CurlDotNet attaches while a command runs
+        /// (the cookie store shared by its transfers) is not carried over.</para>
         /// <para>Example: <c>var template = new CurlOptions { Url = "https://api.example.com", MaxTime = 10 };</c> then
         /// <c>var a = template.Clone(); a.Url += "/users";</c> and <c>var b = template.Clone(); b.Url += "/orders";</c>.</para>
         /// </remarks>
         /// <seealso cref="CurlRequestBuilder.GetOptions"/>
         public CurlOptions Clone()
         {
-            var clone = new CurlOptions
-            {
-                Url = Url,
-                Method = Method,
-                Headers = Headers == null ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) : new Dictionary<string, string>(Headers),
-                Data = Data,
-                DataUrlEncode = DataUrlEncode,
-                DataRaw = DataRaw,
-                BinaryData = BinaryData,
-                FormData = new Dictionary<string, string>(FormData ?? new Dictionary<string, string>()),
-                Files = new Dictionary<string, string>(Files ?? new Dictionary<string, string>()),
-                OutputFile = OutputFile,
-                UseRemoteFileName = UseRemoteFileName,
-                IncludeHeaders = IncludeHeaders,
-                HeadOnly = HeadOnly,
-                FollowLocation = FollowLocation,
-                MaxRedirects = MaxRedirects,
-                Insecure = Insecure,
-                Verbose = Verbose,
-                TraceFile = TraceFile,
-                TraceAsciiFile = TraceAsciiFile,
-                TraceTime = TraceTime,
-                Silent = Silent,
-                ShowError = ShowError,
-                FailOnError = FailOnError,
-                UserAgent = UserAgent,
-                Referer = Referer,
-                Cookie = Cookie,
-                CookieJar = CookieJar,
-                Credentials = Credentials,
-                AuthScheme = AuthScheme,
-                Proxy = Proxy,
-                ProxyCredentials = ProxyCredentials,
-                MaxTime = MaxTime,
-                ConnectTimeout = ConnectTimeout,
-                SpeedLimit = SpeedLimit,
-                SpeedTime = SpeedTime,
-                ResumeFrom = ResumeFrom,
-                Range = Range,
-                Compressed = Compressed,
-                CertFile = CertFile,
-                KeyFile = KeyFile,
-                CaCertFile = CaCertFile,
-                Interface = Interface,
-                HttpVersion = HttpVersion,
-                CustomMethod = CustomMethod,
-                WriteOut = WriteOut,
-                ProgressHandler = ProgressHandler,
-                OriginalCommand = OriginalCommand,
-                Flavor = Flavor,
-                ProgressBar = ProgressBar,
-                KeepAliveTime = KeepAliveTime,
-                DnsServers = DnsServers,
-                Resolve = new Dictionary<string, string>(Resolve),
-                Quote = new List<string>(Quote),
-                CreateDirs = CreateDirs,
-                FtpPassive = FtpPassive,
-                FtpSsl = FtpSsl,
-                Socks5Proxy = Socks5Proxy,
-                Retry = Retry,
-                RetryDelay = RetryDelay,
-                RetryMaxTime = RetryMaxTime,
-                LocationTrusted = LocationTrusted,
-                DisableEpsv = DisableEpsv,
-                DisableEprt = DisableEprt,
-                ForceBinary = ForceBinary,
-                BinaryContentTypes = new List<string>(BinaryContentTypes),
-                TextContentTypes = new List<string>(TextContentTypes),
-                AwsSigV4 = AwsSigV4
-            };
-
-            CopyRequestShapingTo(clone);
+            // Every property, public and internal, is copied by MemberwiseClone; then each mutable collection is
+            // replaced by a copy so the clone and the original never share one (ReleaseFixesTests checks both).
+            var clone = (CurlOptions)MemberwiseClone();
+            clone.Headers = Headers == null
+                ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, string>(Headers, Headers.Comparer);
+            clone.FormData = FormData == null ? new Dictionary<string, string>() : new Dictionary<string, string>(FormData, FormData.Comparer);
+            clone.Files = Files == null ? new Dictionary<string, string>() : new Dictionary<string, string>(Files, Files.Comparer);
+            clone.BinaryData = BinaryData == null ? null : (byte[])BinaryData.Clone();
+            clone.Resolve = Resolve == null ? new Dictionary<string, string>() : new Dictionary<string, string>(Resolve, Resolve.Comparer);
+            clone.Quote = Quote == null ? new List<string>() : new List<string>(Quote);
+            clone.BinaryContentTypes = BinaryContentTypes == null ? new List<string>() : new List<string>(BinaryContentTypes);
+            clone.TextContentTypes = TextContentTypes == null ? new List<string>() : new List<string>(TextContentTypes);
+            clone.FormParts = FormParts == null ? new List<CurlFormPart>() : new List<CurlFormPart>(FormParts);
+            clone.EmptyHeaders = EmptyHeaders == null
+                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                : new HashSet<string>(EmptyHeaders, EmptyHeaders.Comparer);
+            clone.UnknownOptions = new List<string>(UnknownOptions);
+            clone.UnsupportedOptions = new List<string>(UnsupportedOptions);
+            clone.AdditionalTransfers = AdditionalTransfers.Select(t => t.Clone()).ToList();
+            clone.GlobMatches = new List<string>(GlobMatches);
+            clone.DataParts = new List<RequestDataPart>(DataParts);
+            clone.ImplicitHeaders = new HashSet<string>(ImplicitHeaders, ImplicitHeaders.Comparer);
+            clone.ProxyHeaderLines = new List<string>(ProxyHeaderLines);
+            clone.CookieFiles = CookieFiles == null ? new List<string>() : new List<string>(CookieFiles);
+            clone.RawHeaderLines = RawHeaderLines == null
+                ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, string>(RawHeaderLines, RawHeaderLines.Comparer);
+            clone.ConnectTo = ConnectTo == null ? new List<string>() : new List<string>(ConnectTo);
+            clone.UrlQueryParts = new List<string>(UrlQueryParts);
+            clone.RequestKinds = new List<KeyValuePair<RequestKind, string>>(RequestKinds);
+            clone.ParsedDataBytes = ParsedDataBytes == null ? null : (byte[])ParsedDataBytes.Clone();
+            clone.Session = null; // the cookie store of the command line the original ran in
+            clone.TlsVerification = null; // what the original's last certificate check saw
+            clone.RetryNumber = 0;
+            clone.DeferWriteOut = false;
             return clone;
         }
 
@@ -1422,14 +1578,17 @@ namespace CurlDotNet.Core
         /// <c>curl --ciphers ALL https://example.com</c> requests <c>https://example.com</c>. Such options land here instead of
         /// in <see cref="UnknownOptions"/>, which only holds names that curl itself would reject with exit code 2.</para>
         /// <para>Each entry is the long form as typed, for example <c>--tcp-nodelay</c> or <c>--no-sessionid</c>; short forms are
-        /// recorded by their long name (<c>-q</c> becomes <c>--disable</c>). Some options that are parsed into properties are
-        /// nevertheless not applied (see the class remarks); they do not appear here.</para>
+        /// recorded by their long name (<c>-q</c> becomes <c>--disable</c>). Options that are parsed into a property which
+        /// cannot be applied are listed here too: <c>--interface</c>, <c>--dns-servers</c>, <c>--quote</c>,
+        /// <c>--disable-epsv</c>, <c>--disable-eprt</c>, <c>--key-type</c> other than PEM, <c>--ciphers</c>/<c>--tls13-ciphers</c>
+        /// where the platform cannot choose cipher suites, and on .NET Standard 2.0/.NET Framework <c>--cacert</c>,
+        /// <c>--capath</c>, <c>--cert</c>, <c>--key</c> and <c>--pinnedpubkey</c>.</para>
         /// <para>Example: after <c>var o = Curl.Validate(cmd).ParsedOptions;</c> check <c>o.UnsupportedOptions.Count == 0</c>
         /// to know the request will be sent exactly as curl would send it.</para>
         /// </remarks>
         /// <seealso cref="UnknownOptions"/>
         /// <seealso cref="Curl.Validate(string)"/>
-        public List<string> UnsupportedOptions { get; } = new List<string>();
+        public List<string> UnsupportedOptions { get; private set; } = new List<string>();
 
         /// <summary>
         /// Sends the <c>-d</c>/<c>--data*</c> data as a query string on a GET request instead of a POST body, like
@@ -1624,7 +1783,7 @@ namespace CurlDotNet.Core
         /// <seealso cref="GlobOff"/>
         /// <seealso cref="FailEarly"/>
         /// <seealso cref="Curl.ExecuteAsync(CurlOptions)"/>
-        public List<CurlOptions> AdditionalTransfers { get; } = new List<CurlOptions>();
+        public List<CurlOptions> AdditionalTransfers { get; private set; } = new List<CurlOptions>();
 
         /// <summary>
         /// The text each URL glob matched for this transfer, which curl's <c>#1</c>, <c>#2</c>... placeholders in <c>-o</c>
@@ -1637,15 +1796,15 @@ namespace CurlDotNet.Core
         /// </remarks>
         /// <seealso cref="AdditionalTransfers"/>
         /// <seealso cref="OutputFile"/>
-        public List<string> GlobMatches { get; } = new List<string>();
+        public List<string> GlobMatches { get; private set; } = new List<string>();
 
         /// <summary>
         /// Raw <c>-d</c> family items gathered while parsing, before they are joined into <see cref="Data"/>.
         /// </summary>
-        internal List<RequestDataPart> DataParts { get; } = new List<RequestDataPart>();
+        internal List<RequestDataPart> DataParts { get; private set; } = new List<RequestDataPart>();
 
         /// <summary>Header names in <see cref="Headers"/> that an option such as <c>--json</c> added, which a later <c>-H</c> replaces.</summary>
-        internal HashSet<string> ImplicitHeaders { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        internal HashSet<string> ImplicitHeaders { get; private set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary><c>-p</c> / <c>--proxytunnel</c>: requests go through a CONNECT tunnel, so no proxy headers are added to them.</summary>
         internal bool ProxyTunnelRequested { get; set; }
@@ -1654,7 +1813,7 @@ namespace CurlDotNet.Core
         internal string? NoProxyHosts { get; set; }
 
         /// <summary><c>--proxy-header</c> lines, sent on requests that go through a plain HTTP proxy.</summary>
-        internal List<string> ProxyHeaderLines { get; } = new List<string>();
+        internal List<string> ProxyHeaderLines { get; private set; } = new List<string>();
 
         /// <summary>The proxy authentication method (<c>--proxy-basic</c>, <c>--proxy-digest</c>...); null means Basic.</summary>
         internal string? ProxyAuthMethod { get; set; }
@@ -1715,7 +1874,7 @@ namespace CurlDotNet.Core
         internal bool CrossOriginHop { get; set; }
 
         /// <summary><c>--url-query</c> arguments, applied to <see cref="Url"/> when the transfer is finished.</summary>
-        internal List<string> UrlQueryParts { get; } = new List<string>();
+        internal List<string> UrlQueryParts { get; private set; } = new List<string>();
 
         /// <summary>
         /// True when <see cref="Credentials"/> came from <c>user:password@</c> in the URL rather than from
@@ -1727,7 +1886,7 @@ namespace CurlDotNet.Core
         /// The kinds of request the options asked for (POST, multipart, PUT, HEAD) with the option that asked,
         /// checked for conflicts when the transfer is finished.
         /// </summary>
-        internal List<KeyValuePair<RequestKind, string>> RequestKinds { get; } = new List<KeyValuePair<RequestKind, string>>();
+        internal List<KeyValuePair<RequestKind, string>> RequestKinds { get; private set; } = new List<KeyValuePair<RequestKind, string>>();
 
         /// <summary>
         /// Exact body bytes the parser assembled from <see cref="DataParts"/>; only used while <see cref="Data"/>
@@ -1738,6 +1897,27 @@ namespace CurlDotNet.Core
         /// <summary>The value <see cref="Data"/> had when <see cref="ParsedDataBytes"/> was assembled.</summary>
         internal string? ParsedDataText { get; set; }
 
+        /// <summary>What the certificate check of the handler built for these options saw (set when TLS options are applied).</summary>
+        internal TlsVerificationState? TlsVerification { get; set; }
+
+        /// <summary><see cref="CurlSettings.OnRedirect"/>: called with the absolute URL of each redirect that is followed.</summary>
+        internal Action<string>? RedirectCallback { get; set; }
+
+        /// <summary><see cref="CurlSettings.Cookies"/>: a .NET cookie container that supplies and receives cookies on every hop.</summary>
+        internal CookieContainer? CookieContainer { get; set; }
+
+        /// <summary>Chunk size, in bytes, for reading response bodies (from <see cref="CurlSettings.BufferSize"/>); 0 means 80 KB.</summary>
+        internal int ReadBufferSize { get; set; }
+
+        /// <summary>The 0-based <c>--retry</c> attempt being run (<c>%{num_retries}</c>); 0 outside a retry loop.</summary>
+        internal int RetryNumber { get; set; }
+
+        /// <summary>
+        /// Set by the <c>--retry</c> loop while another attempt may follow: the attempt keeps its <c>-w</c> text
+        /// (and <c>-c -</c> jar) back so it is written once, for the last attempt.
+        /// </summary>
+        internal bool DeferWriteOut { get; set; }
+
         /// <summary>
         /// Returns the request body the parser assembled for this transfer, or null when the body should be
         /// built from <see cref="Data"/> as set by hand.
@@ -1747,44 +1927,6 @@ namespace CurlDotNet.Core
             return ParsedDataBytes != null && string.Equals(Data, ParsedDataText, StringComparison.Ordinal)
                 ? ParsedDataBytes
                 : null;
-        }
-
-        private void CopyRequestShapingTo(CurlOptions clone)
-        {
-            clone.UnsupportedOptions.AddRange(UnsupportedOptions);
-            clone.UnknownOptions.AddRange(UnknownOptions);
-            clone.UseGet = UseGet;
-            clone.UploadFile = UploadFile;
-            clone.OAuth2Bearer = OAuth2Bearer;
-            clone.AutoReferer = AutoReferer;
-            clone.TimeCondition = TimeCondition;
-            clone.TimeConditionType = TimeConditionType;
-            clone.MaxFileSize = MaxFileSize;
-            clone.HttpVersionExact = HttpVersionExact;
-            clone.PathAsIs = PathAsIs;
-            clone.GlobOff = GlobOff;
-            clone.EmptyHeaders = new HashSet<string>(EmptyHeaders, StringComparer.OrdinalIgnoreCase);
-            clone.GlobMatches.AddRange(GlobMatches);
-            clone.DataParts.AddRange(DataParts);
-            clone.UrlQueryParts.AddRange(UrlQueryParts);
-            clone.DefaultProtocol = DefaultProtocol;
-            clone.CookieFiles = new List<string>(CookieFiles);
-            clone.DiscardOutput = DiscardOutput;
-            clone.NetrcMode = NetrcMode;
-            clone.RequestTarget = RequestTarget;
-            clone.RawHeaderLines = new Dictionary<string, string>(RawHeaderLines, StringComparer.OrdinalIgnoreCase);
-            clone.ConnectTo = new List<string>(ConnectTo);
-            clone.NetrcFile = NetrcFile;
-            clone.ProxyTunnelRequested = ProxyTunnelRequested;
-            clone.NoProxyHosts = NoProxyHosts;
-            clone.ProxyHeaderLines.AddRange(ProxyHeaderLines);
-            clone.ProxyAuthMethod = ProxyAuthMethod;
-            clone.ProxyHttp10 = ProxyHttp10;
-            clone.ImplicitHeaders.UnionWith(ImplicitHeaders);
-            clone.CredentialsFromUrl = CredentialsFromUrl;
-            clone.RequestKinds.AddRange(RequestKinds);
-            clone.ParsedDataBytes = ParsedDataBytes;
-            clone.ParsedDataText = ParsedDataText;
         }
 
         #endregion

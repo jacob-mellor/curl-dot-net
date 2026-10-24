@@ -73,7 +73,7 @@ namespace CurlDotNet.Core
         {
             try
             {
-                return await ExecuteWithRetryAsync(options, cancellationToken);
+                return await ExecuteWithRetryAsync(options, cancellationToken).ConfigureAwait(false);
             }
             catch (CurlException ex)
             {
@@ -89,106 +89,157 @@ namespace CurlDotNet.Core
         {
             if (options.Retry <= 0)
             {
-                return await ExecuteAttemptAsync(options, cancellationToken);
+                options.RetryNumber = 0;
+                return await ExecuteAttemptAsync(options, cancellationToken).ConfigureAwait(false);
             }
 
-            // curl --retry: transient errors are timeouts and HTTP 408/429/500/502/503/504; the wait
-            // doubles from 1 s up to 10 minutes unless --retry-delay fixes it; --retry-max-time caps it all.
-            // Output that went to stdout cannot be taken back, so each attempt's stdout is kept, like curl.
+            // curl --retry: transient errors are timeouts, unresolved host or proxy names and HTTP
+            // 408/429/500/502/503/504; the wait doubles from 1 s up to 10 minutes unless --retry-delay fixes
+            // it. Without --retry-delay a longer Retry-After from the server wins over the backoff; an explicit
+            // --retry-delay is not overridden by it. --retry-max-time stops retrying once that much time has
+            // passed (or when a Retry-After wait would pass it), and the last attempt's outcome stands. Output that went to stdout cannot be taken back, so each
+            // attempt's stdout is kept, like curl; the -w text (and -c -) is written once, for the final attempt.
             var retryStarted = DateTime.UtcNow;
             var earlierStdout = new StringBuilder();
             // curl truncates the output file before a retry only when the failed attempt wrote body
             // bytes to it; header-only attempts (-i, -f) stay in the file
             var state = new AttemptState();
             var toStdout = string.IsNullOrEmpty(options.OutputFile) && !options.UseRemoteFileName;
-            string? lastFailure = null;
-            for (var attempt = 0; ; attempt++)
+            try
             {
-                var retriesLeft = options.Retry - attempt;
-                CurlResult? result = null;
-                string? reason = null;
-                TimeSpan? retryAfter = null;
-                try
+                for (var attempt = 0; ; attempt++)
                 {
-                    state.WroteBody = false;
-                    result = await ExecuteAttemptAsync(options, cancellationToken, state);
-                    if (retriesLeft > 0 && IsTransientStatus(result.StatusCode))
+                    var retriesLeft = options.Retry - attempt;
+                    options.RetryNumber = attempt;
+                    // while another attempt may follow, the attempt keeps its -w text back (see FinishRetriedAttempt)
+                    options.DeferWriteOut = retriesLeft > 0;
+                    CurlResult? result = null;
+                    CurlException? failure = null;
+                    string? reason = null;
+                    TimeSpan? retryAfter = null;
+                    try
                     {
-                        reason = $"HTTP {result.StatusCode}";
-                        retryAfter = RetryAfter(result.Headers);
+                        state.WroteBody = false;
+                        state.Pending = null;
+                        result = await ExecuteAttemptAsync(options, cancellationToken, state).ConfigureAwait(false);
+                        if (retriesLeft > 0 && IsTransientStatus(result.StatusCode))
+                        {
+                            reason = $"HTTP {result.StatusCode}";
+                            retryAfter = RetryAfter(result.Headers);
+                        }
                     }
-                }
-                catch (CurlException ex)
-                {
-                    lastFailure = ex.WhatHappened;
-                    if (retriesLeft > 0)
+                    catch (CurlException ex)
                     {
-                        if (ex is CurlOperationTimeoutException)
+                        failure = ex;
+                        if (retriesLeft > 0)
                         {
-                            reason = "timeout";
+                            if (ex is CurlOperationTimeoutException)
+                            {
+                                reason = "timeout";
+                            }
+                            else if (ex is CurlCouldntResolveHostException || ex is CurlCouldntResolveProxyException)
+                            {
+                                reason = "name resolution"; // curl treats 6 and 5 as transient, like a timeout
+                            }
+                            else if (ex is CurlHttpReturnedErrorException http && (IsTransientStatus(http.StatusCode) || options.RetryAllErrors))
+                            {
+                                reason = $"HTTP {http.StatusCode}";
+                                retryAfter = RetryAfter(http.ResponseHeaders);
+                            }
+                            else if (ex is CurlCouldntConnectException && (options.RetryAllErrors || options.RetryConnRefused))
+                            {
+                                reason = "connection failed";
+                            }
+                            else if (options.RetryAllErrors)
+                            {
+                                reason = "error";
+                            }
                         }
-                        else if (ex is CurlHttpReturnedErrorException http && (IsTransientStatus(http.StatusCode) || options.RetryAllErrors))
+                    }
+
+                    double delaySeconds = 0;
+                    if (reason != null)
+                    {
+                        // an explicit --retry-delay is kept; otherwise a longer Retry-After replaces the backoff
+                        // (curl takes the larger of the two; Retry-After: 0 means "no hint")
+                        var backoff = options.RetryDelay > 0 ? options.RetryDelay : Math.Min(Math.Pow(2, attempt), 600);
+                        var serverWait = options.RetryDelay > 0 ? 0 : retryAfter?.TotalSeconds ?? 0;
+                        delaySeconds = Math.Max(backoff, serverWait);
+                        var elapsed = (DateTime.UtcNow - retryStarted).TotalSeconds;
+                        if (options.RetryMaxTime > 0
+                            && (elapsed >= options.RetryMaxTime || (serverWait > backoff && elapsed + serverWait > options.RetryMaxTime)))
                         {
-                            reason = $"HTTP {http.StatusCode}";
-                            retryAfter = RetryAfter(http.ResponseHeaders);
-                        }
-                        else if (ex is CurlCouldntConnectException && (options.RetryAllErrors || options.RetryConnRefused))
-                        {
-                            reason = "connection failed";
-                        }
-                        else if (options.RetryAllErrors)
-                        {
-                            reason = "error";
+                            reason = null; // --retry-max-time ran out: this attempt is the last one
                         }
                     }
 
                     if (reason == null)
                     {
-                        // the last attempt failed: what earlier attempts printed comes first
-                        TransferStdout.Prepend(ex, earlierStdout.ToString());
-                        throw;
+                        // the final attempt: what earlier attempts printed comes first, then this attempt's
+                        // output with the -w text expanded once
+                        options.DeferWriteOut = false;
+                        if (failure != null)
+                        {
+                            CompleteDeferredFailureOutput(failure, options);
+                            TransferStdout.Prepend(failure, earlierStdout.ToString());
+                            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+                        }
+                        FinishRetriedAttempt(result!, state, options);
+                        if (earlierStdout.Length > 0)
+                        {
+                            result!.Body = earlierStdout + (result.Body ?? string.Empty);
+                        }
+                        return result!;
                     }
 
-                    // a failed attempt that is retried has printed its headers / --fail-with-body page
-                    // (curl expands -w only once, after the last attempt)
-                    if (toStdout && FailureOutputAttached.TryGetValue(ex, out var attached))
+                    // a retried attempt has printed its headers / body / --fail-with-body page, never its -w text
+                    if (toStdout)
                     {
-                        earlierStdout.Append(((FailureOutput)attached).BeforeWriteOut);
+                        if (failure != null)
+                        {
+                            if (FailureOutputAttached.TryGetValue(failure, out var attached))
+                            {
+                                earlierStdout.Append(((FailureOutput)attached).BeforeWriteOut);
+                            }
+                        }
+                        else if (result?.Body != null)
+                        {
+                            earlierStdout.Append(result.Body);
+                        }
                     }
-                }
+                    state.AppendOutput = state.OutputPath != null && !state.WroteBody;
 
-                if (reason == null)
-                {
-                    if (earlierStdout.Length > 0 && result != null)
-                    {
-                        result.Body = earlierStdout + (result.Body ?? string.Empty);
-                    }
-                    return result!;
+                    await Task.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken).ConfigureAwait(false);
                 }
-
-                if (toStdout && result?.Body != null)
-                {
-                    earlierStdout.Append(result.Body);
-                }
-                state.AppendOutput = state.OutputPath != null && !state.WroteBody;
-
-                var delaySeconds = retryAfter?.TotalSeconds
-                    ?? (options.RetryDelay > 0 ? options.RetryDelay : Math.Min(Math.Pow(2, attempt), 600));
-                if (options.RetryMaxTime > 0 && (DateTime.UtcNow - retryStarted).TotalSeconds + delaySeconds > options.RetryMaxTime)
-                {
-                    if (result != null && earlierStdout.Length > 0)
-                    {
-                        result.Body = earlierStdout.ToString();
-                    }
-                    var limit = options.RetryMaxTime.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    return result ?? throw new CurlOperationTimeoutException(options.RetryMaxTime, CurlException.Compose(
-                        $"--retry-max-time {limit} seconds ran out after {attempt + 1} attempt(s) to {ErrorText.SafeUrl(options.Url)}; the last attempt failed: {lastFailure ?? reason}",
-                        $"Raise --retry-max-time (seconds), or fix what makes every attempt fail; the next retry would have waited {delaySeconds.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} seconds.",
-                        DocLinks.Timeout), options.OriginalCommand);
-                }
-
-                await Task.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken);
             }
+            finally
+            {
+                options.DeferWriteOut = false;
+            }
+        }
+
+        /// <summary>
+        /// Adds the -w text and the <c>-c -</c> jar that a successful attempt kept back while it might be
+        /// retried (curl expands -w once, after the last attempt, with <c>%{num_retries}</c> set).
+        /// </summary>
+        private static void FinishRetriedAttempt(CurlResult result, AttemptState state, CurlOptions options)
+        {
+            var pending = state.Pending;
+            if (pending == null)
+            {
+                return;
+            }
+            state.Pending = null;
+            var builder = new StringBuilder(result.Body ?? string.Empty);
+            if (pending.Context != null && !string.IsNullOrEmpty(options.WriteOut))
+            {
+                pending.Context.NumRetries = options.RetryNumber;
+                var expanded = WriteOutFormatter.Format(options.WriteOut!, pending.Context);
+                builder.Append(expanded.Stdout);
+                WriteStderr(options, expanded.Stderr);
+            }
+            builder.Append(pending.JarText);
+            result.Body = builder.ToString();
         }
 
         /// <summary>curl's "transient" HTTP responses for --retry.</summary>
@@ -217,6 +268,16 @@ namespace CurlDotNet.Core
 
             /// <summary>Set by the attempt: the file that was written.</summary>
             public string? OutputPath;
+
+            /// <summary>Set by a successful attempt that may be retried: the -w context and <c>-c -</c> text it kept back.</summary>
+            public PendingOutput? Pending;
+        }
+
+        /// <summary>The -w context and <c>-c -</c> jar text an attempt kept back until it is known to be the last one.</summary>
+        private sealed class PendingOutput
+        {
+            public WriteOutContext? Context;
+            public string? JarText;
         }
 
         private async Task<CurlResult> ExecuteAttemptAsync(CurlOptions options, CancellationToken cancellationToken, AttemptState? attempt = null)
@@ -227,6 +288,20 @@ namespace CurlDotNet.Core
             // Choose the transport. Most requests share the pooled HttpClient, but when the command
             // asks for a proxy, relaxed TLS, challenge auth or pinned name resolution we build a
             // dedicated client so those settings are honored (and visible in the trace).
+            if (!string.IsNullOrEmpty(options.PinnedPublicKey) && CurlTls.MayUseTls(options)
+                && (!CurlTls.SupportsTrustAndClientCertificates || !_ownsHttpClient))
+            {
+                // a pin that cannot be checked must not be skipped silently (curl: CURLE_NOT_BUILT_IN)
+                throw new CurlNotBuiltInException(CurlException.Compose(
+                    $"--pinnedpubkey cannot be checked for {ErrorText.SafeUrl(options.Url)}: " + (CurlTls.SupportsTrustAndClientCertificates
+                        ? "the request uses an HttpClient you supplied, whose handler decides how certificates are validated"
+                        : "public key pinning needs .NET 5 or later, and this is the .NET Standard 2.0 / .NET Framework build"),
+                    CurlTls.SupportsTrustAndClientCertificates
+                        ? "Let CurlDotNet create the HttpClient (use the CurlEngine constructor without one), or pin the key in your own handler's ServerCertificateCustomValidationCallback."
+                        : "Run on .NET 8 or later, or remove --pinnedpubkey and rely on certificate verification (and --cacert where available).",
+                    DocLinks.Ssl), options.OriginalCommand);
+            }
+
             var proxy = CurlProxy.Resolve(options);
             var client = _httpClient;
             HttpClient? perRequestClient = null;
@@ -261,7 +336,7 @@ namespace CurlDotNet.Core
                     if (target != null && File.Exists(target))
                     {
                         // --skip-existing: curl does not even connect when the file is already there
-                        trace?.Info($"Skipping {options.Url}: '{target}' already exists (--skip-existing)");
+                        trace?.Info($"Skipping {ErrorText.SafeUrl(options.Url)}: '{target}' already exists (--skip-existing)");
                         return new CurlResult { StatusCode = 0, Body = string.Empty, Command = options.OriginalCommand, Timings = timings };
                     }
                 }
@@ -272,7 +347,7 @@ namespace CurlDotNet.Core
                     if (!string.IsNullOrEmpty(etagDir) && !Directory.Exists(etagDir))
                     {
                         // curl: "Failed creating file for saving etags ... Skip this transfer" (no request, no error)
-                        trace?.Info($"Skipping {options.Url}: --etag-save directory '{etagDir}' does not exist");
+                        trace?.Info($"Skipping {ErrorText.SafeUrl(options.Url)}: --etag-save directory '{etagDir}' does not exist");
                         if (!options.Silent)
                         {
                             WriteStderr(options, $"Warning: Failed creating file for saving etags: \"{options.EtagSave}\". Skip this transfer\n");
@@ -315,17 +390,17 @@ namespace CurlDotNet.Core
                             : "TLS: certificate verification enabled");
                     }
                     trace.SendHeaders(request);
-                    await trace.SendDataAsync(request);
+                    await trace.SendDataAsync(request).ConfigureAwait(false);
                 }
 
                 AppendVerboseRequest(verboseLog, request);
 
                 // Send request
                 timings.PreTransfer = (DateTime.UtcNow - startTime).TotalMilliseconds;
-                response = await transfer.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+                response = await transfer.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
                 AppendVerboseResponseHeaders(verboseLog, response);
                 // 401/407 challenges (Digest, NTLM, --anyauth) and auth probes are answered like curl
-                var authenticated = await transfer.AuthenticateAsync(response, request, options, token);
+                var authenticated = await transfer.AuthenticateAsync(response, request, options, token).ConfigureAwait(false);
                 response = authenticated.Response;
                 request = authenticated.Request;
                 timings.StartTransfer = (DateTime.UtcNow - startTime).TotalMilliseconds;
@@ -338,7 +413,7 @@ namespace CurlDotNet.Core
                         trace?.Info($"Received HTTP {(int)response.StatusCode}; following redirect (-L)");
                     }
 
-                    var followed = await _redirectHandler.FollowAsync(transfer, response, request, token);
+                    var followed = await _redirectHandler.FollowAsync(transfer, response, request, token).ConfigureAwait(false);
                     response = followed.Response;
                     request = followed.Request;
                 }
@@ -346,7 +421,7 @@ namespace CurlDotNet.Core
                 trace?.RecvHeaders(response);
 
                 readingBody = true;
-                return await FinishTransferAsync(transfer, request, response, token, verboseLog, trace, attempt);
+                return await FinishTransferAsync(transfer, request, response, token, verboseLog, trace, attempt).ConfigureAwait(false);
             }
             catch (CurlException ex)
             {
@@ -453,6 +528,7 @@ namespace CurlDotNet.Core
         {
             return CurlProxy.IsConfigured(options)
                 || options.Insecure
+                || CurlTls.IsConfigured(options)
                 || UsesChallengeAuth(options)
                 || options.Resolve.Count > 0
                 || options.ConnectTo.Count > 0
@@ -803,10 +879,10 @@ namespace CurlDotNet.Core
                 return MultipartFormBuilder.Build(MultipartFormBuilder.PartsFor(options), options);
             }
 
-            // Binary data
+            // Binary data: sent as-is, labelled only by an explicit -H "Content-Type: ..." (like -T)
             if (options.BinaryData != null)
             {
-                return new ByteArrayContent(options.BinaryData);
+                return RequestShaping.CreateUploadContent(options.BinaryData, options);
             }
 
             // Text data
@@ -842,34 +918,11 @@ namespace CurlDotNet.Core
                             "Check that the file exists, is not locked by another program and is readable by this process; use --data-raw if the @ is meant literally.",
                             DocLinks.TutorialFormsAndData), options.OriginalCommand, ex);
                     }
-                    var byteContent = new ByteArrayContent(fileBytes);
-
-                    if (options.Headers.TryGetValue("Content-Type", out var fileContentType))
-                    {
-                        byteContent.Headers.ContentType = MediaTypeHeaderValue.Parse(fileContentType);
-                    }
-                    else
-                    {
-                        byteContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/x-www-form-urlencoded");
-                    }
-
-                    return byteContent;
+                    // the -H Content-Type is sent verbatim (no parsing that could reject it), else curl's form default
+                    return RequestShaping.CreateDataContent(fileBytes, options);
                 }
 
-                var content = new StringContent(data, Encoding.UTF8);
-
-                // Set content type from headers if specified
-                if (options.Headers.TryGetValue("Content-Type", out var contentType))
-                {
-                    content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
-                }
-                else
-                {
-                    // Default to application/x-www-form-urlencoded for POST data
-                    content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/x-www-form-urlencoded");
-                }
-
-                return content;
+                return RequestShaping.CreateDataContent(Encoding.UTF8.GetBytes(data), options);
             }
 
             return null;
@@ -906,7 +959,7 @@ namespace CurlDotNet.Core
             Exception? bodyError = null;
             if (!isHead && response.Content != null)
             {
-                (rawBody, bodyError) = await ReadBodyAsync(response.Content, cancellationToken, options.MaxFileSize, options, announced);
+                (rawBody, bodyError) = await ReadBodyAsync(response.Content, cancellationToken, options.MaxFileSize, options, announced).ConfigureAwait(false);
             }
             timings.Total = (DateTime.UtcNow - transfer.StartTime).TotalMilliseconds;
 
@@ -936,6 +989,16 @@ namespace CurlDotNet.Core
             if (bodyError is FileSizeLimitReached)
             {
                 failure = new CurlFileSizeExceededException(options.MaxFileSize!.Value, rawBody.Length, command);
+            }
+            else if (bodyError is SpeedLimitReached slow)
+            {
+                var limit = slow.BytesPerSecond.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var window = slow.Seconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                failure = new CurlOperationTimeoutException(slow.Seconds, CurlException.Compose(
+                    $"Operation too slow. Less than {limit} bytes/sec transferred the last {window} seconds (from {request.RequestUri?.Host}, {rawBody.Length} body bytes received)",
+                    "The server or network is slower than -Y/--speed-limit allows for -y/--speed-time seconds: lower --speed-limit, raise --speed-time, " +
+                    "or add --retry 3 to try again; remove both options to wait as long as -m/--max-time allows.",
+                    DocLinks.Timeout), command);
             }
             else if (bodyError != null)
             {
@@ -1108,14 +1171,26 @@ namespace CurlDotNet.Core
             }
 
             var builder = new StringBuilder(stdoutText);
-
+            WriteOutContext? context = null;
             if (!string.IsNullOrEmpty(options.WriteOut))
             {
-                var context = BuildWriteOutContext(transfer, request, response, finalHead, result, rawBody.Length, writtenPath);
+                context = BuildWriteOutContext(transfer, request, response, finalHead, result, rawBody.Length, writtenPath);
                 if (timeConditionUnmet)
                 {
                     context.ResponseCode = 304;
                 }
+            }
+
+            if (options.DeferWriteOut && attempt != null)
+            {
+                // --retry may run this transfer again: the -w text and -c - jar wait for the last attempt
+                attempt.Pending = new PendingOutput { Context = context, JarText = jarText };
+                result.Body = builder.ToString();
+                return result;
+            }
+
+            if (context != null)
+            {
                 var expanded = WriteOutFormatter.Format(options.WriteOut!, context);
                 builder.Append(expanded.Stdout);
                 WriteStderr(options, expanded.Stderr);
@@ -1193,10 +1268,17 @@ namespace CurlDotNet.Core
             return body;
         }
 
-        /// <summary>What a failed transfer printed before its -w text.</summary>
+        /// <summary>What a failed transfer printed before its -w text, and the -w input while it is held back for --retry.</summary>
         private sealed class FailureOutput
         {
             public string BeforeWriteOut = string.Empty;
+
+            /// <summary>True while the -w text waits for the retry loop to know this was the last attempt.</summary>
+            public bool Deferred;
+
+            public WriteOutContext? Context;
+            public string? JarText;
+            public CurlOptions? Options;
         }
 
         /// <summary>Marks exceptions whose standard output and -w text were already attached.</summary>
@@ -1224,11 +1306,45 @@ namespace CurlDotNet.Core
                 return;
             }
 
-            var text = new StringBuilder(stdoutSoFar ?? string.Empty);
             if (!string.IsNullOrEmpty(options.WriteOut))
             {
                 context ??= transfer != null ? BuildFailureWriteOutContext(transfer) : null;
-                context ??= new WriteOutContext
+            }
+            record.Context = context;
+            record.JarText = jarText;
+            record.Options = options;
+            TransferStdout.Append(failure, stdoutSoFar);
+            if (options.DeferWriteOut)
+            {
+                // --retry may run the transfer again: the -w text is expanded once, for the last attempt
+                record.Deferred = true;
+                return;
+            }
+            ExpandFailureWriteOut(failure, record);
+        }
+
+        /// <summary>
+        /// Expands the -w text (and adds the <c>-c -</c> jar) that a failed attempt kept back while --retry
+        /// could still run it again; a no-op for failures whose output is complete.
+        /// </summary>
+        private static void CompleteDeferredFailureOutput(CurlException failure, CurlOptions options)
+        {
+            if (FailureOutputAttached.TryGetValue(failure, out var attached) && attached is FailureOutput record && record.Deferred)
+            {
+                record.Deferred = false;
+                record.Options = options;
+                ExpandFailureWriteOut(failure, record);
+            }
+        }
+
+        /// <summary>Expands -w for a failed transfer (with <c>%{exitcode}</c>/<c>%{errormsg}</c>) and appends it and the jar text to its stdout.</summary>
+        private static void ExpandFailureWriteOut(CurlException failure, FailureOutput record)
+        {
+            var options = record.Options!;
+            var text = new StringBuilder();
+            if (!string.IsNullOrEmpty(options.WriteOut))
+            {
+                var context = record.Context ?? new WriteOutContext
                 {
                     UrlNum = options.TransferNumber,
                     Url = options.Url,
@@ -1243,6 +1359,7 @@ namespace CurlDotNet.Core
                 var newline = message.IndexOf('\n');
                 context.ExitCode = failure.CurlErrorCode ?? 1;
                 context.ErrorMessage = newline < 0 ? message : message.Substring(0, newline);
+                context.NumRetries = options.RetryNumber;
                 var expanded = WriteOutFormatter.Format(options.WriteOut!, context);
                 WriteStderr(options, expanded.Stderr);
                 if (expanded.Stdout.Length > 0)
@@ -1252,7 +1369,7 @@ namespace CurlDotNet.Core
                 }
             }
 
-            text.Append(jarText);
+            text.Append(record.JarText);
             TransferStdout.Append(failure, text.ToString());
         }
 
@@ -1277,6 +1394,7 @@ namespace CurlDotNet.Core
                 Method = transfer.CurrentRequest?.Method.Method ?? (options.CustomMethod ?? options.Method ?? "GET").ToUpperInvariant(),
                 Scheme = uri?.Scheme.ToLowerInvariant() ?? string.Empty,
                 NumRedirects = transfer.RedirectCount,
+                NumRetries = options.RetryNumber,
                 ProxyUsed = transfer.CurrentViaProxy,
                 NumConnects = transfer.Transcript.HasRecording ? transfer.Transcript.NewConnections : 0,
             };
@@ -1390,9 +1508,9 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Reads the response body in chunks, enforcing --max-filesize and --max-time, and reporting
-        /// each chunk to <see cref="CurlOptions.ProgressHandler"/> as (percent or -1, bytes received,
-        /// total bytes or -1).
+        /// Reads the response body in chunks, enforcing --max-filesize, --max-time, --limit-rate and
+        /// --speed-limit/--speed-time, and reporting each chunk to <see cref="CurlOptions.ProgressHandler"/> as
+        /// (percent or -1, bytes received, total bytes or -1).
         /// </summary>
         private static async Task<(byte[] Body, Exception? Error)> ReadBodyAsync(HttpContent content, CancellationToken cancellationToken, long? maxFileSize,
             CurlOptions? options = null, long? announcedLength = null)
@@ -1400,6 +1518,28 @@ namespace CurlDotNet.Core
             var buffer = new MemoryStream();
             var progress = options?.ProgressHandler;
             var total = announcedLength.HasValue && announcedLength.Value >= 0 && announcedLength.Value != long.MaxValue ? announcedLength.Value : -1L;
+
+            // --limit-rate: read about one second's worth at a time and wait whenever the average runs ahead
+            var limitRate = options?.LimitRate ?? 0;
+            var chunkSize = options != null && options.ReadBufferSize > 0 ? options.ReadBufferSize : 81920;
+            if (limitRate > 0)
+            {
+                chunkSize = (int)Math.Max(256, Math.Min(chunkSize, limitRate));
+            }
+
+            // --speed-limit/--speed-time: abort (exit 28) when a whole window of speed-time seconds brings
+            // fewer than speed-limit * speed-time bytes; curl uses 30 s and 1 byte/s when only one is given
+            var speedLimit = options?.SpeedLimit ?? 0;
+            var speedTime = options?.SpeedTime ?? 0;
+            if (speedLimit > 0 && speedTime <= 0) speedTime = 30;
+            if (speedTime > 0 && speedLimit <= 0) speedLimit = 1;
+            using var stall = speedTime > 0 ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken) : null;
+            var readToken = stall?.Token ?? cancellationToken;
+            var windowBytes = 0L;
+            var windowTarget = speedLimit * (long)speedTime;
+            stall?.CancelAfter(TimeSpan.FromSeconds(speedTime));
+            var started = System.Diagnostics.Stopwatch.StartNew();
+
             try
             {
 #if NETSTANDARD2_0 || NET472 || NET48
@@ -1407,11 +1547,11 @@ namespace CurlDotNet.Core
 #else
                 using var stream = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
 #endif
-                var chunk = new byte[81920];
+                var chunk = new byte[chunkSize];
                 while (true)
                 {
                     // --max-time bounds the body download too
-                    var n = await stream.ReadAsync(chunk, 0, chunk.Length, cancellationToken).ConfigureAwait(false);
+                    var n = await stream.ReadAsync(chunk, 0, chunk.Length, readToken).ConfigureAwait(false);
                     if (n <= 0)
                     {
                         break;
@@ -1425,17 +1565,58 @@ namespace CurlDotNet.Core
                     {
                         return (buffer.ToArray(), new FileSizeLimitReached());
                     }
+
+                    if (stall != null)
+                    {
+                        windowBytes += n;
+                        if (windowBytes >= windowTarget)
+                        {
+                            windowBytes = 0; // fast enough for a whole window: start the next one
+                            stall.CancelAfter(TimeSpan.FromSeconds(speedTime));
+                        }
+                    }
+
+                    if (limitRate > 0)
+                    {
+                        var due = TimeSpan.FromSeconds(buffer.Length / (double)limitRate) - started.Elapsed;
+                        if (due > TimeSpan.Zero)
+                        {
+                            await Task.Delay(due, cancellationToken).ConfigureAwait(false);
+                        }
+                    }
                 }
                 return (buffer.ToArray(), null);
             }
             catch (OperationCanceledException ex)
             {
+                if (stall != null && stall.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                {
+                    return (buffer.ToArray(), new SpeedLimitReached(speedLimit, speedTime));
+                }
                 return (buffer.ToArray(), ex);
             }
             catch (Exception ex) when (ex is IOException || ex is HttpRequestException)
             {
+                if (stall != null && stall.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                {
+                    return (buffer.ToArray(), new SpeedLimitReached(speedLimit, speedTime));
+                }
                 return (buffer.ToArray(), ex);
             }
+        }
+
+        /// <summary>Signals that --speed-limit/--speed-time aborted a body that arrived too slowly.</summary>
+        private sealed class SpeedLimitReached : Exception
+        {
+            public SpeedLimitReached(long bytesPerSecond, int seconds)
+            {
+                BytesPerSecond = bytesPerSecond;
+                Seconds = seconds;
+            }
+
+            public long BytesPerSecond { get; }
+
+            public int Seconds { get; }
         }
 
         /// <summary>
@@ -1552,6 +1733,7 @@ namespace CurlDotNet.Core
                 Scheme = uri.Scheme.ToLowerInvariant(),
                 Referer = request.Headers.TryGetValues("Referer", out var referers) ? referers.FirstOrDefault() ?? string.Empty : string.Empty,
                 NumRedirects = transfer.RedirectCount,
+                NumRetries = transfer.Options.RetryNumber,
                 FilenameEffective = writtenPath ?? string.Empty,
                 ProxyUsed = transfer.CurrentViaProxy,
             };

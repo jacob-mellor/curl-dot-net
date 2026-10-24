@@ -58,6 +58,59 @@ namespace CurlDotNet.Exceptions
             return match.Success ? SafeUrl(match.Value) : null;
         }
 
+        private static readonly Regex SecretOption = new Regex(
+            // --user/--proxy-user/--oauth2-bearer/--pass... VALUE (quoted or not)
+            @"(?<flag>(?:^|\s)(?:--user|--proxy-user|--oauth2-bearer|--pass|--proxy-pass|--proxy-tlspassword|--tlspassword)(?:\s+|=))(?<value>'[^']*'|""[^""]*""|\S+)" +
+            // -u/-U alone or at the end of a cluster of short options (-su, -fsSU), with the value next or attached (-uVALUE)
+            @"|(?<flag>(?:^|\s)-[a-z]*u\s+)(?<value>'[^']*'|""[^""]*""|\S+)" +
+            @"|(?<flag>(?:^|\s)-[a-z]*u)(?<value>[^\s-]\S*)" +
+            // secret header values: Authorization, Proxy-Authorization, Cookie, API keys
+            @"|(?<flag>(?:Proxy-)?Authorization\s*:\s*|Cookie\s*:\s*|X-Api-Key\s*:\s*|Api-Key\s*:\s*|X-Amz-Security-Token\s*:\s*)(?<value>[^'""\r\n]+)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex CookieString = new Regex(
+            // -b/--cookie NAME=VALUE strings (a value without '=' is a cookie file name, which is kept)
+            @"(?<flag>(?:^|\s)(?:-[A-Za-z]*b\s*|--cookie\s+))(?<value>'[^']*=[^']*'|""[^""]*=[^""]*""|[^\s'""-][^\s'""]*=\S*)", RegexOptions.CultureInvariant);
+
+        private static readonly Regex ProxyUserInfo = new Regex(
+            // -x/--proxy user:password@host written without a scheme (with a scheme, UrlPassword masks it)
+            @"(?<flag>(?:^|\s)(?:-[A-Za-z]*x\s*|--proxy\s+|--proxy1\.0\s+|--preproxy\s+|--socks4a?\s+|--socks5(?:-hostname)?\s+)['""]?)(?![A-Za-z][A-Za-z0-9+.-]*://)(?<user>[^\s:@'""/]+):[^\s@'""]*@",
+            RegexOptions.CultureInvariant);
+
+        private static readonly Regex CertPassword = new Regex(
+            @"(?<flag>(?:^|\s)(?:-[A-Za-z]*E\s*|--cert\s+|--proxy-cert\s+))(?<value>'[^']*'|""[^""]*""|[^\s-]\S*)", RegexOptions.CultureInvariant);
+
+        private static readonly Regex UrlPassword = new Regex(
+            @"(?<prefix>[A-Za-z][A-Za-z0-9+.-]*://[^/\s'""@:]*):[^/\s'""@]*@", RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// The command with every secret replaced by <c>***</c>, safe for logs and messages: the values of <c>-u</c>,
+        /// <c>-U</c>, <c>--oauth2-bearer</c>, <c>--pass</c>, <c>-b NAME=VALUE</c> cookie strings, the password part of
+        /// <c>--cert FILE:PASSWORD</c>, the values of
+        /// <c>Authorization</c>, <c>Proxy-Authorization</c>, <c>Cookie</c> and API-key headers, and the password of every
+        /// <c>scheme://user:password@host</c> URL (the user name stays, like <see cref="SafeUrl"/> drops only what is secret).
+        /// </summary>
+        public static string RedactCommand(string? command)
+        {
+            if (string.IsNullOrEmpty(command))
+            {
+                return string.Empty;
+            }
+
+            var text = SecretOption.Replace(command!, m => m.Groups["flag"].Value + "***");
+            text = CookieString.Replace(text, m => m.Groups["flag"].Value + "***");
+            text = ProxyUserInfo.Replace(text, "${flag}${user}:***@");
+            text = CertPassword.Replace(text, m =>
+            {
+                var value = m.Groups["value"].Value;
+                var quote = value.Length > 1 && (value[0] == '\'' || value[0] == '"') ? value[0].ToString() : string.Empty;
+                var inner = quote.Length > 0 ? value.Substring(1, value.Length - 2) : value;
+                var (file, password) = CurlDotNet.Core.CommandParser.SplitCertArgument(inner);
+                return password == null ? m.Value : m.Groups["flag"].Value + quote + file + ":***" + quote;
+            });
+            return UrlPassword.Replace(text, "${prefix}:***@");
+        }
+
         /// <summary>
         /// A one-line preview of <paramref name="text"/>, cut at <paramref name="max"/> characters with "...".
         /// </summary>

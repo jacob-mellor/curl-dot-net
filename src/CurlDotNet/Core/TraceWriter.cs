@@ -232,11 +232,11 @@ namespace CurlDotNet.Core
 
         private void WriteHeader(CurlOptions options)
         {
-            WriteLine("== Info: CurlDotNet trace started " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            WriteLine("== Info: CurlDotNet trace started " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture));
             WriteLine("== Info: Format: " + (_asciiOnly ? "ascii (--trace-ascii)" : "hex+ascii (--trace)"));
             if (!string.IsNullOrEmpty(options.OriginalCommand))
             {
-                WriteLine("== Info: Command: " + options.OriginalCommand);
+                WriteLine("== Info: Command: " + CurlDotNet.Exceptions.ErrorText.RedactCommand(options.OriginalCommand)); // credentials masked
             }
         }
 
@@ -352,7 +352,7 @@ namespace CurlDotNet.Core
         {
             if (_timestamps)
             {
-                _buffer.Append(DateTime.Now.ToString("HH:mm:ss.ffffff")).Append(' ');
+                _buffer.Append(DateTime.Now.ToString("HH:mm:ss.ffffff", System.Globalization.CultureInfo.InvariantCulture)).Append(' ');
             }
 
             _buffer.Append(line).Append('\n');

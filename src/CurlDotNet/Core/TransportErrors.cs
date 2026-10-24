@@ -57,7 +57,7 @@ namespace CurlDotNet.Core
                 if (problem != null)
                 {
                     throw problem.Value.Code == 1
-                        ? (CurlException)new CurlUnsupportedProtocolException(StatusLineOf(head.Text), problem.Value.Message, transfer.Options.OriginalCommand)
+                        ? (CurlException)new CurlUnsupportedProtocolException(ProtocolOf(head.Text), problem.Value.Message, transfer.Options.OriginalCommand)
                         : new CurlWeirdServerReplyException(WeirdMessage(problem.Value.Message, transfer), transfer.Options.OriginalCommand);
                 }
             }
@@ -159,6 +159,17 @@ namespace CurlDotNet.Core
         {
             var nl = text.IndexOf('\n');
             return (nl < 0 ? text : text.Substring(0, nl)).TrimEnd('\r');
+        }
+
+        /// <summary>
+        /// The protocol token a status line starts with (<c>HTTP/1.7</c> for <c>HTTP/1.7 200 OK</c>), which is what
+        /// <see cref="CurlUnsupportedProtocolException.Protocol"/> reports for a reply curl does not accept.
+        /// </summary>
+        private static string ProtocolOf(string text)
+        {
+            var line = StatusLineOf(text).Trim();
+            var space = line.IndexOfAny(new[] { ' ', '\t' });
+            return space < 0 ? line : line.Substring(0, space);
         }
 
         /// <summary>curl rejects chunked trailers that contain a NUL byte (exit 8).</summary>
@@ -351,12 +362,28 @@ namespace CurlDotNet.Core
             if (tls != null)
             {
                 var host = uri.Host;
-                var certificate = tls.Message.IndexOf("certificate", StringComparison.OrdinalIgnoreCase) >= 0;
+                var verification = transfer.Options.TlsVerification;
+                if (verification != null && verification.PinMismatch)
+                {
+                    return new CurlSslPinnedPublicKeyMismatchException(CurlException.Compose(
+                        $"the public key of {host} port {uri.Port} ({verification.PresentedPin}) matches none of the --pinnedpubkey pins",
+                        "If the server's key was rotated on purpose, pin the new key shown here (list old and new pins separated by ; during the change); " +
+                        "otherwise something between you and the server (a TLS-inspecting proxy) presented its own key.",
+                        DocLinks.Ssl), command);
+                }
+
+                var certificate = verification?.Failure != null || tls.Message.IndexOf("certificate", StringComparison.OrdinalIgnoreCase) >= 0;
+                var customTrust = !string.IsNullOrEmpty(transfer.Options.CaCertFile) || !string.IsNullOrEmpty(transfer.Options.CaPath);
+                var trustFix = customTrust && CurlTls.SupportsTrustAndClientCertificates
+                    ? "Check that --cacert/--capath holds the CA that issued this server's certificate (the root, or the intermediate it chains to); "
+                    : CurlTls.SupportsTrustAndClientCertificates
+                        ? "If the server uses a private or self-signed CA, trust it with --cacert ca.pem (or install it on this machine); "
+                        : "If the server uses a private or self-signed CA, install it in this machine's certificate store; ";
                 return certificate
                     ? (CurlException)new CurlPeerFailedVerificationException(CurlException.Compose(
-                        $"the TLS certificate of {host} port {uri.Port} was rejected ({InnermostMessage(ex)})",
-                        "If the server uses a private or self-signed CA, trust it with --cacert ca.pem; check that the URL's host matches the name in the " +
-                        "certificate and that this machine's clock is right. For local testing only, -k/--insecure skips the check.",
+                        $"the TLS certificate of {host} port {uri.Port} was rejected ({verification?.Failure ?? InnermostMessage(ex)})",
+                        trustFix + "check that the URL's host matches the name in the certificate and that this machine's clock is right. " +
+                        "For local testing only, -k/--insecure skips the check.",
                         DocLinks.Ssl), command)
                     : new CurlSslConnectErrorException(CurlException.Compose(
                         $"the TLS handshake with {host} port {uri.Port} failed ({InnermostMessage(ex)})",
@@ -469,7 +496,7 @@ namespace CurlDotNet.Core
                     if (problem != null)
                     {
                         return problem.Value.Code == 1
-                            ? (CurlException)new CurlUnsupportedProtocolException(StatusLineOf(text), problem.Value.Message, command)
+                            ? (CurlException)new CurlUnsupportedProtocolException(ProtocolOf(text), problem.Value.Message, command)
                             : new CurlWeirdServerReplyException(WeirdMessage(problem.Value.Message, transfer), command);
                     }
 
@@ -504,7 +531,7 @@ namespace CurlDotNet.Core
             if (problemFinal != null)
             {
                 return problemFinal.Value.Code == 1
-                    ? (CurlException)new CurlUnsupportedProtocolException(StatusLineOf(final.Text), problemFinal.Value.Message, command)
+                    ? (CurlException)new CurlUnsupportedProtocolException(ProtocolOf(final.Text), problemFinal.Value.Message, command)
                     : new CurlWeirdServerReplyException(WeirdMessage(problemFinal.Value.Message, transfer), command);
             }
 

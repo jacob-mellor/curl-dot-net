@@ -116,12 +116,12 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
-        public async Task EmptyUrl_FromOptions_IsNoUrlSpecifiedWithExitCode3()
+        public async Task EmptyUrl_FromOptions_IsNoUrlSpecifiedWithExitCode2()
         {
             Func<Task> act = () => Curl.ExecuteAsync(new CurlOptions { Url = string.Empty });
 
             var ex = (await act.Should().ThrowAsync<CurlException>()).Which;
-            ex.CurlErrorCode.Should().Be(3);
+            ex.CurlErrorCode.Should().Be(2);
             ex.WhatHappened.Should().StartWith("No URL specified");
             ExceptionMessageTests.AssertWhatFixLink(ex);
         }
@@ -195,7 +195,7 @@ namespace CurlDotNet.Tests
         {
             Action act = () => AwsSigV4Config.Parse(" ");
 
-            act.Should().Throw<ArgumentException>().Which.Message
+            act.Should().Throw<CurlInvalidCommandException>().Which.Message
                 .Should().Contain("aws:amz:us-east-1:s3").And.Contain("See https://github.com/jacob-mellor/curl-dot-net/");
         }
     }

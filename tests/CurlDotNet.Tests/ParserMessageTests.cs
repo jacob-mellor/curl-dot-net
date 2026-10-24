@@ -117,7 +117,7 @@ namespace CurlDotNet.Tests
         public void OnlyTheProgramName_IsNoUrl()
         {
             var ex = Fails<CurlException>("curl");
-            ex.CurlErrorCode.Should().Be(3);
+            ex.CurlErrorCode.Should().Be(2, "curl exits with 2 when no URL is given");
         }
 
         [Fact]

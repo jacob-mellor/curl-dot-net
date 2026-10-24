@@ -1818,6 +1818,90 @@ namespace CurlDotNet.Exceptions
             : base($"Peer certificate verification failed: {message}", null, command)
         {
         }
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion => CurlDotNet.Core.CurlTls.SupportsTrustAndClientCertificates
+            ? "Trust the issuing CA: install it on this machine, or pass it with --cacert ca.pem (a PEM bundle) or --capath DIR; use the host name the certificate was issued for, renew an expired certificate, or use -k/--insecure for local testing only."
+            : "Trust the issuing CA by installing it in this machine's certificate store (--cacert and --capath need .NET 5 or later); use the host name the certificate was issued for, renew an expired certificate, or use -k/--insecure for local testing only.";
+    }
+
+    /// <summary>
+    /// The CA bundle given with <c>--cacert</c> or the folder given with <c>--capath</c> could not be used (exit code 77,
+    /// CURLE_SSL_CACERT_BADFILE): it does not exist, cannot be read, or contains no certificate.
+    /// </summary>
+    /// <remarks>
+    /// <para>Thrown before connecting, when the transfer's TLS settings are built (.NET 5 or later; on .NET Standard 2.0 and
+    /// .NET Framework <c>--cacert</c> is listed in <see cref="CurlDotNet.Core.CurlOptions.UnsupportedOptions"/> instead).
+    /// Fixes: pass an existing PEM file with one or more <c>-----BEGIN CERTIFICATE-----</c> blocks, or a folder of such files.</para>
+    /// <para>Example: <c>catch (CurlSslCaCertBadFileException ex) { Console.WriteLine($"Bad CA bundle: {ex.FilePath}"); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlPeerFailedVerificationException"/>
+    /// <seealso cref="CurlDotNet.Core.CurlOptions.CaCertFile"/>
+    [Serializable]
+    public class CurlSslCaCertBadFileException : CurlSslException
+    {
+        /// <summary>
+        /// The <c>--cacert</c> file or <c>--capath</c> folder that could not be used, as given in the command.
+        /// </summary>
+        /// <value>A path such as <c>corp-ca.pem</c>.</value>
+        /// <remarks><para>Use <c>Path.GetFullPath(ex.FilePath)</c> to see where the process looked.</para></remarks>
+        /// <seealso cref="CurlDotNet.Core.CurlOptions.CaPath"/>
+        public string FilePath { get; }
+
+        /// <summary>
+        /// Creates the error (exit code 77) for an unusable CA bundle or folder.
+        /// </summary>
+        /// <remarks><para>Example: <c>throw new CurlSslCaCertBadFileException("ca.pem", "--cacert names \"ca.pem\", which does not exist", command);</c></para></remarks>
+        /// <param name="filePath">The <c>--cacert</c> file or <c>--capath</c> folder.</param>
+        /// <param name="message">What is wrong with it and how to fix it (newline-separated), optionally with a <c>See URL</c> line.</param>
+        /// <param name="command">The curl command that failed, or null.</param>
+        /// <seealso cref="CurlSslException"/>
+        public CurlSslCaCertBadFileException(string filePath, string message, string? command = null)
+            : base($"Problem with the CA cert (path? access rights?): {message}", null, command, 77) // CURLE_SSL_CACERT_BADFILE = 77
+        {
+            FilePath = filePath;
+        }
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion =>
+            "Pass an existing PEM file with -----BEGIN CERTIFICATE----- blocks to --cacert, or a folder of such files to --capath.";
+    }
+
+    /// <summary>
+    /// The server's public key did not match any <c>--pinnedpubkey</c> pin, or the pin value could not be read (exit code
+    /// 90, CURLE_SSL_PINNEDPUBKEYNOTMATCH).
+    /// </summary>
+    /// <remarks>
+    /// <para>Pins are checked after certificate verification and also with <c>-k</c>, like curl. A mismatch means the server
+    /// presented a different key than the one you pinned: the certificate was renewed with a new key, you reached another
+    /// server (a TLS-inspecting proxy, for example), or the pin is wrong. Fixes: pin the current key (the message shows the
+    /// presented <c>sha256//...</c> value), list the old and new pins separated by <c>;</c> during a key rotation, or check
+    /// the network path. Needs .NET 5 or later; on .NET Standard 2.0 and .NET Framework the option is listed in
+    /// <see cref="CurlDotNet.Core.CurlOptions.UnsupportedOptions"/>.</para>
+    /// <para>Example: <c>catch (CurlSslPinnedPublicKeyMismatchException ex) { alert.Send(ex.WhatHappened); }</c></para>
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md</para>
+    /// </remarks>
+    /// <seealso cref="CurlDotNet.Core.CurlOptions.PinnedPublicKey"/>
+    /// <seealso cref="CurlPeerFailedVerificationException"/>
+    [Serializable]
+    public class CurlSslPinnedPublicKeyMismatchException : CurlSslException
+    {
+        /// <summary>
+        /// Creates the pinned-key error (exit code 90).
+        /// </summary>
+        /// <remarks><para>Example: <c>throw new CurlSslPinnedPublicKeyMismatchException("the key of api.example.com matches no --pinnedpubkey pin", command);</c></para></remarks>
+        /// <param name="message">What did not match (or could not be read) and how to fix it, newline-separated.</param>
+        /// <param name="command">The curl command that failed, or null.</param>
+        /// <seealso cref="CurlSslException"/>
+        public CurlSslPinnedPublicKeyMismatchException(string message, string? command = null)
+            : base($"SSL public key does not match pinned public key: {message}", null, command, 90) // CURLE_SSL_PINNEDPUBKEYNOTMATCH = 90
+        {
+        }
+
+        /// <inheritdoc/>
+        protected override string? DefaultSuggestion =>
+            "Pin the key the server presents now (sha256//BASE64 of its public key), list old and new pins separated by ; during a key rotation, or check that no proxy intercepts TLS.";
     }
 
     /// <summary>

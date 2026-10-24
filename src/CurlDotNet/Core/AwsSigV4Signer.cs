@@ -22,6 +22,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
+using CurlDotNet.Exceptions;
 
 namespace CurlDotNet.Core
 {
@@ -131,8 +132,10 @@ namespace CurlDotNet.Core
         /// Must contain at least the first provider.</param>
         /// <returns>A new configuration whose <see cref="Provider1"/> is always set, <see cref="Provider2"/> defaults to
         /// it, and <see cref="Region"/>/<see cref="Service"/> are empty when not given (detected from the URL when signing).</returns>
-        /// <exception cref="ArgumentException"><paramref name="value"/> is null, empty or whitespace. Fix: pass at least
-        /// the provider, for example <c>--aws-sigv4 "aws:amz:us-east-1:s3"</c>. See
+        /// <exception cref="CurlDotNet.Exceptions.CurlInvalidCommandException"><paramref name="value"/> is null, empty or
+        /// whitespace, its first provider is empty (<c>:amz</c>), it has more than four parts, a part is longer than 64
+        /// characters, or it contains white space (exit code 2, like curl's "first aws-sigv4 provider cannot be empty").
+        /// Fix: pass at least the provider, for example <c>--aws-sigv4 "aws:amz:us-east-1:s3"</c>. See
         /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/cookbook/auth-schemes.md</exception>
         /// <example>
         /// <code language="csharp">
@@ -141,17 +144,36 @@ namespace CurlDotNet.Core
         /// </code>
         /// </example>
         /// <seealso cref="CurlOptions.AwsSigV4"/>
-        public static AwsSigV4Config Parse(string value)
+        public static AwsSigV4Config Parse(string value) => Parse(value, null);
+
+        /// <summary>Parses <paramref name="value"/>; a malformed value fails with exit code 2 naming <paramref name="command"/>.</summary>
+        internal static AwsSigV4Config Parse(string value, string? command)
         {
             if (string.IsNullOrWhiteSpace(value))
             {
-                throw new ArgumentException(CurlDotNet.Exceptions.CurlException.Compose(
-                    $"--aws-sigv4 was given {(value == null ? "no value" : "an empty value")}, but it needs at least a provider such as 'aws'.",
-                    "Pass provider1[:provider2[:region[:service]]], for example --aws-sigv4 \"aws:amz:us-east-1:s3\", together with -u ACCESS_KEY_ID:SECRET_ACCESS_KEY.",
-                    CurlDotNet.Exceptions.DocLinks.CookbookAuthSchemes), nameof(value));
+                throw Malformed($"--aws-sigv4 was given {(value == null ? "no value" : "an empty value")}, but it needs at least a provider such as 'aws'.", command);
+            }
+
+            if (value.Any(char.IsWhiteSpace))
+            {
+                throw Malformed($"--aws-sigv4 \"{value}\" contains white space; the value is provider1[:provider2[:region[:service]]] with no spaces.", command);
             }
 
             var parts = value.Split(':');
+            if (parts[0].Length == 0)
+            {
+                throw Malformed($"--aws-sigv4 \"{value}\": the first aws-sigv4 provider cannot be empty.", command);
+            }
+            if (parts.Length > 4)
+            {
+                throw Malformed($"--aws-sigv4 \"{value}\" has {parts.Length} colon-separated parts; curl reads at most four (provider1:provider2:region:service).", command);
+            }
+            var tooLong = parts.FirstOrDefault(p => p.Length > 64);
+            if (tooLong != null)
+            {
+                throw Malformed($"--aws-sigv4 \"{ErrorText.Preview(value, 80)}\": the part \"{ErrorText.Preview(tooLong, 20)}\" is longer than curl's 64-character limit.", command);
+            }
+
             var config = new AwsSigV4Config
             {
                 Provider1 = parts[0]
@@ -178,6 +200,13 @@ namespace CurlDotNet.Core
 
             return config;
         }
+
+        /// <summary>The exit-code-2 error for a <c>--aws-sigv4</c> value curl would reject, with the accepted format and a link.</summary>
+        private static CurlInvalidCommandException Malformed(string whatHappened, string? command) =>
+            new CurlInvalidCommandException(CurlException.Compose(
+                whatHappened,
+                "Pass provider1[:provider2[:region[:service]]], for example --aws-sigv4 \"aws:amz:us-east-1:s3\", together with -u ACCESS_KEY_ID:SECRET_ACCESS_KEY.",
+                DocLinks.CookbookAuthSchemes), 2, "--aws-sigv4", command);
     }
 
     /// <summary>

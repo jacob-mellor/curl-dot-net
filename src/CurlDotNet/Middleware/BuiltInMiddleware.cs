@@ -34,10 +34,12 @@ namespace CurlDotNet.Middleware
     /// <c>[CURL] Success: Status={StatusCode}, Time={ms}ms</c> or <c>[CURL] Failed: {exception message}, Time={ms}ms</c>.
     /// The time covers everything registered after this middleware (retries included). Failures are logged and
     /// rethrown unchanged.</para>
-    /// <para>The command text can contain secrets (<c>-u user:password</c>, <c>Authorization</c> headers added by
-    /// <see cref="AuthenticationMiddleware"/> when that runs first); write your own middleware that logs
-    /// <c>context.Options?.Url</c> for production logs. The instance holds no per-request state and is thread-safe
-    /// as long as your logger is.</para>
+    /// <para>Credentials in the command are masked before it is logged: the values of <c>-u</c>/<c>-U</c>,
+    /// <c>--oauth2-bearer</c> and <c>--pass</c>, the password of <c>--cert FILE:PASSWORD</c>, <c>Authorization</c>,
+    /// <c>Proxy-Authorization</c>, <c>Cookie</c> and API-key header values (including the bearer token
+    /// <see cref="AuthenticationMiddleware"/> adds) and URL passwords all appear as <c>***</c>. Other values (for example
+    /// a password inside <c>-d</c> form data) are logged as written. The instance holds no per-request state and is
+    /// thread-safe as long as your logger is.</para>
     /// <para>Example: <c>CurlMiddlewarePipeline.CreateBuilder().Use(new LoggingMiddleware(msg =&gt; logger.LogInformation(msg))).WithHandler(ctx =&gt; Curl.ExecuteAsync(ctx.Command)).Build();</c></para>
     /// <para>Structured logging (Serilog, Microsoft.Extensions.Logging) guide:
     /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/guides/logging-observability.md</para>
@@ -79,12 +81,13 @@ namespace CurlDotNet.Middleware
         /// <seealso cref="ICurlMiddleware.ExecuteAsync(CurlContext, Func{Task{CurlResult}})"/>
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
-            _logger($"[CURL] Executing: {context.Command}");
+            // never log credentials: -u/-U values, bearer tokens, Authorization/Cookie headers, URL passwords
+            _logger($"[CURL] Executing: {ErrorText.RedactCommand(context.Command)}");
             var startTime = DateTime.UtcNow;
 
             try
             {
-                var result = await next();
+                var result = await next().ConfigureAwait(false);
                 var elapsed = DateTime.UtcNow - startTime;
                 _logger($"[CURL] Success: Status={result.StatusCode}, Time={elapsed.TotalMilliseconds}ms");
                 return result;
@@ -186,7 +189,7 @@ namespace CurlDotNet.Middleware
             {
                 try
                 {
-                    var result = await next();
+                    var result = await next().ConfigureAwait(false);
 
                     // Check if HTTP error is retryable
                     if (result.StatusCode >= 500 || result.StatusCode == 429)
@@ -194,7 +197,7 @@ namespace CurlDotNet.Middleware
                         if (attempt < _maxRetries)
                         {
                             var delay = TimeSpan.FromMilliseconds(_initialDelay.TotalMilliseconds * Math.Pow(2, attempt));
-                            await MiddlewareDelay.WaitAsync(delay, context, $"RetryMiddleware was waiting {delay.TotalSeconds.ToString("0.###", CultureInfo.InvariantCulture)} s before retry {attempt + 1} of {_maxRetries} (the previous attempt returned HTTP {result.StatusCode})");
+                            await MiddlewareDelay.WaitAsync(delay, context, $"RetryMiddleware was waiting {delay.TotalSeconds.ToString("0.###", CultureInfo.InvariantCulture)} s before retry {attempt + 1} of {_maxRetries} (the previous attempt returned HTTP {result.StatusCode})").ConfigureAwait(false);
                             continue;
                         }
                     }
@@ -215,7 +218,7 @@ namespace CurlDotNet.Middleware
                     if (attempt < _maxRetries)
                     {
                         var delay = TimeSpan.FromMilliseconds(_initialDelay.TotalMilliseconds * Math.Pow(2, attempt));
-                        await MiddlewareDelay.WaitAsync(delay, context, $"RetryMiddleware was waiting {delay.TotalSeconds.ToString("0.###", CultureInfo.InvariantCulture)} s before retry {attempt + 1} of {_maxRetries} (the previous attempt failed with {ex.GetType().Name})");
+                        await MiddlewareDelay.WaitAsync(delay, context, $"RetryMiddleware was waiting {delay.TotalSeconds.ToString("0.###", CultureInfo.InvariantCulture)} s before retry {attempt + 1} of {_maxRetries} (the previous attempt failed with {ex.GetType().Name})").ConfigureAwait(false);
                         continue;
                     }
 
@@ -286,7 +289,7 @@ namespace CurlDotNet.Middleware
             var startTime = DateTime.UtcNow;
             context.Properties["TimingStart"] = startTime;
 
-            var result = await next();
+            var result = await next().ConfigureAwait(false);
 
             var endTime = DateTime.UtcNow;
             var duration = endTime - startTime;
@@ -367,7 +370,7 @@ namespace CurlDotNet.Middleware
             // Only cache GET requests
             if (context.Options?.Method != null && context.Options.Method != "GET")
             {
-                return await next();
+                return await next().ConfigureAwait(false);
             }
 
             var cacheKey = GetCacheKey(context);
@@ -380,7 +383,7 @@ namespace CurlDotNet.Middleware
             }
 
             // Execute and cache
-            var result = await next();
+            var result = await next().ConfigureAwait(false);
 
             if (result.IsSuccess)
             {
@@ -465,9 +468,12 @@ namespace CurlDotNet.Middleware
     /// and, when the command text does not already mention <c>Authorization</c>, appended to
     /// <see cref="CurlContext.Command"/> as <c>-H 'Authorization: Bearer &lt;token&gt;'</c>, so it works with handlers that
     /// send either the options or the command. A null or empty token sends the request without the header.</para>
-    /// <para>Exceptions thrown by your provider propagate unchanged and the request is not sent. Because the token ends up
-    /// in the command text, register logging that prints the command before this middleware, or not at all. The
-    /// middleware itself is stateless and thread-safe if your provider is.</para>
+    /// <para>Exceptions thrown by your provider propagate unchanged and the request is not sent. The token ends up in the
+    /// command text so that handlers which run <see cref="CurlContext.Command"/> send it; <see cref="LoggingMiddleware"/>
+    /// and the exception log helpers (<c>ToDetailedString</c>, <c>ToJson</c>, <c>GetDiagnosticInfo</c>) print it as
+    /// <c>Authorization: ***</c>, wherever the logging middleware sits in the pipeline. If your own code logs
+    /// <see cref="CurlContext.Command"/>, mask it the same way. The middleware itself is stateless and thread-safe if your
+    /// provider is.</para>
     /// <para>Example: <c>builder.UseAuthentication(async ctx =&gt; (await credential.GetTokenAsync(scopes, ctx.CancellationToken)).Token);</c></para>
     /// <para>Bearer token tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-bearer-token-csharp/README.md</para>
     /// </remarks>
@@ -515,7 +521,7 @@ namespace CurlDotNet.Middleware
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
             // Get token
-            var token = await _tokenProvider(context);
+            var token = await _tokenProvider(context).ConfigureAwait(false);
 
             if (!string.IsNullOrEmpty(token))
             {
@@ -539,7 +545,7 @@ namespace CurlDotNet.Middleware
                 }
             }
 
-            return await next();
+            return await next().ConfigureAwait(false);
         }
     }
 
@@ -610,11 +616,11 @@ namespace CurlDotNet.Middleware
         /// <seealso cref="RateLimitMiddleware"/>
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
-            await WaitIfNeeded(context);
+            await WaitIfNeeded(context).ConfigureAwait(false);
 
             try
             {
-                return await next();
+                return await next().ConfigureAwait(false);
             }
             finally
             {
@@ -647,7 +653,7 @@ namespace CurlDotNet.Middleware
             if (waitTime > TimeSpan.Zero)
             {
                 await MiddlewareDelay.WaitAsync(waitTime, context,
-                    $"RateLimitMiddleware was waiting {waitTime.TotalMilliseconds.ToString("0", CultureInfo.InvariantCulture)} ms for a slot under its limit of {_requestsPerSecond} requests per second");
+                    $"RateLimitMiddleware was waiting {waitTime.TotalMilliseconds.ToString("0", CultureInfo.InvariantCulture)} ms for a slot under its limit of {_requestsPerSecond} requests per second").ConfigureAwait(false);
             }
         }
 
@@ -717,7 +723,7 @@ namespace CurlDotNet.Middleware
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
             _modifier(context);
-            return await next();
+            return await next().ConfigureAwait(false);
         }
     }
 
@@ -769,8 +775,8 @@ namespace CurlDotNet.Middleware
         /// <seealso cref="ICurlMiddleware.ExecuteAsync(CurlContext, Func{Task{CurlResult}})"/>
         public async Task<CurlResult> ExecuteAsync(CurlContext context, Func<Task<CurlResult>> next)
         {
-            var result = await next();
-            return await _modifier(result);
+            var result = await next().ConfigureAwait(false);
+            return await _modifier(result).ConfigureAwait(false);
         }
     }
 

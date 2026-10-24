@@ -123,9 +123,10 @@ namespace CurlDotNet.Middleware
         /// <value>Any string the handler understands; null when the request is described only by <see cref="Options"/>.
         /// Default null.</value>
         /// <remarks>
-        /// <para><see cref="LoggingMiddleware"/> logs it, <see cref="CachingMiddleware"/> uses it as the cache key and
-        /// <see cref="AuthenticationMiddleware"/> appends <c>-H 'Authorization: Bearer ...'</c> to it. Because it can
-        /// contain credentials (<c>-u user:password</c>, bearer tokens), avoid logging it in production.</para>
+        /// <para><see cref="LoggingMiddleware"/> logs it with credentials masked (<c>-u user:***</c>, <c>Authorization: ***</c>,
+        /// URL passwords), <see cref="CachingMiddleware"/> uses it as the cache key and <see cref="AuthenticationMiddleware"/>
+        /// appends <c>-H 'Authorization: Bearer ...'</c> to it. The text itself still contains those credentials, so do not
+        /// log it yourself without masking.</para>
         /// <para>Example: <c>context.Command += " --compressed";</c> in a middleware makes the handler request gzip.</para>
         /// </remarks>
         /// <seealso cref="Options"/>

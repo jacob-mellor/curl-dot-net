@@ -170,7 +170,7 @@ namespace CurlDotNet.Core
                             $"No URL specified: the command \"{first}\" is only the program name.",
                             "Add the URL to fetch after it, for example \"curl https://example.com\".",
                             DocLinks.Url),
-                        3, command);
+                        2, command);
                 }
             }
 

@@ -474,6 +474,13 @@ namespace CurlDotNet.Core
                 {
                     handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
                 }
+                // --tlsv1.x / --tls-max; the trust store, client certificates, pins and ciphers need .NET 5+
+                // (the parser lists them in UnsupportedOptions on this build)
+                var protocols = CurlTls.MayUseTls(options) ? CurlTls.Protocols(options) : System.Security.Authentication.SslProtocols.None;
+                if (protocols != System.Security.Authentication.SslProtocols.None)
+                {
+                    handler.SslProtocols = protocols;
+                }
             }
             return handler;
 #else
@@ -500,7 +507,12 @@ namespace CurlDotNet.Core
             {
                 ApplyServerAuth(options, c => handler.Credentials = c);
                 handler.PreAuthenticate = false;
-                if (options.Insecure)
+                if (CurlTls.IsConfigured(options) && CurlTls.MayUseTls(options))
+                {
+                    // --cacert/--capath, --cert/--key, --pinnedpubkey, --tlsv1.x/--tls-max, --ciphers (and -k)
+                    CurlTls.Apply(handler.SslOptions, options);
+                }
+                else if (options.Insecure)
                 {
                     handler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, errors) => true;
                 }

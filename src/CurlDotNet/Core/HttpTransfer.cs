@@ -204,6 +204,7 @@ namespace CurlDotNet.Core
             }
 
             Cookies?.ApplyTo(request, hop);
+            ApplyCookieContainer(request, hop);
             Auth?.Apply(request, hop, plainProxy);
             ApplyExpect(request, hop);
             ApplyEtag(request, hop);
@@ -410,6 +411,7 @@ namespace CurlDotNet.Core
                 _lastResponseCloses = closes;
                 RememberHttpVersion(request.RequestUri!, response, closes);
 
+                StoreInCookieContainer(request.RequestUri!, response, exchange);
                 if (Cookies != null)
                 {
                     var heads = exchange.Heads;
@@ -434,6 +436,59 @@ namespace CurlDotNet.Core
             }
 
             return response;
+        }
+
+        /// <summary>
+        /// <see cref="CurlSettings.Cookies"/>: adds the container's cookies for the request URL to the <c>Cookie</c>
+        /// header the command already sends (joined with "; "), or sends them on their own.
+        /// </summary>
+        private static void ApplyCookieContainer(HttpRequestMessage request, CurlOptions hop)
+        {
+            var container = hop.CookieContainer;
+            if (container == null || request.RequestUri == null)
+            {
+                return;
+            }
+
+            var fromContainer = container.GetCookieHeader(request.RequestUri);
+            if (string.IsNullOrEmpty(fromContainer))
+            {
+                return;
+            }
+
+            var existing = request.Headers.TryGetValues("Cookie", out var values)
+                ? string.Join("; ", values.Where(v => !string.IsNullOrWhiteSpace(v)))
+                : string.Empty;
+            request.Headers.Remove("Cookie");
+            request.Headers.TryAddWithoutValidation("Cookie", existing.Length > 0 ? existing + "; " + fromContainer : fromContainer);
+        }
+
+        /// <summary>
+        /// <see cref="CurlSettings.Cookies"/>: stores every <c>Set-Cookie</c> of the response (interim and redirect
+        /// heads included) in the container; a cookie .NET cannot parse is skipped, as curl skips cookies it rejects.
+        /// </summary>
+        private void StoreInCookieContainer(Uri uri, HttpResponseMessage response, WireExchange exchange)
+        {
+            var container = HopOptions.CookieContainer;
+            if (container == null)
+            {
+                return;
+            }
+
+            IEnumerable<string> setCookies = exchange.Heads.Count > 0
+                ? exchange.Heads.SelectMany(h => h.GetHeaders("Set-Cookie")).ToList()
+                : (response.Headers.TryGetValues("Set-Cookie", out var values) ? values : Enumerable.Empty<string>());
+            foreach (var setCookie in setCookies)
+            {
+                try
+                {
+                    container.SetCookies(uri, setCookie);
+                }
+                catch (System.Net.CookieException)
+                {
+                    // rejected by .NET (bad domain, malformed attributes): curl drops such cookies too
+                }
+            }
         }
 
         /// <summary>The host name exactly as written in <paramref name="url"/> (case kept), or null.</summary>

@@ -151,7 +151,7 @@ namespace CurlDotNet.Lib
             var options = new CurlOptions { Url = url, Method = "GET" };
             MergeDefaults(options);
             configure?.Invoke(options);
-            return await RunAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -194,7 +194,7 @@ namespace CurlDotNet.Lib
             var options = CreateWithBody(url, "POST", data);
             MergeDefaults(options);
             configure?.Invoke(options);
-            return await RunAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -224,7 +224,7 @@ namespace CurlDotNet.Lib
             var options = CreateWithBody(url, "PUT", data);
             MergeDefaults(options);
             configure?.Invoke(options);
-            return await RunAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -254,7 +254,7 @@ namespace CurlDotNet.Lib
             var options = CreateWithBody(url, "PATCH", data);
             MergeDefaults(options);
             configure?.Invoke(options);
-            return await RunAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -280,7 +280,7 @@ namespace CurlDotNet.Lib
             var options = new CurlOptions { Url = url, Method = "DELETE" };
             MergeDefaults(options);
             configure?.Invoke(options);
-            return await RunAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -308,7 +308,7 @@ namespace CurlDotNet.Lib
             var options = new CurlOptions { Url = url, Method = "HEAD", HeadOnly = true };
             MergeDefaults(options);
             configure?.Invoke(options);
-            return await RunAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -343,7 +343,7 @@ namespace CurlDotNet.Lib
                     DocLinks.LibCurlMapping));
             }
             MergeDefaults(options);
-            return await RunAsync(options, cancellationToken);
+            return await RunAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         #endregion
@@ -756,7 +756,7 @@ namespace CurlDotNet.Lib
         {
             try
             {
-                return await _engine.ExecuteAsync(options, cancellationToken);
+                return await _engine.ExecuteAsync(options, cancellationToken).ConfigureAwait(false);
             }
             catch (CurlAbortedByCallbackException ex) when (cancellationToken.IsCancellationRequested)
             {

@@ -595,7 +595,7 @@ namespace CurlDotNet.Core
                         $"No URL specified: the command \"{first}\" is only the program name.",
                         "Add the URL to fetch after it, for example \"curl https://example.com\".",
                         DocLinks.Url),
-                    3);
+                    2);
             }
 
             return rest;
@@ -1292,11 +1292,17 @@ namespace CurlDotNet.Core
                 SetRequestKind(options, RequestKind.MimePost, $"multipart POST ({(typed == "--form" ? "-F, --form" : "--form-string")})");
             }
 
-            if (!ProcessOption(typed, value, options, ref methodSpecified))
+            if (!ProcessOption(typed, value, options, ref methodSpecified) && !IsAppliedProxyShaping(typed))
             {
                 options.UnsupportedOptions.Add(typed);
             }
         }
+
+        /// <summary>
+        /// Options that only <see cref="RecordProxyRequestShaping"/> handles, and that are applied from there
+        /// (<c>--proxy-header</c> lines go on proxy requests, <c>--no-proxytunnel</c> turns the tunnel off).
+        /// </summary>
+        private static bool IsAppliedProxyShaping(string typed) => typed == "--proxy-header" || typed == "--no-proxytunnel";
 
         /// <summary>
         /// Remembers the proxy options that change the request itself (curl adds
@@ -1312,6 +1318,7 @@ namespace CurlDotNet.Core
                     break;
                 case "--no-proxytunnel":
                     options.ProxyTunnelRequested = false;
+                    options.ProxyTunnel = false;
                     break;
                 case "--noproxy":
                     options.NoProxyHosts = value;
@@ -1565,18 +1572,17 @@ namespace CurlDotNet.Core
 
                 case "--max-time":
                     // curl accepts decimal seconds here (e.g. --max-time 2.5)
-                    if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var maxTime))
-                        options.MaxTime = maxTime;
+                    options.MaxTime = ParseSecondsOption(value, "-m/--max-time", options.OriginalCommand);
                     return true;
 
                 case "--connect-timeout":
-                    if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var connectTimeout))
-                        options.ConnectTimeout = connectTimeout;
+                    options.ConnectTimeout = ParseSecondsOption(value, "--connect-timeout", options.OriginalCommand);
                     return true;
 
                 case "--max-redirs":
-                    if (int.TryParse(value, out var maxRedirects))
-                        options.MaxRedirects = maxRedirects;
+                    // -1 means "no limit", like curl
+                    options.MaxRedirects = (int)ParseWholeNumberOption(value, "--max-redirs", -1, options.OriginalCommand,
+                        "a whole number of redirects, or -1 for no limit (for example --max-redirs 5)");
                     return true;
 
                 case "--max-filesize":
@@ -1616,19 +1622,70 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--cert":
-                    options.CertFile = value;
+                    (options.CertFile, options.CertPassword) = SplitCertArgument(value);
+                    RecordUnlessTlsTrustSupported(options, option);
                     return true;
 
                 case "--key":
                     options.KeyFile = value;
+                    RecordUnlessTlsTrustSupported(options, option);
+                    return true;
+
+                case "--cert-type":
+                    options.CertType = value;
+                    return true;
+
+                case "--key-type":
+                    options.KeyType = value;
+                    if (!string.Equals(value, "PEM", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.UnsupportedOptions.Add(option); // only PEM keys are read
+                    }
+                    return true;
+
+                case "--pass":
+                    options.KeyPassword = value;
                     return true;
 
                 case "--cacert":
                     options.CaCertFile = value;
+                    RecordUnlessTlsTrustSupported(options, option);
+                    return true;
+
+                case "--capath":
+                    options.CaPath = value;
+                    RecordUnlessTlsTrustSupported(options, option);
+                    return true;
+
+                case "--pinnedpubkey":
+                    options.PinnedPublicKey = value;
+                    RecordUnlessTlsTrustSupported(options, option);
+                    return true;
+
+                case "--tlsv1":
+                case "--tlsv1.0":
+                    options.TlsMinVersion = "1.0";
+                    return true;
+
+                case "--tlsv1.1":
+                case "--tlsv1.2":
+                case "--tlsv1.3":
+                    options.TlsMinVersion = option.Substring("--tlsv".Length);
+                    return true;
+
+                case "--tls-max":
+                    options.TlsMaxVersion = CurlTls.ParseMaxVersion(value, options.OriginalCommand);
+                    return true;
+
+                case "--ciphers":
+                case "--tls13-ciphers":
+                    ApplyCiphers(options, option, value);
                     return true;
 
                 case "--interface":
+                    // binding to an interface is not possible through HttpClient's connection layer
                     options.Interface = value;
+                    options.UnsupportedOptions.Add(option);
                     return true;
 
                 case "--http1.0":
@@ -1695,13 +1752,17 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--limit-rate":
+                    options.LimitRate = ParseRateOption(value, "--limit-rate", options.OriginalCommand);
+                    return true;
+
                 case "--speed-limit":
-                    options.SpeedLimit = ParseSize(value);
+                    options.SpeedLimit = ParseWholeNumberOption(value, "-Y/--speed-limit", 0, options.OriginalCommand,
+                        "a whole number of bytes per second (for example --speed-limit 1000)", long.MaxValue);
                     return true;
 
                 case "--speed-time":
-                    if (int.TryParse(value, out var speedTime))
-                        options.SpeedTime = speedTime;
+                    options.SpeedTime = (int)ParseWholeNumberOption(value, "-y/--speed-time", 0, options.OriginalCommand,
+                        "a whole number of seconds (for example --speed-time 30)");
                     return true;
 
                 case "--progress-bar":
@@ -1714,7 +1775,9 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--dns-servers":
+                    // names are resolved by the operating system; --resolve pins a name instead
                     options.DnsServers = value;
+                    options.UnsupportedOptions.Add(option);
                     return true;
 
                 case "--resolve":
@@ -1726,7 +1789,9 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--quote":
+                    // the .NET FTP client cannot send raw commands
                     options.Quote.Add(value);
+                    options.UnsupportedOptions.Add(option);
                     return true;
 
                 case "--create-dirs":
@@ -1742,11 +1807,14 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--disable-epsv":
+                    // the .NET FTP client chooses its own data-connection commands
                     options.DisableEpsv = true;
+                    options.UnsupportedOptions.Add(option);
                     return true;
 
                 case "--disable-eprt":
                     options.DisableEprt = true;
+                    options.UnsupportedOptions.Add(option);
                     return true;
 
                 case "--socks5":
@@ -1762,13 +1830,12 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--retry":
-                    if (int.TryParse(value, out var retry))
-                        options.Retry = retry;
+                    options.Retry = (int)ParseWholeNumberOption(value, "--retry", 0, options.OriginalCommand,
+                        "a whole number of retries (for example --retry 3)");
                     return true;
 
                 case "--retry-delay":
-                    if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var retryDelay))
-                        options.RetryDelay = retryDelay;
+                    options.RetryDelay = ParseSecondsOption(value, "--retry-delay", options.OriginalCommand);
                     return true;
 
                 case "--retry-all-errors":
@@ -1780,8 +1847,8 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--retry-max-time":
-                    if (int.TryParse(value, out var retryMaxTime))
-                        options.RetryMaxTime = retryMaxTime;
+                    // whole seconds are stored; a fraction rounds up so the limit is never shorter than asked
+                    options.RetryMaxTime = (int)Math.Min(int.MaxValue, Math.Ceiling(ParseSecondsOption(value, "--retry-max-time", options.OriginalCommand)));
                     return true;
 
                 case "--location-trusted":
@@ -1790,7 +1857,7 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--aws-sigv4":
-                    options.AwsSigV4 = AwsSigV4Config.Parse(value);
+                    options.AwsSigV4 = AwsSigV4Config.Parse(value, options.OriginalCommand);
                     return true;
             }
 
@@ -1873,14 +1940,9 @@ namespace CurlDotNet.Core
             // Handle header from file (@file)
             if (header.StartsWith("@"))
             {
+                // curl reads one header per line from the file; a missing or unreadable file (or "-",
+                // standard input, which a library does not have) fails with exit code 26 like curl
                 var path = header.Substring(1);
-                if (path == "-" || !File.Exists(path))
-                {
-                    // Store as special header indicating an unread file source; it is never sent
-                    options.Headers[header] = "";
-                    return;
-                }
-
                 foreach (var line in ReadAllLinesForOption(path, "-H @file", options.OriginalCommand))
                 {
                     if (line.Trim().Length > 0)
@@ -2084,38 +2146,6 @@ namespace CurlDotNet.Core
 
         private static bool IsPort(string text) =>
             text.Length > 0 && text.Length <= 5 && text.All(char.IsDigit) && int.Parse(text, CultureInfo.InvariantCulture) <= 65535;
-
-        private long ParseSize(string size)
-        {
-            if (string.IsNullOrEmpty(size))
-                return 0;
-
-            var multiplier = 1L;
-            var value = size;
-
-            if (size.EndsWith("k", StringComparison.OrdinalIgnoreCase))
-            {
-                multiplier = 1024;
-                value = size.Substring(0, size.Length - 1);
-            }
-            else if (size.EndsWith("m", StringComparison.OrdinalIgnoreCase))
-            {
-                multiplier = 1024 * 1024;
-                value = size.Substring(0, size.Length - 1);
-            }
-            else if (size.EndsWith("g", StringComparison.OrdinalIgnoreCase))
-            {
-                multiplier = 1024 * 1024 * 1024;
-                value = size.Substring(0, size.Length - 1);
-            }
-
-            if (long.TryParse(value, out var num))
-            {
-                return num * multiplier;
-            }
-
-            return 0;
-        }
 
         /// <summary>
         /// Applies curl's <c>--data-urlencode</c> rules to one argument:
@@ -2321,6 +2351,131 @@ namespace CurlDotNet.Core
 
         /// <summary>Parses <c>--max-filesize</c>: bytes, or a number with a k/M/G/T/P suffix.</summary>
         /// <exception cref="CurlException">Exit code 2 when the value is not a size.</exception>
+        /// <summary>
+        /// curl's <c>--cert FILE[:PASSWORD]</c>: the first colon that is not escaped (<c>\:</c>) and not part of a Windows
+        /// drive letter (<c>C:\</c>) separates the file from the password.
+        /// </summary>
+        internal static (string File, string? Password) SplitCertArgument(string value)
+        {
+            var file = new StringBuilder();
+            var start = value.Length >= 3 && char.IsLetter(value[0]) && value[1] == ':' && (value[2] == '\\' || value[2] == '/') ? 2 : 0;
+            file.Append(value, 0, start);
+            for (var i = start; i < value.Length; i++)
+            {
+                var c = value[i];
+                if (c == '\\' && i + 1 < value.Length && value[i + 1] == ':')
+                {
+                    file.Append(':');
+                    i++;
+                    continue;
+                }
+                if (c == ':')
+                {
+                    return (file.ToString(), value.Substring(i + 1));
+                }
+                file.Append(c);
+            }
+            return (file.ToString(), null);
+        }
+
+        /// <summary>
+        /// Records <paramref name="option"/> in <see cref="CurlOptions.UnsupportedOptions"/> on builds that cannot apply a
+        /// private trust store, client certificates or key pins (.NET Standard 2.0, .NET Framework).
+        /// </summary>
+        private static void RecordUnlessTlsTrustSupported(CurlOptions options, string option)
+        {
+            if (!CurlTls.SupportsTrustAndClientCertificates)
+            {
+                options.UnsupportedOptions.Add(option);
+            }
+        }
+
+        /// <summary>
+        /// <c>--ciphers</c> / <c>--tls13-ciphers</c>: kept in <see cref="CurlOptions.Ciphers"/> when every name is an IANA
+        /// cipher suite name and the platform lets a client choose suites; otherwise recorded as unsupported.
+        /// </summary>
+        private static void ApplyCiphers(CurlOptions options, string option, string value)
+        {
+#if NETSTANDARD2_0 || NET472 || NET48
+            options.UnsupportedOptions.Add(option);
+#else
+            if (!CurlTls.TryParseCipherSuites(value, out _) || !CurlTls.PlatformSupportsCipherPolicy())
+            {
+                options.UnsupportedOptions.Add(option);
+                return;
+            }
+            options.Ciphers = string.IsNullOrEmpty(options.Ciphers) ? value : options.Ciphers + ":" + value;
+#endif
+        }
+
+        /// <summary>
+        /// curl's str2udouble for a seconds option (<c>-m</c>, <c>--connect-timeout</c>, <c>--retry-delay</c>,
+        /// <c>--retry-max-time</c>): a non-negative number, decimals allowed. Anything else fails with exit code 2
+        /// ("expected a proper numerical parameter"), naming the option and the accepted format.
+        /// </summary>
+        internal static double ParseSecondsOption(string value, string option, string? command)
+        {
+            var text = (value ?? string.Empty).Trim();
+            // strtod-like: decimals, exponents (1e2) and a leading + are fine; negative values are not
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds)
+                && seconds >= 0 && !double.IsInfinity(seconds) && !double.IsNaN(seconds))
+            {
+                return seconds;
+            }
+
+            var negative = double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedSeconds) && parsedSeconds < 0;
+            throw new CurlException(
+                CurlException.Compose(
+                    $"option {option}: expected a {(negative ? "positive" : "proper")} numerical parameter, but got \"{value}\".",
+                    $"Give {option} a number of seconds, decimals allowed and written with a dot (for example {(option.IndexOf('/') >= 0 ? option.Substring(option.IndexOf('/') + 1) : option)} 2.5).",
+                    DocLinks.Timeout),
+                2,
+                command);
+        }
+
+        /// <summary>
+        /// curl's str2num/str2unum for a counting option (<c>--retry</c>, <c>--max-redirs</c>, <c>--speed-*</c>):
+        /// a whole number not below <paramref name="minimum"/>; anything else fails with exit code 2.
+        /// </summary>
+        internal static long ParseWholeNumberOption(string value, string option, long minimum, string? command, string format, long maximum = int.MaxValue)
+        {
+            var text = (value ?? string.Empty).Trim();
+            if (long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var number) && number >= minimum
+                && number <= maximum)
+            {
+                return number;
+            }
+
+            var tooSmall = long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var parsed) && parsed < minimum;
+            throw new CurlException(
+                CurlException.Compose(
+                    $"option {option}: expected a {(tooSmall ? "positive" : "proper")} numerical parameter, but got \"{value}\".",
+                    $"Give {option} {format}.",
+                    DocLinks.CliCompatibility),
+                2,
+                command);
+        }
+
+        /// <summary>
+        /// curl's <c>--limit-rate</c> value: bytes per second as a whole number with an optional k, M, G, T or P
+        /// suffix (powers of 1024); anything else fails with exit code 2.
+        /// </summary>
+        private static long ParseRateOption(string value, string option, string? command)
+        {
+            if (RequestShaping.TryParseSize(value, out var rate))
+            {
+                return rate;
+            }
+
+            throw new CurlException(
+                CurlException.Compose(
+                    $"option {option}: \"{value}\" is not a transfer rate: it expects a whole number of bytes per second, optionally with a k, M, G, T or P suffix.",
+                    $"Write it as, for example, {option} 100k (100 KB per second) or {option} 2M.",
+                    DocLinks.CliCompatibility),
+                2,
+                command);
+        }
+
         private static long ParseMaxFileSize(string value, string? command)
         {
             if (RequestShaping.TryParseSize(value, out var size))

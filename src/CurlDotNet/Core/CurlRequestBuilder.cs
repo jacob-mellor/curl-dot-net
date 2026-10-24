@@ -1373,6 +1373,11 @@ namespace CurlDotNet.Core
         /// form of <see cref="ExecuteAsync(CancellationToken)"/> for console apps, scripts and tests.
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>Prefer <see cref="ExecuteAsync(CancellationToken)"/> in ASP.NET, UI and other async code: blocking
         /// a thread pool or UI thread on network I/O wastes threads and can freeze the UI.</para>
         /// <para>Example: <c>var result = CurlRequestBuilder.Get("https://api.example.com/health").Execute(); Console.WriteLine(result.StatusCode);</c></para>
@@ -1443,7 +1448,7 @@ namespace CurlDotNet.Core
             try
             {
                 _options.OriginalCommand = ToCurlCommand();
-                return await engine.ExecuteAsync(_options, cancellationToken);
+                return await engine.ExecuteAsync(_options, cancellationToken).ConfigureAwait(false);
             }
             finally
             {
@@ -1458,10 +1463,11 @@ namespace CurlDotNet.Core
         /// <remarks>
         /// <para>Applied from <paramref name="settings"/>: <c>MaxTimeSeconds</c> (like <see cref="WithTimeout"/>),
         /// <c>ConnectTimeoutSeconds</c>, <c>FollowRedirects</c>, <c>Insecure</c>, <c>Headers</c> (added or replacing by
-        /// name), <c>OnProgress</c> (called for every chunk of the body with percent or -1, bytes received and
-        /// total bytes or -1) and <c>RetryCount</c>/<c>RetryDelayMs</c> (retry any failure). Settings that are not set
-        /// leave the builder's values alone. After the call the builder is restored, so the same builder can be
-        /// executed again without the settings.</para>
+        /// name), <c>UserAgent</c>, <c>Proxy</c>, <c>Cookies</c>, <c>OnRedirect</c>, <c>AutomaticDecompression</c> and
+        /// <c>BufferSize</c> (when set), <c>OnProgress</c> (called for every chunk of the body with percent or -1, bytes
+        /// received and total bytes or -1) and <c>RetryCount</c>/<c>RetryDelayMs</c> (retry any failure). Settings that
+        /// are not set leave the builder's values alone. The settings are applied to a copy of the builder's options
+        /// (<see cref="CurlOptions.Clone"/>), so the same builder can be executed again without them.</para>
         /// <para>Cancellation: <paramref name="cancellationToken"/> wins when it can be cancelled; otherwise
         /// <c>settings.CancellationToken</c> is used.</para>
         /// <para>Example, a download with a progress bar: <c>await CurlRequestBuilder.Get("https://example.com/big.zip").SaveToFile("big.zip").ExecuteAsync(new CurlSettings().WithProgress((pct, got, total) =&gt; Console.Write($"\r{pct:F0}%")).WithRetries(3));</c></para>
@@ -1484,25 +1490,21 @@ namespace CurlDotNet.Core
         public async Task<CurlResult> ExecuteAsync(CurlSettings settings, CancellationToken cancellationToken = default)
         {
             var engine = new CurlEngine();
-            // The settings apply to this call only: remember what they may change and put it back afterwards
-            var saved = (_options.MaxTime, _options.ConnectTimeout, _options.FollowLocation, _options.Insecure,
-                new Dictionary<string, string>(_options.Headers, StringComparer.OrdinalIgnoreCase), _options.ProgressHandler,
-                _options.Retry, _options.RetryDelay, _options.RetryAllErrors);
             try
             {
                 _options.OriginalCommand = ToCurlCommand();
+                // The settings apply to this call only: they change a copy, never the builder
+                var options = _options;
                 if (settings != null)
                 {
-                    CurlEngine.ApplySettings(_options, settings);
+                    options = _options.Clone();
+                    CurlEngine.ApplySettings(options, settings);
                 }
                 var token = cancellationToken.CanBeCanceled ? cancellationToken : (settings?.CancellationToken ?? CancellationToken.None);
-                return await engine.ExecuteAsync(_options, token);
+                return await engine.ExecuteAsync(options, token).ConfigureAwait(false);
             }
             finally
             {
-                (_options.MaxTime, _options.ConnectTimeout, _options.FollowLocation, _options.Insecure,
-                    _options.Headers, _options.ProgressHandler,
-                    _options.Retry, _options.RetryDelay, _options.RetryAllErrors) = saved;
                 engine.Dispose();
             }
         }

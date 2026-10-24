@@ -44,7 +44,7 @@ namespace CurlDotNet.Extensions
         /// <seealso cref="CurlDotNet.Curl.ExecuteAsync(string)"/>
         public static async Task<CurlResult> CurlAsync(this string command)
         {
-            return await CurlDotNet.Curl.ExecuteAsync(command);
+            return await CurlDotNet.Curl.ExecuteAsync(command).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace CurlDotNet.Extensions
         /// <seealso cref="CurlDotNet.Curl.ExecuteAsync(string, CancellationToken)"/>
         public static async Task<CurlResult> CurlAsync(this string command, CancellationToken cancellationToken)
         {
-            return await CurlDotNet.Curl.ExecuteAsync(command, cancellationToken);
+            return await CurlDotNet.Curl.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace CurlDotNet.Extensions
         {
             RequireUrl(url, nameof(CurlGetAsync));
             var command = url.StartsWith("curl ") ? url : $"curl {url}";
-            return await CurlDotNet.Curl.ExecuteAsync(command);
+            return await CurlDotNet.Curl.ExecuteAsync(command).ConfigureAwait(false);
         }
 
         private static void RequireUrl(string url, string method)
@@ -137,7 +137,7 @@ namespace CurlDotNet.Extensions
                 OriginalCommand = $"curl -X POST -H 'Content-Type: application/json' -d {CurlDotNet.Core.CommandParser.ShellQuote(json)} {CurlDotNet.Core.CommandParser.ShellQuoteIfNeeded(url)}"
             };
             options.Headers["Content-Type"] = "application/json";
-            return await CurlDotNet.Curl.ExecuteAsync(options);
+            return await CurlDotNet.Curl.ExecuteAsync(options).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -162,7 +162,7 @@ namespace CurlDotNet.Extensions
         /// <seealso cref="CurlResult.SaveToFile(string)"/>
         public static async Task<CurlResult> CurlDownloadAsync(this string url, string outputFile)
         {
-            return await CurlDotNet.Curl.DownloadAsync(url, outputFile);
+            return await CurlDotNet.Curl.DownloadAsync(url, outputFile).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -170,8 +170,13 @@ namespace CurlDotNet.Extensions
         /// <see cref="CurlAsync(string)"/>, for console tools and scripts.
         /// </summary>
         /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
         /// <para>Blocks the calling thread; in ASP.NET, UI or other async code use <see cref="CurlAsync(string)"/> to avoid
-        /// thread-pool starvation and deadlocks.</para>
+        /// thread-pool starvation.</para>
         /// <para>Example: <c>var result = "curl -s https://api.github.com/zen".Curl(); Console.WriteLine(result.Body);</c></para>
         /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-synchronously-in-csharp/README.md</para>
         /// </remarks>
@@ -205,7 +210,7 @@ namespace CurlDotNet.Extensions
         /// <seealso cref="CurlResult.Body"/>
         public static async Task<string> CurlBodyAsync(this string url)
         {
-            var result = await url.CurlGetAsync();
+            var result = await url.CurlGetAsync().ConfigureAwait(false);
             return result.Body;
         }
     }

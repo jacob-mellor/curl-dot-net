@@ -611,12 +611,12 @@ namespace CurlDotNet.Core
                         File.WriteAllBytes(filePath, BinaryData);
                     else
                         File.WriteAllText(filePath, Body ?? "");
-                });
+                }).ConfigureAwait(false);
 #else
                 if (BinaryData != null)
-                    await File.WriteAllBytesAsync(filePath, BinaryData);
+                    await File.WriteAllBytesAsync(filePath, BinaryData).ConfigureAwait(false);
                 else
-                    await File.WriteAllTextAsync(filePath, Body ?? "");
+                    await File.WriteAllTextAsync(filePath, Body ?? "").ConfigureAwait(false);
 #endif
             }
             catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException
@@ -999,7 +999,7 @@ namespace CurlDotNet.Core
             if (string.IsNullOrEmpty(Command))
                 throw new InvalidOperationException(NoCommandMessage(nameof(Retry)));
 
-            return await Curl.ExecuteAsync(Command);
+            return await Curl.ExecuteAsync(Command).ConfigureAwait(false);
         }
 
         private string NoCommandMessage(string method) => CurlException.Compose(
@@ -1042,7 +1042,7 @@ namespace CurlDotNet.Core
 
             var settings = new CurlSettings();
             configure(settings);
-            return await Curl.ExecuteAsync(Command, settings);
+            return await Curl.ExecuteAsync(Command, settings).ConfigureAwait(false);
         }
 
         #endregion

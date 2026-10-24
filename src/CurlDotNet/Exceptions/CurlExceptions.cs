@@ -601,12 +601,13 @@ namespace CurlDotNet.Exceptions
                 case 56: return "Receiving the response failed; check the network connection and retry (--retry).";
                 case 58: return "Check the client certificate and key given with --cert/--key (path, format and password).";
                 case 59: return "Use a cipher list (--ciphers) that the server and this platform both support.";
-                case 60: return "The server certificate is not trusted; install the issuing CA (--cacert), fix the server certificate, or use -k/--insecure for testing only.";
+                case 60: return "The server certificate is not trusted; install the issuing CA (or pass it with --cacert on .NET 5+), fix the server certificate, or use -k/--insecure for testing only.";
                 case 61: return "The response encoding could not be decoded; drop --compressed or check the server's Content-Encoding header.";
                 case 63: return "Raise --max-filesize, or download a smaller resource.";
                 case 64: return "The server does not support the TLS level required by --ssl-reqd; use a server that supports TLS or drop the option.";
                 case 67: return "The login was rejected; check the user name and password (-u user:password).";
                 case 77: return "Check the CA certificate file or folder given with --cacert/--capath.";
+                case 90: return "The server's public key matches no --pinnedpubkey pin; pin the current key or check that no proxy intercepts TLS.";
                 case 94: return "The authentication exchange failed; check the credentials and the scheme (--basic, --digest, --ntlm).";
                 case 100: return "The server sent more header data than curl accepts; this is a server problem.";
                 default: return $"See the curl exit code {code} entry in the linked documentation for the cause and the fix.";
@@ -739,8 +740,10 @@ namespace CurlDotNet.Exceptions
         /// </summary>
         /// <remarks>
         /// <para>Use it where a human will read the log later; use <see cref="ToJson"/> for structured logging and
-        /// <see cref="ToUserFriendlyMessage"/> for end users. The command is printed as-is, so mask secrets first if the log
-        /// is shared. <see cref="CurlHttpException"/> adds the status, headers and body.</para>
+        /// <see cref="ToUserFriendlyMessage"/> for end users. Credentials in the command (<c>-u</c>/<c>-U</c> values, bearer
+        /// tokens, <c>Authorization</c>/<c>Cookie</c> header values, URL passwords) are printed as <c>***</c>; the
+        /// <see cref="Command"/> property itself keeps the original text. <see cref="CurlHttpException"/> adds the status,
+        /// headers and body.</para>
         /// <para>Example: <c>catch (CurlException ex) { logger.LogError(ex.ToDetailedString()); }</c></para>
         /// </remarks>
         /// <returns>A string that starts with <c>=== CURL EXCEPTION DETAILS ===</c> and has one labelled line per fact.</returns>
@@ -757,7 +760,7 @@ namespace CurlDotNet.Exceptions
                 sb.AppendLine($"Documentation: {DocumentationUrl}");
 
             if (!string.IsNullOrEmpty(Command))
-                sb.AppendLine($"Command: {Command}");
+                sb.AppendLine($"Command: {ErrorText.RedactCommand(Command)}");
 
             if (CurlErrorCode.HasValue)
             {
@@ -817,7 +820,7 @@ namespace CurlDotNet.Exceptions
                 ["message"] = Message,
                 ["whatHappened"] = WhatHappened,
                 ["documentationUrl"] = DocumentationUrl,
-                ["command"] = Command,
+                ["command"] = Command == null ? null : ErrorText.RedactCommand(Command),
                 ["curlErrorCode"] = CurlErrorCode,
                 ["curlErrorName"] = GetCurlErrorName(),
                 ["context"] = Context,
@@ -853,7 +856,7 @@ namespace CurlDotNet.Exceptions
             {
                 ["ExceptionType"] = GetType().FullName,
                 ["Message"] = Message,
-                ["Command"] = Command ?? "N/A",
+                ["Command"] = Command == null ? "N/A" : ErrorText.RedactCommand(Command),
                 ["CurlErrorCode"] = CurlErrorCode?.ToString() ?? "N/A",
                 ["CurlErrorName"] = GetCurlErrorName(),
                 ["Timestamp"] = DateTime.UtcNow.ToString("O"),
@@ -917,6 +920,8 @@ namespace CurlDotNet.Exceptions
                 61 => "CURLE_BAD_CONTENT_ENCODING",
                 63 => "CURLE_FILESIZE_EXCEEDED",
                 67 => "CURLE_LOGIN_DENIED",
+                77 => "CURLE_SSL_CACERT_BADFILE",
+                90 => "CURLE_SSL_PINNEDPUBKEYNOTMATCH",
                 94 => "CURLE_AUTH_ERROR",
                 100 => "CURLE_TOO_LARGE",
                 _ => $"CURLE_UNKNOWN_{CurlErrorCode}"
@@ -1095,7 +1100,7 @@ namespace CurlDotNet.Exceptions
         /// <param name="invalidPart">The specific option or value that is invalid, or null.</param>
         /// <param name="command">The full curl command that failed, or null.</param>
         /// <seealso cref="CurlOptionSyntaxException"/>
-        protected CurlInvalidCommandException(string message, int curlErrorCode, string invalidPart, string command)
+        protected internal CurlInvalidCommandException(string message, int curlErrorCode, string invalidPart, string command)
             : base(message, curlErrorCode, command)
         {
             InvalidPart = invalidPart;

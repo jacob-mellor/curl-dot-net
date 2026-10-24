@@ -108,7 +108,7 @@ namespace CurlDotNet.Core
                         "(-H, -d, -o and -u need a value right after them), a quote may never be closed, or the command was written for another shell " +
                         "(pass the matching CurlFlavor, such as CurlFlavor.WindowsCmd or CurlFlavor.PowerShell).",
                         DocLinks.HowToFlavors),
-                    "URL", originalCommand);
+                    2, "URL", originalCommand);
             }
 
             var first = transfers[0];
@@ -148,15 +148,8 @@ namespace CurlDotNet.Core
             }
         }
 
-        private static readonly Regex SecretArgument = new Regex(
-            @"(?<flag>(?:^|\s)(?:-u|--user|-U|--proxy-user|--oauth2-bearer)\s+)(?<value>'[^']*'|""[^""]*""|\S+)|(?<flag>(?:Authorization|Cookie):\s*)(?<value>[^'""\r\n]+)",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
-        /// <summary>The command with -u/-U/--oauth2-bearer values and Authorization/Cookie header values replaced by ***.</summary>
-        internal static string MaskCredentials(string? command)
-        {
-            return string.IsNullOrEmpty(command) ? string.Empty : SecretArgument.Replace(command, m => m.Groups["flag"].Value + "***");
-        }
+        /// <summary>The command with every credential replaced by *** (see <see cref="ErrorText.RedactCommand"/>).</summary>
+        internal static string MaskCredentials(string? command) => ErrorText.RedactCommand(command);
 
         /// <summary>Reads a text file named by an option, one line per entry; failures become exit code 26.</summary>
         private static List<string> ReadAllLinesForOption(string path, string option, string? command)

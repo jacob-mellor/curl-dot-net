@@ -81,6 +81,7 @@ namespace CurlDotNet.Core.Handlers
                 }
 
                 var hop = BuildHopOptions(transfer, (int)current.StatusCode, target);
+                NotifyRedirect(options, target);
 
                 // Finish the previous response so its connection can be reused (curl reads and
                 // discards redirect bodies too).
@@ -115,6 +116,31 @@ namespace CurlDotNet.Core.Handlers
             }
 
             return (current, currentRequest);
+        }
+
+        /// <summary>
+        /// Calls <see cref="CurlSettings.OnRedirect"/> with the hop's absolute URL. A callback that throws aborts the
+        /// transfer with exit code 42, like a curl callback that returns an error.
+        /// </summary>
+        private static void NotifyRedirect(CurlOptions options, Uri target)
+        {
+            var callback = options.RedirectCallback;
+            if (callback == null)
+            {
+                return;
+            }
+
+            try
+            {
+                callback(target.AbsoluteUri);
+            }
+            catch (Exception ex)
+            {
+                throw new CurlAbortedByCallbackException(CurlException.Compose(
+                    $"The redirect handler threw {ex.GetType().Name} for the redirect to {ErrorText.SafeUrl(target.AbsoluteUri)} ({ex.Message}), so the transfer was aborted.",
+                    "Fix the exception inside the handler passed to CurlSettings.WithRedirectHandler / OnRedirect, or throw on purpose only to refuse a redirect target.",
+                    DocLinks.Redirect), options.OriginalCommand, ex);
+            }
         }
 
         /// <summary>

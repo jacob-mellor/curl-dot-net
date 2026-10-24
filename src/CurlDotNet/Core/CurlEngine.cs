@@ -90,7 +90,7 @@ namespace CurlDotNet.Core
         /// <returns>Result of the curl operation</returns>
         public async Task<CurlResult> ExecuteAsync(string command)
         {
-            return await ExecuteAsync(command, CancellationToken.None);
+            return await ExecuteAsync(command, CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -105,7 +105,7 @@ namespace CurlDotNet.Core
             }
 
             var options = _parser.Parse(command);
-            return await ExecuteAsync(options, cancellationToken);
+            return await ExecuteAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -122,7 +122,7 @@ namespace CurlDotNet.Core
             }
 
             var options = _parser.Parse(command, flavor);
-            return await ExecuteAsync(options, cancellationToken);
+            return await ExecuteAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>The message for a null, empty or whitespace-only command string.</summary>
@@ -145,7 +145,7 @@ namespace CurlDotNet.Core
                 ApplySettings(options, settings);
             }
 
-            return await ExecuteAsync(options, settings?.CancellationToken ?? CancellationToken.None);
+            return await ExecuteAsync(options, settings?.CancellationToken ?? CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace CurlDotNet.Core
         /// </summary>
         public async Task<CurlResult> ExecuteAsync(CurlOptions options)
         {
-            return await ExecuteAsync(options, CancellationToken.None);
+            return await ExecuteAsync(options, CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -180,10 +180,10 @@ namespace CurlDotNet.Core
 
             if (options.AdditionalTransfers == null || options.AdditionalTransfers.Count == 0)
             {
-                return await ExecuteTransferAsync(options, cancellationToken);
+                return await ExecuteTransferAsync(options, cancellationToken).ConfigureAwait(false);
             }
 
-            return await ExecuteTransfersAsync(options, cancellationToken);
+            return await ExecuteTransfersAsync(options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -225,7 +225,7 @@ namespace CurlDotNet.Core
 
                 try
                 {
-                    var result = await ExecuteTransferAsync(transfer, cancellationToken);
+                    var result = await ExecuteTransferAsync(transfer, cancellationToken).ConfigureAwait(false);
                     stdout.Append(result.Body);
                     outputFiles.AddRange(result.OutputFiles);
                     last = result;
@@ -267,7 +267,7 @@ namespace CurlDotNet.Core
         {
             try
             {
-                return await RunHandlerAsync(options, cancellationToken);
+                return await RunHandlerAsync(options, cancellationToken).ConfigureAwait(false);
             }
             catch (CurlException ex)
             {
@@ -285,7 +285,7 @@ namespace CurlDotNet.Core
                 throw new CurlException(CurlException.Compose(
                     "No URL specified: the request has no URL to fetch.",
                     "Add the URL to the command (\"curl https://api.example.com/items\") or set CurlOptions.Url; when the URL comes from a variable, check that it is not empty.",
-                    DocLinks.Url), 3, options.OriginalCommand);
+                    DocLinks.Url), 2, options.OriginalCommand);
 
             options.Url = CommandParser.NormalizeUrl(options.Url);
 
@@ -309,7 +309,7 @@ namespace CurlDotNet.Core
                 }
 
                 // Execute with appropriate handler
-                var result = await handler.ExecuteAsync(options, cancellationToken);
+                var result = await handler.ExecuteAsync(options, cancellationToken).ConfigureAwait(false);
                 result.Command = options.OriginalCommand;
 
                 return result;
@@ -486,24 +486,25 @@ namespace CurlDotNet.Core
             {
                 handlerLines.Add("    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator, // curl -k");
             }
-            if (options.FollowLocation)
+            if (options.FollowLocation || options.LocationTrusted)
             {
                 handlerLines.Add("    AllowAutoRedirect = true, // curl -L");
-                handlerLines.Add($"    MaxAutomaticRedirections = {options.MaxRedirects},");
-            }
-
-            if (handlerLines.Count > 0)
-            {
-                sb.AppendLine("var handler = new HttpClientHandler");
-                sb.AppendLine("{");
-                foreach (var line in handlerLines) sb.AppendLine(line);
-                sb.AppendLine("};");
-                sb.AppendLine("using var client = new HttpClient(handler);");
+                if (options.MaxRedirects > 0)
+                {
+                    handlerLines.Add($"    MaxAutomaticRedirections = {options.MaxRedirects}, // --max-redirs");
+                }
             }
             else
             {
-                sb.AppendLine("using var client = new HttpClient();");
+                // HttpClient follows redirects by default; curl only does with -L
+                handlerLines.Add("    AllowAutoRedirect = false, // curl without -L returns the 3xx response itself");
             }
+
+            sb.AppendLine("var handler = new HttpClientHandler");
+            sb.AppendLine("{");
+            foreach (var line in handlerLines) sb.AppendLine(line);
+            sb.AppendLine("};");
+            sb.AppendLine("using var client = new HttpClient(handler);");
 
             if (options.MaxTime.HasValue && options.MaxTime.Value > 0)
             {
@@ -769,11 +770,21 @@ namespace CurlDotNet.Core
                 options.Insecure = settings.Insecure.Value;
             }
 
+            if (settings.UserAgent != null)
+            {
+                // -A: replaces the command's -A and -H "User-Agent: ..." (the handler sends UserAgent when it is set)
+                options.UserAgent = settings.UserAgent;
+            }
+
             if (settings.Headers != null)
             {
                 foreach (var header in settings.Headers)
                 {
                     options.Headers[header.Key] = header.Value;
+                    if (string.Equals(header.Key, "User-Agent", StringComparison.OrdinalIgnoreCase))
+                    {
+                        options.UserAgent = header.Value ?? string.Empty; // a Headers entry wins over UserAgent
+                    }
                 }
             }
 
@@ -787,6 +798,84 @@ namespace CurlDotNet.Core
                 options.Retry = settings.RetryCount;
                 options.RetryDelay = settings.RetryDelayMs / 1000.0;
                 options.RetryAllErrors = true;
+            }
+
+            if (settings.OnRedirect != null)
+            {
+                options.RedirectCallback = settings.OnRedirect;
+            }
+
+            if (settings.Cookies != null)
+            {
+                options.CookieContainer = settings.Cookies;
+            }
+
+            if (settings.AutomaticDecompressionSet)
+            {
+                options.Compressed = settings.AutomaticDecompression; // --compressed / --no-compressed
+            }
+
+            if (settings.BufferSizeSet && settings.BufferSize > 0)
+            {
+                options.ReadBufferSize = settings.BufferSize;
+            }
+
+            if (settings.Proxy != null)
+            {
+                ApplyProxy(options, settings.Proxy);
+            }
+
+            // every URL of a multi-URL command (globs, --next groups) gets the same settings
+            if (options.AdditionalTransfers != null)
+            {
+                foreach (var transfer in options.AdditionalTransfers)
+                {
+                    ApplySettings(transfer, settings);
+                }
+            }
+        }
+
+        /// <summary>
+        /// <see cref="CurlSettings.Proxy"/>: asks the .NET proxy which proxy serves the request URL and turns the answer
+        /// into curl's <c>-x</c> (and its <see cref="NetworkCredential"/> into <c>-U</c>); a bypassed URL goes direct.
+        /// </summary>
+        private static void ApplyProxy(CurlOptions options, IWebProxy proxy)
+        {
+            Uri? destination = null;
+            if (!string.IsNullOrEmpty(options.Url))
+            {
+                Uri.TryCreate(CommandParser.NormalizeUrl(options.Url), UriKind.Absolute, out destination);
+            }
+
+            Uri? proxyUri;
+            if (destination == null)
+            {
+                proxyUri = (proxy as WebProxy)?.Address; // no usable URL yet: the proxy's own address, if it has one
+            }
+            else if (proxy.IsBypassed(destination))
+            {
+                options.Proxy = string.Empty; // like -x "": a direct connection, ignoring the environment's proxies
+                return;
+            }
+            else
+            {
+                proxyUri = proxy.GetProxy(destination);
+                if (proxyUri != null && Uri.Compare(proxyUri, destination, UriComponents.HttpRequestUrl, UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase) == 0)
+                {
+                    proxyUri = null; // IWebProxy's way of saying "no proxy"
+                }
+            }
+
+            if (proxyUri == null)
+            {
+                return;
+            }
+
+            options.Proxy = proxyUri.GetLeftPart(UriPartial.Authority);
+            var credential = proxy.Credentials?.GetCredential(proxyUri, "Basic");
+            if (credential != null && !string.IsNullOrEmpty(credential.UserName))
+            {
+                options.ProxyCredentials = credential;
             }
         }
 
