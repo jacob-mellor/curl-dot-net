@@ -755,6 +755,30 @@ namespace CurlDotNet.Tests
 #endif
 
         [Fact]
+        public async Task EtagSave_IntoMissingDirectory_SkipsTheTransfer()
+        {
+            using var server = new RawReplyServer(Ok);
+
+            var result = await Curl.ExecuteAsync($"curl -s --etag-save {Q(P("nowhere/etag"))} {server.Url("/")}");
+
+            result.Body.Should().BeEmpty();
+            server.Requests.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task EtagSaveAndCompare_RoundTrip()
+        {
+            using var server = new RawReplyServer("HTTP/1.1 200 OK\r\nETag: \"v1\"\r\nContent-Length: 2\r\n\r\nok");
+            var etag = P("etag.txt");
+
+            await Curl.ExecuteAsync($"curl --etag-save {Q(etag)} {server.Url("/")}");
+            await Curl.ExecuteAsync($"curl --etag-compare {Q(etag)} {server.Url("/")}");
+
+            File.ReadAllText(etag).Should().Be("\"v1\"\n");
+            Line(server.Requests[1], "If-None-Match").Should().Be("If-None-Match: \"v1\"");
+        }
+
+        [Fact]
         public async Task HeadFlag_PrintsHeadersWithoutI()
         {
             using var server = new RawReplyServer("HTTP/1.1 200 OK\r\nContent-Length: 5\r\nX-Thing: yes\r\n\r\n");

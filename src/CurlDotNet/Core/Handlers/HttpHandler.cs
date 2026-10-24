@@ -252,6 +252,21 @@ namespace CurlDotNet.Core
                     }
                 }
 
+                if (!string.IsNullOrEmpty(options.EtagSave) && options.EtagSave != "-" && !options.CreateDirs)
+                {
+                    var etagDir = Path.GetDirectoryName(Path.GetFullPath(options.EtagSave));
+                    if (!string.IsNullOrEmpty(etagDir) && !Directory.Exists(etagDir))
+                    {
+                        // curl: "Failed creating file for saving etags ... Skip this transfer" (no request, no error)
+                        trace?.Info($"Skipping {options.Url}: --etag-save directory '{etagDir}' does not exist");
+                        if (!options.Silent)
+                        {
+                            WriteStderr(options, $"Warning: Failed creating file for saving etags: \"{options.EtagSave}\". Skip this transfer\n");
+                        }
+                        return new CurlResult { StatusCode = 0, Body = string.Empty, Command = options.OriginalCommand, Timings = timings };
+                    }
+                }
+
                 var request = transfer.PrepareRequest(options);
                 if (options.ResumeFrom.HasValue && options.ResumeFrom.Value != 0 && request.Content != null)
                 {
