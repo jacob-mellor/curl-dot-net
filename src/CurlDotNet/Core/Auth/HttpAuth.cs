@@ -225,6 +225,7 @@ namespace CurlDotNet.Core.Auth
                             break;
                         default:
                             value = "NTLM " + NtlmState.Type1();
+                            side.Ntlm.Stage = NtlmStage.Type1;
                             break;
                     }
                     break;

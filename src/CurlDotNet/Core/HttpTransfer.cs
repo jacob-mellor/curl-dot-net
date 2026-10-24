@@ -56,6 +56,9 @@ namespace CurlDotNet.Core
             Auth = HttpAuth.Create(options, proxy?.NegotiatesPlainRequests ?? false, proxy?.AuthScheme, proxy?.UserCredentials);
         }
 
+        /// <summary>True when the last response ends its connection (NTLM must start over on the next one).</summary>
+        private bool _lastResponseCloses;
+
         /// <summary>curl's authentication negotiation for this transfer, or null when no challenge method is involved.</summary>
         public HttpAuth? Auth { get; }
 
@@ -344,7 +347,13 @@ namespace CurlDotNet.Core
                 var status = (int)response.StatusCode;
                 var hasHost = RequestShaping.GetCredentials(hop, request.RequestUri!) != null;
                 var hasProxy = CurrentViaPlainProxy && Proxy?.UserCredentials != null;
-                if (!Auth.ShouldResend(status, Challenges(response, "WWW-Authenticate"), Challenges(response, "Proxy-Authenticate"), hasHost, hasProxy))
+                var resend = Auth.ShouldResend(status, Challenges(response, "WWW-Authenticate"), Challenges(response, "Proxy-Authenticate"), hasHost, hasProxy);
+                if (_lastResponseCloses)
+                {
+                    // only after the challenge was read: a rejected NTLM type-3 must stay a rejection
+                    Auth.ConnectionClosed();
+                }
+                if (!resend)
                 {
                     break;
                 }
@@ -386,6 +395,10 @@ namespace CurlDotNet.Core
         {
             var exchange = Transcript.Begin(request.Method == HttpMethod.Head);
             exchange.Rewrite = RequestRewrite.For(HopOptions);
+            if (HopOptions.Raw)
+            {
+                exchange.RawLimit = int.MaxValue; // --raw replays the whole body as received
+            }
             LastExchange = exchange;
             RequestsSent++;
             WireExchange.Current = exchange;
@@ -394,10 +407,7 @@ namespace CurlDotNet.Core
             {
                 TransportErrors.ValidateHeads(exchange, this);
                 var closes = ClosesConnection(response);
-                if (Auth != null && closes)
-                {
-                    Auth.ConnectionClosed();
-                }
+                _lastResponseCloses = closes;
                 RememberHttpVersion(request.RequestUri!, response, closes);
 
                 if (Cookies != null)

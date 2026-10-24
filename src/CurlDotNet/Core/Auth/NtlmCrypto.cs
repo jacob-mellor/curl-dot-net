@@ -67,7 +67,16 @@ namespace CurlDotNet.Core.Auth
         {
             var key = new byte[16];
             Buffer.BlockCopy(ntHash21, 0, key, 0, 16);
-            var identity = Encoding.Unicode.GetBytes(user.ToUpperInvariant() + domain);
+            // curl upper-cases the user with ASCII rules and widens each UTF-8 byte (no real UTF-16)
+            var upper = Encoding.UTF8.GetBytes(user);
+            for (var i = 0; i < upper.Length; i++)
+            {
+                if (upper[i] >= (byte)'a' && upper[i] <= (byte)'z') upper[i] = (byte)(upper[i] - 32);
+            }
+            var domainBytes = Encoding.UTF8.GetBytes(domain);
+            var identity = new byte[(upper.Length + domainBytes.Length) * 2];
+            for (var i = 0; i < upper.Length; i++) identity[i * 2] = upper[i];
+            for (var i = 0; i < domainBytes.Length; i++) identity[(upper.Length + i) * 2] = domainBytes[i];
             using (var hmac = new HMACMD5(key))
             {
                 return hmac.ComputeHash(identity);

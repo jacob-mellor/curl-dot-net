@@ -149,6 +149,26 @@ namespace CurlDotNet.Core
             return true;
         }
 
+        private const string HeaderDocs = "https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md";
+
+        /// <summary>
+        /// Refuses text that would end a request line or header line early: a CR or LF inside a header or
+        /// the request target lets the rest pose as extra headers or a second request (request smuggling).
+        /// </summary>
+        /// <exception cref="CurlDotNet.Exceptions.CurlBadFunctionArgumentException">The text contains CR or LF (exit code 43).</exception>
+        public static void RejectLineBreaks(string text, string option, string? command)
+        {
+            if (text.IndexOf('\r') < 0 && text.IndexOf('\n') < 0)
+            {
+                return;
+            }
+            throw new CurlDotNet.Exceptions.CurlBadFunctionArgumentException(option,
+                $"The value given with {option} contains a line break (CR or LF): \"{text.Replace("\r", "\\r").Replace("\n", "\\n")}\". " +
+                "A line break would end the header early and let the rest be read as extra headers or another request. " +
+                "Pass one header per -H (or one per line in a -H @file), without CR/LF characters. See " + HeaderDocs,
+                command);
+        }
+
         /// <summary>The rules a request built from <paramref name="options"/> needs, or null when HttpClient's head is already curl's.</summary>
         public static RequestRewrite? For(CurlOptions options)
         {
@@ -157,6 +177,13 @@ namespace CurlDotNet.Core
 
             if (!string.IsNullOrEmpty(options.RequestTarget))
             {
+                RejectLineBreaks(options.RequestTarget!, "--request-target", options.OriginalCommand);
+                if (options.RequestTarget!.IndexOf(' ') >= 0)
+                {
+                    throw new CurlDotNet.Exceptions.CurlBadFunctionArgumentException("--request-target",
+                        $"The --request-target \"{options.RequestTarget}\" contains a space, which would break the request line. " +
+                        "Percent-encode spaces as %20. See " + HeaderDocs, options.OriginalCommand);
+                }
                 rewrite.Target = options.RequestTarget;
                 needed = true;
             }
@@ -173,6 +200,7 @@ namespace CurlDotNet.Core
 
             foreach (var name in options.EmptyHeaders)
             {
+                RejectLineBreaks(name, "-H/--header", options.OriginalCommand);
                 if (options.Headers.TryGetValue(name, out var value) && !string.IsNullOrEmpty(value))
                 {
                     continue; // a later -H gave it a value
@@ -188,8 +216,17 @@ namespace CurlDotNet.Core
                 needed = true;
             }
 
+            if (options.TimeCondition.HasValue && options.TimeConditionType == CurlTimeCondition.LastModified
+                && !options.Headers.ContainsKey("Last-Modified"))
+            {
+                // curl's -z =DATE request header (HttpClient refuses it outside content)
+                rewrite.ExtraLines.Add("Last-Modified: " + RequestShaping.FormatHttpDate(options.TimeCondition.Value));
+                needed = true;
+            }
+
             foreach (var raw in options.RawHeaderLines)
             {
+                RejectLineBreaks(raw.Value, "-H/--header", options.OriginalCommand);
                 if (!options.Headers.TryGetValue(raw.Key, out var value) || string.IsNullOrEmpty(value))
                 {
                     continue; // removed (for example Authorization on a redirect to another host)

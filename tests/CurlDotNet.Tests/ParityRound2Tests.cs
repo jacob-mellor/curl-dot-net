@@ -728,6 +728,85 @@ namespace CurlDotNet.Tests
             RequestShaping.NeedsVerbatimPath(url).Should().Be(expected);
         }
 
+        // ------------------------------------------------------------------ review findings
+
+        [Theory]
+        [InlineData("-z \"-Tue, 13 Jun 2000 12:10:00 GMT\"", "If-Unmodified-Since")]
+        [InlineData("-z \"=Tue, 13 Jun 2000 12:10:00 GMT\"", "Last-Modified")]
+        public async Task TimeCondition_DocumentDatedExactlyAtTheCondition_IsNotDownloaded(string condition, string header)
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 200 OK\r\nLast-Modified: Tue, 13 Jun 2000 12:10:00 GMT\r\nContent-Length: 6\r\n\r\n-foo-\n");
+
+            var result = await Curl.ExecuteAsync($"curl {condition} -w \"%{{response_code}}\" {server.Url("/")}");
+
+            Line(server.Requests.Single(), header).Should().Be(header + ": Tue, 13 Jun 2000 12:10:00 GMT");
+            result.Body.Should().Be("304");
+        }
+
+        [Fact]
+        public async Task Netrc_KeywordsAreCaseInsensitive()
+        {
+            var netrc = P("netrc");
+            File.WriteAllText(netrc, "Machine 127.0.0.1 Login nu Password np\n");
+            using var server = new RawReplyServer(Hello);
+
+            await Curl.ExecuteAsync($"curl -n --netrc-file {Q(netrc)} {server.Url("/")}");
+
+            Line(server.Requests.Single(), "Authorization").Should().Be(Basic("nu:np"));
+        }
+
+        [Fact]
+        public async Task Ntlm_RejectedType3OnAClosingConnection_StopsTheHandshake()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 401 Auth\r\nWWW-Authenticate: NTLM " + Type2 + "\r\nContent-Length: 0\r\n\r\n",
+                "HTTP/1.1 401 Auth\r\nWWW-Authenticate: NTLM\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
+
+            var result = await Curl.ExecuteAsync($"curl -u testuser:wrong --ntlm {server.Url("/")}");
+
+            server.Requests.Should().HaveCount(2);
+            result.StatusCode.Should().Be(401);
+        }
+
+        [Fact]
+        public async Task Ntlm_BareChallengeAfterType1_IsAHandshakeFailure_NotALoop()
+        {
+            using var server = new RawReplyServer("HTTP/1.1 401 Auth\r\nWWW-Authenticate: NTLM\r\nContent-Length: 0\r\n\r\n");
+
+            var result = await Curl.ExecuteAsync($"curl -u u:p --ntlm {server.Url("/")}");
+
+            server.Requests.Should().ContainSingle();
+            result.StatusCode.Should().Be(401);
+        }
+
+        [Theory]
+        [InlineData("-H \"X-A: a\rX-Injected: b\"")]
+        [InlineData("--request-target \"/x HTTP/1.1\nX-Injected: b\"")]
+        public async Task LineBreaksInHeadersOrTarget_AreRefused(string option)
+        {
+            using var server = new RawReplyServer(Hello);
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl {option} {server.Url("/")}");
+
+            var thrown = await act.Should().ThrowAsync<CurlBadFunctionArgumentException>();
+            thrown.Which.CurlErrorCode.Should().Be(43);
+            thrown.Which.Message.Should().Contain("line break");
+            server.Requests.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task Raw_KeepsTheFramingOfBodiesOverOneMegabyte()
+        {
+            var payload = new string('x', 1100 * 1024);
+            using var server = new RawReplyServer(
+                $"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nTransfer-Encoding: chunked\r\n\r\n{payload.Length:x}\r\n{payload}\r\n0\r\n\r\n");
+
+            var result = await Curl.ExecuteAsync($"curl --raw {server.Url("/")}");
+
+            result.Body.Should().StartWith($"{payload.Length:x}\r\nxxx").And.EndWith("x\r\n0\r\n\r\n");
+        }
+
         private static int ClosedPortNumber()
         {
             var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);

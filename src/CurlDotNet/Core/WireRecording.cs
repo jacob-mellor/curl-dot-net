@@ -206,7 +206,8 @@ namespace CurlDotNet.Core
     {
         private enum State { Head, Body, ChunkSize, ChunkData, ChunkDataEnd, Trailers, ToEof }
 
-        private const int RawCap = 1024 * 1024;
+        /// <summary>How many leading bytes are kept for HTTP/0.9 and --raw (1 MB unless the exchange asks for more).</summary>
+        public int RawCap { get; set; } = 1024 * 1024;
         private readonly bool _isHeadRequest;
         private readonly MemoryStream _raw = new MemoryStream();
         private State _state = State.Head;
@@ -526,6 +527,9 @@ namespace CurlDotNet.Core
         /// <summary>True for HEAD requests (responses have no body).</summary>
         public bool IsHeadRequest { get; }
 
+        /// <summary>How many raw response bytes each segment keeps (<see cref="ResponseStreamParser.RawCap"/>).</summary>
+        public int RawLimit { get; set; } = 1024 * 1024;
+
         /// <summary>Changes to apply to this request's head on the wire (HTTP/1.x), or null.</summary>
         public RequestRewrite? Rewrite { get; set; }
 
@@ -542,6 +546,7 @@ namespace CurlDotNet.Core
         public WireSegment Attach(WireConnectionInfo? connection, bool newConnection)
         {
             var segment = new WireSegment(IsHeadRequest, connection, newConnection);
+            segment.Parser.RawCap = RawLimit;
             lock (_lock)
             {
                 _segments.Add(segment);

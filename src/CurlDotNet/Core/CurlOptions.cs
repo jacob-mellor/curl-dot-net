@@ -935,7 +935,10 @@ namespace CurlDotNet.Core
         /// <summary>Only fetch the document if it did not change after the date: sends <c>If-Unmodified-Since</c> (<c>-z -DATE</c>).</summary>
         IfUnmodifiedSince = 1,
 
-        /// <summary>Only accept a document whose Last-Modified equals the date; no request header is sent (<c>-z =DATE</c>).</summary>
+        /// <summary>
+        /// curl's <c>-z =DATE</c>: sends <c>Last-Modified: DATE</c> and, like curl, only keeps a document whose
+        /// Last-Modified is newer than the date (curl applies the "newer" test to this mode too).
+        /// </summary>
         LastModified = 2,
     }
 }

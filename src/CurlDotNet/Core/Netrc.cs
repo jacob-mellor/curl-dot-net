@@ -165,7 +165,7 @@ namespace CurlDotNet.Core
             for (var i = 0; i < tokens.Count; i++)
             {
                 var token = tokens[i];
-                switch (token)
+                switch (token.ToLowerInvariant()) // curl matches the keywords case-insensitively
                 {
                     case "machine":
                     {
@@ -291,7 +291,7 @@ namespace CurlDotNet.Core
                         token = line.Substring(start, pos - start);
                     }
 
-                    if (token == "macdef")
+                    if (string.Equals(token, "macdef", StringComparison.OrdinalIgnoreCase))
                     {
                         inMacro = true; // the rest of this line names the macro; its body follows
                         break;

@@ -514,6 +514,8 @@ namespace CurlDotNet.Core
                     continue; // unread -H @file reference
                 }
 
+                RequestRewrite.RejectLineBreaks(header.Key + ": " + header.Value, "-H/--header", options.OriginalCommand);
+
                 if (string.IsNullOrEmpty(header.Value))
                 {
                     suppressed.Add(header.Key);
@@ -622,8 +624,11 @@ namespace CurlDotNet.Core
             }
 
             // Time condition (-z): If-Modified-Since by default, If-Unmodified-Since for -z -DATE
+            // -z =DATE sends "Last-Modified: DATE", which .NET only allows on content: the request-head
+            // rewrite (RequestRewrite) adds that line on the wire
             if (options.TimeCondition.HasValue && options.TimeConditionType != CurlTimeCondition.LastModified)
             {
+                // -z DATE: If-Modified-Since, -z -DATE: If-Unmodified-Since (like curl)
                 var conditionHeader = options.TimeConditionType == CurlTimeCondition.IfUnmodifiedSince ? "If-Unmodified-Since" : "If-Modified-Since";
                 if (!suppressed.Contains(conditionHeader) && !request.Headers.Contains(conditionHeader))
                 {
@@ -1071,9 +1076,9 @@ namespace CurlDotNet.Core
         /// </summary>
         private static bool MeetsTimeCondition(CurlOptions options, string? lastModified)
         {
-            if (!options.TimeCondition.HasValue || string.IsNullOrWhiteSpace(lastModified))
+            if (!options.TimeCondition.HasValue || string.IsNullOrWhiteSpace(lastModified) || !string.IsNullOrEmpty(options.Range))
             {
-                return true;
+                return true; // curl does not apply the condition to a -r range request
             }
 
             var document = CurlDate.Parse(lastModified!);
@@ -1083,15 +1088,11 @@ namespace CurlDotNet.Core
             }
 
             var condition = options.TimeCondition.Value.ToUnixTimeSeconds();
-            switch (options.TimeConditionType)
-            {
-                case CurlTimeCondition.IfUnmodifiedSince:
-                    return document.Value <= condition;
-                case CurlTimeCondition.LastModified:
-                    return document.Value == condition;
-                default:
-                    return document.Value > condition;
-            }
+            // curl's Curl_meets_timecondition(): -z -DATE wants a document older than DATE; -z DATE and
+            // -z =DATE (which has no case of its own there) want one newer than DATE
+            return options.TimeConditionType == CurlTimeCondition.IfUnmodifiedSince
+                ? document.Value < condition
+                : document.Value > condition;
         }
 
         /// <summary>
