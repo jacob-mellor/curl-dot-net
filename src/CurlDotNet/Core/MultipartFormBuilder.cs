@@ -293,10 +293,14 @@ namespace CurlDotNet.Core
                     }
                     partContent = new ByteArrayContent(data);
                     partContent.Headers.TryAddWithoutValidation("Content-Disposition", disposition.ToString());
-                    if (!string.IsNullOrEmpty(part.ContentType))
+                    // plain text fields get no Content-Type unless ;type= asks for one, or ;filename= names a
+                    // known type (-F 'name=a;filename=a.pdf' is application/pdf, like curl)
+                    var type = !string.IsNullOrEmpty(part.ContentType)
+                        ? part.ContentType
+                        : (part.FileName != null && !part.IsFileContent ? KnownContentTypeFor(part.FileName) : null);
+                    if (!string.IsNullOrEmpty(type))
                     {
-                        // plain text fields get no Content-Type at all unless ;type= asks for one
-                        partContent.Headers.TryAddWithoutValidation("Content-Type", part.ContentType);
+                        partContent.Headers.TryAddWithoutValidation("Content-Type", type);
                     }
                     AddPartHeaders(partContent, part);
                 }
@@ -370,8 +374,11 @@ namespace CurlDotNet.Core
             return value.Replace("\"", "%22").Replace("\r", "%0D").Replace("\n", "%0A");
         }
 
-        /// <summary>curl's Curl_mime_contenttype table.</summary>
-        internal static string ContentTypeFor(string fileName)
+        /// <summary>curl's Curl_mime_contenttype table, defaulting to application/octet-stream (file uploads).</summary>
+        internal static string ContentTypeFor(string fileName) => KnownContentTypeFor(fileName) ?? "application/octet-stream";
+
+        /// <summary>curl's Curl_mime_contenttype table: the type for a known extension, or null.</summary>
+        internal static string? KnownContentTypeFor(string fileName)
         {
             var ext = Path.GetExtension(fileName).ToLowerInvariant();
             switch (ext)
@@ -386,7 +393,7 @@ namespace CurlDotNet.Core
                 case ".html": return "text/html";
                 case ".pdf": return "application/pdf";
                 case ".xml": return "application/xml";
-                default: return "application/octet-stream";
+                default: return null;
             }
         }
 

@@ -781,6 +781,23 @@ namespace CurlDotNet.Exceptions
             : base($"Option syntax error: {option}", option, command)
         {
         }
+
+        /// <summary>
+        /// Initializes a new instance for an option value curl refuses to parse (exit code 49), such as
+        /// <c>--resolve</c> or <c>--connect-to</c> entries with a port that is not a number.
+        /// </summary>
+        /// <param name="option">The option whose value is malformed (for example <c>--resolve</c>).</param>
+        /// <param name="message">What is wrong with the value and how to write it correctly.</param>
+        /// <param name="command">The curl command that caused the exception.</param>
+        /// <remarks>
+        /// <para>Usage: <c>curl --resolve example.com:80:127.0.0.1 http://example.com/</c> is valid; swapping the
+        /// host and the port (<c>--resolve 80:example.com:127.0.0.1</c>) throws this exception with
+        /// <see cref="CurlException.CurlErrorCode"/> 49, exactly where the curl tool exits with 49.</para>
+        /// </remarks>
+        public CurlOptionSyntaxException(string option, string message, string command)
+            : base(message, 49, option, command)
+        {
+        }
     }
 
     /// <summary>

@@ -75,7 +75,7 @@ namespace CurlDotNet.Tests
             // Act
             using var stream = result.ToStream();
             var buffer = new byte[8];
-            await stream.ReadAsync(buffer, 0, 8);
+            (await stream.ReadAsync(buffer, 0, 8)).Should().Be(8);
 
             // Assert
             buffer.Should().BeEquivalentTo(binaryData);

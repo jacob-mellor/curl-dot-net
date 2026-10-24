@@ -20,6 +20,9 @@ namespace CurlDotNet.Core
 {
     internal partial class CommandParser
     {
+        /// <summary>The output slot <c>--out-null</c> adds: the paired URL's response is discarded.</summary>
+        private static readonly string OutNullSlot = new string('\0', 1);
+
         /// <summary>State shared by one <see cref="Parse(string)"/> call.</summary>
         private sealed class ParseContext
         {
@@ -40,6 +43,9 @@ namespace CurlDotNet.Core
 
             /// <summary>Nesting depth of <c>-K</c> files, to stop a config file that includes itself.</summary>
             public int ConfigDepth { get; set; }
+
+            /// <summary>Set when a transfer after the first could not be set up; no further transfers are made.</summary>
+            public bool SetupFailed { get; set; }
 
             public void StartNewGroup()
             {
@@ -83,9 +89,14 @@ namespace CurlDotNet.Core
             ProcessArguments(args, context);
 
             var transfers = new List<CurlOptions>();
-            foreach (var group in context.Groups)
+            for (var g = 0; g < context.Groups.Count; g++)
             {
-                BuildGroupTransfers(group, context, transfers);
+                var before = transfers.Count;
+                BuildGroupTransfers(context.Groups[g], context, transfers);
+                for (var i = before; i < transfers.Count; i++)
+                {
+                    transfers[i].GroupNumber = g;
+                }
             }
 
             if (transfers.Count == 0)
@@ -96,6 +107,7 @@ namespace CurlDotNet.Core
             var first = transfers[0];
             for (var i = 1; i < transfers.Count; i++)
             {
+                transfers[i].TransferNumber = i;
                 first.AdditionalTransfers.Add(transfers[i]);
             }
 
@@ -173,9 +185,10 @@ namespace CurlDotNet.Core
                     uploads.Add(upload == null ? null : new RequestGlobResult(upload, new List<string>(), new Dictionary<string, string>()));
                 }
 
-                var urls = !group.Options.GlobOff && RequestGlob.HasGlob(url)
-                    ? RequestGlob.Expand(url, context.OriginalCommand)
-                    : new List<RequestGlobResult> { new RequestGlobResult(url, new List<string>(), new Dictionary<string, string>()) };
+                // without a glob the escapes still apply: "\{" in a URL is a literal "{" (curl test 214)
+                var urls = group.Options.GlobOff
+                    ? new List<RequestGlobResult> { new RequestGlobResult(url, new List<string>(), new Dictionary<string, string>()) }
+                    : RequestGlob.Expand(url, context.OriginalCommand);
 
                 foreach (var uploadMatch in uploads)
                 {
@@ -210,7 +223,22 @@ namespace CurlDotNet.Core
                             }
                         }
 
-                        FinishTransfer(options, urlMatch.Url, matches, named, hasOutputSlot, outputSlot, uploadMatch?.Url, group, ref methodSpecified);
+                        if (context.SetupFailed)
+                        {
+                            return;
+                        }
+
+                        try
+                        {
+                            FinishTransfer(options, urlMatch.Url, matches, named, hasOutputSlot, outputSlot, uploadMatch?.Url, group, ref methodSpecified);
+                        }
+                        catch (CurlException ex) when (transfers.Count > 0)
+                        {
+                            // curl sets up each transfer just before it runs: the earlier ones still happen,
+                            // then this failure ends the command (for example the 2nd -T file is missing)
+                            options.SetupError = ex;
+                            context.SetupFailed = true;
+                        }
                         transfers.Add(options);
                     }
                 }
@@ -229,11 +257,19 @@ namespace CurlDotNet.Core
             options.GlobMatches.AddRange(matches);
 
             // The nth -o / -O belongs to the nth URL, exactly like curl (extra ones are ignored)
+            options.DiscardOutput = false;
             if (hasOutputSlot)
             {
                 if (outputSlot == null)
                 {
                     options.UseRemoteFileName = true;
+                    options.OutputFile = null;
+                }
+                else if (ReferenceEquals(outputSlot, OutNullSlot))
+                {
+                    // --out-null: this URL's response is read and thrown away
+                    options.DiscardOutput = true;
+                    options.UseRemoteFileName = false;
                     options.OutputFile = null;
                 }
                 else

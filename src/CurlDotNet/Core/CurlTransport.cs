@@ -39,7 +39,9 @@ namespace CurlDotNet.Core
         /// <summary>--connect-timeout expired.</summary>
         Timeout,
         /// <summary>The proxy refused the CONNECT tunnel.</summary>
-        Tunnel
+        Tunnel,
+        /// <summary>A fresh connection was closed without any reply; HttpClient's silent re-send is refused (curl: exit 52).</summary>
+        GotNothing
     }
 
     /// <summary>
@@ -151,14 +153,17 @@ namespace CurlDotNet.Core
         private readonly Uri? _httpsProxy;
         private readonly NoProxyList _noProxy;
 
-        private CurlProxy(Uri? httpProxy, Uri? httpsProxy, NoProxyList noProxy, NetworkCredential? credentials, string? authScheme)
+        private CurlProxy(Uri? httpProxy, Uri? httpsProxy, NoProxyList noProxy, NetworkCredential? credentials, string? authScheme, bool plainRequests)
         {
             _httpProxy = httpProxy;
             _httpsProxy = httpsProxy;
             _noProxy = noProxy;
             UserCredentials = credentials;
             AuthScheme = string.IsNullOrEmpty(authScheme) ? "basic" : authScheme!.ToLowerInvariant();
-            if (credentials != null && (AuthScheme != "basic" || !CurlTransport.SupportsRecording))
+            // Requests sent to the proxy as-is (http:// URLs without -p) have their 407 answered by
+            // CurlDotNet's own negotiation (Core/Auth), like curl; CONNECT tunnels keep HttpClient's.
+            NegotiatesPlainRequests = plainRequests && AuthScheme != "basic" && AuthScheme != "negotiate";
+            if (credentials != null && !NegotiatesPlainRequests && (AuthScheme != "basic" || !CurlTransport.SupportsRecording))
             {
                 // Challenge schemes are answered by the handler after the proxy's 407. Where CurlDotNet
                 // cannot open the CONNECT tunnel itself (.NET Framework/netstandard2.0) Basic is
@@ -169,6 +174,12 @@ namespace CurlDotNet.Core
 
         /// <summary>Credentials for the proxy (from -U/--proxy-user or the proxy URL).</summary>
         public NetworkCredential? UserCredentials { get; }
+
+        /// <summary>
+        /// True when the 407 challenges of plain proxy requests (Digest, NTLM, --proxy-anyauth) are
+        /// answered by CurlDotNet rather than by HttpClient.
+        /// </summary>
+        public bool NegotiatesPlainRequests { get; }
 
         /// <summary>basic, digest, ntlm, negotiate or anyauth.</summary>
         public string AuthScheme { get; }
@@ -268,7 +279,10 @@ namespace CurlDotNet.Core
             }
 
             var credentials = options.ProxyCredentials ?? CredentialsFromUserInfo(httpProxy ?? httpsProxy);
-            return new CurlProxy(StripUserInfo(httpProxy), StripUserInfo(httpsProxy), noProxy, credentials, options.ProxyAuthScheme);
+            var plainRequests = !options.ProxyTunnel && options.Url.StartsWith("http:", StringComparison.OrdinalIgnoreCase)
+                && httpProxy != null && (httpProxy.Scheme == "http" || httpProxy.Scheme == "https");
+            return new CurlProxy(StripUserInfo(httpProxy), StripUserInfo(httpsProxy), noProxy, credentials,
+                options.ProxyAuthScheme ?? options.ProxyAuthMethod, plainRequests);
         }
 
         /// <summary>True when the command or the environment configures any proxy.</summary>
@@ -380,6 +394,9 @@ namespace CurlDotNet.Core
 
         /// <summary>Transcript that receives the CONNECT response header block.</summary>
         public WireTranscript? Transcript { get; set; }
+
+        /// <summary><c>--connect-to</c> entries (HOST1:PORT1:HOST2:PORT2), first match wins.</summary>
+        public List<string>? ConnectTo { get; set; }
 
         /// <summary>The connection the connect callback opened last for this request.</summary>
         public WireConnectionInfo? LastConnection { get; set; }
@@ -497,13 +514,14 @@ namespace CurlDotNet.Core
         /// </summary>
         private static void ApplyServerAuth(CurlOptions options, Action<ICredentials> set)
         {
-            if (!HttpHandler.UsesChallengeAuth(options))
+            // Basic, Digest, NTLM and --anyauth are negotiated by CurlDotNet itself (Core/Auth), exactly
+            // like curl; only Negotiate (Kerberos/SPNEGO) is left to the platform's HttpClient.
+            if (options.Credentials == null || !string.Equals(options.AuthScheme, "negotiate", StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            if (options.AuthScheme!.Equals("anyauth", StringComparison.OrdinalIgnoreCase)
-                || !Uri.TryCreate(options.Url, UriKind.Absolute, out var authUri)
+            if (!Uri.TryCreate(options.Url, UriKind.Absolute, out var authUri)
                 || (authUri.Scheme != Uri.UriSchemeHttp && authUri.Scheme != Uri.UriSchemeHttps))
             {
                 set(options.Credentials!);
@@ -525,11 +543,25 @@ namespace CurlDotNet.Core
         private static async ValueTask<Stream> ConnectAsync(SocketsHttpConnectionContext context, CancellationToken cancellationToken)
         {
             context.InitialRequestMessage.Options.TryGetValue(SettingsKey, out var settings);
+
+            // HttpClient re-sends a request up to three times when the server closes the connection
+            // without a byte of reply. curl only does that for a reused connection; after a fresh
+            // connection said nothing it reports "Empty reply from server" (52).
+            var previous = settings?.Transcript?.Exchanges.LastOrDefault()?.Segments.LastOrDefault();
+            if (previous != null && previous.NewConnection && previous.BytesSent > 0 && previous.Parser.TotalBytes == 0)
+            {
+                throw new CurlConnectFailure(ConnectFailureKind.GotNothing, context.DnsEndPoint.Host, context.DnsEndPoint.Port,
+                    "the server closed the connection without sending a reply");
+            }
             var info = new WireConnectionInfo { StartedTimestamp = Stopwatch.GetTimestamp() };
 
             var tunnel = settings?.TunnelProxy;
             var host = tunnel?.Host ?? context.DnsEndPoint.Host;
             var port = tunnel?.Port ?? context.DnsEndPoint.Port;
+            if (tunnel == null && settings?.ConnectTo != null && !settings.ViaProxy)
+            {
+                (host, port) = ApplyConnectTo(settings.ConnectTo, host, port);
+            }
 
             using var timeoutCts = settings != null && settings.ConnectTimeoutSeconds > 0
                 ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
@@ -653,6 +685,31 @@ namespace CurlDotNet.Core
                 throw new CurlConnectFailure(ConnectFailureKind.Tunnel, settings.TunnelProxy!.Host, settings.TunnelProxy.Port,
                     $"CONNECT tunnel failed, response {head.StatusCode}") { TunnelStatus = head.StatusCode };
             }
+        }
+
+        /// <summary>curl's --connect-to: the first entry whose HOST1/PORT1 match (empty matches anything) redirects the connection.</summary>
+        internal static (string Host, int Port) ApplyConnectTo(IEnumerable<string> entries, string host, int port)
+        {
+            var bare = host.Trim('[', ']');
+            foreach (var entry in entries)
+            {
+                if (!CommandParser.TrySplitConnectTo(entry, out var host1, out var port1, out var host2, out var port2))
+                {
+                    continue;
+                }
+                if (host1.Length > 0 && !string.Equals(host1.Trim('[', ']'), bare, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                if (port1.Length > 0 && port1 != port.ToString(CultureInfo.InvariantCulture))
+                {
+                    continue;
+                }
+                var newHost = host2.Length > 0 ? host2.Trim('[', ']') : host;
+                var newPort = port2.Length > 0 ? int.Parse(port2, CultureInfo.InvariantCulture) : port;
+                return (newHost, newPort);
+            }
+            return (host, port);
         }
 
         private static IPAddress[]? Lookup(TransportRequestSettings? settings, string host, int port)

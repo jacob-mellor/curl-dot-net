@@ -35,6 +35,8 @@ namespace CurlDotNet.Core
             "--max-filesize",
             "--etag-save",
             "--etag-compare",
+            "--netrc-file",
+            "--request-target",
         };
 
         /// <summary>
@@ -112,6 +114,29 @@ namespace CurlDotNet.Core
 
                 case "--fail-early":
                     options.FailEarly = true;
+                    return true;
+
+                case "--request-target":
+                    options.RequestTarget = value;
+                    return true;
+
+                // --- .netrc --------------------------------------------------------------------
+                case "-n":
+                case "--netrc":
+                    options.NetrcMode = NetrcMode.Required;
+                    return true;
+
+                case "--netrc-optional":
+                    options.NetrcMode = NetrcMode.Optional;
+                    return true;
+
+                case "--netrc-file":
+                    // like curl, --netrc-file alone means --netrc; --netrc-optional keeps it optional
+                    options.NetrcFile = value;
+                    if (options.NetrcMode == NetrcMode.None)
+                    {
+                        options.NetrcMode = NetrcMode.Required;
+                    }
                     return true;
 
                 // --- output --------------------------------------------------------------------

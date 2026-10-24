@@ -15,6 +15,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using CurlDotNet.Core.Auth;
 
 namespace CurlDotNet.Core
 {
@@ -52,7 +53,23 @@ namespace CurlDotNet.Core
             _headerBlock = headerBlock;
             OriginalUrl = options.Url;
             FirstUri = new Uri(options.Url);
+            Auth = HttpAuth.Create(options, proxy?.NegotiatesPlainRequests ?? false, proxy?.AuthScheme, proxy?.UserCredentials);
         }
+
+        /// <summary>True when the last response ends its connection (NTLM must start over on the next one).</summary>
+        private bool _lastResponseCloses;
+
+        /// <summary>curl's authentication negotiation for this transfer, or null when no challenge method is involved.</summary>
+        public HttpAuth? Auth { get; }
+
+        /// <summary>
+        /// True once a response of this transfer was HTTP/1.0: like curl (use_http_1_1plus), the following
+        /// requests of the transfer (auth rounds, redirects) are sent as HTTP/1.0 too.
+        /// </summary>
+        public bool SeenHttp10 { get; private set; }
+
+        /// <summary>True when the current request goes to a plain HTTP proxy (no tunnel).</summary>
+        public bool CurrentViaPlainProxy { get; private set; }
 
         /// <summary>The command's options (never modified).</summary>
         public CurlOptions Options { get; }
@@ -118,6 +135,10 @@ namespace CurlDotNet.Core
             // redirects. A relative or empty value is not a URI, so it is added as a raw header here.
             var effective = hop;
             string? rawReferer = null;
+            if (hop.AutoReferer)
+            {
+                AutoReferer = true; // the parser already removed ";auto" from the value
+            }
             if (hop.Referer != null)
             {
                 var referer = hop.Referer;
@@ -145,10 +166,26 @@ namespace CurlDotNet.Core
                 request.Headers.TryAddWithoutValidation("Referer", rawReferer);
             }
             var uri = request.RequestUri!;
+            if (request.Headers.Host == null)
+            {
+                // .NET lower-cases the host name; curl sends it as written (Host: MiXeDcAsE.cOm:8080)
+                var written = WrittenHost(hop.Url);
+                if (written != null && !string.Equals(written, uri.Host, StringComparison.Ordinal)
+                    && string.Equals(written, uri.Host, StringComparison.OrdinalIgnoreCase))
+                {
+                    request.Headers.Host = uri.IsDefaultPort ? written : written + ":" + uri.Port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+            }
+            if (request.Version == System.Net.HttpVersion.Version11
+                && (SeenHttp10 || (Options.Session?.Http10Origins.Contains(Origin(uri)) ?? false)))
+            {
+                request.Version = System.Net.HttpVersion.Version10; // the server spoke HTTP/1.0
+            }
             var proxyUri = Proxy?.ProxyFor(uri);
             var tunnel = proxyUri != null && (Options.ProxyTunnel || !string.Equals(uri.Scheme, "http", StringComparison.OrdinalIgnoreCase));
             var plainProxy = proxyUri != null && !tunnel && !proxyUri.Scheme.StartsWith("socks", StringComparison.OrdinalIgnoreCase);
             CurrentViaProxy = proxyUri != null;
+            CurrentViaPlainProxy = plainProxy;
 
             if (plainProxy)
             {
@@ -167,6 +204,7 @@ namespace CurlDotNet.Core
             }
 
             Cookies?.ApplyTo(request, hop);
+            Auth?.Apply(request, hop, plainProxy);
             ApplyExpect(request, hop);
             ApplyEtag(request, hop);
             ApplyResume(request, hop);
@@ -175,13 +213,23 @@ namespace CurlDotNet.Core
             {
                 // --tr-encoding: ask for a compressed transfer-encoding (hop-by-hop, hence Connection: TE)
                 request.Headers.TryAddWithoutValidation("TE", "gzip");
-                request.Headers.Connection.Add("TE");
+                // a custom -H "Connection: x" gets ", TE" appended; an empty one (-H "Connection;") becomes just TE
+                var custom = request.Headers.TryGetValues("Connection", out var values)
+                    ? values.Where(v => !string.IsNullOrWhiteSpace(v)).ToList()
+                    : new List<string>();
+                request.Headers.Remove("Connection");
+                foreach (var value in custom)
+                {
+                    request.Headers.TryAddWithoutValidation("Connection", value);
+                }
+                request.Headers.TryAddWithoutValidation("Connection", "TE");
             }
 
             var settings = new TransportRequestSettings
             {
                 ConnectTimeoutSeconds = hop.ConnectTimeout ?? 0,
                 Resolve = hop.Resolve.Count > 0 ? hop.Resolve : null,
+                ConnectTo = hop.ConnectTo.Count > 0 ? hop.ConnectTo : null,
                 ViaProxy = proxyUri != null,
                 Transcript = Transcript,
             };
@@ -285,10 +333,72 @@ namespace CurlDotNet.Core
             request.Headers.TryAddWithoutValidation("If-None-Match", etag);
         }
 
+        /// <summary>
+        /// Answers authentication challenges like curl: while the response is a 401/407 that offers a
+        /// usable method (or an auth probe that the server accepted without credentials), the response
+        /// is drained (its headers stay in the -i output, its body is dropped) and the same URL is
+        /// requested again with the next Authorization / Proxy-Authorization value.
+        /// </summary>
+        public async Task<(HttpResponseMessage Response, HttpRequestMessage Request)> AuthenticateAsync(
+            HttpResponseMessage response, HttpRequestMessage request, CurlOptions hop, CancellationToken cancellationToken)
+        {
+            for (var round = 0; Auth != null && round < 8; round++)
+            {
+                var status = (int)response.StatusCode;
+                var hasHost = RequestShaping.GetCredentials(hop, request.RequestUri!) != null;
+                var hasProxy = CurrentViaPlainProxy && Proxy?.UserCredentials != null;
+                var resend = Auth.ShouldResend(status, Challenges(response, "WWW-Authenticate"), Challenges(response, "Proxy-Authenticate"), hasHost, hasProxy);
+                if (_lastResponseCloses)
+                {
+                    // only after the challenge was read: a rejected NTLM type-3 must stay a rejection
+                    Auth.ConnectionClosed();
+                }
+                if (!resend)
+                {
+                    break;
+                }
+
+                RecordFallbackHeaders(response);
+                await Handlers.RedirectHandler.DrainAsync(response, cancellationToken).ConfigureAwait(false);
+                response.Dispose();
+
+                request = PrepareRequest(hop);
+                AppendVerboseRequest(request);
+                response = await SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                AppendVerboseResponse(response);
+            }
+            return (response, request);
+        }
+
+        /// <summary>The raw values of a challenge header of the last response (recorded bytes when available).</summary>
+        private IReadOnlyList<string> Challenges(HttpResponseMessage response, string name)
+        {
+            var head = FinalHead;
+            if (head != null)
+            {
+                return head.GetHeaders(name).ToList();
+            }
+
+#if NET6_0_OR_GREATER
+            if (response.Headers.NonValidated.TryGetValues(name, out var values))
+            {
+                return values.ToList();
+            }
+            return new List<string>();
+#else
+            return response.Headers.TryGetValues(name, out var values) ? values.ToList() : new List<string>();
+#endif
+        }
+
         /// <summary>Sends a request while recording its bytes, and stores any cookies it sets.</summary>
         public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption completion, CancellationToken cancellationToken)
         {
             var exchange = Transcript.Begin(request.Method == HttpMethod.Head);
+            exchange.Rewrite = RequestRewrite.For(HopOptions);
+            if (HopOptions.Raw)
+            {
+                exchange.RawLimit = int.MaxValue; // --raw replays the whole body as received
+            }
             LastExchange = exchange;
             RequestsSent++;
             WireExchange.Current = exchange;
@@ -296,6 +406,9 @@ namespace CurlDotNet.Core
             try
             {
                 TransportErrors.ValidateHeads(exchange, this);
+                var closes = ClosesConnection(response);
+                _lastResponseCloses = closes;
+                RememberHttpVersion(request.RequestUri!, response, closes);
 
                 if (Cookies != null)
                 {
@@ -321,6 +434,72 @@ namespace CurlDotNet.Core
             }
 
             return response;
+        }
+
+        /// <summary>The host name exactly as written in <paramref name="url"/> (case kept), or null.</summary>
+        private static string? WrittenHost(string url)
+        {
+            var start = url.IndexOf("://", StringComparison.Ordinal);
+            if (start < 0)
+            {
+                return null;
+            }
+            start += 3;
+            var end = url.IndexOfAny(new[] { '/', '?', '#' }, start);
+            var authority = end < 0 ? url.Substring(start) : url.Substring(start, end - start);
+            var at = authority.LastIndexOf('@');
+            if (at >= 0)
+            {
+                authority = authority.Substring(at + 1);
+            }
+            if (authority.StartsWith("[", StringComparison.Ordinal))
+            {
+                return null; // IPv6 literals have no case to keep
+            }
+            var colon = authority.IndexOf(':');
+            return colon >= 0 ? authority.Substring(0, colon) : authority;
+        }
+
+        /// <summary>scheme://host:port of a request URI.</summary>
+        private static string Origin(Uri uri) => uri.Scheme + "://" + uri.Host + ":" + uri.Port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>Notes an HTTP/1.0 reply for this transfer and, when the connection stays open, for the next transfers.</summary>
+        private void RememberHttpVersion(Uri uri, HttpResponseMessage response, bool closes)
+        {
+            var version = FinalHead?.HttpVersion ?? $"{response.Version.Major}.{response.Version.Minor}";
+            var http10 = version == "1.0";
+            if (http10)
+            {
+                SeenHttp10 = true;
+            }
+
+            var session = Options.Session;
+            if (session != null)
+            {
+                if (http10 && !closes)
+                {
+                    session.Http10Origins.Add(Origin(uri));
+                }
+                else
+                {
+                    session.Http10Origins.Remove(Origin(uri));
+                }
+            }
+        }
+
+        /// <summary>True when the server ends the connection after this response (Connection: close, or HTTP/1.0 without keep-alive).</summary>
+        private bool ClosesConnection(HttpResponseMessage response)
+        {
+            var head = FinalHead;
+            var connection = head != null
+                ? string.Join(",", head.GetHeaders("Connection"))
+                : string.Join(",", response.Headers.Connection);
+            if (connection.IndexOf("close", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+            var version = head?.HttpVersion ?? $"{response.Version.Major}.{response.Version.Minor}";
+            return version == "1.0" && connection.IndexOf("keep-alive", StringComparison.OrdinalIgnoreCase) < 0;
         }
 
         /// <summary>The raw header block of the final response of the last exchange, if recorded.</summary>

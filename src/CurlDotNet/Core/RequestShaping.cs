@@ -225,7 +225,7 @@ namespace CurlDotNet.Core
         internal static Uri BuildRequestUri(CurlOptions options)
         {
 #if NET6_0_OR_GREATER
-            if (options.PathAsIs)
+            if (options.PathAsIs || NeedsVerbatimPath(options.Url))
             {
                 // The fragment is never sent; without canonicalisation .NET would keep it in the request target
                 var url = options.Url;
@@ -242,6 +242,54 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
+        /// True when the URL's path or query holds characters that curl sends as they are but .NET would
+        /// percent-encode or rewrite (<c>" { } | \ ^ ` &lt; &gt;</c>, curl tests 64 and 214), and nothing that
+        /// needs .NET's canonicalisation (dot segments, spaces, control or non-ASCII characters).
+        /// </summary>
+        internal static bool NeedsVerbatimPath(string url)
+        {
+            var schemeEnd = url.IndexOf("://", StringComparison.Ordinal);
+            if (schemeEnd < 0)
+            {
+                return false;
+            }
+            var pathStart = url.IndexOf('/', schemeEnd + 3);
+            if (pathStart < 0)
+            {
+                return false;
+            }
+            var hash = url.IndexOf('#', pathStart);
+            var target = hash >= 0 ? url.Substring(pathStart, hash - pathStart) : url.Substring(pathStart);
+
+            var special = false;
+            foreach (var c in target)
+            {
+                if (c <= ' ' || c >= 0x7F)
+                {
+                    return false;
+                }
+                if ("\"{}|\\^`<>".IndexOf(c) >= 0)
+                {
+                    special = true;
+                }
+            }
+            if (!special)
+            {
+                return false;
+            }
+
+            var path = target.Split('?')[0].Replace('\\', '/');
+            foreach (var segment in path.Split('/'))
+            {
+                if (segment == "." || segment == "..")
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
         /// The credentials for the Authorization header: <c>-u</c> wins, then <c>user:password@</c> in the
         /// URL being requested (percent-decoded), matching curl.
         /// </summary>
@@ -250,10 +298,11 @@ namespace CurlDotNet.Core
             var fromUrl = GetUrlCredentials(uri);
             if (options.Credentials != null && !options.CredentialsFromUrl)
             {
-                return options.Credentials;
+                return options.Credentials; // -u wins over the URL and over .netrc
             }
 
-            return fromUrl ?? options.Credentials;
+            // -n / --netrc-optional: the .netrc entry for this host (looked up again on every redirect hop)
+            return Netrc.Resolve(options, uri, fromUrl ?? options.Credentials);
         }
 
         /// <summary>Decodes <c>user[:password]</c> from a URL's user-info part, or returns null when there is none.</summary>
@@ -348,7 +397,8 @@ namespace CurlDotNet.Core
             }
 
             var credentials = options.ProxyCredentials ?? GetUrlCredentials(proxy);
-            var basic = options.ProxyAuthMethod == null || options.ProxyAuthMethod == "basic";
+            var scheme = options.ProxyAuthScheme ?? options.ProxyAuthMethod;
+            var basic = scheme == null || string.Equals(scheme, "basic", StringComparison.OrdinalIgnoreCase);
             if (credentials != null && basic && !suppressed.Contains("Proxy-Authorization") && !request.Headers.Contains("Proxy-Authorization"))
             {
                 var token = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{credentials.UserName}:{credentials.Password}"));

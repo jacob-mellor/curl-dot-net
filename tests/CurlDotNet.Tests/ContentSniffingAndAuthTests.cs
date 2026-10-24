@@ -193,10 +193,13 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
-        public void ChallengeAuth_RequiresCredentials()
+        public void ChallengeAuth_IsDecidedByTheScheme_EvenWithoutUserOption()
         {
+            // credentials can also come from user:password@ in the URL or from .netrc, so --digest must
+            // switch off preemptive Basic whether or not -u was given (a Basic header would leak the password)
             var options = new CurlOptions { Url = "https://example.com/", AuthScheme = "digest" };
-            HttpHandler.UsesChallengeAuth(options).Should().BeFalse("--digest without -u has nothing to negotiate");
+            HttpHandler.UsesChallengeAuth(options).Should().BeTrue();
+            HttpHandler.UsesChallengeAuth(new CurlOptions { Url = "https://example.com/", AuthScheme = "basic" }).Should().BeFalse();
         }
 
         [Fact]

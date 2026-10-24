@@ -206,7 +206,8 @@ namespace CurlDotNet.Core
     {
         private enum State { Head, Body, ChunkSize, ChunkData, ChunkDataEnd, Trailers, ToEof }
 
-        private const int RawCap = 1024 * 1024;
+        /// <summary>How many leading bytes are kept for HTTP/0.9 and --raw (1 MB unless the exchange asks for more).</summary>
+        public int RawCap { get; set; } = 1024 * 1024;
         private readonly bool _isHeadRequest;
         private readonly MemoryStream _raw = new MemoryStream();
         private State _state = State.Head;
@@ -526,6 +527,12 @@ namespace CurlDotNet.Core
         /// <summary>True for HEAD requests (responses have no body).</summary>
         public bool IsHeadRequest { get; }
 
+        /// <summary>How many raw response bytes each segment keeps (<see cref="ResponseStreamParser.RawCap"/>).</summary>
+        public int RawLimit { get; set; } = 1024 * 1024;
+
+        /// <summary>Changes to apply to this request's head on the wire (HTTP/1.x), or null.</summary>
+        public RequestRewrite? Rewrite { get; set; }
+
         /// <summary>Stopwatch timestamp of when the exchange began.</summary>
         public long StartedTimestamp { get; }
 
@@ -539,6 +546,7 @@ namespace CurlDotNet.Core
         public WireSegment Attach(WireConnectionInfo? connection, bool newConnection)
         {
             var segment = new WireSegment(IsHeadRequest, connection, newConnection);
+            segment.Parser.RawCap = RawLimit;
             lock (_lock)
             {
                 _segments.Add(segment);
@@ -693,6 +701,9 @@ namespace CurlDotNet.Core
         private WireExchange? _bound;
         private WireSegment? _segment;
         private bool _used;
+        private MemoryStream? _head;
+        private RequestRewrite? _rewrite;
+        private ChunkSizeLowercaser? _chunks;
 
         /// <summary>Wraps <paramref name="inner"/>.</summary>
         public RecordingStream(Stream inner, WireConnectionInfo? info)
@@ -708,6 +719,9 @@ namespace CurlDotNet.Core
             {
                 _bound = current;
                 _segment = current?.Attach(_info, newConnection: !_used);
+                _rewrite = current?.Rewrite;
+                _head = _rewrite != null ? new MemoryStream() : null;
+                _chunks = null;
             }
             _used = true;
             if (_segment != null)
@@ -825,32 +839,108 @@ namespace CurlDotNet.Core
         /// <inheritdoc />
         public override void SetLength(long value) => throw new NotSupportedException();
 
+        /// <summary>
+        /// While a request head that needs a <see cref="RequestRewrite"/> is being written, collects it;
+        /// returns null to pass <paramref name="data"/> through unchanged, or the bytes to write now
+        /// (empty until the head is complete, then the rewritten head plus whatever followed it).
+        /// </summary>
+        private byte[]? Intercept(ReadOnlySpan<byte> data)
+        {
+            if (_chunks != null)
+            {
+                var copy = data.ToArray();
+                _chunks.Transform(copy, 0, copy.Length);
+                return copy;
+            }
+
+            if (_head == null || _rewrite == null)
+            {
+                return null;
+            }
+
+            _head.Write(data.ToArray(), 0, data.Length);
+            var all = _head.GetBuffer();
+            var length = (int)_head.Length;
+            var end = -1;
+            for (var i = 3; i < length; i++)
+            {
+                if (all[i] == '\n' && all[i - 1] == '\r' && all[i - 2] == '\n' && all[i - 3] == '\r')
+                {
+                    end = i + 1;
+                    break;
+                }
+            }
+            if (end < 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            var head = _rewrite.Apply(all, end);
+            var output = new byte[head.Length + (length - end)];
+            Buffer.BlockCopy(head, 0, output, 0, head.Length);
+            Buffer.BlockCopy(all, end, output, head.Length, length - end);
+            if (_rewrite.LowercaseChunkSizes)
+            {
+                _chunks = new ChunkSizeLowercaser();
+                _chunks.Transform(output, head.Length, length - end);
+            }
+            _head = null;
+            _rewrite = null;
+            return output;
+        }
+
         /// <inheritdoc />
         public override void Write(byte[] buffer, int offset, int count)
         {
             OnWrite(count);
-            _inner.Write(buffer, offset, count);
+            var data = Intercept(new ReadOnlySpan<byte>(buffer, offset, count));
+            if (data == null)
+            {
+                _inner.Write(buffer, offset, count);
+            }
+            else if (data.Length > 0)
+            {
+                _inner.Write(data, 0, data.Length);
+            }
         }
 
         /// <inheritdoc />
         public override void Write(ReadOnlySpan<byte> buffer)
         {
             OnWrite(buffer.Length);
-            _inner.Write(buffer);
+            var data = Intercept(buffer);
+            if (data == null)
+            {
+                _inner.Write(buffer);
+            }
+            else if (data.Length > 0)
+            {
+                _inner.Write(data, 0, data.Length);
+            }
         }
 
         /// <inheritdoc />
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             OnWrite(count);
-            return _inner.WriteAsync(buffer, offset, count, cancellationToken);
+            var data = Intercept(new ReadOnlySpan<byte>(buffer, offset, count));
+            if (data == null)
+            {
+                return _inner.WriteAsync(buffer, offset, count, cancellationToken);
+            }
+            return data.Length > 0 ? _inner.WriteAsync(data, 0, data.Length, cancellationToken) : Task.CompletedTask;
         }
 
         /// <inheritdoc />
         public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
         {
             OnWrite(buffer.Length);
-            return _inner.WriteAsync(buffer, cancellationToken);
+            var data = Intercept(buffer.Span);
+            if (data == null)
+            {
+                return _inner.WriteAsync(buffer, cancellationToken);
+            }
+            return data.Length > 0 ? _inner.WriteAsync(data, cancellationToken) : default;
         }
 
         /// <inheritdoc />

@@ -70,6 +70,7 @@ namespace CurlDotNet.Core.Handlers
 
                 if (options.MaxRedirects >= 0 && transfer.RedirectCount >= options.MaxRedirects)
                 {
+                    transfer.RedirectUrl = target.AbsoluteUri; // %{redirect_url}: where the next hop would have gone
                     throw new CurlTooManyRedirectsException(transfer.RedirectCount, options.MaxRedirects, options.OriginalCommand);
                 }
 
@@ -88,6 +89,7 @@ namespace CurlDotNet.Core.Handlers
 
                 transfer.RedirectCount++;
                 transfer.HopOptions = hop;
+                transfer.Auth?.Redirected(SameOrigin(currentRequest.RequestUri!, target));
                 currentRequest = transfer.PrepareRequest(hop);
                 transfer.AppendVerboseRequest(currentRequest);
                 var previous = current;
@@ -97,6 +99,9 @@ namespace CurlDotNet.Core.Handlers
                     previous.Dispose(); // drained intermediate hop (the first response belongs to the caller)
                 }
                 transfer.AppendVerboseResponse(current);
+                var authenticated = await transfer.AuthenticateAsync(current, currentRequest, hop, cancellationToken).ConfigureAwait(false);
+                current = authenticated.Response;
+                currentRequest = authenticated.Request;
                 transfer.Timings.Redirect = (DateTime.UtcNow - transfer.StartTime).TotalMilliseconds;
             }
             }
@@ -170,6 +175,13 @@ namespace CurlDotNet.Core.Handlers
                 }
             }
 
+            if (previous.CredentialsFromUrl && string.IsNullOrEmpty(target.UserInfo) && !SameOrigin(transfer.FirstUri, target))
+            {
+                // user:password@ in a URL belongs to that host only, even with --location-trusted (which
+                // is about -u credentials)
+                hop.Credentials = null;
+            }
+
             if (!previous.LocationTrusted && !SameOrigin(transfer.FirstUri, target))
             {
                 if (string.IsNullOrEmpty(target.UserInfo))
@@ -179,6 +191,7 @@ namespace CurlDotNet.Core.Handlers
                 hop.Headers.Remove("Authorization");
                 hop.Headers.Remove("Cookie");
                 hop.AwsSigV4 = null;
+                hop.CrossOriginHop = true;
                 if (hop.Cookie != null && hop.Cookie.IndexOf('=') >= 0)
                 {
                     hop.Cookie = null; // a -b "name=value" string only goes to the first origin
@@ -328,7 +341,10 @@ namespace CurlDotNet.Core.Handlers
             return sb.ToString();
         }
 
-        private static async Task DrainAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+        /// <summary>The most bytes of a skipped (redirect or authentication) response body that are read to keep the connection.</summary>
+        private const long DrainLimit = 1024 * 1024;
+
+        internal static async Task DrainAsync(HttpResponseMessage response, CancellationToken cancellationToken)
         {
             if (response.Content == null)
             {
@@ -337,11 +353,24 @@ namespace CurlDotNet.Core.Handlers
 
             try
             {
+                // read and discard, like curl; a body over 1 MB is abandoned (the connection is then not
+                // reused) instead of being held in memory
 #if NETSTANDARD2_0 || NET472 || NET48
-                await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 #else
-                await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+                using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
 #endif
+                var buffer = new byte[16384];
+                long total = 0;
+                int n;
+                while ((n = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    total += n;
+                    if (total > DrainLimit)
+                    {
+                        return;
+                    }
+                }
             }
             catch (HttpRequestException)
             {

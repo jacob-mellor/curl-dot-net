@@ -289,6 +289,8 @@ namespace CurlDotNet.Core
                                 $"Connection timed out after {(long)(seconds * 1000)} milliseconds while connecting to {failure.Host} port {failure.Port}" +
                                 $"{(viaProxy ? " (the proxy)" : string.Empty)}. Raise --connect-timeout, or check that the host is reachable from this machine.",
                                 command);
+                        case ConnectFailureKind.GotNothing:
+                            return new CurlGotNothingException(viaProxy ? ProxyHost(transfer, uri) : uri.Host, command, string.Empty);
                         case ConnectFailureKind.Tunnel:
                             return new CurlCouldntConnectException(failure.Host, failure.Port, failure.Message +
                                 (failure.TunnelStatus == 407 ? " (proxy authentication required: pass -U user:password or --proxy-anyauth)" : string.Empty),
@@ -411,6 +413,12 @@ namespace CurlDotNet.Core
                 if (final == null && pending)
                 {
                     var text = parser.PendingHeadText;
+                    if (!text.StartsWith("HTTP/", StringComparison.Ordinal) && !segment.NewConnection)
+                    {
+                        // a reused connection already spoke HTTP/1.x: a header-less reply there is not HTTP/0.9
+                        return new CurlWeirdServerReplyException(WeirdMessage(
+                            "the reply on a reused connection does not start with an HTTP status line (an earlier response probably sent more body bytes than it announced)", transfer), command);
+                    }
                     if (!text.StartsWith("HTTP/", StringComparison.Ordinal))
                     {
                         return new CurlUnsupportedProtocolException("HTTP/0.9",
@@ -465,6 +473,12 @@ namespace CurlDotNet.Core
             if (parser.PendingTrailerText.IndexOf('\0') >= 0 || (final.Trailers?.IndexOf('\0') ?? -1) >= 0)
             {
                 return new CurlWeirdServerReplyException(WeirdMessage("a chunked-body trailer contains a NUL byte", transfer), command);
+            }
+
+            if (final.Chunked && ((final.Trailers ?? string.Empty) + parser.PendingTrailerText).IndexOf('\0') >= 0)
+            {
+                // curl rejects a header line with a NUL byte in it, chunked trailers included
+                return new CurlWeirdServerReplyException(WeirdMessage("a chunked trailer line contains a NUL byte", transfer), command);
             }
 
             if (!final.BodyComplete)

@@ -51,6 +51,7 @@ namespace CurlDotNet.Core
         public int NumConnects;
         public int NumHeaders;
         public int NumRetries;
+        public int UrlNum;
         public int ExitCode;
         public string ErrorMessage = string.Empty;
         public string FilenameEffective = string.Empty;
@@ -308,7 +309,7 @@ namespace CurlDotNet.Core
                 case "time_total": return Seconds(ctx.TimeTotal);
                 case "url": return ctx.Url;
                 case "url_effective": return ctx.UrlEffective;
-                case "urlnum": return "0";
+                case "urlnum": return Int(ctx.UrlNum);
                 case "conn_id":
                 case "xfer_id": return "0";
                 case "json": return Json(ctx);

@@ -791,6 +791,57 @@ namespace CurlDotNet.Core
         /// <summary>The scheme <c>--proto-default</c> gives URLs written without one.</summary>
         internal string? DefaultProtocol { get; set; }
 
+        /// <summary>
+        /// Cookie files from earlier <c>-b FILE</c> options; <see cref="Cookie"/> holds the last file or the
+        /// joined <c>-b name=value</c> strings. curl reads every file and sends every string.
+        /// </summary>
+        internal List<string> CookieFiles { get; set; } = new List<string>();
+
+        /// <summary>
+        /// State shared by every transfer of one command line (curl's share handle): the cookie engine.
+        /// Null when the options run on their own.
+        /// </summary>
+        internal TransferSession? Session { get; set; }
+
+        /// <summary>
+        /// The error curl reports when it sets this transfer up (after the earlier transfers ran), such as
+        /// a missing <c>-T</c> file of a later URL; the transfer is not sent and the command ends with it.
+        /// </summary>
+        internal CurlDotNet.Exceptions.CurlException? SetupError { get; set; }
+
+        /// <summary>
+        /// <c>-H</c> lines whose name HttpClient cannot write as given (white space around or inside the
+        /// name), keyed by the trimmed name; the request head carries them verbatim like curl.
+        /// </summary>
+        internal Dictionary<string, string> RawHeaderLines { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary><c>--request-target</c>: the target written on the request line instead of the URL's path (for example <c>*</c>).</summary>
+        internal string? RequestTarget { get; set; }
+
+        /// <summary>The 0-based <c>--next</c> group this transfer belongs to.</summary>
+        internal int GroupNumber { get; set; }
+
+        /// <summary>The 0-based position of this transfer among all URLs of the command line (<c>%{urlnum}</c>).</summary>
+        internal int TransferNumber { get; set; }
+
+        /// <summary><c>--out-null</c>: the response headers (<c>-i</c>) and body are read and discarded.</summary>
+        internal bool DiscardOutput { get; set; }
+
+        /// <summary><c>--connect-to HOST1:PORT1:HOST2:PORT2</c> entries, in command-line order (the first match wins).</summary>
+        internal List<string> ConnectTo { get; set; } = new List<string>();
+
+        /// <summary><c>-n</c>/<c>--netrc</c>, <c>--netrc-optional</c>: whether credentials come from a .netrc file.</summary>
+        internal NetrcMode NetrcMode { get; set; }
+
+        /// <summary><c>--netrc-file FILE</c>: the .netrc file to read instead of <c>$NETRC</c> or <c>~/.netrc</c>.</summary>
+        internal string? NetrcFile { get; set; }
+
+        /// <summary>
+        /// Set on a redirect hop to another host, port or scheme without <c>--location-trusted</c>: the
+        /// <c>--oauth2-bearer</c> token is not sent there (and does not fall back to Basic).
+        /// </summary>
+        internal bool CrossOriginHop { get; set; }
+
         /// <summary><c>--url-query</c> arguments, applied to <see cref="Url"/> when the transfer is finished.</summary>
         internal List<string> UrlQueryParts { get; } = new List<string>();
 
@@ -845,6 +896,13 @@ namespace CurlDotNet.Core
             clone.DataParts.AddRange(DataParts);
             clone.UrlQueryParts.AddRange(UrlQueryParts);
             clone.DefaultProtocol = DefaultProtocol;
+            clone.CookieFiles = new List<string>(CookieFiles);
+            clone.DiscardOutput = DiscardOutput;
+            clone.NetrcMode = NetrcMode;
+            clone.RequestTarget = RequestTarget;
+            clone.RawHeaderLines = new Dictionary<string, string>(RawHeaderLines, StringComparer.OrdinalIgnoreCase);
+            clone.ConnectTo = new List<string>(ConnectTo);
+            clone.NetrcFile = NetrcFile;
             clone.ProxyTunnelRequested = ProxyTunnelRequested;
             clone.NoProxyHosts = NoProxyHosts;
             clone.ProxyHeaderLines.AddRange(ProxyHeaderLines);
@@ -877,7 +935,10 @@ namespace CurlDotNet.Core
         /// <summary>Only fetch the document if it did not change after the date: sends <c>If-Unmodified-Since</c> (<c>-z -DATE</c>).</summary>
         IfUnmodifiedSince = 1,
 
-        /// <summary>Only accept a document whose Last-Modified equals the date; no request header is sent (<c>-z =DATE</c>).</summary>
+        /// <summary>
+        /// curl's <c>-z =DATE</c>: sends <c>Last-Modified: DATE</c> and, like curl, only keeps a document whose
+        /// Last-Modified is newer than the date (curl applies the "newer" test to this mode too).
+        /// </summary>
         LastModified = 2,
     }
 }

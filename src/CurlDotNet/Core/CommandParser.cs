@@ -1214,6 +1214,15 @@ namespace CurlDotNet.Core
                     group.OutputSlots.Add(null);
                     break;
 
+                case "--out-null":
+                    group.OutputSlots.Add(OutNullSlot);
+                    break;
+
+                case "--no-remote-name":
+                    // curl: takes the next URL's output slot and sends it to stdout, even with --remote-name-all
+                    group.OutputSlots.Add("-");
+                    break;
+
                 case "--remote-name-all":
                     group.RemoteNameAll = true;
                     break;
@@ -1371,6 +1380,12 @@ namespace CurlDotNet.Core
                     options.OutputFile = null;
                     return true;
 
+                case "--out-null":
+                    options.DiscardOutput = true;
+                    options.UseRemoteFileName = false;
+                    options.OutputFile = null;
+                    return true;
+
                 case "--include":
                 case "--show-headers":
                     options.IncludeHeaders = true;
@@ -1482,7 +1497,7 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--cookie":
-                    options.Cookie = value;
+                    AddCookieArgument(options, value);
                     return true;
 
                 case "--cookie-jar":
@@ -1664,6 +1679,10 @@ namespace CurlDotNet.Core
                     ParseResolve(value, options);
                     return true;
 
+                case "--connect-to":
+                    ParseConnectTo(value, options);
+                    return true;
+
                 case "--quote":
                     options.Quote.Add(value);
                     return true;
@@ -1690,6 +1709,14 @@ namespace CurlDotNet.Core
 
                 case "--socks5":
                     options.Socks5Proxy = value;
+                    return true;
+
+                case "--socks4":
+                case "--socks4a":
+                case "--socks5-hostname":
+                    // the SOCKS flavour travels as the proxy URL scheme (socks4://, socks4a://, socks5h://)
+                    var socksScheme = option == "--socks4" ? "socks4://" : option == "--socks4a" ? "socks4a://" : "socks5h://";
+                    options.Socks5Proxy = value.Contains("://") ? value : socksScheme + value;
                     return true;
 
                 case "--retry":
@@ -1860,6 +1887,14 @@ namespace CurlDotNet.Core
             // curl keeps the value byte for byte after the separating whitespace ("X-Test: foo; " keeps its trailing space)
             var value = header.Substring(colonIndex + 1).TrimStart(' ', '\t').TrimEnd('\r', '\n');
 
+            // curl sends the line exactly as written, even "Authorization : x" or " Odd Name : y"; HttpClient
+            // cannot, so the written form is kept for the request-head rewrite (RequestRewrite)
+            var writtenName = header.Substring(0, colonIndex);
+            if (value.Trim().Length > 0 && (writtenName != key || !RequestRewrite.IsToken(key)))
+            {
+                options.RawHeaderLines[key] = header.TrimEnd('\r', '\n');
+            }
+
             if (value.Trim().Length == 0)
             {
                 // "Name:" removes curl's own header; a custom value given earlier for the same name is still sent
@@ -1929,17 +1964,79 @@ namespace CurlDotNet.Core
                 : new NetworkCredential(userPass.Substring(0, colon), userPass.Substring(colon + 1));
         }
 
+        private const string NameResolutionDocs = "https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md";
+
         private void ParseResolve(string resolve, CurlOptions options)
         {
-            // Format: host:port:address
+            // [+]host:port:address[,address]... adds an entry; -host:port removes one (ignored here).
             var parts = resolve.Split(':');
-            if (parts.Length >= 3)
+            if (resolve.StartsWith("-", StringComparison.Ordinal))
             {
-                var hostPort = parts[0] + ":" + parts[1];
-                var address = string.Join(":", parts.Skip(2));
-                options.Resolve[hostPort] = address;
+                return;
             }
+            if (parts.Length < 3 || !IsPort(parts[1]))
+            {
+                throw new CurlOptionSyntaxException("--resolve",
+                    $"Couldn't parse the --resolve entry \"{resolve}\": it must be HOST:PORT:ADDRESS[,ADDRESS] with a numeric port, " +
+                    "for example --resolve example.com:443:127.0.0.1. See " + NameResolutionDocs,
+                    options.OriginalCommand);
+            }
+
+            var hostPort = parts[0] + ":" + parts[1];
+            var address = string.Join(":", parts.Skip(2));
+            options.Resolve[hostPort] = address;
         }
+
+        /// <summary>
+        /// <c>--connect-to HOST1:PORT1:HOST2:PORT2</c>: requests for HOST1:PORT1 connect to HOST2:PORT2
+        /// instead (an empty part means "any host/port" on the left and "unchanged" on the right).
+        /// </summary>
+        private static void ParseConnectTo(string value, CurlOptions options)
+        {
+            if (!TrySplitConnectTo(value, out _, out var port1, out _, out var port2)
+                || (port1.Length > 0 && !IsPort(port1)) || (port2.Length > 0 && !IsPort(port2)))
+            {
+                throw new CurlOptionSyntaxException("--connect-to",
+                    $"Couldn't parse the --connect-to entry \"{value}\": it must be HOST1:PORT1:HOST2:PORT2 with numeric (or empty) ports, " +
+                    "for example --connect-to example.com:443:127.0.0.1:8443 or --connect-to ::127.0.0.1:8080. See " + NameResolutionDocs,
+                    options.OriginalCommand);
+            }
+            options.ConnectTo.Add(value);
+        }
+
+        /// <summary>Splits a <c>--connect-to</c> value into its four parts (IPv6 addresses go in brackets).</summary>
+        internal static bool TrySplitConnectTo(string value, out string host1, out string port1, out string host2, out string port2)
+        {
+            host1 = port1 = host2 = port2 = string.Empty;
+            var parts = new List<string>();
+            var current = new StringBuilder();
+            var bracket = false;
+            foreach (var c in value)
+            {
+                if (c == '[') bracket = true;
+                if (c == ']') bracket = false;
+                if (c == ':' && !bracket)
+                {
+                    parts.Add(current.ToString());
+                    current.Clear();
+                    continue;
+                }
+                current.Append(c);
+            }
+            parts.Add(current.ToString());
+            if (parts.Count != 4)
+            {
+                return false;
+            }
+            host1 = parts[0];
+            port1 = parts[1];
+            host2 = parts[2];
+            port2 = parts[3];
+            return true;
+        }
+
+        private static bool IsPort(string text) =>
+            text.Length > 0 && text.Length <= 5 && text.All(char.IsDigit) && int.Parse(text, CultureInfo.InvariantCulture) <= 65535;
 
         private long ParseSize(string size)
         {
@@ -2066,6 +2163,44 @@ namespace CurlDotNet.Core
         /// Applies curl's <c>-e</c> rules: <c>URL</c> sends that Referer, <c>URL;auto</c> also updates it on
         /// redirects and <c>;auto</c> alone sends none on the first request.
         /// </summary>
+        /// <summary>
+        /// <c>-b</c> can be repeated: every <c>name=value</c> string is sent, joined with <c>"; "</c>, and
+        /// every file (an argument without <c>=</c>) is read into the cookie engine, like curl.
+        /// </summary>
+        private static void AddCookieArgument(CurlOptions options, string value)
+        {
+            var current = options.Cookie;
+            var isLiteral = value.IndexOf('=') >= 0;
+            if (current == null)
+            {
+                options.Cookie = value;
+                return;
+            }
+
+            var currentIsLiteral = current.IndexOf('=') >= 0;
+            if (isLiteral)
+            {
+                if (currentIsLiteral)
+                {
+                    options.Cookie = current + "; " + value;
+                }
+                else
+                {
+                    options.CookieFiles.Add(current);
+                    options.Cookie = value;
+                }
+            }
+            else if (currentIsLiteral)
+            {
+                options.CookieFiles.Add(value);
+            }
+            else
+            {
+                options.CookieFiles.Add(current);
+                options.Cookie = value;
+            }
+        }
+
         private static void ParseReferer(string value, CurlOptions options)
         {
             var auto = value.IndexOf(";auto", StringComparison.Ordinal);
