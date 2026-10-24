@@ -28,6 +28,19 @@ namespace CurlDotNet.Tests
         // ------------------------------------------------------------------ LibCurl transport is curl's
 
         [Fact]
+        public async Task LibCurl_WithoutFollowRedirects_ReturnsTheRedirectLikeCurl()
+        {
+            using var target = new RawReplyServer(Ok);
+            using var redirect = new RawReplyServer($"HTTP/1.1 302 Found\r\nLocation: {target.Url("/t")}\r\nContent-Length: 0\r\n\r\n");
+            using var curl = new LibCurl();
+
+            var result = await curl.GetAsync(redirect.Url("/r"));
+
+            result.StatusCode.Should().Be(302);
+            target.Requests.Should().BeEmpty();
+        }
+
+        [Fact]
         public async Task LibCurl_WithFollowRedirects_FollowsToTheTarget()
         {
             using var target = new RawReplyServer(Ok);
@@ -38,6 +51,20 @@ namespace CurlDotNet.Tests
 
             result.StatusCode.Should().Be(200);
             result.Body.Should().Be("ok");
+        }
+
+        [Fact]
+        public async Task LibCurl_WithProxy_SendsTheRequestToTheProxy()
+        {
+            using var proxy = new RawReplyServer("HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nproxy");
+            using var curl = new LibCurl().WithProxy($"http://127.0.0.1:{proxy.Port}", "alice", "s3cret");
+
+            var result = await curl.GetAsync("http://example.invalid/x");
+
+            result.Exception.Should().BeNull();
+            result.Body.Should().Be("proxy");
+            proxy.Requests.Single().Should().StartWith("GET http://example.invalid/x HTTP/1.1");
+            Line(proxy.Requests.Single(), "Proxy-Authorization").Should().NotBeNull();
         }
 
         [Fact]
@@ -55,6 +82,37 @@ namespace CurlDotNet.Tests
             result.Exception.Should().BeAssignableTo<CurlException>();
             ((CurlException)result.Exception).CurlErrorCode.Should().Be(7);
             result.Exception.Message.Should().Contain(DocsLink);
+        }
+
+        [Fact]
+        public async Task LibCurl_PostObject_IsJsonWithJsonContentType_StringStaysForm_ConfigureWins()
+        {
+            using var server = new RawReplyServer(Ok);
+            using var curl = new LibCurl();
+
+            await curl.PostAsync(server.Url("/json"), new { name = "Ada" });
+            await curl.PostAsync(server.Url("/form"), "a=1&b=2");
+            await curl.PostAsync(server.Url("/custom"), new { name = "Ada" }, opts => opts.Headers["Content-Type"] = "application/vnd.api+json");
+
+            var requests = server.Requests;
+            Line(requests[0], "Content-Type").Should().StartWith("Content-Type: application/json");
+            requests[0].Should().EndWith("{\"name\":\"Ada\"}");
+            Line(requests[1], "Content-Type").Should().StartWith("Content-Type: application/x-www-form-urlencoded");
+            Line(requests[2], "Content-Type").Should().StartWith("Content-Type: application/vnd.api+json");
+        }
+
+        [Fact]
+        public async Task LibCurl_DefaultHeaders_AreCaseInsensitiveAndRequestHeadersWin()
+        {
+            using var server = new RawReplyServer(Ok);
+            using var curl = new LibCurl().WithHeader("accept", "text/plain").WithHeader("Accept", "application/json");
+
+            await curl.GetAsync(server.Url("/a"));
+            await curl.GetAsync(server.Url("/b"), opts => opts.Headers["Accept"] = "text/csv");
+
+            server.Requests[0].Split(new[] { "\r\n" }, StringSplitOptions.None).Count(l => l.StartsWith("Accept:", StringComparison.OrdinalIgnoreCase)).Should().Be(1);
+            Line(server.Requests[0], "Accept").Should().Be("Accept: application/json");
+            Line(server.Requests[1], "Accept").Should().Be("Accept: text/csv");
         }
 
         [Fact]
@@ -83,6 +141,37 @@ namespace CurlDotNet.Tests
         }
 
         // ------------------------------------------------------------------ builder behaviour and messages
+
+        [Fact]
+        public async Task Builder_RequestWithCustomVerb_SendsThatVerbAndTheBody()
+        {
+            using var server = new RawReplyServer(Ok);
+
+            await CurlRequestBuilder.Request("propfind", server.Url("/dav")).WithData("<x/>").ExecuteAsync();
+
+            server.Requests.Single().Should().StartWith("PROPFIND /dav HTTP/1.1").And.EndWith("<x/>");
+        }
+
+        [Fact]
+        public async Task Builder_GetWithUploadFile_BecomesMultipartPost()
+        {
+            using var server = new RawReplyServer(Ok);
+            var file = Path.Combine(Path.GetTempPath(), "curldotnet-upload-" + Guid.NewGuid().ToString("N") + ".txt");
+            File.WriteAllText(file, "FILEDATA");
+            try
+            {
+                await CurlRequestBuilder.Get(server.Url("/up")).WithUploadFile("doc", file).ExecuteAsync();
+            }
+            finally
+            {
+                File.Delete(file);
+            }
+
+            var request = server.Requests.Single();
+            request.Should().StartWith("POST /up HTTP/1.1");
+            Line(request, "Content-Type").Should().Contain("multipart/form-data");
+            request.Should().Contain("name=\"doc\"").And.Contain("FILEDATA");
+        }
 
         [Fact]
         public void Builder_WithFileMissing_IsReadError26NamingPathFieldAndFix()
@@ -140,7 +229,7 @@ namespace CurlDotNet.Tests
                 .AsBinary().WithBinaryContentType("application/x-a").WithTextContentType("application/x-b")
                 .WithProxy("http://p:1", "u", "p").WithReferer("https://r/").GetOptions();
 
-            options.Method.Should().Be("PURGE");
+            options.CustomMethod.Should().Be("PURGE");
             options.TraceFile.Should().Be("t.log");
             options.TraceAsciiFile.Should().Be("a.log");
             options.TraceTime.Should().BeTrue();
