@@ -149,8 +149,6 @@ namespace CurlDotNet.Core
             return true;
         }
 
-        private const string HeaderDocs = "https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md";
-
         /// <summary>
         /// Refuses text that would end a request line or header line early: a CR or LF inside a header or
         /// the request target lets the rest pose as extra headers or a second request (request smuggling).
@@ -163,10 +161,30 @@ namespace CurlDotNet.Core
                 return;
             }
             throw new CurlDotNet.Exceptions.CurlBadFunctionArgumentException(option,
-                $"The value given with {option} contains a line break (CR or LF): \"{text.Replace("\r", "\\r").Replace("\n", "\\n")}\". " +
-                "A line break would end the header early and let the rest be read as extra headers or another request. " +
-                "Pass one header per -H (or one per line in a -H @file), without CR/LF characters. See " + HeaderDocs,
+                CurlDotNet.Exceptions.CurlException.Compose(
+                    $"The value given with {option} contains a line break (CR or LF): \"{CurlDotNet.Exceptions.ErrorText.Preview(HideSecretHeaderValue(text), 120)}\". " +
+                    "A line break would end the header early and let the rest be read as extra headers or another request.",
+                    option == "--request-target"
+                        ? "Pass the request target on one line, for example --request-target '/api/items?id=7'; percent-encode a line break as %0D%0A if the server really needs it."
+                        : "Pass one header per -H (for example -H 'Accept: application/json' -H 'X-Id: 7'), or one header per line in a -H @headers.txt file, without CR/LF inside a value.",
+                    CurlDotNet.Exceptions.DocLinks.HowToHeaders),
                 command);
+        }
+
+        /// <summary>Hides the value of Authorization, Proxy-Authorization and Cookie headers in messages.</summary>
+        private static string HideSecretHeaderValue(string text)
+        {
+            var colon = text.IndexOf(':');
+            if (colon <= 0)
+            {
+                return text;
+            }
+            var name = text.Substring(0, colon).Trim();
+            return name.Equals("Authorization", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("Proxy-Authorization", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("Cookie", StringComparison.OrdinalIgnoreCase)
+                ? name + ": (value hidden)"
+                : text;
         }
 
         /// <summary>The rules a request built from <paramref name="options"/> needs, or null when HttpClient's head is already curl's.</summary>
@@ -181,8 +199,10 @@ namespace CurlDotNet.Core
                 if (options.RequestTarget!.IndexOf(' ') >= 0)
                 {
                     throw new CurlDotNet.Exceptions.CurlBadFunctionArgumentException("--request-target",
-                        $"The --request-target \"{options.RequestTarget}\" contains a space, which would break the request line. " +
-                        "Percent-encode spaces as %20. See " + HeaderDocs, options.OriginalCommand);
+                        CurlDotNet.Exceptions.CurlException.Compose(
+                            $"The --request-target \"{options.RequestTarget}\" contains a space, which would break the HTTP request line (METHOD TARGET HTTP/1.1).",
+                            "Percent-encode spaces as %20, for example --request-target '/search?q=two%20words'.",
+                            CurlDotNet.Exceptions.DocLinks.Url), options.OriginalCommand);
                 }
                 rewrite.Target = options.RequestTarget;
                 needed = true;

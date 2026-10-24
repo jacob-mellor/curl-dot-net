@@ -47,8 +47,9 @@ namespace CurlDotNet.Core
                 var environmentValue = Environment.GetEnvironmentVariable(name);
                 if (rest.Length == 0 && environmentValue == null)
                 {
-                    throw VariableError($"--variable %{name} imports the environment variable {name}, which is not set. " +
-                        $"Set it, or give a default with --variable %{name}=default.", context.OriginalCommand);
+                    throw VariableError($"--variable %{name} imports the environment variable {name}, which is not set in this process.",
+                        $"Set it before running (Environment.SetEnvironmentVariable(\"{name}\", \"value\") or export {name}=value), or give a default with --variable %{name}=default.",
+                        context.OriginalCommand);
                 }
 
                 content = environmentValue;
@@ -66,8 +67,8 @@ namespace CurlDotNet.Core
                     (dash < range.Length - 1 && !long.TryParse(range.Substring(dash + 1), NumberStyles.None, CultureInfo.InvariantCulture, out end)) ||
                     end < start)
                 {
-                    throw VariableError($"--variable \"{input}\" has an invalid byte range; write it as name[START-END] with START <= END " +
-                        "(for example name[0-99]@file), or name[START-] for the rest of the content.", context.OriginalCommand);
+                    throw VariableError($"--variable \"{input}\" has an invalid byte range: the part in [ ] must be START-END with whole numbers and START <= END.",
+                        "Write it as name[START-END], for example token[0-99]@secret.txt, or name[START-] for everything from START to the end.", context.OriginalCommand);
                 }
 
                 rest = rest.Substring(close + 1);
@@ -171,7 +172,7 @@ namespace CurlDotNet.Core
 
                 if (value.IndexOf('\0') >= 0)
                 {
-                    throw VariableError($"The expansion of {{{{{inner}}}}} contains a NUL byte, which cannot be sent as text. " +
+                    throw VariableError($"The expansion of {{{{{inner}}}}} contains a NUL byte (\\0), which cannot be placed in a text argument.",
                         "Encode it first, for example {{" + name + ":json}}, {{" + name + ":url}} or {{" + name + ":b64}}.", context.OriginalCommand);
                 }
 
@@ -224,7 +225,7 @@ namespace CurlDotNet.Core
 
                         break;
                     default:
-                        throw VariableError($"Unknown variable function \"{function}\" in \"{functions}\". " +
+                        throw VariableError($"Unknown variable function \"{function}\" in \"{functions}\".",
                             "Functions are separated by colons and can be trim, json, url, b64 or 64dec, for example {{name:trim:url}}.", command);
                 }
             }
@@ -264,9 +265,9 @@ namespace CurlDotNet.Core
             return sb.ToString();
         }
 
-        private static CurlException VariableError(string message, string? command)
+        private static CurlException VariableError(string what, string fix, string? command)
         {
-            return new CurlException(message + " See " + RequestShaping.DocsBase + "index.md", 2, command);
+            return new CurlException(CurlException.Compose(what, fix, DocLinks.CliCompatibility), 2, command);
         }
 
         #region Shell variables (per CurlFlavor)
