@@ -41,10 +41,10 @@ $r = [CurlDotNet.Curl]::Execute($cmd)
 
 - Backtick, `\` and `^` line continuations are all joined.
 - The JSON keeps its quotes, because no native command line is involved.
-- `$env:NAME` and `$NAME` are expanded from environment variables by CurlDotNet. In a single-quoted string PowerShell leaves them alone.
-- The Windows habit `-d '{\"key\":\"value\"}'` is unescaped to `{"key":"value"}` by the repository's current source (when the quoted text contains no bare `"`). The 9.7.0 package on nuget.org does **not** do this yet: it sends the backslashes and the server receives invalid JSON. With 9.7.0, delete the backslashes when you paste.
+- `$env:NAME` and `$NAME` are expanded from environment variables by CurlDotNet. In a single-quoted PowerShell string PowerShell leaves them alone; CurlDotNet then expands them where a shell would, unquoted or inside the curl command's double quotes, but not inside its single quotes.
+- The Windows habit `-d '{\"key\":\"value\"}'` is unescaped to `{"key":"value"}` (when the quoted text contains no bare `"`), so the server receives valid JSON whether or not you delete the backslashes.
 
-The same PowerShell-style command from C#, verified with 9.7.0 against httpbin.org:
+The same PowerShell-style command from C#, verified with 9.8.0 against httpbin.org:
 
 ```csharp
 using CurlDotNet;
@@ -60,7 +60,7 @@ Console.WriteLine(result.Body);  // "json": { "key": "value" }
 |---|---|---|---|---|
 | Input | Cmdlet parameters | Cmdlet parameters | curl flags, subject to PowerShell quoting | curl command as one string |
 | Output | Response object (`StatusCode`, `Content`, `Headers`) | Parsed body | Text on stdout | `CurlResult` (`StatusCode`, `Body`, `Headers`, `BinaryData`) |
-| 4xx / 5xx | Throws (PowerShell 7 adds `-SkipHttpErrorCheck`) | Throws (same switch) | Exit code 0 unless `-f` | `IsSuccess = $false`, no throw |
+| 4xx / 5xx | Throws (PowerShell 7 adds `-SkipHttpErrorCheck`) | Throws (same switch) | Exit code 0 unless `-f` | `IsSuccess = $false`, no throw unless `-f` |
 | JSON | `ConvertFrom-Json` | Automatic | `ConvertFrom-Json` | `ConvertFrom-Json` (or `ParseJson` in C#) |
 | Available | Built in | Built in | Windows 10 1803+, macOS, Linux | Load the DLL |
 | Same code in C# | No | No | No (Process.Start) | Yes |

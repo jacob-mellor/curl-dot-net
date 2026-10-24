@@ -42,7 +42,7 @@ else
 
 ### Body
 
-`Body` holds the response body as a string. For JSON APIs this is the raw JSON text you will parse in [Tutorial 7](07-json-for-beginners.html).
+`Body` holds what curl would have printed to standard output, as a string. For a plain request that is the response body; for JSON APIs it is the raw JSON text you will parse in [Tutorial 7](07-json-for-beginners.html). Options change it the way they change curl's output: `-i` puts the response headers in front of the body, `-I` gives you only the headers, `-v` adds the request/response log, `-w` appends its text after the body, and `-o`/`-O` send the body to a file and leave `Body` empty.
 
 ```csharp
 var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
@@ -68,7 +68,7 @@ else if (result.StatusCode == 401)
 
 ### Headers
 
-`Headers` is a case-insensitive `Dictionary<string, string>` of response headers. `GetHeader` returns `null` instead of throwing when a header is missing, and `HasHeader` checks for presence.
+`Headers` is a case-insensitive `Dictionary<string, string>` of response headers, with values exactly as the server sent them (for example `Content-Encoding` and `Content-Length` still describe the compressed body after `--compressed` has decoded it). `GetHeader` returns `null` instead of throwing when a header is missing, and `HasHeader` checks for presence.
 
 ```csharp
 var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
@@ -85,7 +85,7 @@ foreach (var header in result.Headers)
 
 ### What About Network Errors?
 
-There is no error string on the result. Network-level failures (DNS, connection refused, timeouts) never produce a `CurlResult`; they throw an exception derived from `CurlException`, which [Tutorial 6](06-handling-errors.html) covers in detail.
+There is no error string on the result. Network-level failures (DNS, connection refused, timeouts) never produce a `CurlResult`; they throw an exception derived from `CurlException`, carrying curl's exit code, which [Tutorial 6](06-handling-errors.html) covers in detail. The same happens for HTTP errors when you add `-f`/`--fail` (`CurlHttpReturnedErrorException`, exit 22).
 
 ```csharp
 using CurlDotNet.Exceptions;
@@ -176,18 +176,20 @@ Console.WriteLine($"Total:       {result.Timings.Total} ms");
 
 ### JSON Responses
 
-`ParseJson<T>()` deserializes `Body` into your class. It throws `InvalidOperationException` when the body is empty or not valid JSON for that type.
+`ParseJson<T>()` deserializes `Body` into your class. Property matching is case-insensitive, so `login` binds to `Login`; snake_case keys such as `public_repos` need `[JsonPropertyName]`. It throws `InvalidOperationException` when the body is empty or not valid JSON for that type.
 
 ```csharp
+using System.Text.Json.Serialization;
+
 public class GitHubUser
 {
-    public string login { get; set; }
-    public int public_repos { get; set; }
+    public string Login { get; set; }
+    [JsonPropertyName("public_repos")] public int PublicRepos { get; set; }
 }
 
 var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
 var user = result.ParseJson<GitHubUser>();
-Console.WriteLine($"{user.login} has {user.public_repos} public repos");
+Console.WriteLine($"{user.Login} has {user.PublicRepos} public repos");
 ```
 
 ### XML Responses

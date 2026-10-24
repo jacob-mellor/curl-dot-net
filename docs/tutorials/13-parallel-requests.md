@@ -9,6 +9,8 @@ This tutorial shows how to run parallel curl requests in C# with Task.WhenAll an
 
 `Curl` is a static class. There is nothing to construct, pool or dispose; call it from as many tasks as you like.
 
+One command string can also hold several URLs (`curl URL1 URL2`) or a glob (`https://example.com/page[1-3]`). CurlDotNet runs every one of them, but sequentially, as curl does without `-Z`. `--parallel` (`-Z`) is parsed but not applied (it is listed in `CurlOptions.UnsupportedOptions`), so the transfers still run one after another. For real concurrency use the .NET patterns on this page. See [multiple URLs and globbing](../cookbook/multiple-urls-and-globbing.html) for the single-command form.
+
 ## Why Parallel Requests?
 
 Sequential requests wait for each other:
@@ -223,7 +225,7 @@ Console.WriteLine($"\n{done} ok, {failed} failed");
 
 ## Cancelling a Whole Batch
 
-Pass one token to every request and cancel the source once. Each cancelled request throws `CurlAbortedByCallbackException`:
+Pass one token to every request and cancel the source once. Each cancelled request throws the standard `OperationCanceledException`:
 
 ```csharp
 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -234,7 +236,7 @@ try
 {
     var results = await Task.WhenAll(tasks);
 }
-catch (CurlAbortedByCallbackException)
+catch (OperationCanceledException) when (cts.Token.IsCancellationRequested)
 {
     Console.WriteLine("Batch cancelled before every request finished");
 }
@@ -248,7 +250,7 @@ catch (CurlAbortedByCallbackException)
 2. **Cap concurrency** - `SemaphoreSlim` or `MaxDegreeOfParallelism`; five to ten in flight is plenty for most APIs.
 3. **Wrap each request when failures are expected** - `Task.WhenAll` only rethrows the first exception.
 4. **Remember that HTTP errors do not throw** - check `IsSuccess` on every result.
-5. **Read rate-limit headers** and honour `Retry-After`.
+5. **Read rate-limit headers** and honour `Retry-After` (`--retry` does this for you on 429 and 503; see [retries](../cookbook/retry.html)).
 6. **Use one cancellation token for the batch** so a shutdown stops everything at once.
 7. **Quote URLs** in the command string when they contain `?` or `&`.
 

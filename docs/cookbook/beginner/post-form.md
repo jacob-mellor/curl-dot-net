@@ -1,11 +1,11 @@
 ---
 title: "curl -d Form Data POST in C# - CurlDotNet Recipe"
-description: "POST application/x-www-form-urlencoded form data with curl -d in C# using CurlDotNet, --data-urlencode for special characters, and WithFormData."
+description: "POST application/x-www-form-urlencoded form data with curl -d in C# using CurlDotNet, --data-urlencode for special characters, -G query strings, and WithFormData."
 ---
 
 # curl -d form data POST in C# (application/x-www-form-urlencoded)
 
-A `curl -d` form data POST in C# sends `application/x-www-form-urlencoded` fields exactly like an HTML form does; CurlDotNet runs the same `-d 'field=value'` command string you would type in a terminal. This recipe covers plain `-d`, `--data-urlencode` for values with spaces and symbols, the `WithFormData` builder, and the usual form-related errors.
+A `curl -d` form data POST in C# sends `application/x-www-form-urlencoded` fields exactly like an HTML form does; CurlDotNet runs the same `-d 'field=value'` command string you would type in a terminal. This recipe covers plain `-d`, `--data-urlencode` for values with spaces and symbols, `-d @file`, `-G` query strings, the `WithFormData` builder, and the usual form-related errors.
 
 ## The problem
 
@@ -48,7 +48,17 @@ var result = await Curl.ExecuteAsync(@"
 Console.WriteLine(result.Body);   // "message": "Hello & welcome! 100% free"
 ```
 
-`--data-urlencode 'name=value'` percent-encodes `value` and leaves `name` alone, matching curl's behaviour. Mixing `-d` and `--data-urlencode` in one command is fine.
+`--data-urlencode 'name=value'` percent-encodes `value` and leaves `name` alone, matching curl's behaviour: spaces become `+` (as curl 8 sends them, not `%20`), and every byte other than letters, digits and `- . _ ~` becomes `%XX`, so `name=John Doe` is sent as `name=John+Doe`. Mixing `-d` and `--data-urlencode` in one command is fine; all the pieces are joined with `&`.
+
+All five of curl's `--data-urlencode` forms work:
+
+| Argument | Sent as |
+|----------|---------|
+| `content` | `content`, encoded |
+| `=content` | `content`, encoded (use this when the content itself contains `=`) |
+| `name=content` | `name=` plus the encoded content |
+| `@file` | the file's content, encoded |
+| `name@file` | `name=` plus the file's content, encoded |
 
 ### Build the body from a dictionary
 
@@ -123,7 +133,27 @@ var r2 = await CurlRequestBuilder.Post("https://httpbin.org/post")
 var result = await Curl.ExecuteAsync("curl -d @body.txt https://httpbin.org/post");
 ```
 
-A missing file throws `CurlFileCouldntReadException`.
+As in curl, `-d @file` strips carriage returns, newlines and NUL bytes from the file, so a multi-line file becomes one line. Use `--data-binary @file` to send the file exactly as it is. A missing or unreadable file throws `CurlReadErrorException` (exit code 26).
+
+A few more `-d` details that match curl:
+
+- `-d ''` sends a POST with an empty body.
+- `--data-ascii` is an alias for `-d`; `--data-raw` sends a value starting with `@` literally instead of reading a file.
+- `-X GET -d 'q=1'` sends a GET with a body. To put the data in the query string instead, use `-G`, shown below.
+
+### Send the form fields as a query string (-G)
+
+`-G` / `--get` turns every `-d` and `--data-urlencode` item into the URL's query string and sends a GET, which is how curl scripts call search endpoints:
+
+```csharp
+// GET https://httpbin.org/get?q=curl+dot+net&page=2
+var result = await Curl.ExecuteAsync(@"
+    curl -G https://httpbin.org/get       --data-urlencode 'q=curl dot net'       -d 'page=2'");
+
+Console.WriteLine(result.Body);   // httpbin echoes the "args" it received
+```
+
+`-G -I` sends a HEAD request with the same query string.
 
 ### Multipart instead of URL-encoded (-F)
 

@@ -11,7 +11,7 @@ This tutorial shows how to run curl requests with CancellationToken in C# using 
 
 A `CancellationToken` is .NET's cooperative way to say "stop what you are doing". You create a `CancellationTokenSource`, hand its `Token` to the async call, and call `Cancel()` (or let `CancelAfter` do it) when you want out. CurlDotNet checks the token while the request runs and aborts the transfer.
 
-One fact to learn up front: when a CurlDotNet request is cancelled, it throws `CurlAbortedByCallbackException`, not `OperationCanceledException`. The type derives from `CurlException`, like every other exception in the library.
+One fact to learn up front: when a CurlDotNet request is cancelled, it throws the standard .NET `OperationCanceledException` (the same exception `HttpClient` and `Task.Delay` use; `TaskCanceledException` derives from it). `Curl.ExecuteAsync`, `CurlEngine`, the builder and `LibCurl` all follow that contract, so the usual `catch (OperationCanceledException) when (token.IsCancellationRequested)` pattern works unchanged. Cancellation is not a `CurlException`.
 
 ## Basic Cancellation
 
@@ -29,7 +29,7 @@ try
     // httpbin waits 10 seconds before answering; we give up after 2
     await Curl.ExecuteAsync("curl https://httpbin.org/delay/10", cts.Token);
 }
-catch (CurlAbortedByCallbackException)
+catch (OperationCanceledException) when (cts.Token.IsCancellationRequested)
 {
     Console.WriteLine("Request cancelled after 2 seconds");
 }
@@ -48,24 +48,25 @@ Console.ReadKey(true);
 cts.Cancel();
 
 try { await download; }
-catch (CurlAbortedByCallbackException) { Console.WriteLine("Cancelled by user"); }
+catch (OperationCanceledException) when (cts.Token.IsCancellationRequested) { Console.WriteLine("Cancelled by user"); }
 ```
 
 ## Cancellation Versus Timeouts
 
-curl has its own deadline flag, `-m` (`--max-time`), for the whole transfer (`--connect-timeout` is parsed but only `--max-time` is enforced for HTTP today). It produces a different exception, so you can tell the two situations apart:
+curl has its own deadline flags: `-m` (`--max-time`) bounds the whole transfer, body included, and `--connect-timeout` bounds connection setup (enforced on .NET 5 and later, best-effort on .NET Standard 2.0 / .NET Framework). Both accept decimals (`-m 2.5`). Like curl, there is no timeout at all unless you set one (or set `Curl.DefaultMaxTimeSeconds`). An expired `-m` produces a different exception from a cancelled token, so you can tell the two situations apart:
 
 ```csharp
+using var cts = new CancellationTokenSource();
 try
 {
     // -m 3: curl's own deadline for the whole transfer
-    await Curl.ExecuteAsync("curl -m 3 https://httpbin.org/delay/10");
+    await Curl.ExecuteAsync("curl -m 3 https://httpbin.org/delay/10", cts.Token);
 }
 catch (CurlOperationTimeoutException ex)
 {
-    Console.WriteLine($"Timed out after {ex.Timeout}");
+    Console.WriteLine($"Timed out after {ex.Timeout} (curl exit code {ex.CurlErrorCode})");   // 28
 }
-catch (CurlAbortedByCallbackException)
+catch (OperationCanceledException) when (cts.Token.IsCancellationRequested)
 {
     Console.WriteLine("Cancelled by a CancellationToken");
 }
@@ -73,10 +74,10 @@ catch (CurlAbortedByCallbackException)
 
 | Situation | Exception |
 |-----------|-----------|
-| `-m` / `--max-time` expired | `CurlOperationTimeoutException` (has `Timeout`) |
-| Your `CancellationToken` was cancelled | `CurlAbortedByCallbackException` |
+| `-m` / `--max-time` expired | `CurlOperationTimeoutException` (derives from `CurlTimeoutException` and `CurlException`, exit code 28, has `Timeout`) |
+| Your `CancellationToken` was cancelled | `OperationCanceledException` (standard .NET, not a `CurlException`) |
 
-Both derive from `CurlException`, so one `catch (CurlException ex)` handles either when you do not need to distinguish them. Use `-m` for "this request should never take longer than N seconds" and a token for "stop because the caller no longer cares".
+Use `-m` for "this request should never take longer than N seconds" and a token for "stop because the caller no longer cares". A `catch (CurlException)` block does not catch cancellation, which is usually what you want: cancellation is not a failure to report.
 
 ## Passing Tokens Through Every API Style
 
@@ -116,7 +117,7 @@ try
 {
     await Curl.ExecuteAsync("curl https://httpbin.org/delay/10", linked.Token);
 }
-catch (CurlAbortedByCallbackException)
+catch (OperationCanceledException) when (linked.Token.IsCancellationRequested)
 {
     var why = appShutdown.IsCancellationRequested ? "shutting down" : "per-request limit";
     Console.WriteLine($"Cancelled: {why}");
@@ -133,7 +134,7 @@ try
 {
     await Curl.ExecuteAsync($"curl -o {path} https://httpbin.org/bytes/1048576", ct);
 }
-catch (CurlAbortedByCallbackException)
+catch (OperationCanceledException) when (ct.IsCancellationRequested)
 {
     if (File.Exists(path)) File.Delete(path);   // never leave a half-written file behind
     throw;
@@ -155,7 +156,7 @@ await Parallel.ForEachAsync(urls, cts.Token, async (url, ct) =>
         var result = await Curl.ExecuteAsync($"curl {url}", ct);
         Console.WriteLine($"{url} -> {result.StatusCode}");
     }
-    catch (CurlAbortedByCallbackException)
+    catch (OperationCanceledException) when (ct.IsCancellationRequested)
     {
         Console.WriteLine($"{url} -> cancelled");
     }
@@ -179,7 +180,7 @@ public class PollingService : BackgroundService
             {
                 var r = await Curl.ExecuteAsync("curl https://httpbin.org/get", stoppingToken);
             }
-            catch (CurlAbortedByCallbackException) { break; }   // host is stopping
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }   // host is stopping
             await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
         }
     }
@@ -188,7 +189,21 @@ public class PollingService : BackgroundService
 
 ## Retry with Cancellation
 
-Check the token before each attempt so a caller who gave up does not have to wait out the remaining retries:
+curl's own `--retry` works in CurlDotNet, and it stops as soon as the token is cancelled: the delay between attempts is cancellable too.
+
+```csharp
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+// Retries timeouts and HTTP 408/429/500/502/503/504, backing off 1 s, 2 s, 4 s...
+var result = await Curl.ExecuteAsync(
+    "curl --retry 3 -m 5 https://httpbin.org/status/503", cts.Token);
+
+// The .NET convenience: retry any failure 3 times, 500 ms apart
+var r2 = await Curl.ExecuteAsync("curl https://httpbin.org/get",
+    new CurlSettings().WithRetries(count: 3, delayMs: 500).WithCancellation(cts.Token));
+```
+
+If you need your own policy (only certain exceptions, custom back-off), write the loop yourself and check the token before each attempt so a caller who gave up does not have to wait out the remaining retries:
 
 ```csharp
 async Task<CurlResult> RetryRequest(string cmd, int attempts, CancellationToken ct)
@@ -208,12 +223,12 @@ async Task<CurlResult> RetryRequest(string cmd, int attempts, CancellationToken 
 }
 ```
 
-`CurlSettings.WithRetries` exists but is not acted on in the current release, so a loop like this is the way to retry today.
+The [retry cookbook page](../cookbook/retry.html) covers `--retry`, `--retry-delay`, `--retry-max-time`, `--retry-all-errors` and `--retry-connrefused` in detail.
 
 ## Best Practices
 
 1. **Dispose every `CancellationTokenSource`** - `using var` is enough.
-2. **Catch `CurlAbortedByCallbackException`, not `OperationCanceledException`** - that is what CurlDotNet throws.
+2. **Catch `OperationCanceledException` with a `when (token.IsCancellationRequested)` filter** - that is what CurlDotNet throws on cancellation, just like `HttpClient`.
 3. **Use `-m` for request deadlines and tokens for caller intent** - they are different tools and different exceptions.
 4. **Link tokens instead of nesting try/catch blocks** - one linked source handles shutdown plus per-request limits.
 5. **Clean up partial output files** when a `-o` download is cancelled.
@@ -223,7 +238,8 @@ async Task<CurlResult> RetryRequest(string cmd, int attempts, CancellationToken 
 ## Summary
 
 - `Curl.ExecuteAsync(cmd, cancellationToken)` and `CurlRequestBuilder...ExecuteAsync(ct)` accept tokens; so do `CurlSettings.WithCancellation` and `LibCurl.GetAsync(url, null, ct)`.
-- Cancellation throws `CurlAbortedByCallbackException`; `-m` timeouts throw `CurlOperationTimeoutException`.
+- Cancellation throws the standard `OperationCanceledException`; `-m` timeouts throw `CurlOperationTimeoutException` (exit code 28).
+- `--retry N` and `CurlSettings.WithRetries` both honour the token between attempts.
 - `CancelAfter`, linked sources and `BackgroundService` stopping tokens all plug in the same way.
 
 ## What's Next?

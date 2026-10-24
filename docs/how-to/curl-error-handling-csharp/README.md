@@ -47,9 +47,25 @@ catch (CurlDotNet.Core.CurlHttpException ex)
 
 `EnsureStatus(201)` and `EnsureContains("text")` work the same way.
 
+Or do it the curl way: with `-f` / `--fail`, a status of 400 or above throws `CurlHttpReturnedErrorException` (exit code 22, a `CurlDotNet.Exceptions.CurlHttpException`) and the body is discarded. `--fail-with-body` throws the same exception but keeps the body:
+
+```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
+
+try
+{
+    await Curl.ExecuteAsync("curl -f https://httpbin.org/status/404");
+}
+catch (CurlHttpReturnedErrorException ex)
+{
+    Console.WriteLine($"{ex.CurlErrorCode}: {ex.StatusCode}");  // 22: 404
+}
+```
+
 ## The fluent builder
 
-The builder throws the same exceptions:
+The builder throws the same exceptions (`LibCurl` is different: it returns a failed `CurlResult` with the exception in `result.Exception`, and throws only `OperationCanceledException`):
 
 ```csharp
 using CurlDotNet.Core;
@@ -66,21 +82,28 @@ catch (CurlException ex) when (ex.IsRetryable())
 }
 ```
 
-## What is thrown when (9.7.0, observed)
+## What is thrown when (observed)
 
 | Situation | Exception | `CurlErrorCode` |
 |---|---|---|
-| Host not found, connection refused | `CurlCouldntConnectException` | 7 |
-| TLS certificate rejected (no `-k`) | `CurlCouldntConnectException` | 7 |
-| No response headers within `-m` (default 30 s) | `CurlTimeoutException` (`CurlOperationTimeoutException` in the current source) | 28 |
+| Host name does not resolve | `CurlCouldntResolveHostException` | 6 |
+| Proxy host does not resolve | `CurlCouldntResolveProxyException` | 5 |
+| Connection refused or unreachable | `CurlCouldntConnectException` | 7 |
+| TLS certificate rejected (no `-k`) | `CurlPeerFailedVerificationException` (a `CurlSslException`) | 60 |
+| TLS handshake failed | `CurlSslConnectErrorException` (a `CurlSslException`) | 35 |
+| Transfer not finished within `-m` (body included) | `CurlOperationTimeoutException` (a `CurlTimeoutException`) | 28 |
+| `-f` and a status of 400 or above | `CurlHttpReturnedErrorException` | 22 |
 | `--max-redirs` exceeded | `CurlTooManyRedirectsException` | 47 |
 | Unsupported scheme such as `gopher://` | `CurlUnsupportedProtocolException` | 1 |
 | Command has no URL | `CurlInvalidCommandException` | (none) |
-| Your `CancellationToken` fired | `CurlAbortedByCallbackException` | 42 |
-| `-F 'f=@missing.txt'` | `System.IO.FileNotFoundException` | n/a |
-| 4xx / 5xx response | nothing thrown; `IsSuccess == false` | n/a |
+| `-F 'f=@missing.txt'`, `-T missing.txt` | `CurlReadErrorException` | 26 |
+| `-o` into a directory that does not exist | `CurlWriteErrorException` | 23 |
+| Server closed the connection without a reply | `CurlGotNothingException` | 52 |
+| Digest/NTLM negotiation failed | `CurlAuthErrorException` | 94 |
+| Your `CancellationToken` fired | `OperationCanceledException` (standard .NET) | n/a |
+| 4xx / 5xx response without `-f` | nothing thrown; `IsSuccess == false` | n/a |
 
-Because DNS and TLS failures currently share code 7, `IsRetryable()` returns `true` for a certificate problem too. Check the message before retrying in a loop.
+DNS and TLS failures have their own codes, so `IsRetryable()` is `true` for 6 and 7 but `false` for a certificate problem. The full list is in the [curl exit code reference](../../reference/curl-exit-codes.md).
 
 ## Useful members on CurlException
 
@@ -95,7 +118,18 @@ Because DNS and TLS failures currently share code 7, `IsRetryable()` returns `tr
 
 ## Retrying
 
-`--retry` is not supported and `CurlSettings.WithRetries` is not applied by the engine in 9.7.0, so write the loop yourself (or use Polly):
+Add `--retry <n>` to the command. Like curl, it retries timeouts and HTTP 408, 429, 500, 502, 503 and 504, waits 1 second and doubles the wait each time (`--retry-delay` fixes it), and honours `Retry-After`. `--retry-connrefused` adds refused connections and `--retry-all-errors` retries any failure. When the retries run out, you get the last result or exception as usual:
+
+```csharp
+using CurlDotNet;
+
+var result = await Curl.ExecuteAsync("curl --retry 3 --retry-max-time 30 https://httpbin.org/get");
+Console.WriteLine(result.StatusCode);
+```
+
+`new CurlSettings().WithRetries(3, 1000)` does the same from code, retrying any failure with a fixed delay in milliseconds. See [curl --retry in C#](../../cookbook/retry.md) for the details.
+
+For your own policy (for example with Polly), retry on `IsRetryable()`:
 
 ```csharp
 using CurlDotNet;
@@ -117,6 +151,8 @@ for (var attempt = 1; ; attempt++)
 ## Related
 
 - [Timeouts](../curl-timeout-csharp/README.md)
+- [curl --retry in C#](../../cookbook/retry.md)
+- [curl exit codes](../../reference/curl-exit-codes.md)
 - [Ignore SSL errors with -k](../curl-ignore-ssl-certificate-csharp/README.md)
 - [Parse JSON safely](../parse-json-from-curl-in-csharp/README.md)
 - [Exception reference](../../exceptions/index.md)

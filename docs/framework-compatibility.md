@@ -1,11 +1,11 @@
 ---
-title: CurlDotNet .NET Framework Compatibility (4.8, .NET 8/9/10)
-description: CurlDotNet .NET framework compatibility: .NET Framework 4.8 via net48 and netstandard2.0, plus .NET 8, 9 and 10. Targets, install notes and TLS tips.
+title: "CurlDotNet .NET Framework Compatibility (4.8, .NET 8/9/10)"
+description: "CurlDotNet .NET framework compatibility: .NET Framework 4.8 via net48 and netstandard2.0, plus .NET 8, 9 and 10. Targets, install notes and TLS tips."
 ---
 
 # CurlDotNet .NET Framework Compatibility (.NET Framework 4.8, .NET 8/9/10)
 
-CurlDotNet .NET framework compatibility covers .NET Framework 4.8 (through the `net48` and `netstandard2.0` targets) and modern .NET 8, 9 and 10. The package is pure C# with no native dependencies, so the same curl command string runs on every target.
+CurlDotNet .NET framework compatibility covers .NET Framework 4.7.2 and 4.8 (through the `net472`, `net48` and `netstandard2.0` targets) and modern .NET 8, 9 and 10. The package is pure C# with no native dependencies, so the same curl command string runs on every target.
 
 ## Package Targets
 
@@ -14,12 +14,31 @@ The NuGet package is built from `src/CurlDotNet/CurlDotNet.csproj` with these ta
 | Target | Runs on |
 |--------|---------|
 | `netstandard2.0` | .NET Framework 4.6.1+, .NET Core 2.0+, Mono, Xamarin, Unity |
-| `net48` | .NET Framework 4.8 (a `net472` target is also built on Windows) |
+| `net472` | .NET Framework 4.7.2 |
+| `net48` | .NET Framework 4.8 |
 | `net8.0` | .NET 8 |
 | `net9.0` | .NET 9 |
 | `net10.0` | .NET 10 |
 
-NuGet picks the closest target automatically. A .NET Framework 4.8 project gets `net48`; a .NET Framework 4.7.2 project gets `net472` or `netstandard2.0`; .NET 8/9/10 projects get their exact target.
+NuGet picks the closest target automatically. A .NET Framework 4.8 project gets `net48`; a .NET Framework 4.7.2 project gets `net472`; .NET 8/9/10 projects get their exact target; .NET 6/7, Mono and Unity get `netstandard2.0`. The published package is built on Windows, so it contains all six targets.
+
+Dependencies are deliberately small: `System.Text.Json` and `Newtonsoft.Json` on every target, plus `Microsoft.CSharp` on `netstandard2.0` and `System.Net.Http` on `net472`/`net48`. There is no Ninject, System.CommandLine or other framework dependency.
+
+## What Differs on .NET Standard 2.0 and .NET Framework
+
+The same commands parse and run everywhere, but on .NET 8 and later CurlDotNet opens the connections itself (through `SocketsHttpHandler`'s connect callback) and sees the exact bytes on the wire, while the `netstandard2.0`, `net472` and `net48` builds rely on `HttpClient`'s parsed headers. That costs a few wire-level curl features on the older targets:
+
+| Feature | .NET 8/9/10 | .NET Standard 2.0 / .NET Framework |
+|---------|-------------|-------------------------------------|
+| `--connect-timeout` | Enforced separately (connect callback) | Best-effort; the overall `--max-time` still applies |
+| `-p` / `--proxytunnel` (CONNECT) | Yes | No |
+| `--http2`, `--http3` | Version and fallback policy applied | Version requested; the runtime's `HttpClient` decides (the .NET Framework one speaks HTTP/1.1) |
+| `--request-target`, removing `Host`, blank headers | Yes | No |
+| `--raw`, lower-case chunk sizes | Yes | No |
+| Response headers in `result.Headers` / `-i` | Exactly as sent | As `HttpClient` parsed them |
+| `ParseJson<T>()` | `System.Text.Json`, case-insensitive | `System.Text.Json` on `net472`/`net48`, Newtonsoft.Json on `netstandard2.0`; both case-insensitive |
+
+Everything else on this page (timeouts, retries, cookies, redirects, Digest/NTLM, `-w`, `-o`) behaves the same on every target.
 
 ## Installation
 
@@ -78,7 +97,7 @@ On .NET 8/9/10 the operating system negotiates TLS and no setting is required.
 
 ### JSON
 
-The package references `System.Text.Json` and `Newtonsoft.Json`, so `result.ParseJson<T>()` works on every target without extra packages:
+The package references `System.Text.Json` and `Newtonsoft.Json`, so `result.ParseJson<T>()` works on every target without extra packages. Property matching is case-insensitive everywhere, so `name` and `html_url` bind to `Name` and `Html_Url` below:
 
 ```csharp
 using CurlDotNet;

@@ -22,7 +22,7 @@ var result = await Curl.ExecuteAsync(
 Console.WriteLine(result.StatusCode);  // 200
 ```
 
-`--basic` is accepted and is the default for `-u`.
+`--basic` is accepted and is the default for `-u`. As in curl, `-u` splits at the first colon, so a password may itself contain colons, and credentials written into the URL (`https://user:passwd@host/`) are sent as Basic too. `-n` / `--netrc-file` reads them from a `.netrc` file; see [config files and variables](../../cookbook/config-files-and-variables.md).
 
 ## API keys as the user name
 
@@ -72,16 +72,18 @@ var result = await Curl.ExecuteAsync(
 Console.WriteLine(result.StatusCode);  // 200
 ```
 
-`--ntlm`, `--negotiate` and `--anyauth` are also accepted. These schemes use .NET's built-in credential handling, so what works depends on the platform's NTLM and Kerberos support.
+`--ntlm`, `--negotiate` and `--anyauth` are also accepted. Digest, NTLM (v1 and v2) and `--anyauth` are negotiated by CurlDotNet itself in pure C#, the way curl does it: the first request goes out without credentials (a POST or PUT as a `Content-Length: 0` probe), the server's challenge picks the scheme (`--anyauth` prefers Digest, then NTLM, then Basic), and no Basic header is ever sent when a challenge scheme was asked for. They behave the same on every platform. Only `--negotiate` (Kerberos/SPNEGO) relies on the platform's own support.
+
+`Authorization` headers, `--oauth2-bearer` and URL credentials are not forwarded to a different host when `-L` follows a redirect, unless you add `--location-trusted`.
 
 ## When the credentials are wrong
 
-A 401 does not throw. Check `result.StatusCode` or call `result.EnsureSuccess()`, which throws `CurlDotNet.Core.CurlHttpException` for any non-2xx status.
+A 401 does not throw. Check `result.StatusCode` or call `result.EnsureSuccess()`, which throws `CurlDotNet.Core.CurlHttpException` for any non-2xx status. With `-f`, the 401 throws `CurlHttpReturnedErrorException` (exit code 22) instead. When Digest or NTLM negotiation itself cannot complete (for example the server offers no scheme you allowed), `CurlAuthErrorException` (exit code 94) is thrown.
 
 ## Security notes
 
 - Prefer HTTPS: Basic credentials are only base64-encoded, not encrypted.
-- Read secrets from configuration or the environment. The parser expands `$NAME`, so `-u "$API_USER:$API_PASS"` works when both variables are set.
+- Read secrets from configuration or the environment. The parser expands `$NAME` outside single quotes, as a shell would, so `-u "$API_USER:$API_PASS"` works when both variables are set (`-u '$API_USER:$API_PASS'` would send the text literally).
 - `CurlResult.Command` contains the credentials; do not log it.
 
 ## Related

@@ -43,14 +43,14 @@ if (result.IsSuccess)
 
 ### Parsing JSON to Objects with ParseJson
 
-Define a class whose property names match the JSON keys, then call `ParseJson<T>()`. On .NET 8 and later it uses `System.Text.Json`, which matches names case-sensitively, so use `[JsonPropertyName]` when the JSON key differs from your C# name.
+Define a class whose property names match the JSON keys, then call `ParseJson<T>()`. Matching is case-insensitive, so camelCase keys such as `login` bind to PascalCase properties such as `Login` with no attributes. (`ParseJson<T>()` uses `System.Text.Json` with `PropertyNameCaseInsensitive = true`, or Newtonsoft.Json on .NET Standard 2.0, which is case-insensitive too.) Keys that differ by more than case, such as snake_case `public_repos`, still need `[JsonPropertyName]`.
 
 ```csharp
 using System.Text.Json.Serialization;
 
 public class GitHubUser
 {
-    [JsonPropertyName("login")] public string Login { get; set; }
+    public string Login { get; set; }                                   // "login" binds without an attribute
     [JsonPropertyName("public_repos")] public int PublicRepos { get; set; }
     [JsonPropertyName("html_url")] public string HtmlUrl { get; set; }
 }
@@ -60,7 +60,7 @@ var user = result.ParseJson<GitHubUser>();
 Console.WriteLine($"{user.Login} has {user.PublicRepos} public repos");
 ```
 
-`ParseJson<T>()` throws `InvalidOperationException` if the body is empty or does not match `T`, so check `IsSuccess` first.
+`ParseJson<T>()` throws `InvalidOperationException` if the body is empty or is not valid JSON for `T` (the serializer's `JsonException` is the `InnerException`), so check `IsSuccess` first.
 
 ### Parsing Arrays
 
@@ -129,7 +129,7 @@ var patch = await CurlRequestBuilder.Patch("https://httpbin.org/patch").WithJson
 
 ### Sending JSON from a File
 
-Just like the curl command line, `-d @file` reads the body from disk. A missing file throws `CurlFileCouldntReadException`.
+Just like the curl command line, `-d @file` reads the body from disk, stripping carriage returns and newlines as curl does (use `--data-binary @file` to send the file byte for byte). A missing file throws `CurlReadErrorException` (curl exit code 26).
 
 ```csharp
 var result = await Curl.ExecuteAsync(@"curl -X POST https://httpbin.org/post \
@@ -174,9 +174,9 @@ Console.WriteLine(echo.Json.Address.City);   // Springfield
 
 ## JSON Serialization Options
 
-### camelCase Keys Without Attributes
+### snake_case Keys Without Attributes
 
-If you would rather not annotate every property, deserialize `result.Body` yourself with `System.Text.Json` options.
+camelCase keys already bind without attributes. If the API uses snake_case and you would rather not annotate every property, deserialize `result.Body` yourself with `System.Text.Json` options (`JsonNamingPolicy.SnakeCaseLower` needs .NET 8 or later).
 
 ```csharp
 using System.Text.Json;
@@ -184,7 +184,7 @@ using System.Text.Json;
 var options = new JsonSerializerOptions
 {
     PropertyNameCaseInsensitive = true,
-    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower   // public_repos -> PublicRepos
 };
 
 var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
@@ -240,14 +240,14 @@ else
 
 ### Using AsJsonDynamic
 
-When you do not want to write a class, `AsJsonDynamic()` gives you a `dynamic` object.
+`AsJsonDynamic()` parses the body without a class, but what it returns depends on the build: on .NET 8+ and .NET Framework it is a `System.Text.Json.JsonDocument` (so `user.login` style member access does not work), and on .NET Standard 2.0 it is a Newtonsoft `JObject`. For portable code without a class, use `JsonDocument` directly, as below.
 
 ```csharp
 var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
 
-dynamic user = result.AsJsonDynamic();
-Console.WriteLine(user.login);
-Console.WriteLine(user.public_repos);
+using var user = JsonDocument.Parse(result.Body);
+Console.WriteLine(user.RootElement.GetProperty("login").GetString());
+Console.WriteLine(user.RootElement.GetProperty("public_repos").GetInt32());
 ```
 
 ### Using JsonDocument
@@ -304,9 +304,9 @@ else
 ## Best Practices
 
 1. Check `IsSuccess` (or call `EnsureSuccess()`) before parsing
-2. Use strongly typed classes with `[JsonPropertyName]` when the structure is known
+2. Use strongly typed classes when the structure is known; add `[JsonPropertyName]` only for keys that differ by more than case
 3. Catch `InvalidOperationException` from `ParseJson<T>()`
-4. Use `AsJsonDynamic()` or `JsonDocument` for unknown or one-off structures
+4. Use `JsonDocument` for unknown or one-off structures
 5. Dispose `JsonDocument` after use
 6. Log the raw `Body` when debugging parsing issues
 7. Prefer `--json` or `PostJsonAsync` over hand-building JSON strings
@@ -316,9 +316,9 @@ else
 Working with JSON in CurlDotNet is straightforward:
 
 - Receive JSON as text in `result.Body`
-- Parse with `result.ParseJson<T>()`, `AsJsonDynamic()` or `JsonDocument`
+- Parse with `result.ParseJson<T>()` or `JsonDocument`
 - Send JSON with `curl -d '{...}'`, `curl --json`, `Curl.PostJsonAsync()` or `WithJson()`
-- Match keys with `[JsonPropertyName]` or your own `JsonSerializerOptions`
+- Property matching is case-insensitive; map snake_case keys with `[JsonPropertyName]` or your own `JsonSerializerOptions`
 
 ## What's Next?
 

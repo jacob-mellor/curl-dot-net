@@ -31,12 +31,14 @@ using CurlDotNet;
 
 // API_TOKEN is set in the environment, for example by your CI system
 var result = await Curl.ExecuteAsync(
-    "curl -H 'Authorization: Bearer $API_TOKEN' https://httpbin.org/bearer");
+    "curl -H \"Authorization: Bearer $API_TOKEN\" https://httpbin.org/bearer");
 
 Console.WriteLine(result.StatusCode);
 ```
 
-Unlike bash, the expansion also happens inside single quotes. If the variable is not set, the text `$API_TOKEN` is sent literally and the API answers 401.
+As in bash, the expansion happens in double quotes or unquoted text, but not inside single quotes: `-H 'Authorization: Bearer $API_TOKEN'` sends the text `$API_TOKEN` literally. If the variable is not set, the text is also sent as typed, and the API answers 401.
+
+curl's `--oauth2-bearer <token>` works too and adds the same header. Like `-H 'Authorization: ...'`, the token is not forwarded to a different host on a redirect unless you add `--location-trusted`.
 
 ## The fluent builder
 
@@ -72,7 +74,7 @@ Console.WriteLine($"{me.StatusCode} {other.StatusCode}");
 
 ## Handle an expired or wrong token
 
-A 401 or 403 does not throw. Check the status and refresh the token:
+A 401 or 403 does not throw (unless you add `-f`, which turns it into `CurlHttpReturnedErrorException`). Check the status and refresh the token:
 
 ```csharp
 using CurlDotNet;

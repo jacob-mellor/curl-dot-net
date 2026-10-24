@@ -5,7 +5,7 @@ description: "How to do common curl tasks in C#: run curl commands, POST JSON, a
 
 # How to do common curl tasks in C#
 
-Each guide below answers one curl-in-C# question with a curl command you can paste into `Curl.ExecuteAsync`, the equivalent fluent `CurlRequestBuilder` code, and the gotchas we found when running it against the real 9.7.0 package.
+Each guide below answers one curl-in-C# question with a curl command you can paste into `Curl.ExecuteAsync`, the equivalent fluent `CurlRequestBuilder` code, and the gotchas we found when running it against CurlDotNet 9.8.0.
 
 ```bash
 dotnet add package CurlDotNet
@@ -48,7 +48,7 @@ dotnet add package CurlDotNet
 | [Follow redirects with -L](curl-follow-redirects-csharp/README.md) | How do I follow 3xx redirects? |
 | [Timeouts with -m](curl-timeout-csharp/README.md) | How do I set a timeout or cancel a request? |
 | [Proxy with -x](curl-proxy-csharp/README.md) | How do I go through an HTTP or SOCKS5 proxy? |
-| [Error handling](curl-error-handling-csharp/README.md) | What is thrown, what is not, and how do I retry? |
+| [Error handling](curl-error-handling-csharp/README.md) | What is thrown, what is not, and how do I retry with `--retry`? |
 
 ## Application types
 

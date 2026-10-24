@@ -57,7 +57,7 @@ Review generated code before you run it. Do not pipe it straight into `Invoke-Ex
 
 ## What gets translated
 
-In 9.7.0 the generator carries over the **URL, method, headers and body**. `--json` becomes the body plus `Content-Type` and `Accept` headers. Other flags are dropped without a warning. Add them by hand:
+In 9.8.0 the PowerShell generator carries over the **URL, method, headers and body**. `--json` becomes the body plus `Content-Type` and `Accept` headers. Other flags are dropped without a warning (unlike `ToHttpClient` and `ToPythonRequests`, which also translate `-u`, `-x`, `-k`, `-L`, `-m` and `-F`). Add them by hand:
 
 | curl flag | Add to Invoke-RestMethod |
 |---|---|

@@ -20,7 +20,7 @@ Common CurlDotNet issues and fixes (curl errors in C#): this page lists the prob
 - [Runtime Errors](#runtime-errors)
 - [Error Handling Practices](#error-handling-practices)
 
-Remember the one rule that explains most confusion: **transport failures throw, HTTP status codes do not.** A 404 or 500 comes back as a `CurlResult` with `IsSuccess == false`; a DNS failure, refused connection, TLS failure or timeout throws a `CurlException` subclass.
+Remember the one rule that explains most confusion: **transport failures throw, HTTP status codes do not** (unless the command has `-f`). A 404 or 500 comes back as a `CurlResult` with `IsSuccess == false`; a DNS failure, refused connection, TLS failure or timeout throws a `CurlException` subclass whose `CurlErrorCode` is the exit code the curl tool would return. A cancelled `CancellationToken` throws `OperationCanceledException`.
 
 ## Installation Issues
 
@@ -112,9 +112,9 @@ See [Framework Compatibility](../framework-compatibility.html) and [Installation
 
 ### Could not resolve host or connection refused
 
-**Problem:** `CurlCouldntConnectException: Failed to connect to api.example.com:443`
+**Problem:** `CurlCouldntResolveHostException: Could not resolve host: api.example.com` or `CurlCouldntConnectException: Failed to connect to api.example.com port 443: Connection refused`
 
-**Cause:** The hostname does not resolve (typo, DNS outage), nothing is listening on the port, a firewall blocks the connection, or the TLS handshake failed. All of these surface as `CurlCouldntConnectException` (curl exit code 7).
+**Cause:** The hostname does not resolve (typo, DNS outage) - `CurlCouldntResolveHostException`, exit code 6 (or `CurlCouldntResolveProxyException`, 5, when the proxy's name fails) - or it resolves but nothing is listening on the port or a firewall blocks the connection - `CurlCouldntConnectException`, exit code 7. TLS failures have their own types; see [SSL Certificate Errors](#ssl-certificate-errors).
 
 **Fix:**
 
@@ -126,11 +126,14 @@ try
 {
     var result = await Curl.ExecuteAsync("curl -m 5 https://no-such-host.invalid/");
 }
+catch (CurlCouldntResolveHostException ex)
+{
+    Console.WriteLine($"Could not resolve {ex.Hostname}");
+}
 catch (CurlCouldntConnectException ex)
 {
     Console.WriteLine($"Could not connect to {ex.Host}:{ex.Port}");
-    foreach (var tip in ex.Suggestions)
-        Console.WriteLine($"  - {tip}");
+    Console.WriteLine(ex.Message);   // says what to check
 }
 ```
 
@@ -153,7 +156,7 @@ curl -v https://api.github.com
 3. Confirm the port: `https://` defaults to 443, `http://` to 80.
 4. If DNS is broken but the server is up, test with the IP address directly (testing only).
 
-**Retrying transient failures:**
+**Retrying transient failures:** add `--retry N --retry-connrefused` to the command (`--retry-all-errors` retries any failure); see [curl --retry in C#](../cookbook/retry.html). Or loop yourself:
 
 ```csharp
 using CurlDotNet.Core;
@@ -163,7 +166,7 @@ async Task<CurlResult> ExecuteWithRetries(string command, int attempts = 3)
     for (int i = 1; ; i++)
     {
         try { return await Curl.ExecuteAsync(command); }
-        catch (CurlCouldntConnectException) when (i < attempts)
+        catch (CurlException ex) when (ex.CurlErrorCode is 6 or 7 && i < attempts)
         {
             await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i)));
         }
@@ -171,7 +174,7 @@ async Task<CurlResult> ExecuteWithRetries(string command, int attempts = 3)
 }
 ```
 
-**Prevention:** keep hostnames in configuration rather than scattered literals; use `-m` so dead hosts fail quickly (`--connect-timeout` is parsed but only `--max-time` is enforced for HTTP today); add a health-check endpoint you can call before the real work.
+**Prevention:** keep hostnames in configuration rather than scattered literals; use `--connect-timeout` so dead hosts fail quickly and `-m` to bound the whole transfer; add a health-check endpoint you can call before the real work.
 
 ## Timeout Errors
 
@@ -179,7 +182,7 @@ async Task<CurlResult> ExecuteWithRetries(string command, int attempts = 3)
 
 **Problem:** `CurlOperationTimeoutException: Operation timed out after 10 seconds`
 
-**Cause:** The server took longer than `-m`/`--max-time` allows, or the network is slow. `CurlOperationTimeoutException` derives from `CurlTimeoutException`; catch the base type to cover every timeout path. By default there is no timeout (`Curl.DefaultMaxTimeSeconds` is 0), so a timeout only happens when you ask for one.
+**Cause:** The transfer (connection, request and the whole body) took longer than `-m`/`--max-time` allows, or the connection was not made within `--connect-timeout`. `CurlOperationTimeoutException` derives from `CurlTimeoutException`; catch the base type to cover every timeout path. By default there is no timeout (`Curl.DefaultMaxTimeSeconds` is 0), so a timeout only happens when you ask for one.
 
 **Fix:**
 
@@ -198,13 +201,13 @@ catch (CurlTimeoutException ex)
 }
 ```
 
-**The two timeout flags:** curl has `--connect-timeout` for the connection phase and `--max-time` for the whole transfer. CurlDotNet parses both, but for HTTP(S) only `--max-time` is enforced today (FTP honours `--connect-timeout`), so always set `-m`:
+**The two timeout flags:** curl has `--connect-timeout` for the connection phase and `--max-time` for the whole transfer, and CurlDotNet enforces both (`--connect-timeout` on .NET 5 and later; best-effort on the netstandard2.0 / .NET Framework builds). Both accept decimals:
 
 ```csharp
-// Total time for the whole transfer, connection included
-await Curl.ExecuteAsync("curl --max-time 60 https://httpbin.org/get");
+// At most 5 s to connect, 60 s for the whole transfer, body included
+await Curl.ExecuteAsync("curl --connect-timeout 5 --max-time 60 https://httpbin.org/get");
 
-// Without -m, HTTP requests get a 30-second limit; change the default process-wide
+// Without -m there is no limit at all; set one process-wide
 Curl.DefaultMaxTimeSeconds = 15;
 ```
 
@@ -221,7 +224,7 @@ var result2 = await CurlRequestBuilder.Get("https://httpbin.org/get")
     .ExecuteAsync();
 ```
 
-**Caller-side cancellation:** a `CancellationToken` also stops a request, but it throws `CurlAbortedByCallbackException`, not a timeout exception:
+**Caller-side cancellation:** a `CancellationToken` also stops a request, but it throws the standard `OperationCanceledException`, not a timeout exception:
 
 ```csharp
 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -229,13 +232,13 @@ try
 {
     var result = await Curl.ExecuteAsync("curl https://httpbin.org/delay/60", cts.Token);
 }
-catch (CurlAbortedByCallbackException)
+catch (OperationCanceledException)
 {
     Console.WriteLine("Cancelled");
 }
 ```
 
-**Retrying after a timeout:**
+**Retrying after a timeout:** `--retry 3` retries timeouts automatically (each attempt with its own `-m`). To decide yourself:
 
 ```csharp
 using CurlDotNet.Core;
@@ -260,9 +263,9 @@ async Task<CurlResult> RetryOnTimeout(string command, int attempts = 3)
 
 ### SSL certificate problem
 
-**Problem:** A request to an HTTPS endpoint throws `CurlCouldntConnectException` even though the host is up; native curl reports "SSL certificate problem: unable to get local issuer certificate" for the same URL.
+**Problem:** A request to an HTTPS endpoint throws `CurlPeerFailedVerificationException` (exit code 60) even though the host is up; native curl reports "SSL certificate problem: unable to get local issuer certificate" for the same URL. Other handshake failures throw `CurlSslConnectErrorException` (35); both derive from `CurlSslException`.
 
-**Cause:** Certificate verification failed - a self-signed certificate, an expired certificate, a hostname mismatch, or a corporate root CA that is not trusted by the machine. TLS handshake failures are reported as `CurlCouldntConnectException`.
+**Cause:** Certificate verification failed - a self-signed certificate, an expired certificate, a hostname mismatch, or a corporate root CA that is not trusted by the machine.
 
 **Fix for development only:**
 
@@ -273,7 +276,7 @@ var result = await Curl.ExecuteAsync("curl -k https://localhost:5001/api/health"
 
 `Curl.DefaultInsecure = true` applies the same setting process-wide, which is convenient for local integration tests and dangerous anywhere else.
 
-**Fix for production:** make the operating system trust the certificate authority. CurlDotNet uses the system trust store; `--cacert` and `--cert` are not supported yet.
+**Fix for production:** make the operating system trust the certificate authority. CurlDotNet uses the system trust store; `--cacert`, `--cert` and `--key` are parsed but not applied by the transport. Client certificates are not supported either; see [SSL errors](../exceptions/ssl-errors.html).
 
 ```bash
 # macOS: trust a CA certificate
@@ -424,7 +427,13 @@ else
 
 **Cause:** You exceeded the API's rate limit.
 
-**Fix - honour `Retry-After`:**
+**Fix - let curl retry:** `--retry 3` retries 429 (and 408, 500, 502, 503, 504) and honours the `Retry-After` header:
+
+```csharp
+var result = await Curl.ExecuteAsync("curl --retry 3 https://httpbin.org/status/429");
+```
+
+**Fix - honour `Retry-After` yourself:**
 
 ```csharp
 using CurlDotNet.Core;
@@ -469,7 +478,9 @@ var results = await Task.WhenAll(tasks);
 
 **Cause:** A bug or outage on the server side; often temporary.
 
-**Fix - retry 5xx with exponential backoff:**
+**Fix - retry 5xx with `--retry`:** `curl --retry 3 URL` retries 500, 502, 503 and 504 with a doubling back-off; see [curl --retry in C#](../cookbook/retry.html).
+
+**Fix - retry 5xx with your own exponential backoff:**
 
 ```csharp
 using CurlDotNet.Core;
@@ -495,9 +506,9 @@ async Task<CurlResult> ExecuteWithRetries(string command, int attempts = 3)
 
 ### Invalid JSON
 
-**Problem:** `ParseJson<T>()` throws, or returns an object with every property null.
+**Problem:** `ParseJson<T>()` throws `InvalidOperationException`, or returns an object with some properties null.
 
-**Cause:** The response is not JSON (an HTML error page, an empty body, plain text), or the property names do not match the type.
+**Cause:** The response is not JSON (an HTML error page, an empty body, plain text), or the property names do not match the type. Matching is case-insensitive (`userName` binds to `UserName`), but `snake_case` names such as `user_name` still need `[JsonPropertyName("user_name")]`.
 
 **Fix - check the content type and body first:**
 
@@ -519,22 +530,20 @@ else
 
 `Slideshow` here is your own class matching the response shape; the same applies to `MyType` below.
 
-**Fix - catch the parser exception:**
+**Fix - catch the parser exception:** an empty body or malformed JSON throws `InvalidOperationException`; for malformed JSON the underlying parser exception (`System.Text.Json.JsonException`, or Newtonsoft's on the `netstandard2.0` build) is its `InnerException`.
 
 ```csharp
 try
 {
     var data = result.ParseJson<MyType>();
 }
-catch (System.Text.Json.JsonException ex)
+catch (InvalidOperationException ex)
 {
     Console.WriteLine($"Invalid JSON: {ex.Message}");
     if (result.Body.TrimStart().StartsWith("<"))
         Console.WriteLine("The server returned HTML, probably an error page");
 }
 ```
-
-On the `netstandard2.0` build, `ParseJson<T>` uses Newtonsoft.Json, so catch `Newtonsoft.Json.JsonException` there (or catch `Exception`).
 
 **Fix - explore the shape with `AsJsonDynamic()`:** when you are not sure what the server returns, inspect it before writing a class.
 
@@ -543,7 +552,7 @@ dynamic json = result.AsJsonDynamic();
 Console.WriteLine(json.slideshow.title);
 ```
 
-**Prevention:** check `IsSuccess` before parsing (error pages are rarely JSON); send `-H 'Accept: application/json'` so the server knows what you want; match property names, or add `[JsonPropertyName]` attributes.
+**Prevention:** check `IsSuccess` before parsing (error pages are rarely JSON); send `-H 'Accept: application/json'` so the server knows what you want; add `[JsonPropertyName]` attributes for `snake_case` or otherwise differently spelled names.
 
 ## Compilation Errors
 
@@ -602,7 +611,7 @@ catch (CurlDotNet.Core.CurlHttpException ex)
 
 **Problem:** `NullReferenceException` when reading a header or a parsed property.
 
-**Cause:** `GetHeader(name)` returns `null` when the header is absent; `ParseJson<T>()` leaves properties `null` when names do not match; `Body` can be empty for `-o` downloads and `HEAD` requests.
+**Cause:** `GetHeader(name)` returns `null` when the header is absent; `ParseJson<T>()` leaves properties `null` when names do not match; `Body` is empty for `-o`/`-O` downloads (the body went to the file; read `result.OutputFiles`) and for `HEAD` requests made without `-I` (with `-I` the headers are the body).
 
 **Fix:**
 
@@ -649,7 +658,10 @@ catch (CurlTimeoutException ex) { Console.WriteLine($"Timeout: {ex.Timeout}"); }
 catch (CurlTooManyRedirectsException ex) { Console.WriteLine($"Redirect loop after {ex.RedirectCount}"); }
 catch (CurlDotNet.Core.CurlHttpException ex) { Console.WriteLine($"HTTP {ex.StatusCode}"); }
 catch (CurlException ex) { Console.WriteLine($"curl error {ex.CurlErrorCode}: {ex.Message}"); }
+catch (OperationCanceledException) { Console.WriteLine("Cancelled"); }
 ```
+
+The [Error Reference](error-reference.html#exit-code-table) lists every exception type with its exit code.
 
 ### Check the status before using the body
 
@@ -668,7 +680,7 @@ var data = result.ParseJson<Slideshow>();
 
 ### Retry only what is safe to retry
 
-Retry timeouts, connection failures and 5xx responses on idempotent requests (GET, PUT, DELETE). Do not blindly retry POSTs that create records. The `ExecuteWithRetries` and `RetryOnTimeout` helpers above show the pattern; combine them with `--max-time` so each attempt is bounded.
+Retry timeouts, connection failures and 5xx responses on idempotent requests (GET, PUT, DELETE). Do not blindly retry POSTs that create records. `--retry N` does this for you with curl's rules; the `ExecuteWithRetries` and `RetryOnTimeout` helpers above show the hand-written pattern. Combine either with `--max-time` so each attempt is bounded.
 
 ### Log the whole exception
 

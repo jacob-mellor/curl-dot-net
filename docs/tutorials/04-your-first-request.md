@@ -173,9 +173,9 @@ var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat"
 
 if (result.IsSuccess)
 {
-    dynamic user = result.AsJsonDynamic();
-    Console.WriteLine($"User: {user.login}");
-    Console.WriteLine($"Public repos: {user.public_repos}");
+    using var user = System.Text.Json.JsonDocument.Parse(result.Body);
+    Console.WriteLine($"User: {user.RootElement.GetProperty("login")}");
+    Console.WriteLine($"Public repos: {user.RootElement.GetProperty("public_repos")}");
 }
 ```
 
@@ -203,11 +203,14 @@ var result = await Curl.ExecuteAsync(@"
       -H 'Accept: application/vnd.github+json' \
       -H 'User-Agent: MyApp/1.0'
 ");
+// Without -H 'User-Agent: ...' CurlDotNet sends User-Agent: curl/8.7.1, as curl does,
+// so GitHub's API answers either way; naming your app is just good manners.
 
 if (result.IsSuccess)
 {
-    dynamic user = result.AsJsonDynamic();
-    Console.WriteLine($"Name: {user.name}, Followers: {user.followers}");
+    using var user = System.Text.Json.JsonDocument.Parse(result.Body);
+    var root = user.RootElement;
+    Console.WriteLine($"Name: {root.GetProperty("name")}, Followers: {root.GetProperty("followers")}");
 }
 ```
 
@@ -314,10 +317,11 @@ Console.WriteLine($"Contains 'API': {result.Body.Contains("API")}");
 **Exception:**
 
 ```text
-CurlCouldntConnectException: Failed to connect to api.examplee.com:443
+CurlCouldntResolveHostException: Could not resolve host: api.examplee.com
+CurlCouldntConnectException: Failed to connect to api.example.com:443
 ```
 
-**Cause:** a typo in the host name, no internet connection, or a server that is not listening.
+**Cause:** a typo in the host name or no internet connection (`CurlCouldntResolveHostException`, curl exit code 6), or a server that is not listening (`CurlCouldntConnectException`, exit code 7).
 
 **Solution:**
 
@@ -335,7 +339,7 @@ See [DNS and connection errors](../exceptions/dns-errors.html).
 CurlOperationTimeoutException: Operation timed out after 5 seconds
 ```
 
-**Cause:** you set `-m`/`--max-time` and the server did not finish in time.
+**Cause:** you set `-m`/`--max-time` (or `Curl.DefaultMaxTimeSeconds`) and the server did not finish in time. There is no timeout unless you set one, as with curl.
 
 **Solution:** try again, or allow more time:
 
@@ -362,10 +366,10 @@ Status Code: 404
 **Exception:**
 
 ```text
-CurlCouldntConnectException: Failed to connect to self-signed.badssl.com:443
+CurlPeerFailedVerificationException: Peer certificate verification failed: ...
 ```
 
-**Cause:** the TLS handshake failed, usually because the server's certificate cannot be verified.
+**Cause:** the server's certificate cannot be verified (curl exit code 60). A handshake that fails for other reasons throws `CurlSslConnectErrorException` (exit code 35).
 
 **Solution for development only:**
 
@@ -374,7 +378,7 @@ CurlCouldntConnectException: Failed to connect to self-signed.badssl.com:443
 var result = await Curl.ExecuteAsync("curl -k https://self-signed.badssl.com/");
 ```
 
-**Solution for production:** fix the server certificate or install the issuing CA in the machine's trust store. See [SSL errors](../exceptions/ssl-errors.html).
+**Solution for production:** fix the server certificate or install the issuing CA in the machine's trust store. `--cacert` is parsed but not applied by CurlDotNet, so a private CA must be trusted by the operating system. See [SSL errors](../exceptions/ssl-errors.html).
 
 ### Problem 5: Forgot 'await'
 

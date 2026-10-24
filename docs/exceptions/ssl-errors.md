@@ -1,15 +1,21 @@
 ---
 title: "curl SSL Certificate Errors in C#: -k and Insecure()"
-description: "Fix curl SSL certificate errors in C#: CurlDotNet throws CurlCouldntConnectException on a failed TLS handshake; when -k / Insecure() is OK, and real fixes."
+description: "Fix curl SSL certificate errors in C#: CurlPeerFailedVerificationException (60) and CurlSslConnectErrorException (35) in CurlDotNet; when -k / Insecure() is OK, and real fixes."
 ---
 
 # curl SSL Certificate Errors in C# (TLS Handshake Failures)
 
-curl SSL certificate errors in C# happen when the TLS handshake fails: the server's certificate is self-signed, expired, issued for a different host name, or signed by a CA your machine does not trust. In CurlDotNet the failure surfaces as `CurlCouldntConnectException` (the connection could not be established), and `-k`/`--insecure` or the builder's `Insecure()` skips verification for development. This page explains how to recognise the error, when skipping verification is acceptable, and how to fix the root cause.
+curl SSL certificate errors in C# happen when the TLS handshake fails: the server's certificate is self-signed, expired, issued for a different host name, or signed by a CA your machine does not trust. In CurlDotNet a rejected certificate throws `CurlPeerFailedVerificationException` (curl exit code 60) and any other handshake failure `CurlSslConnectErrorException` (35); both derive from `CurlSslException`. `-k`/`--insecure` or the builder's `Insecure()` skips verification for development. This page explains how to recognise the error, when skipping verification is acceptable, and how to fix the root cause.
 
 ## What Is Thrown
 
-.NET reports a certificate failure as an `HttpRequestException` during the handshake, which CurlDotNet maps to `CurlCouldntConnectException`:
+.NET reports a TLS failure during the handshake; CurlDotNet maps it to curl's exit codes:
+
+| Exception | `CurlErrorCode` | Thrown when |
+|-----------|----:|-------------|
+| `CurlPeerFailedVerificationException` | 60 | The server's certificate was rejected: self-signed, expired, issued for another host name, or signed by a CA the machine does not trust |
+| `CurlSslConnectErrorException` | 35 | The handshake failed for another reason: no common TLS version or cipher, or the port does not speak TLS (for example `https://` to a plain-HTTP port) |
+| `CurlSslException` | 60 | Base class of both; catch it to cover every TLS failure |
 
 ```csharp
 using CurlDotNet;
@@ -19,17 +25,23 @@ try
 {
     var result = await Curl.ExecuteAsync("curl https://self-signed.badssl.com/");
 }
-catch (CurlCouldntConnectException ex)
+catch (CurlPeerFailedVerificationException ex)
 {
-    Console.WriteLine($"TLS connection to {ex.Host}:{ex.Port} failed");
+    Console.WriteLine($"Certificate rejected: {ex.Message}");   // exit code 60
+}
+catch (CurlSslException ex)
+{
+    Console.WriteLine($"TLS handshake failed ({ex.CurlErrorCode}): {ex.Message}");
 }
 ```
 
-`CurlSslException`, `CurlPeerFailedVerificationException` and `CurlSslCertificateProblemException` exist as types in `CurlDotNet.Exceptions`, but the current HTTP engine does not raise them for a failed handshake; catch `CurlCouldntConnectException`.
+### Reserved TLS Types
+
+`CurlSslCertificateProblemException`, `CurlSslCipherException`, `CurlSslEngineNotFoundException`, `CurlSslEngineSetFailedException` and `CurlUseSslFailedException` exist in `CurlDotNet.Exceptions` for parity with curl's codes 58, 59, 53, 54 and 64, but nothing in the library throws them today. Because they derive from `CurlSslException`, they carry `CurlErrorCode` 60 rather than their own curl number.
 
 ## Telling It Apart from a Network Failure
 
-A plain connection failure and a certificate failure throw the same exception type. To tell them apart:
+A TLS failure has its own exception type, so `catch (CurlSslException)` never sees a refused connection (`CurlCouldntConnectException`, 7) or a DNS failure (`CurlCouldntResolveHostException`, 6). To confirm the cause:
 
 - Open the same URL in a browser: a certificate warning confirms a TLS problem
 - Run `curl -v https://host/` in a terminal and read the `SSL certificate problem` line
@@ -94,9 +106,9 @@ This is a server-side problem. Renew the certificate or request the host name th
 
 Some servers send only the leaf certificate. Configure the server to send the full chain; test with an online TLS checker.
 
-## Not Supported Yet
+## Client Certificates and Custom CAs
 
-Command-line curl's `--cacert`, `--cert`, `--key` and `--pinnedpubkey` options are not implemented in CurlDotNet at this time. Use the operating system trust store as described above.
+Command-line curl's `--cacert`, `--capath`, `--cert`, `--key` and `--pinnedpubkey` are parsed and stored (`CurlOptions.CaCertFile`, `CertFile`, `KeyFile`), but the transport does not apply them, so they neither help nor fail: client certificates and custom CA files are not supported. Trust a private CA through the operating system store as described above. For a mutual-TLS endpoint, call it with `HttpClient` directly; `Curl.ToHttpClient(command)` generates equivalent `HttpClient` code to start from, and you add the certificate to its `HttpClientHandler.ClientCertificates`.
 
 ## Related Documentation
 

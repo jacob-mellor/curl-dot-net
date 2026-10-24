@@ -10,11 +10,13 @@ CurlDotNet is curl for C# and .NET: a pure-C# reimplementation of the curl comma
 ```csharp
 using CurlDotNet;
 
-var result = await Curl.ExecuteAsync("curl -A 'MyApp/1.0' -H 'Accept: application/json' https://api.github.com/users/octocat");
+var result = await Curl.ExecuteAsync("curl -H 'Accept: application/json' https://api.github.com/users/octocat");
 
 Console.WriteLine(result.StatusCode);   // 200
 Console.WriteLine(result.Body);         // JSON text
 ```
+
+Like the curl tool, CurlDotNet sends `User-Agent: curl/8.7.1` and `Accept: */*` unless you set your own, so APIs that insist on a User-Agent (GitHub's, for example) work as they do from a terminal. Its behaviour is checked against curl's own test suite: 606 of the 620 runnable curl tests pass ([how CurlDotNet is tested](reference/curl-test-suite.html)).
 
 ## Install CurlDotNet
 
@@ -90,6 +92,11 @@ var result = await curl.GetAsync("https://api.github.com/user");
 - **curl with cookies in C#** — [Advanced guide: cookies](guides/advanced.html#curl-with-cookies-in-c)
 - **curl proxy in C#** — [Advanced guide: proxies](guides/advanced.html#curl-proxy-in-c)
 - **curl timeout in C#** — [Advanced guide: timeouts](guides/advanced.html#curl-timeout-in-c)
+- **curl --retry in C#** — [Cookbook: retry](cookbook/retry.html)
+- **curl -w write-out in C#** — [Cookbook: write-out](cookbook/write-out.html)
+- **curl with several URLs or URL globs in C#** — [Cookbook: multiple URLs and globbing](cookbook/multiple-urls-and-globbing.html)
+- **curl -K config files, --variable and .netrc in C#** — [Cookbook: config files and variables](cookbook/config-files-and-variables.html)
+- **curl exit codes in C#** — [Reference: exit codes](reference/curl-exit-codes.html)
 - **Convert a curl command to HttpClient code** — [`Curl.ToHttpClient`](migration/httpclient.html#convert-a-curl-command-to-c-httpclient-code)
 
 ## Documentation sections
@@ -102,7 +109,7 @@ var result = await curl.GetAsync("https://api.github.com/user");
 | [API guide](api-guide/README.html) | The three APIs, `CurlResult`, settings and exceptions |
 | [Guides](guides/index.html) | Advanced usage, logging and observability |
 | [Migration](migration/index.html) | Moving from HttpClient or RestSharp |
-| [Reference](reference/curl-cli-compatibility.html) | Which curl flags are supported |
+| [Reference](reference/index.html) | Which curl flags are supported, exit codes, libcurl mapping, how CurlDotNet is tested against curl's test suite |
 | [Exceptions](exceptions/index.html) | Every exception type and how to fix it |
 | [Troubleshooting](troubleshooting/README.html) | Common issues and FAQ |
 | [API reference](api/index.html) | Generated from the XML documentation |

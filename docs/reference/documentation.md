@@ -1,6 +1,6 @@
 ---
-title: CurlDotNet Documentation Overview - curl in C# and .NET
-description: Map of the CurlDotNet documentation: getting started, tutorials, API guide, cookbook, migration guides and troubleshooting for running curl in C#.
+title: "CurlDotNet Documentation Overview - curl in C# and .NET"
+description: "Map of the CurlDotNet documentation: getting started, tutorials, API guide, cookbook, migration guides and troubleshooting for running curl in C#."
 ---
 
 # CurlDotNet Documentation Overview: Every Section for curl in C#
@@ -12,7 +12,7 @@ This page is the map of the CurlDotNet documentation for running curl commands i
 - [Installation](../getting-started/installation.html) - Add the NuGet package and verify it
 - [Quick Start](../getting-started/quickstart.html) - First request in a few minutes
 - [First Request](../getting-started/first-request.html) - A complete request and response, explained
-- [Configuration](../getting-started/configuration.html) - Default timeouts, redirects and TLS settings
+- [Configuration](../getting-started/configuration.html) - Opt-in default timeouts, redirects, User-Agent and TLS settings
 
 ## Core Concepts
 
@@ -27,6 +27,8 @@ This page is the map of the CurlDotNet documentation for running curl commands i
 - [Generated API Reference](../api/index.html) - Types and members generated from the XML comments
 - [libcurl Mapping](libcurl-mapping.html) - libcurl options and return codes mapped to C#
 - [curl CLI Compatibility](curl-cli-compatibility.html) - Which curl flags are supported
+- [curl Exit Codes](curl-exit-codes.html) - Every curl exit code and the exception CurlDotNet throws for it
+- [curl Test Suite](curl-test-suite.html) - How CurlDotNet is checked against curl's own test files
 
 ## Practical Examples
 
@@ -36,10 +38,14 @@ This page is the map of the CurlDotNet documentation for running curl commands i
 - [Upload a File](../cookbook/beginner/upload-file.html)
 - [Download a File](../cookbook/beginner/download-file.html)
 - [Handle Errors](../cookbook/beginner/handle-errors.html)
+- [Retries](../cookbook/retry.html) - curl `--retry` in C#
+- [Write-out](../cookbook/write-out.html) - curl `-w` variables
+- [Multiple URLs and Globbing](../cookbook/multiple-urls-and-globbing.html)
+- [Config Files and Variables](../cookbook/config-files-and-variables.html) - `-K`, `--variable` and `.netrc`
 
 ## Authentication
 
-- [Authentication Basics](../tutorials/09-authentication-basics.html) - Basic, bearer and digest auth
+- [Authentication Basics](../tutorials/09-authentication-basics.html) - Basic, bearer, Digest and NTLM auth, and `.netrc`
 - [Call an API with Auth](../cookbook/beginner/call-api.html) - Bearer tokens and API keys
 
 ## Migration Guides

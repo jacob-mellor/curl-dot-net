@@ -25,9 +25,25 @@ using CurlDotNet.Lib;
 using var curl = new LibCurl();
 curl.WithTimeout(TimeSpan.FromSeconds(10)).WithUserAgent("MyApp/1.0");
 var result = await curl.GetAsync("https://httpbin.org/get");
+if (result.Exception != null)
+    Console.WriteLine(result.Exception.Message);   // LibCurl returns failures instead of throwing
 ```
 
-`CurlFailedInitException` (curl error code 2) exists in `CurlDotNet.Exceptions` for parity with libcurl's error list, but current code paths do not raise it.
+`LibCurl` does not throw `CurlException`s: a failed transfer comes back as a `CurlResult` whose `Exception` property holds the exception. Only a cancelled token throws (`OperationCanceledException`).
+
+## Reserved Initialization Types
+
+These types exist in `CurlDotNet.Exceptions` for parity with libcurl's error list, but no code path raises them today:
+
+| Type | `CurlErrorCode` |
+|------|----:|
+| `CurlFailedInitException` | 2 |
+| `CurlNotBuiltInException` (property `Feature`) | 4 |
+| `CurlOutOfMemoryException` | 27 |
+| `CurlFunctionNotFoundException` (property `FunctionName`) | 41 |
+| `CurlExecutionException` | none |
+
+Exit code 2 does occur, but for command-line mistakes such as an option without its value or two request methods; those throw a plain `CurlException` with `CurlErrorCode` 2 and are covered on the [URL and command errors](url-errors.html) page.
 
 ## Common Setup Problems
 
@@ -52,7 +68,7 @@ The package restore did not run, or the project targets a framework the package 
 </PropertyGroup>
 ```
 
-CurlDotNet ships netstandard2.0, net48, net8.0, net9.0 and net10.0 builds, so .NET Framework 4.7.2 and later, .NET Core 2.0 and later, and modern .NET all work. See [framework compatibility](../framework-compatibility.html).
+CurlDotNet ships netstandard2.0, net472, net48, net8.0, net9.0 and net10.0 builds, so .NET Framework 4.7.2 and later, .NET Core 2.0 and later, and modern .NET all work. It has no Ninject or System.CommandLine dependencies. See [framework compatibility](../framework-compatibility.html).
 
 ### "'CurlResult' could not be found"
 
@@ -78,7 +94,7 @@ catch (CurlDotNet.Core.CurlHttpException ex)
 
 ### Static Defaults Applied Too Late
 
-`Curl.DefaultMaxTimeSeconds`, `Curl.DefaultConnectTimeoutSeconds`, `Curl.DefaultFollowRedirects` and `Curl.DefaultInsecure` are read when each command runs. Set them once at startup, before the first request:
+`Curl.DefaultMaxTimeSeconds`, `Curl.DefaultConnectTimeoutSeconds`, `Curl.DefaultFollowRedirects` and `Curl.DefaultInsecure` are read when each command runs. All of them default to off: in particular there is no implicit timeout until you set `Curl.DefaultMaxTimeSeconds` (or pass `-m`). Set them once at startup, before the first request:
 
 ```csharp
 Curl.DefaultMaxTimeSeconds = 30;

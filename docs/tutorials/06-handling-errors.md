@@ -5,7 +5,7 @@ description: "Handle curl errors and exceptions in C#: status codes on CurlResul
 
 # Tutorial 6: Handling curl Errors and Exceptions in C#
 
-Handling curl errors and exceptions in C# comes down to one rule: HTTP failures (404, 500) come back as a `CurlResult` with `IsSuccess == false`, while network failures (DNS, connection refused, timeouts) throw an exception derived from `CurlException`. This tutorial shows both paths and how to build retries and fallbacks on top of them.
+Handling curl errors and exceptions in C# comes down to one rule: HTTP failures (404, 500) come back as a `CurlResult` with `IsSuccess == false`, while network failures (DNS, connection refused, timeouts) throw an exception derived from `CurlException`, carrying the same exit code curl would return. Add `-f`/`--fail` and HTTP errors throw too, exactly as curl exits with code 22. This tutorial shows each path and how to build retries and fallbacks on top of them.
 
 ## Types of Errors
 
@@ -35,16 +35,23 @@ try
 {
     var result = await Curl.ExecuteAsync("curl https://no-such-host.invalid/");
 }
+catch (CurlCouldntResolveHostException ex)
+{
+    // DNS failure: curl exit code 6
+    Console.WriteLine($"Could not resolve {ex.Hostname}: {ex.Message}");
+}
 catch (CurlCouldntConnectException ex)
 {
-    // DNS failure, connection refused or TLS handshake failure
+    // host resolved but the connection was refused or unreachable: exit code 7
     Console.WriteLine($"Could not connect to {ex.Host}: {ex.Message}");
 }
 ```
 
+CurlDotNet tells these apart the way curl does: 5 (`CurlCouldntResolveProxyException`), 6 (`CurlCouldntResolveHostException`), 7 (`CurlCouldntConnectException`), and 35 or 60 for TLS handshake and certificate failures (`CurlSslConnectErrorException`, `CurlPeerFailedVerificationException`).
+
 ### 3. Timeout Errors (exception)
 
-Use `-m`/`--max-time` to cap the whole request, connection included (`--connect-timeout` is parsed but not enforced for HTTP yet). When the limit expires you get `CurlOperationTimeoutException`.
+Like curl, CurlDotNet has no timeout unless you ask for one. Use `-m`/`--max-time` to cap the whole request, from connection to the last byte of the body, and `--connect-timeout` to cap connection setup (enforced on .NET 5 and later, best-effort on .NET Standard 2.0 / .NET Framework). Both accept decimals such as `-m 2.5`. When a limit expires you get `CurlOperationTimeoutException` (curl exit code 28).
 
 ```csharp
 try
@@ -59,7 +66,7 @@ catch (CurlOperationTimeoutException ex)
 
 ### 4. Cancellation
 
-Passing a `CancellationToken` that gets cancelled throws `CurlAbortedByCallbackException`, not `OperationCanceledException`. [Tutorial 12](12-cancellation-tokens.html) covers this in depth.
+Passing a `CancellationToken` that gets cancelled throws the standard .NET `OperationCanceledException`, just like `HttpClient`. It is not a `CurlException`. [Tutorial 12](12-cancellation-tokens.html) covers this in depth.
 
 ```csharp
 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
@@ -67,7 +74,7 @@ try
 {
     await Curl.ExecuteAsync("curl https://httpbin.org/delay/5", cts.Token);
 }
-catch (CurlAbortedByCallbackException)
+catch (OperationCanceledException) when (cts.Token.IsCancellationRequested)
 {
     Console.WriteLine("Request was cancelled");
 }
@@ -95,7 +102,20 @@ catch (CurlException ex)
 
 ### Turning HTTP Errors into Exceptions
 
-When you would rather have a single `try/catch`, call `EnsureSuccess()`. It throws `CurlDotNet.Core.CurlHttpException` for any non-2xx status. Because a class with the same name also exists in `CurlDotNet.Exceptions`, qualify it when both namespaces are imported.
+The curl way is `-f`/`--fail`: an HTTP status of 400 or above then throws `CurlHttpReturnedErrorException` (exit code 22) instead of returning a result. `--fail-with-body` does the same but keeps the response body in the exception.
+
+```csharp
+try
+{
+    await Curl.ExecuteAsync("curl -f https://httpbin.org/status/503");
+}
+catch (CurlHttpReturnedErrorException ex)
+{
+    Console.WriteLine($"HTTP {ex.StatusCode} (curl exit code {ex.CurlErrorCode})");   // 503, 22
+}
+```
+
+Without `-f`, call `EnsureSuccess()` on the result. It throws `CurlDotNet.Core.CurlHttpException` for any non-2xx status. Because a class with the same name also exists in `CurlDotNet.Exceptions`, qualify it when both namespaces are imported.
 
 ```csharp
 try
@@ -130,9 +150,22 @@ catch (CurlDotNet.Core.CurlHttpException ex) when (ex.StatusCode == 404)
 
 ## Retry Logic
 
+### curl's --retry
+
+CurlDotNet implements curl's `--retry`: it retries timeouts and HTTP 408, 429, 500, 502, 503 and 504, doubling the wait from 1 second and honouring `Retry-After`. Add `--retry-connrefused` to retry refused connections, or `--retry-all-errors` to retry anything. `CurlSettings.WithRetries(count, delayMs)` is the .NET shortcut and retries any failure.
+
+```csharp
+var result = await Curl.ExecuteAsync("curl --retry 3 -m 10 https://httpbin.org/status/503");
+
+var r2 = await Curl.ExecuteAsync("curl https://httpbin.org/get",
+    new CurlSettings().WithRetries(count: 3, delayMs: 500));
+```
+
+The [retry cookbook page](../cookbook/retry.html) covers `--retry-delay`, `--retry-max-time` and the rest.
+
 ### Retry with Exponential Backoff
 
-A small loop is all you need. Retry only on transient failures: timeouts, connection problems and 5xx or 429 responses.
+When you need your own policy, a small loop is all you need. Retry only on transient failures: timeouts, connection problems and 5xx or 429 responses.
 
 ```csharp
 static async Task<CurlResult> ExecuteWithRetries(string command, int maxAttempts = 3)
@@ -218,22 +251,26 @@ The exceptions you will meet most often, all in `CurlDotNet.Exceptions` unless n
 | Exception | When it is thrown |
 |-----------|-------------------|
 | `CurlOperationTimeoutException` | `-m`/`--max-time` expired (`Timeout` property) |
-| `CurlCouldntConnectException` | DNS failure, connection refused, TLS handshake failure (`Host`, `Port`) |
-| `CurlAbortedByCallbackException` | Your `CancellationToken` was cancelled |
-| `CurlTooManyRedirectsException` | `--max-redirs` exceeded (`RedirectCount`) |
-| `CurlMalformedUrlException` | URL could not be parsed |
+| `CurlCouldntResolveHostException` | DNS lookup failed (exit 6, `Hostname`) |
+| `CurlCouldntConnectException` | Connection refused or unreachable (exit 7, `Host`, `Port`) |
+| `CurlSslConnectErrorException`, `CurlPeerFailedVerificationException` | TLS handshake or certificate failure (exit 35, 60) |
+| `CurlHttpReturnedErrorException` | `-f`/`--fail` and the server returned 400 or above (exit 22) |
+| `CurlTooManyRedirectsException` | `--max-redirs` exceeded (exit 47, `RedirectCount`) |
+| `CurlMalformedUrlException` | URL could not be parsed (exit 3) |
 | `CurlInvalidCommandException` | Command string is invalid, for example no URL |
-| `CurlFileCouldntReadException` | `-d @file` or `-F field=@file` points at a missing file |
+| `CurlReadErrorException` | `-d @file`, `-T file` or `-F field=@file` points at a missing file (exit 26) |
+| `CurlWriteErrorException` | `-o` could not write its file, for example a missing directory (exit 23) |
 | `CurlDotNet.Core.CurlHttpException` | Only from `EnsureSuccess()` / `EnsureStatus()` |
+| `OperationCanceledException` (.NET) | Your `CancellationToken` was cancelled |
 
-The full list is in the [exceptions reference](../exceptions/index.html).
+The full list is in the [exceptions reference](../exceptions/index.html), and every exit code is listed in [curl exit codes](../reference/curl-exit-codes.html).
 
 ## Best Practices
 
 1. Check `IsSuccess` or call `EnsureSuccess()`; never assume a response is 2xx
 2. Always set `-m`/`--max-time` so a request cannot hang indefinitely
-3. Retry only transient failures (timeouts, connection errors, 429, 5xx)
-4. Use exponential backoff between retries
+3. Retry only transient failures (timeouts, connection errors, 429, 5xx); `--retry N` does exactly that
+4. Use exponential backoff between retries (`--retry` backs off 1 s, 2 s, 4 s... on its own)
 5. Fail fast on 400, 401, 403 and 404
 6. Log the status code and timings, never credentials
 7. Read `ex.Suggestions`; the messages are written to help fix the problem
@@ -243,9 +280,10 @@ The full list is in the [exceptions reference](../exceptions/index.html).
 Error handling in CurlDotNet follows two paths:
 
 - HTTP errors arrive as a `CurlResult` with `IsSuccess == false` and a `StatusCode`
-- Network errors throw a `CurlException` subclass such as `CurlOperationTimeoutException` or `CurlCouldntConnectException`
-- `EnsureSuccess()` converts HTTP errors into `CurlDotNet.Core.CurlHttpException` when you prefer a single `try/catch`
-- A small retry loop with exponential backoff handles transient failures
+- Network errors throw a `CurlException` subclass such as `CurlOperationTimeoutException` or `CurlCouldntConnectException`, with curl's exit code in `CurlErrorCode`
+- `-f` makes HTTP errors throw `CurlHttpReturnedErrorException`; `EnsureSuccess()` converts them into `CurlDotNet.Core.CurlHttpException` after the fact
+- Cancellation throws the standard `OperationCanceledException`
+- `--retry N` (or `CurlSettings.WithRetries`) handles transient failures; a small loop gives you a custom policy
 
 ## What's Next?
 

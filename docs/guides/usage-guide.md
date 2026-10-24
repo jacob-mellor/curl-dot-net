@@ -1,3 +1,8 @@
+---
+title: "CurlDotNet Usage Guide - curl Commands in C#"
+description: "CurlDotNet usage guide: run curl commands in C#, use the request builder and LibCurl, send data, upload and download files, and handle errors."
+---
+
 # CurlDotNet Usage Guide
 
 This comprehensive guide covers common usage scenarios for CurlDotNet, from basic requests to advanced patterns.
@@ -48,41 +53,36 @@ var result = await Curl.GetAsync("https://api.example.com/users");
 var result = await Curl.GetAsync("https://api.example.com/users?page=1&limit=10");
 
 // GET with headers
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/users")
-    .AddHeader("Accept", "application/json")
-    .AddHeader("X-API-Version", "2.0")
-    .Build()
+var result = await CurlRequestBuilder.Get("https://api.example.com/users")
+    .WithHeader("Accept", "application/json")
+    .WithHeader("X-API-Version", "2.0")
     .ExecuteAsync();
+
+// The same as a curl command
+var same = await Curl.ExecuteAsync(
+    "curl -H 'Accept: application/json' -H 'X-API-Version: 2.0' https://api.example.com/users");
 ```
+
+Every request carries `User-Agent: curl/8.7.1` and `Accept: */*` unless you set your own, exactly like curl.
 
 ### POST Requests
 
 ```csharp
-// POST with JSON body
-var json = "{\"name\":\"John Doe\",\"email\":\"john@example.com\"}";
-var result = await Curl.PostAsync(
-    "https://api.example.com/users",
-    json,
-    "application/json"
-);
+// POST with JSON body: serialize an object...
+var result = await Curl.PostJsonAsync("https://api.example.com/users",
+    new { name = "John Doe", email = "john@example.com" });
 
-// POST with form data
-var formData = "username=john&password=secret";
-var result = await Curl.PostAsync(
-    "https://api.example.com/login",
-    formData,
-    "application/x-www-form-urlencoded"
-);
+// ...or send JSON text with curl's --json flag (sets Content-Type and Accept)
+var result2 = await Curl.ExecuteAsync(
+    @"curl --json '{""name"":""John Doe"",""email"":""john@example.com""}' https://api.example.com/users");
+
+// POST with form data (application/x-www-form-urlencoded)
+var result3 = await Curl.PostAsync("https://api.example.com/login", "username=john&password=secret");
 
 // POST with custom headers
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/users")
-    .SetMethod("POST")
-    .SetBody(json)
-    .AddHeader("Content-Type", "application/json")
-    .AddHeader("X-Request-ID", Guid.NewGuid().ToString())
-    .Build()
+var result4 = await CurlRequestBuilder.Post("https://api.example.com/users")
+    .WithJson(new { name = "John Doe" })
+    .WithHeader("X-Request-ID", Guid.NewGuid().ToString())
     .ExecuteAsync();
 ```
 
@@ -90,36 +90,24 @@ var result = await new CurlRequestBuilder()
 
 ```csharp
 // PUT to update resource
-var updateData = "{\"name\":\"Jane Doe\",\"email\":\"jane@example.com\"}";
-var result = await Curl.PutAsync(
-    "https://api.example.com/users/123",
-    updateData,
-    "application/json"
-);
-
-// PUT with file upload
-var fileContent = File.ReadAllBytes("document.pdf");
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/files/document.pdf")
-    .SetMethod("PUT")
-    .SetBody(fileContent)
-    .AddHeader("Content-Type", "application/pdf")
-    .Build()
+var result = await CurlRequestBuilder.Put("https://api.example.com/users/123")
+    .WithJson(new { name = "Jane Doe", email = "jane@example.com" })
     .ExecuteAsync();
+
+// PUT a file's bytes, as curl -T does (the file name is appended when the URL ends in /)
+var upload = await Curl.ExecuteAsync(
+    "curl -T document.pdf -H 'Content-Type: application/pdf' https://api.example.com/files/");
 ```
 
 ### DELETE Requests
 
 ```csharp
 // Simple DELETE
-var result = await Curl.DeleteAsync("https://api.example.com/users/123");
+var result = await Curl.ExecuteAsync("curl -X DELETE https://api.example.com/users/123");
 
 // DELETE with confirmation header
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/users/123")
-    .SetMethod("DELETE")
-    .AddHeader("X-Confirm-Delete", "true")
-    .Build()
+var result2 = await CurlRequestBuilder.Delete("https://api.example.com/users/123")
+    .WithHeader("X-Confirm-Delete", "true")
     .ExecuteAsync();
 ```
 
@@ -128,11 +116,10 @@ var result = await new CurlRequestBuilder()
 ```csharp
 // PATCH for partial updates
 var patchData = "[{\"op\":\"replace\",\"path\":\"/email\",\"value\":\"new@example.com\"}]";
-var result = await Curl.PatchAsync(
-    "https://api.example.com/users/123",
-    patchData,
-    "application/json-patch+json"
-);
+var result = await CurlRequestBuilder.Patch("https://api.example.com/users/123")
+    .WithData(patchData)
+    .WithHeader("Content-Type", "application/json-patch+json")
+    .ExecuteAsync();
 ```
 
 ## Working with JSON
@@ -155,9 +142,11 @@ public class User
     public string Email { get; set; }
 }
 
-var result = await Curl.GetAsync("https://api.example.com/user/123");
-var user = JsonSerializer.Deserialize<User>(result.Body);
+var result2 = await Curl.GetAsync("https://api.example.com/user/123");
+var user = result2.ParseJson<User>();   // case-insensitive: "name" binds to Name
 ```
+
+`ParseJson<T>()` matches property names case-insensitively (camelCase JSON binds to PascalCase properties); snake_case keys still need `[JsonPropertyName]`. It throws `InvalidOperationException` for an empty or malformed body.
 
 ### Sending JSON Data
 
@@ -170,13 +159,11 @@ var data = new
     age = 30
 };
 
-var json = JsonSerializer.Serialize(data);
-var result = await Curl.PostAsync("https://api.example.com/users", json, "application/json");
+var result = await Curl.PostJsonAsync("https://api.example.com/users", data);
 
 // Using strongly-typed objects
 var user = new User { Name = "Jane Doe", Email = "jane@example.com" };
-var json = JsonSerializer.Serialize(user);
-var result = await Curl.PostAsync("https://api.example.com/users", json, "application/json");
+var result2 = await Curl.PostJsonAsync("https://api.example.com/users", user);
 ```
 
 ### Working with JSON Arrays
@@ -184,7 +171,7 @@ var result = await Curl.PostAsync("https://api.example.com/users", json, "applic
 ```csharp
 // Parse JSON array
 var result = await Curl.GetAsync("https://api.example.com/users");
-var users = JsonSerializer.Deserialize<List<User>>(result.Body);
+var users = result.ParseJson<List<User>>();
 
 foreach (var user in users)
 {
@@ -192,14 +179,13 @@ foreach (var user in users)
 }
 
 // Send JSON array
-var users = new[]
+var newUsers = new[]
 {
     new User { Name = "User1", Email = "user1@example.com" },
     new User { Name = "User2", Email = "user2@example.com" }
 };
 
-var json = JsonSerializer.Serialize(users);
-var result = await Curl.PostAsync("https://api.example.com/users/bulk", json, "application/json");
+var bulk = await Curl.PostJsonAsync("https://api.example.com/users/bulk", newUsers);
 ```
 
 ## Authentication
@@ -211,30 +197,35 @@ var result = await Curl.PostAsync("https://api.example.com/users/bulk", json, "a
 var result = await Curl.ExecuteAsync("curl -u username:password https://api.example.com/secure");
 
 // Using builder
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/secure")
-    .SetAuthentication("username", "password")
-    .Build()
+var result2 = await CurlRequestBuilder.Get("https://api.example.com/secure")
+    .WithBasicAuth("username", "password")
     .ExecuteAsync();
 
 // Using Authorization header
 var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes("username:password"));
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/secure")
-    .AddHeader("Authorization", $"Basic {credentials}")
-    .Build()
+var result3 = await CurlRequestBuilder.Get("https://api.example.com/secure")
+    .WithHeader("Authorization", $"Basic {credentials}")
     .ExecuteAsync();
+
+// Digest, NTLM and --anyauth are negotiated in-library, like curl
+var digest = await Curl.ExecuteAsync("curl --digest -u username:password https://api.example.com/secure");
+
+// Credentials from ~/.netrc instead of the command line
+var netrc = await Curl.ExecuteAsync("curl -n https://api.example.com/secure");
 ```
+
+A wrong password comes back as a normal result with `StatusCode == 401`. Credentials are not forwarded when a redirect goes to another host, unless you pass `--location-trusted`.
 
 ### Bearer Token Authentication
 
 ```csharp
-// Using Authorization header
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/secure")
-    .AddHeader("Authorization", "Bearer your-token-here")
-    .Build()
+// Using the builder
+var result = await CurlRequestBuilder.Get("https://api.example.com/secure")
+    .WithBearerToken("your-token-here")
     .ExecuteAsync();
+
+// Using curl's --oauth2-bearer flag
+var result2 = await Curl.ExecuteAsync("curl --oauth2-bearer your-token-here https://api.example.com/secure");
 
 // Reusable authenticated client
 public class AuthenticatedApiClient
@@ -248,10 +239,8 @@ public class AuthenticatedApiClient
 
     public async Task<CurlResult> GetAsync(string endpoint)
     {
-        return await new CurlRequestBuilder()
-            .SetUrl($"https://api.example.com{endpoint}")
-            .AddHeader("Authorization", $"Bearer {_token}")
-            .Build()
+        return await CurlRequestBuilder.Get($"https://api.example.com{endpoint}")
+            .WithBearerToken(_token)
             .ExecuteAsync();
     }
 }
@@ -261,41 +250,29 @@ public class AuthenticatedApiClient
 
 ```csharp
 // API key in header
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/data")
-    .AddHeader("X-API-Key", "your-api-key")
-    .Build()
+var result = await CurlRequestBuilder.Get("https://api.example.com/data")
+    .WithHeader("X-API-Key", "your-api-key")
     .ExecuteAsync();
 
 // API key in query parameter
-var result = await Curl.GetAsync("https://api.example.com/data?api_key=your-api-key");
+var result2 = await Curl.GetAsync("https://api.example.com/data?api_key=your-api-key");
 ```
 
 ### OAuth 2.0 Flow
 
 ```csharp
-// Step 1: Get access token
-var tokenRequest = new
-{
-    grant_type = "client_credentials",
-    client_id = "your-client-id",
-    client_secret = "your-client-secret"
-};
+// Step 1: Get access token (token endpoints take a form-encoded POST)
+var tokenResult = await Curl.ExecuteAsync(@"curl https://auth.example.com/token \
+    -d grant_type=client_credentials \
+    -d client_id=your-client-id \
+    -d client_secret=your-client-secret");
 
-var tokenResult = await Curl.PostAsync(
-    "https://auth.example.com/token",
-    JsonSerializer.Serialize(tokenRequest),
-    "application/json"
-);
-
-var tokenResponse = JsonDocument.Parse(tokenResult.Body);
+using var tokenResponse = JsonDocument.Parse(tokenResult.EnsureSuccess().Body);
 var accessToken = tokenResponse.RootElement.GetProperty("access_token").GetString();
 
 // Step 2: Use access token
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/protected")
-    .AddHeader("Authorization", $"Bearer {accessToken}")
-    .Build()
+var result = await CurlRequestBuilder.Get("https://api.example.com/protected")
+    .WithBearerToken(accessToken)
     .ExecuteAsync();
 ```
 
@@ -304,56 +281,47 @@ var result = await new CurlRequestBuilder()
 ### Downloading Files
 
 ```csharp
-// Download to memory
+// Download to memory: binary content is in BinaryData, never decoded as text
 var result = await Curl.GetAsync("https://example.com/file.pdf");
-File.WriteAllBytes("downloaded.pdf", Encoding.UTF8.GetBytes(result.Body));
+if (result.IsBinary)
+    File.WriteAllBytes("downloaded.pdf", result.BinaryData);   // or result.SaveToFile("downloaded.pdf")
 
-// Download with progress tracking
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://example.com/largefile.zip")
-    .SetProgressCallback((downloaded, total) =>
-    {
-        var percent = (downloaded / (double)total) * 100;
-        Console.WriteLine($"Downloaded: {percent:F2}%");
-    })
-    .Build()
-    .ExecuteAsync();
+// Download straight to disk, as curl -o does (Body stays empty)
+var saved = await Curl.ExecuteAsync("curl -o largefile.zip https://example.com/largefile.zip");
+
+// Resume an interrupted download from the size of the existing file
+var resumed = await Curl.ExecuteAsync("curl -C - -o largefile.zip https://example.com/largefile.zip");
 ```
+
+CurlDotNet has no download progress callback today (`CurlSettings.WithProgress` is accepted but not invoked); `-C -` resume and `--retry` are the tools for long downloads.
 
 ### Uploading Files
 
 ```csharp
-// Upload file as binary
+// Upload file as binary: --data-binary sends the bytes unchanged
+var result = await Curl.ExecuteAsync(
+    "curl --data-binary @document.pdf -H 'Content-Type: application/pdf' https://api.example.com/upload");
+
+// The builder equivalent
 var fileBytes = File.ReadAllBytes("document.pdf");
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/upload")
-    .SetMethod("POST")
-    .SetBody(fileBytes)
-    .AddHeader("Content-Type", "application/pdf")
-    .Build()
+var result2 = await CurlRequestBuilder.Post("https://api.example.com/upload")
+    .WithBinaryData(fileBytes)
+    .WithHeader("Content-Type", "application/pdf")
     .ExecuteAsync();
 
-// Multipart form upload
-var boundary = $"----Boundary{Guid.NewGuid():N}";
-var content = new MultipartFormDataContent(boundary);
-content.Add(new StringContent("John Doe"), "name");
-content.Add(new ByteArrayContent(fileBytes), "file", "document.pdf");
-
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/upload")
-    .SetMethod("POST")
-    .SetBody(await content.ReadAsStringAsync())
-    .AddHeader("Content-Type", $"multipart/form-data; boundary={boundary}")
-    .Build()
-    .ExecuteAsync();
+// Multipart form upload: curl builds the boundary, Content-Disposition and file Content-Type
+var result3 = await Curl.ExecuteAsync(
+    "curl -F 'name=John Doe' -F 'file=@document.pdf' https://api.example.com/upload");
 ```
+
+A missing upload file throws `CurlReadErrorException` (curl exit code 26) before anything is sent.
 
 ### Working with Streams
 
 ```csharp
-// Stream response handling
+// The response is fully buffered; ToStream() wraps it for stream-based APIs
 var result = await Curl.GetAsync("https://api.example.com/stream");
-using var stream = new MemoryStream(Encoding.UTF8.GetBytes(result.Body));
+using var stream = result.ToStream();
 using var reader = new StreamReader(stream);
 
 string line;
@@ -366,6 +334,17 @@ while ((line = await reader.ReadLineAsync()) != null)
 ## Advanced Patterns
 
 ### Retry Logic
+
+curl's `--retry` is built in: it retries timeouts and HTTP 408/429/500/502/503/504 with back-off that doubles from 1 second, honours `Retry-After`, and stops at `--retry-max-time`. `CurlSettings.WithRetries` is the .NET shortcut and retries any failure. See [curl --retry in C#](../cookbook/retry.html).
+
+```csharp
+var result = await Curl.ExecuteAsync("curl --retry 3 --retry-max-time 60 https://api.example.com/data");
+
+var result2 = await Curl.ExecuteAsync("curl https://api.example.com/data",
+    new CurlSettings().WithRetries(count: 3, delayMs: 1000));
+```
+
+When you need a custom policy, write the loop yourself:
 
 ```csharp
 public async Task<CurlResult> ExecuteWithRetry(string url, int maxRetries = 3)
@@ -458,41 +437,26 @@ foreach (var result in results)
     Console.WriteLine($"Status: {result.StatusCode}, Body length: {result.Body.Length}");
 }
 
-// Parallel with cancellation
-var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-var tasks = urls.Select(url => Curl.GetAsync(url, cts.Token));
-var results = await Task.WhenAll(tasks);
+// Parallel with cancellation: a cancelled token throws OperationCanceledException
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+var cancellable = urls.Select(url => Curl.ExecuteAsync($"curl {url}", cts.Token));
+var cancellableResults = await Task.WhenAll(cancellable);
 ```
+
+Several URLs inside one command (`curl URL1 URL2` or a glob such as `data[1-3]`) also all run, but sequentially, as curl does; see [multiple URLs and globbing](../cookbook/multiple-urls-and-globbing.html).
 
 ### Connection Pooling
 
+The static `Curl` API shares one internal `HttpClient`, so connections are pooled and reused across calls automatically; there is nothing to create or dispose. Commands with their own transport options (a proxy, `-k`, `--resolve` and similar) get a dedicated client configured for them. For a reusable client with shared defaults, use `LibCurl`:
+
 ```csharp
-// Reuse connections for multiple requests
-public class ApiClient : IDisposable
-{
-    private readonly HttpClient _httpClient;
+using CurlDotNet.Lib;
 
-    public ApiClient()
-    {
-        _httpClient = new HttpClient
-        {
-            BaseAddress = new Uri("https://api.example.com"),
-            Timeout = TimeSpan.FromSeconds(30)
-        };
-    }
+using var api = new LibCurl()
+    .WithBearerToken(token)
+    .WithTimeout(TimeSpan.FromSeconds(30));
 
-    public async Task<string> GetDataAsync(string endpoint)
-    {
-        // CurlDotNet can work with HttpClient for connection pooling
-        var response = await _httpClient.GetAsync(endpoint);
-        return await response.Content.ReadAsStringAsync();
-    }
-
-    public void Dispose()
-    {
-        _httpClient?.Dispose();
-    }
-}
+var data = await api.GetAsync("https://api.example.com/data");
 ```
 
 ## Error Handling
@@ -500,13 +464,15 @@ public class ApiClient : IDisposable
 ### Basic Error Handling
 
 ```csharp
+using CurlDotNet.Exceptions;
+
 try
 {
-    var result = await Curl.GetAsync("https://api.example.com/data");
-    result.EnsureSuccessStatusCode();
+    // -f makes HTTP 400+ throw CurlHttpReturnedErrorException (curl exit code 22)
+    var result = await Curl.ExecuteAsync("curl -f -m 30 https://api.example.com/data");
     // Process successful result
 }
-catch (CurlHttpException httpEx)
+catch (CurlHttpReturnedErrorException httpEx)
 {
     Console.WriteLine($"HTTP Error {httpEx.StatusCode}: {httpEx.Message}");
     if (httpEx.IsRateLimited)
@@ -515,9 +481,9 @@ catch (CurlHttpException httpEx)
         Console.WriteLine($"Rate limited. Retry after: {retryAfter}");
     }
 }
-catch (CurlTimeoutException timeoutEx)
+catch (CurlOperationTimeoutException timeoutEx)
 {
-    Console.WriteLine($"Request timed out: {timeoutEx.Message}");
+    Console.WriteLine($"Request timed out: {timeoutEx.Message}");   // -m expired, exit code 28
 }
 catch (CurlException curlEx)
 {
@@ -608,13 +574,15 @@ public class CachedApiClient
 ### Request Compression
 
 ```csharp
-// Enable gzip compression for requests and responses
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/data")
-    .AddHeader("Accept-Encoding", "gzip, deflate")
-    .AddHeader("Content-Encoding", "gzip")
-    .SetBody(CompressString(jsonData))
-    .Build()
+// Ask for a compressed response and let CurlDotNet decode it (gzip, deflate, br)
+var result = await Curl.ExecuteAsync("curl --compressed https://api.example.com/data");
+// result.Body is decoded; result.Headers keeps Content-Encoding exactly as the server sent it
+
+// Send a gzip-compressed request body yourself
+var compressed = await CurlRequestBuilder.Post("https://api.example.com/data")
+    .WithBinaryData(CompressString(jsonData))
+    .WithHeader("Content-Type", "application/json")
+    .WithHeader("Content-Encoding", "gzip")
     .ExecuteAsync();
 
 private byte[] CompressString(string text)
@@ -645,7 +613,7 @@ public class ApiClientTests
 
         // Act
         var result = await Curl.GetAsync("https://jsonplaceholder.typicode.com/users/1");
-        var user = JsonSerializer.Deserialize<User>(result.Body);
+        var user = result.ParseJson<User>();   // case-insensitive, so "id" binds to Id
 
         // Assert
         Assert.IsNotNull(user);
@@ -668,8 +636,7 @@ public class ApiIntegrationTests
     public async Task CreateAndDeleteUser_Workflow()
     {
         // Create user
-        var createData = JsonSerializer.Serialize(new { name = "Test User" });
-        var createResult = await Curl.PostAsync($"{_baseUrl}/users", createData, "application/json");
+        var createResult = await Curl.PostJsonAsync($"{_baseUrl}/users", new { name = "Test User" });
         Assert.AreEqual(201, createResult.StatusCode);
 
         var userId = JsonDocument.Parse(createResult.Body)
@@ -680,7 +647,7 @@ public class ApiIntegrationTests
         Assert.AreEqual(200, getResult.StatusCode);
 
         // Delete user
-        var deleteResult = await Curl.DeleteAsync($"{_baseUrl}/users/{userId}");
+        var deleteResult = await Curl.ExecuteAsync($"curl -X DELETE {_baseUrl}/users/{userId}");
         Assert.AreEqual(204, deleteResult.StatusCode);
 
         // Verify user deleted
@@ -696,48 +663,52 @@ public class ApiIntegrationTests
 
 #### Connection Timeouts
 ```csharp
-// Increase timeout for slow endpoints
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://slow-api.example.com/data")
-    .SetTimeout(TimeSpan.FromMinutes(5))
-    .Build()
+// There is no timeout unless you set one; set a generous one for slow endpoints
+var result = await CurlRequestBuilder.Get("https://slow-api.example.com/data")
+    .WithConnectTimeout(TimeSpan.FromSeconds(10))
+    .WithTimeout(TimeSpan.FromMinutes(5))
     .ExecuteAsync();
+
+// Same as: curl --connect-timeout 10 -m 300 https://slow-api.example.com/data
 ```
 
 #### SSL Certificate Issues
 ```csharp
 // Disable SSL verification (development only!)
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://self-signed.example.com")
-    .SetSslVerification(false)
-    .Build()
+var result = await CurlRequestBuilder.Get("https://self-signed.example.com")
+    .Insecure()
     .ExecuteAsync();
+
+// Same as: curl -k https://self-signed.example.com
 ```
+
+`--cacert` and `--cert` are parsed but not applied; certificates are checked against the operating system's trust store.
 
 #### Proxy Configuration
 ```csharp
 // Use proxy server
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/data")
-    .SetProxy("http://proxy.company.com:8080")
-    .SetProxyAuthentication("username", "password")
-    .Build()
+var result = await CurlRequestBuilder.Get("https://api.example.com/data")
+    .WithProxy("http://proxy.company.com:8080", "username", "password")
     .ExecuteAsync();
+
+// Same as: curl -x http://proxy.company.com:8080 -U username:password https://api.example.com/data
 ```
+
+The `http_proxy`, `https_proxy`, `all_proxy` and `NO_PROXY` environment variables are honoured as in curl.
 
 #### Debugging Requests
 ```csharp
-// Enable verbose output for debugging
-var result = await new CurlRequestBuilder()
-    .SetUrl("https://api.example.com/data")
-    .SetVerbose(true)
-    .SetDebugCallback((type, data) =>
-    {
-        Console.WriteLine($"[{type}] {data}");
-    })
-    .Build()
+// Enable verbose output for debugging: the > / < log is at the start of result.Body
+var result = await CurlRequestBuilder.Get("https://api.example.com/data")
+    .Verbose()
     .ExecuteAsync();
+
+// Full wire dump to a file, and curl's write-out summary
+var traced = await Curl.ExecuteAsync(
+    "curl --trace-ascii trace.txt -w '\\n%{http_code} %{time_total}s' https://api.example.com/data");
 ```
+
+See [curl -w in C#](../cookbook/write-out.html) for every write-out variable.
 
 ### Logging
 
@@ -784,11 +755,11 @@ public class LoggingApiClient
 
 1. **Always dispose resources**: Use `using` statements or implement `IDisposable`
 2. **Handle errors gracefully**: Catch specific exception types
-3. **Use timeouts**: Prevent hanging requests
+3. **Use timeouts**: There is no default timeout, so set `-m` (or `Curl.DefaultMaxTimeSeconds`) to prevent hanging requests
 4. **Validate inputs**: Check URLs and parameters before sending
 5. **Log requests**: Track API usage and errors
 6. **Use connection pooling**: Reuse HTTP connections
-7. **Implement retry logic**: Handle transient failures
+7. **Retry transient failures**: `--retry N` or `CurlSettings.WithRetries`
 8. **Respect rate limits**: Implement throttling
 9. **Secure credentials**: Never hardcode secrets
 10. **Test thoroughly**: Unit and integration tests

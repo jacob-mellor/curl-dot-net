@@ -136,7 +136,7 @@ var result = await Curl.ExecuteAsync("curl https://httpbin.org/json");
 var slideshow = result.ParseJson<SlideshowResponse>();
 ```
 
-`ParseJson<T>()` is case-sensitive on .NET 8+; annotate properties with `[JsonPropertyName("...")]` when the API uses snake_case or lower-case names. `result.AsJsonDynamic()` returns a `dynamic` when you do not want a class.
+`ParseJson<T>()` matches property names case-insensitively on every target, like RestSharp's default serializer, so camelCase JSON binds to PascalCase properties; annotate properties with `[JsonPropertyName("...")]` only when the API uses snake_case or other names that differ by more than case. When you do not want a class, parse `result.Body` with `JsonDocument`.
 
 ## File upload
 
@@ -174,15 +174,19 @@ var client = new RestClient(new RestClientOptions("https://httpbin.org")
 // retries: typically Polly around ExecuteAsync
 ```
 
-CurlDotNet:
+CurlDotNet (no timeout applies unless you set one, as with curl):
 
 ```csharp
 var result = await Curl.ExecuteAsync("curl -m 30 https://httpbin.org/delay/2");
 ```
 
+Retries need no Polly: curl's `--retry` retries timeouts and HTTP 408/429/500/502/503/504 with doubling back-off and honours `Retry-After`, and `CurlSettings.WithRetries` retries any failure. See [curl --retry in C#](../cookbook/retry.html).
+
 ```csharp
+var result = await Curl.ExecuteAsync("curl -m 30 --retry 3 https://httpbin.org/status/503");
+
 var settings = new CurlSettings().WithTimeout(30).WithRetries(count: 3, delayMs: 1000);
-var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/503", settings);
+var result2 = await Curl.ExecuteAsync("curl https://httpbin.org/status/503", settings);
 ```
 
 ## Error handling
@@ -211,6 +215,8 @@ catch (CurlException ex)   // DNS, connect, timeout, SSL failures
     Console.WriteLine($"curl error {ex.CurlErrorCode}: {ex.Message}");
 }
 ```
+
+Add `-f` to the command if you want HTTP errors to throw (`CurlHttpReturnedErrorException`, curl exit code 22), similar to RestSharp's `ThrowOnAnyError`.
 
 ## Shared client and dependency injection
 
@@ -245,7 +251,7 @@ services.AddSingleton(_ => new LibCurl()
 
 ## What RestSharp has that CurlDotNet does not
 
-- **Request and response interceptors.** Wrap calls in your own method or decorator instead.
+- **Interceptors on the client itself.** CurlDotNet's equivalent is a separate `CurlMiddlewarePipeline` (`CurlDotNet.Middleware`), with built-in logging, retry, timing, caching and auth middleware, that you call instead of `Curl.ExecuteAsync`; or wrap calls in your own method.
 - **Pluggable serializers.** CurlDotNet uses System.Text.Json (Newtonsoft.Json on .NET Standard 2.0). For a custom serializer, deserialize `result.Body` yourself.
 - **Automatic deserialization of error bodies into `T`.** Read `result.Body` and parse it when `IsSuccess` is false.
 
@@ -260,11 +266,12 @@ services.AddSingleton(_ => new LibCurl()
 
 - Replace `RestClient` + `RestRequest` pairs with `Curl.ExecuteAsync(curlString)` or `CurlRequestBuilder`.
 - Replace `response.Content` with `result.Body` and `response.Data` with `result.ParseJson<T>()`.
-- Replace `response.IsSuccessful` with `result.IsSuccess`; use `EnsureSuccess()` where you relied on `ThrowOnAnyError`.
-- Move `AddQueryParameter` values into the URL.
+- Replace `response.IsSuccessful` with `result.IsSuccess`; use `-f` or `EnsureSuccess()` where you relied on `ThrowOnAnyError`.
+- Move `AddQueryParameter` values into the URL, or pass them with `-G --data-urlencode 'name=value'`.
 - Replace authenticators with `-u` / `WithBasicAuth` or an `Authorization` header / `WithBearerToken`.
 - Register `CurlApiClient` or `LibCurl` as a singleton where you registered `RestClient`.
-- Add `[JsonPropertyName]` attributes where RestSharp's serializer settings handled naming for you.
+- Add `[JsonPropertyName]` attributes for snake_case names if RestSharp's serializer settings handled naming for you (case differences alone need nothing).
+- Replace Polly retry policies for transient errors with `--retry N` or `CurlSettings.WithRetries`.
 
 ## Related
 

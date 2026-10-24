@@ -53,14 +53,14 @@ var file = Curl.Download("https://httpbin.org/image/png", "logo.png");
 Synchronous calls keep scripts short. With [dotnet-script](https://github.com/dotnet-script/dotnet-script):
 
 ```csharp
-#r "nuget: CurlDotNet, 9.7.0"
+#r "nuget: CurlDotNet, 9.8.0"
 using CurlDotNet;
 
 var result = Curl.Execute("curl https://httpbin.org/get");
 Console.WriteLine(result.StatusCode);
 ```
 
-Run it with `dotnet script check.csx`. On the .NET 10 SDK, a file-based app works too: put `#:package CurlDotNet@9.7.0` at the top of `check.cs` and run `dotnet run check.cs`.
+Run it with `dotnet script check.csx`. On the .NET 10 SDK, a file-based app works too: put `#:package CurlDotNet@9.8.0` at the top of `check.cs` and run `dotnet run check.cs`.
 
 ## When blocking is fine
 

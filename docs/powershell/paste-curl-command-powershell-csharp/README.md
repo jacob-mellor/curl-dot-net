@@ -16,7 +16,6 @@ using CurlDotNet;
 
 var result = await Curl.ExecuteAsync("""
     curl -L \
-      -A "my-app/1.0" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
       https://api.github.com/repos/jacob-mellor/curl-dot-net
@@ -24,7 +23,7 @@ var result = await Curl.ExecuteAsync("""
 Console.WriteLine(result.StatusCode);  // 200
 ```
 
-The docs' version has no `-A` because the curl CLI sends a User-Agent automatically. CurlDotNet does not, and GitHub answers 403 without one, so add `-A`. For private data, add `-H "Authorization: Bearer $GITHUB_TOKEN"`.
+GitHub requires a User-Agent. Like the curl CLI, CurlDotNet sends `User-Agent: curl/8.7.1` automatically, so the command works exactly as GitHub documents it; add `-A "my-app/1.0"` if you want to identify your app. For private data, add `-H "Authorization: Bearer $GITHUB_TOKEN"` (double quotes, so the variable is expanded).
 
 The same request with the fluent builder, once you want to make it typed:
 
@@ -32,7 +31,7 @@ The same request with the fluent builder, once you want to make it typed:
 using CurlDotNet.Core;
 
 var result = await CurlRequestBuilder.Get("https://api.github.com/repos/jacob-mellor/curl-dot-net")
-    .FollowRedirects().WithUserAgent("my-app/1.0")
+    .FollowRedirects().WithUserAgent("my-app/1.0")  // optional
     .WithHeader("Accept", "application/vnd.github+json")
     .WithHeader("X-GitHub-Api-Version", "2022-11-28")
     .ExecuteAsync();
@@ -73,11 +72,11 @@ The bash-style `\` continuations and `$OPENAI_API_KEY` work unchanged: CurlDotNe
 ## Checklist before you run a pasted command
 
 1. **Replace placeholders** such as `<YOUR-TOKEN>`, `OWNER/REPO` or `sk_test_...`.
-2. **Secrets.** `$NAME`, `${NAME}`, `%NAME%` and `$env:NAME` are expanded from environment variables, even inside single quotes. An unset variable is sent literally, which usually shows up as a 401.
-3. **Add `-A`** if the API requires a User-Agent.
-4. **Add `-m`** for slow endpoints. Without it, CurlDotNet waits at most 30 seconds for the response to start.
-5. **Unsupported flags are ignored silently.** `--retry`, `-c`, `--http2`, `-G`, `-T` and `-D` are accepted without error but have no effect. Watch out for `-G`: the `-d` data is still sent as a POST body, not added to the query string.
-6. **Check the result.** A 4xx or 5xx does not throw, so look at `StatusCode` / `IsSuccess`. `-f` / `--fail` does not change that.
+2. **Secrets.** `$NAME`, `${NAME}`, `%NAME%` and `$env:NAME` are expanded from environment variables where a shell would expand them: unquoted or in double quotes, not inside single quotes. An unset variable is sent as typed, which usually shows up as a 401.
+3. **User-Agent.** CurlDotNet sends `User-Agent: curl/8.7.1` like the CLI; add `-A` only to identify your own app.
+4. **Add `-m`** for slow or unreliable endpoints. As with the curl CLI, there is no timeout without it; `-m` covers the whole transfer.
+5. **Check for unsupported flags.** Flags such as `--retry`, `-c`, `--http2`, `-G`, `-T` and `-D` work as in curl. Options that are recognised but not implemented do not stop the request; they are listed in `Curl.Validate(cmd).ParsedOptions.UnsupportedOptions`, so check it before relying on an unusual flag. Client-certificate and CA options (`--cert`, `--key`, `--cacert`) are parsed and stored but not applied either. A misspelled flag lands in `UnknownOptions` and makes `Validate` report the command as invalid.
+6. **Check the result.** A 4xx or 5xx does not throw, so look at `StatusCode` / `IsSuccess`. With `-f` / `--fail`, it throws `CurlHttpReturnedErrorException` (curl code 22) instead.
 
 ## Validate first
 

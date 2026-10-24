@@ -26,13 +26,24 @@ catch (CurlOperationTimeoutException ex)
 }
 ```
 
-Catching the base type `CurlTimeoutException` works too. A cancelled `CancellationToken` is different: that throws `CurlAbortedByCallbackException`, not a timeout.
+Catching the base type `CurlTimeoutException` works too. A cancelled `CancellationToken` is different: that throws the standard `OperationCanceledException`, not a timeout (see [Timeouts vs Cancellation](#timeouts-vs-cancellation)).
+
+## Timeout Exception Types
+
+| Type | `CurlErrorCode` | Thrown when |
+|------|----:|-------------|
+| `CurlTimeoutException` | 28 | Base class of the timeout types. Thrown directly only on a rare fallback path, so `catch (CurlTimeoutException)` covers every timeout |
+| `CurlOperationTimeoutException` | 28 | `-m`/`--max-time` expired (message: "Operation timed out after N milliseconds with M bytes received"); `--connect-timeout` expired ("Connection timed out after N milliseconds while connecting to host port P"); `--retry-max-time` ran out before any response arrived |
+| `CurlFtpAcceptTimeoutException` | 28 | Reserved: nothing throws it today (curl's own code for this case is 12) |
+| `CurlAbortedByCallbackException` | 42 | Internal only: a cancelled token is converted to `OperationCanceledException` before it reaches your code |
+
+`Timeout` holds the limit that expired as a `TimeSpan?`.
 
 ## Setting a Timeout
 
 ### -m / --max-time
 
-Total time allowed for the whole request, in seconds:
+Total time allowed for the whole transfer, in seconds - connecting, sending, waiting and reading the whole body. Decimals work (`--max-time 2.5`):
 
 ```csharp
 var result = await Curl.ExecuteAsync("curl --max-time 30 https://httpbin.org/delay/3");
@@ -58,26 +69,41 @@ var result = await Curl.ExecuteAsync("curl https://httpbin.org/delay/3", setting
 
 ### Process-Wide Default
 
-When neither `-m` nor a default is set, HTTP requests time out after 30 seconds. `Curl.DefaultMaxTimeSeconds` changes that for every command that does not specify `-m` itself:
+There is no implicit timeout. Like the curl tool, a command without `-m` waits as long as the server keeps the connection open (`Curl.DefaultMaxTimeSeconds` is 0). Set `Curl.DefaultMaxTimeSeconds` to give every command that does not specify `-m` itself a limit:
 
 ```csharp
 Curl.DefaultMaxTimeSeconds = 30;
 
-var result = await Curl.ExecuteAsync("curl https://httpbin.org/delay/3");            // 30 s limit
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/delay/3");            // 30-second limit
 var slow = await Curl.ExecuteAsync("curl -m 120 https://httpbin.org/delay/3");       // per-command override
 ```
 
 ### --connect-timeout
 
-`--connect-timeout <seconds>` (builder `WithConnectTimeout(TimeSpan)`, settings `WithConnectTimeout(int)`, default `Curl.DefaultConnectTimeoutSeconds`) is accepted and is honoured by FTP transfers. For HTTP(S) requests it is not enforced yet; `--max-time` is the limit that applies, so always set `-m` when you need a guaranteed upper bound:
+`--connect-timeout <seconds>` (builder `WithConnectTimeout(TimeSpan)`, settings `WithConnectTimeout(int)`, default `Curl.DefaultConnectTimeoutSeconds`) limits only the connection phase, and accepts decimals. On .NET 5 and later it is enforced on the socket connect; on the netstandard2.0 / .NET Framework builds it is best-effort, so pair it with `-m` there. When it expires, `CurlOperationTimeoutException` says "Connection timed out":
 
 ```csharp
-var result = await Curl.ExecuteAsync("curl --max-time 60 https://httpbin.org/get");
+try
+{
+    var result = await Curl.ExecuteAsync("curl --connect-timeout 2 --max-time 60 https://httpbin.org/get");
+}
+catch (CurlOperationTimeoutException ex) when (ex.Message.StartsWith("Connection timed out"))
+{
+    Console.WriteLine("Host did not accept the connection in time");
+}
 ```
 
 ## Retrying After a Timeout
 
-Retry with a longer limit, but cap the attempts so a dead server does not hang your application:
+The curl way is `--retry N`: timeouts (and HTTP 408, 429, 500, 502, 503, 504) are retried with a back-off that starts at 1 second and doubles, `--retry-delay` sets a fixed pause, and `--retry-max-time` caps the total time. Each attempt keeps its own `-m` limit:
+
+```csharp
+var result = await Curl.ExecuteAsync("curl --retry 3 --retry-max-time 60 -m 10 https://httpbin.org/delay/3");
+```
+
+`new CurlSettings().WithRetries(3, 1000)` does the same from code and retries any failure. See [curl --retry in C#](../cookbook/retry.html).
+
+To retry with a longer limit each time instead, loop yourself and cap the attempts so a dead server does not hang your application:
 
 ```csharp
 async Task<CurlResult> RetryWithLongerTimeout(string url)
@@ -104,11 +130,13 @@ try
 {
     var result = await Curl.ExecuteAsync("curl https://httpbin.org/delay/30", cts.Token);
 }
-catch (CurlAbortedByCallbackException)
+catch (OperationCanceledException)
 {
     Console.WriteLine("Cancelled by the caller's token");
 }
 ```
+
+Cancellation surfaces as the standard `OperationCanceledException` (or its subclass `TaskCanceledException`) from `Curl.ExecuteAsync`, `Curl.Execute` and `LibCurl`, so it composes with the rest of your async code. It is not a `CurlException`, so a `catch (CurlException)` block does not hide it.
 
 Use `-m` for "the server is too slow" and a token for "the user navigated away" or "the host is shutting down". See [Tutorial 12: Cancellation Tokens](../tutorials/12-cancellation-tokens.html).
 

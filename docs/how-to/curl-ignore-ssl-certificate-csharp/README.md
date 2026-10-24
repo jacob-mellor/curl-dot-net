@@ -22,7 +22,7 @@ var result = await Curl.ExecuteAsync("curl -k https://self-signed.badssl.com/");
 Console.WriteLine(result.StatusCode);  // 200
 ```
 
-Without `-k` the same request throws. In 9.7.0 a TLS validation failure surfaces as `CurlCouldntConnectException` (curl error code 7), not as `CurlSslException`, so catch `CurlException` if you want to handle both.
+Without `-k` the same request throws `CurlPeerFailedVerificationException` (curl error code 60), as the curl CLI exits with 60. A failed TLS handshake (for example a port that does not speak TLS) throws `CurlSslConnectErrorException` (code 35). Both derive from `CurlSslException`, so catch that to handle any TLS problem.
 
 ## The fluent builder
 
@@ -54,11 +54,11 @@ var result = await CurlRequestBuilder
     .ExecuteAsync();
 ```
 
-`Curl.DefaultInsecure` also exists, but in 9.7.0 it is only read by `CurlSettings.FromDefaults()`; plain `Curl.ExecuteAsync(command)` calls ignore it. Prefer the explicit per-request flag.
+`Curl.DefaultInsecure = true` turns it on for every request in the process, including plain `Curl.ExecuteAsync(command)` calls. Prefer the explicit per-request flag, so production traffic is never affected by accident.
 
 ## How it works
 
-`-k` makes CurlDotNet build a dedicated `HttpClientHandler` for that request whose `ServerCertificateCustomValidationCallback` accepts any certificate. Requests without `-k` keep using the shared, validating client. Because each `-k` request gets its own handler, it does not reuse pooled connections, so it is slightly slower under load.
+`-k` makes CurlDotNet build a dedicated handler for that request whose certificate validation callback accepts any certificate (a `SocketsHttpHandler` on .NET 5 and later, an `HttpClientHandler` on netstandard2.0 and .NET Framework). Requests without `-k` keep using the shared, validating client. Because each `-k` request gets its own handler, it does not reuse pooled connections, so it is slightly slower under load.
 
 ## Is it safe?
 
@@ -71,7 +71,7 @@ Do not use it against production APIs or anything carrying credentials over an u
 
 ## Limitations
 
-`--cacert`, `--cert` and `--key` (custom CA bundles and client certificates) are not supported in 9.7.0. If you need mutual TLS or a pinned CA, configure an `HttpClientHandler` and use `HttpClient` directly.
+`--cacert`, `--capath`, `--cert`, `--key` and `--pinnedpubkey` (custom CA bundles, client certificates and key pinning) are not supported in 9.8.0: the parser accepts them, but the transport does not apply them. The OS trust store is used instead, so a private CA can be trusted by installing it there. If you need mutual TLS or a pinned CA, configure an `HttpClientHandler` and use `HttpClient` directly.
 
 ## Related
 

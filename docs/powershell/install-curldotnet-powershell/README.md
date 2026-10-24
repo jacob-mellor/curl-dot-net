@@ -18,7 +18,7 @@ dotnet add package CurlDotNet
 With [dotnet-script](https://github.com/dotnet-script/dotnet-script):
 
 ```csharp
-#r "nuget: CurlDotNet, 9.7.0"
+#r "nuget: CurlDotNet, 9.8.0"
 using CurlDotNet;
 
 Console.WriteLine(Curl.Execute("curl https://httpbin.org/get").StatusCode);
@@ -27,7 +27,7 @@ Console.WriteLine(Curl.Execute("curl https://httpbin.org/get").StatusCode);
 With the .NET 10 SDK, a single `.cs` file can reference the package directly. Save this as `app.cs` and run `dotnet run app.cs`:
 
 ```csharp
-#:package CurlDotNet@9.7.0
+#:package CurlDotNet@9.8.0
 using CurlDotNet;
 
 var result = await Curl.ExecuteAsync("curl https://httpbin.org/uuid");
@@ -36,7 +36,7 @@ Console.WriteLine(result.Body);
 
 ## PowerShell: pick the right DLL
 
-A `.nupkg` is a zip file with one DLL per target framework under `lib/`. Version 9.7.0 on nuget.org contains `net472`, `net48`, `net8.0`, `net9.0` and `netstandard2.0`. Load the one that matches the runtime PowerShell runs on:
+A `.nupkg` is a zip file with one DLL per target framework under `lib/`. Version 9.8.0 contains `net472`, `net48`, `net8.0`, `net9.0`, `net10.0` and `netstandard2.0`. Load the one that matches the runtime PowerShell runs on:
 
 | PowerShell | Runs on | Load |
 |---|---|---|
@@ -49,7 +49,7 @@ To check what you are running, use `$PSVersionTable.PSVersion` and `[System.Runt
 ## PowerShell 7: download and load
 
 ```powershell
-$version = '9.7.0'
+$version = '9.8.0'
 $root = Join-Path $HOME ".curldotnet/$version"
 New-Item -ItemType Directory -Force -Path $root | Out-Null
 $nupkg = Join-Path $root 'curldotnet.zip'
@@ -68,9 +68,9 @@ The same steps, with two Windows PowerShell details:
 
 ```powershell
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-$root = "$env:LOCALAPPDATA\curldotnet\9.7.0"
+$root = "$env:LOCALAPPDATA\curldotnet\9.8.0"
 New-Item -ItemType Directory -Force -Path $root | Out-Null
-Invoke-WebRequest 'https://api.nuget.org/v3-flatcontainer/curldotnet/9.7.0/curldotnet.9.7.0.nupkg' -OutFile "$root\curldotnet.zip" -UseBasicParsing
+Invoke-WebRequest 'https://api.nuget.org/v3-flatcontainer/curldotnet/9.8.0/curldotnet.9.8.0.nupkg' -OutFile "$root\curldotnet.zip" -UseBasicParsing
 Expand-Archive "$root\curldotnet.zip" -DestinationPath $root -Force
 Get-ChildItem $root -Recurse -Filter *.dll | Unblock-File
 Add-Type -Path "$root\lib\net48\CurlDotNet.dll"
@@ -95,7 +95,7 @@ On .NET 8 and later, loading `CurlDotNet.dll` on its own was enough to run reque
 
 ## What was and was not verified
 
-- Verified: `dotnet add package`, the `#r "nuget: ..."` script and the `#:package` file-based app, all against 9.7.0 from nuget.org; the package's `lib/` folders; the download URL; and loading the net8.0 DLL alone on .NET 8 to run a request.
+- Verified: `dotnet add package`, the `#r "nuget: ..."` script and the `#:package` file-based app, the package's `lib/` folders, the download URL pattern, and loading the net8.0 DLL alone on .NET 8 to run a request. These checks were run against 9.7.0 from nuget.org; the steps are the same for 9.8.0.
 - Not verified: the PowerShell commands above were not run in PowerShell 7 or Windows PowerShell 5.1 for this page, and neither was the `Install-Package` route (including where `Get-Package` reports the package). Please report problems on the [issue tracker](https://github.com/jacob-mellor/curl-dot-net/issues).
 
 ## Related

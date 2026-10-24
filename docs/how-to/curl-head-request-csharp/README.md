@@ -5,7 +5,7 @@ description: "curl HEAD request in C#: run curl -I with CurlDotNet to read statu
 
 # How to send a curl HEAD request in C#
 
-To send a curl HEAD request in C#, run `curl -I <url>` with `Curl.ExecuteAsync`, or call `CurlRequestBuilder.Head(url)`. You get the status code and headers; the body is always empty.
+To send a curl HEAD request in C#, run `curl -I <url>` with `Curl.ExecuteAsync`, or call `CurlRequestBuilder.Head(url)`. You get the status code and headers, and no response body is downloaded.
 
 ```bash
 dotnet add package CurlDotNet
@@ -20,10 +20,10 @@ var result = await Curl.ExecuteAsync("curl -I https://httpbin.org/get");
 
 Console.WriteLine(result.StatusCode);                   // 200
 Console.WriteLine(result.GetHeader("Content-Length"));  // size the GET would return
-Console.WriteLine(string.IsNullOrEmpty(result.Body));   // True
+Console.WriteLine(result.Body);                         // HTTP/1.1 200 OK, then the headers
 ```
 
-`-X HEAD` and `--head` do the same. Even if a misbehaving server sends a body with a HEAD response, CurlDotNet discards it.
+As with the curl CLI, which prints the headers of a `-I` request to standard output, `result.Body` holds the status line and header block exactly as received. With `-I -L` it holds every hop's headers. `--head` does the same. `-X HEAD` also sends a HEAD request but, like curl, does not print the headers. Even if a misbehaving server sends a body with a HEAD response, CurlDotNet discards it.
 
 ## The fluent builder and LibCurl
 
@@ -38,6 +38,8 @@ var viaLib = await curl.HeadAsync("https://httpbin.org/get");
 
 Console.WriteLine($"{viaBuilder.StatusCode} {viaLib.StatusCode}");
 ```
+
+These two return the headers in `result.Headers` only; their `Body` is empty.
 
 ## Check whether a URL exists
 
@@ -78,7 +80,7 @@ Header lookups are case-insensitive: `result.Headers["etag"]` and `result.GetHea
 
 ## HEAD versus -i
 
-`-I` sends a HEAD request. `-i` sends the normal request and also prepends the status line and headers to `result.Body`. Use `-I` when you only need the metadata.
+`-I` sends a HEAD request and puts only the headers in `result.Body`. `-i` sends the normal request and prepends the status line and headers to the body. Use `-I` when you only need the metadata. To keep the headers out of `result.Body` while downloading, `-D headers.txt` saves them to a file instead.
 
 ## Related
 

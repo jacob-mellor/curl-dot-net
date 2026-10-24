@@ -58,7 +58,7 @@ var result = await Curl.ExecuteAsync("curl https://httpbin.org/redirect/1", sett
 
 ## Limiting Redirects
 
-The default limit is 50 hops, matching curl. Lower it with `--max-redirs`; when the limit is reached `CurlTooManyRedirectsException` is thrown with `RedirectCount` set:
+The default limit is 50 hops, matching curl. `--max-redirs N` allows exactly N redirects (`-1` means unlimited); when the server sends one more, `CurlTooManyRedirectsException` (exit code 47) is thrown with `RedirectCount` set and curl's message "Maximum (N) redirects followed":
 
 ```csharp
 using CurlDotNet.Exceptions;
@@ -87,12 +87,28 @@ Console.WriteLine(result.Body);   // ... body of the final page, then https://ht
 
 `-iL` includes every hop's response headers in the body as well, as curl does.
 
+## Other Redirect Exceptions
+
+| Exception | `CurlErrorCode` | Thrown when |
+|-----------|----:|-------------|
+| `CurlUnsupportedProtocolException` | 1 | With `-L`, the `Location` header points at a scheme other than `http`/`https` (for example `ftp://` or `file:///etc/passwd`); curl refuses to switch protocols. Fetch that URL explicitly if you trust it, or drop `-L` to see the redirect itself |
+| `CurlMalformedUrlException` | 3 | The `Location` header is not a valid URL |
+| `CurlRedirectException` | 47 | Reserved: exists in `CurlDotNet.Exceptions` but nothing throws it; catch `CurlTooManyRedirectsException` |
+
+## Method and Credentials on Redirect
+
+CurlDotNet follows curl's rules, which explain many "works in the browser, fails with -L" reports:
+
+- 301 and 302 turn a POST into a GET (keep the POST with `--post301` / `--post302`); 303 turns everything except GET and HEAD into a GET (`--post303`); 307 and 308 keep the method and body.
+- A method set with `-X` is kept on every hop (with `--follow` instead of `-L`, the 301/302/303 rules above apply to it too).
+- `Authorization` (from `-u`, `--oauth2-bearer` or URL credentials) and `Cookie` headers are not sent to a different host unless you add `--location-trusted`, so an API that redirects to another host may answer 401 on the last hop.
+
 ## Common Causes of Redirect Loops
 
 - **Login pages**: an unauthenticated request is redirected to `/login`, which redirects back. Fix the credentials (see [authentication errors](auth-errors.html)) rather than raising the limit.
 - **HTTP to HTTPS and back**: a misconfigured server upgrades to HTTPS, then a proxy downgrades to HTTP. Request the HTTPS URL directly.
 - **Trailing-slash loops**: `/path` redirects to `/path/` and back. Use the exact URL the API documents.
-- **Cookies required**: some sites redirect until a cookie is set. Pass it with `-b 'name=value'` (see [cookie errors](cookie-errors.html)).
+- **Cookies required**: some sites redirect until a cookie is set. Turn on the cookie engine with `-b ''` or `-c cookies.txt` so cookies set on one hop are sent on the next (see [cookie errors](cookie-errors.html)).
 
 ## Choosing a Limit
 

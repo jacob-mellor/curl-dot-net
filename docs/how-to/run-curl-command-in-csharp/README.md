@@ -74,7 +74,7 @@ Every call returns a `CurlDotNet.Core.CurlResult`:
 | `OutputFiles` | Paths written by `-o` / `-O` |
 | `Timings.Total` | Total time in milliseconds |
 
-An HTTP error status such as 404 does not throw; check `IsSuccess` or call `EnsureSuccess()`. Network failures (DNS, refused connection, timeout) throw a `CurlException` subclass. See [error handling](../curl-error-handling-csharp/README.md).
+An HTTP error status such as 404 does not throw; check `IsSuccess` or call `EnsureSuccess()`. Add `-f` / `--fail` to have it throw `CurlHttpReturnedErrorException` (exit code 22) instead. Network failures (DNS, refused connection, timeout) throw a `CurlException` subclass whose `CurlErrorCode` is curl's exit code. See [error handling](../curl-error-handling-csharp/README.md) and the [exit code reference](../../reference/curl-exit-codes.md).
 
 ## Check a command without sending it
 
@@ -88,11 +88,11 @@ if (!check.IsValid)
 
 ## Which curl flags work
 
-`-X`, `-H`, `-d`, `--data-binary`, `--data-raw`, `--data-urlencode`, `--json`, `-F`, `-u`, `--basic`, `--digest`, `--ntlm`, `--negotiate`, `--anyauth`, `-A`, `-e`, `-b` (cookie string), `-L`, `--max-redirs`, `-k`, `-x`, `--proxy-user`, `--socks5`, `-m` / `--max-time`, `-o`, `-O`, `-I`, `-i`, `-v`, `--trace`, `--compressed`, `-r`, `-w` and `--aws-sigv4`.
+The parser knows curl 8.7.1's complete option table, including combined short flags (`-sSL`), attached values (`-m10`) and `--long=value`. The flags you meet in API docs all work: `-X`, `-H`, `-d` and its variants (`--data-binary`, `--data-raw`, `--data-urlencode`, `--json`), `-G`, `-F`, `-T`, `-u` with `--basic`, `--digest`, `--ntlm`, `--negotiate` and `--anyauth`, `-A`, `-e`, `-b` and `-c` (cookie strings and cookie jars), `-L`, `--max-redirs`, `-k`, `-x`, `--proxy-user`, `--socks5`, `-m`, `--connect-timeout`, `--retry`, `-o`, `-O`, `-D`, `-I`, `-i`, `-v`, `--trace`, `--compressed`, `-r`, `-w`, `--http2` and `--aws-sigv4`. Several URLs in one command run one after another, URL globs such as `[1-3]` expand, and `-K` reads a config file; see [multiple URLs and globbing](../../cookbook/multiple-urls-and-globbing.md) and [config files and variables](../../cookbook/config-files-and-variables.md).
 
-Not supported today: `--retry`, `-c` cookie jars, client certificates (`--cert`, `--key`, `--cacert`), `--http2`, `-G`, `-T` and `-D`.
+Options that are recognised but not implemented are listed in `ParsedOptions.UnsupportedOptions`, and typos land in `ParsedOptions.UnknownOptions` (which makes `Validate` report the command as invalid). Still not applied: client certificates and custom CAs (`--cert`, `--key`, `--cacert`, `--capath`, `--pinnedpubkey`), protocols other than HTTP, HTTPS, FTP and FILE, and `--parallel` (transfers run one after another). `~/.curlrc` is never read implicitly; pass it with `-K`.
 
-One difference from the curl CLI: CurlDotNet does not send a `User-Agent` header unless you pass `-A`. Some APIs (GitHub's, for example) reject requests without one.
+Like the curl CLI, CurlDotNet sends `User-Agent: curl/8.7.1` and `Accept: */*` by default, so APIs that require a User-Agent (GitHub's, for example) work as pasted. Use `-A` to send your own.
 
 ## Related
 

@@ -1,6 +1,6 @@
 ---
-title: CurlDotNet Tutorial Projects - curl in C# Applications
-description: Ten small C# projects built on CurlDotNet: minimal APIs, CLIs, mock servers, evidence generators and workers that run curl commands in .NET.
+title: "CurlDotNet Tutorial Projects - curl in C# Applications"
+description: "Ten small C# projects built on CurlDotNet: minimal APIs, CLIs, mock servers, evidence generators and workers that run curl commands in .NET."
 ---
 
 # CurlDotNet Tutorial Projects: Running curl Commands in Real C# Applications
@@ -42,6 +42,8 @@ Validate submitted commands with `Curl.Validate(command).IsValid` before storing
 ## Tutorial 2: Disaster Recovery Runbook CLI
 
 **Why it matters:** Wrap recovery curl calls in a `System.CommandLine` app so operators run them from reviewed C# code, with a dry-run switch.
+
+`System.CommandLine` is a package your own tool adds (`dotnet add package System.CommandLine --prerelease`); CurlDotNet itself does not depend on it. The snippet uses the 2.0 beta 4 API (`SetHandler`, `InvokeAsync`); later 2.0 releases renamed these.
 
 ```csharp
 using System.CommandLine;

@@ -44,7 +44,7 @@ Package page: [nuget.org/packages/CurlDotNet](https://www.nuget.org/packages/Cur
 | .NET Framework 4.7.2 | `net472` | Oldest supported .NET Framework |
 | .NET 6 / 7, Mono, Unity, Xamarin | `netstandard2.0` | Anything that implements .NET Standard 2.0 |
 
-On .NET Standard 2.0 and .NET Framework, JSON parsing uses Newtonsoft.Json; on .NET 8+ it uses `System.Text.Json`. The public API is identical. See [framework compatibility](../framework-compatibility.html) for details.
+The package depends only on `System.Text.Json` and `Newtonsoft.Json` (plus `Microsoft.CSharp` for the .NET Standard build and `System.Net.Http` for the .NET Framework builds); there is no Ninject, System.CommandLine or native dependency. `ParseJson<T>()` uses `System.Text.Json` on every build except `netstandard2.0`, which uses Newtonsoft.Json; both match property names case-insensitively. The public API is identical. See [framework compatibility](../framework-compatibility.html) for details.
 
 ## Prerequisites: the .NET SDK
 
@@ -133,7 +133,7 @@ dotnet add package CurlDotNet
 
 ### The target framework is not supported
 
-CurlDotNet supports .NET 8+, .NET Framework 4.7.2+ and .NET Standard 2.0. If your project targets .NET 6 or 7 it will use the `netstandard2.0` build, which works but misses `System.Text.Json`-based features. Upgrading the `<TargetFramework>` to `net8.0` or later is recommended.
+CurlDotNet supports .NET 8+, .NET Framework 4.7.2+ and .NET Standard 2.0. If your project targets .NET 6 or 7 it will use the `netstandard2.0` build, which works but uses `HttpClient`'s parsed headers and so lacks a few wire-level curl features (`--request-target`, removing `Host`, blank headers, `--raw`, `-p` proxy tunnels and a separately enforced `--connect-timeout`). Upgrading the `<TargetFramework>` to `net8.0` or later is recommended.
 
 ### dotnet: command not found
 

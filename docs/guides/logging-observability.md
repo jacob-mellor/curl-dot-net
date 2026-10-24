@@ -1,3 +1,8 @@
+---
+title: "Logging and Observability for curl in C# - CurlDotNet"
+description: "Log and observe curl requests in C# with CurlDotNet: verbose output, traces, -w write-out metrics, timings and middleware."
+---
+
 # Logging & Observability with CurlDotNet
 
 Reliable HTTP automation depends on rich diagnostics. This guide shows how to capture verbose traces, integrate with your logging framework, and emit metrics for production observability.
@@ -12,11 +17,11 @@ var response = await Curl.ExecuteAsync(@"
       -H 'Accept: application/json'
 ");
 
-Console.WriteLine(response.Body);      // response payload
+Console.WriteLine(response.Body);      // the -v log (> request, < response lines), then the payload
 Console.WriteLine(response.Headers);   // header dictionary
 ```
 
-The `-v` flag mirrors the CLI, showing DNS, TLS, and header exchanges. Use it sparingly in production because it may reveal secrets.
+The `-v` flag mirrors the CLI, showing connection, TLS, and header exchanges. curl prints that log to stderr; CurlDotNet puts it at the start of `result.Body`. Use it sparingly in production because it may reveal secrets (`Authorization` headers appear in the log). `--trace-ascii FILE` writes a fuller dump to a file instead.
 
 ## 2. Structured Logging with Middleware
 
@@ -73,6 +78,8 @@ metrics.Record("curl.request.duration", result.Timings.Total, new TagList
     { "status", result.StatusCode }
 });
 ```
+
+curl's own timing variables are available too: `-w '%{json}'` appends a JSON object with `time_namelookup`, `time_connect`, `time_starttransfer`, `time_total`, `http_code`, `size_download` and the rest to `result.Body`, which is handy to forward as-is. See [curl -w in C#](../cookbook/write-out.html).
 
 For Prometheus-style scrapers, emit stats to stdout:
 

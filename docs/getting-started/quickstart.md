@@ -20,11 +20,13 @@ dotnet add package CurlDotNet
 ```csharp
 using CurlDotNet;
 
-var result = await Curl.ExecuteAsync("curl -A 'MyApp/1.0' https://api.github.com/users/octocat");
+var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
 
 Console.WriteLine($"HTTP {result.StatusCode}");
 Console.WriteLine(result.Body);
 ```
+
+Like curl, CurlDotNet sends `User-Agent: curl/8.7.1` and `Accept: */*` by default, which is why GitHub's API answers without any extra headers. Add `-A 'MyApp/1.0'` when you want to identify your own app.
 
 ## 3. Run it
 
@@ -119,6 +121,8 @@ Binary responses are also available in memory as `result.BinaryData` (a `byte[]`
 var result = await Curl.ExecuteAsync("curl -m 10 https://httpbin.org/delay/2");
 ```
 
+There is no timeout unless you set one, exactly as with curl. `-m` covers the whole transfer, body included, and an expired limit throws `CurlOperationTimeoutException`.
+
 ```csharp
 var result = await CurlRequestBuilder.Get("https://httpbin.org/delay/2")
     .WithTimeout(TimeSpan.FromSeconds(10))
@@ -132,28 +136,39 @@ var result = await Curl.ExecuteAsync("curl -L https://httpbin.org/redirect/2");
 Console.WriteLine(result.StatusCode);   // 200, not 302
 ```
 
+Without `-L` (or `Curl.DefaultFollowRedirects = true`) redirects are not followed and you get the 302 itself, as with curl.
+
+### curl retry in C#
+
+```csharp
+// Retries timeouts and HTTP 408/429/500/502/503/504 with doubling back-off
+var result = await Curl.ExecuteAsync("curl --retry 3 https://httpbin.org/status/503");
+```
+
+See [retries](../cookbook/retry.html) for `--retry-delay`, `--retry-max-time`, `--retry-all-errors` and `CurlSettings.WithRetries`.
+
 ## Parse the JSON response
 
-`ParseJson<T>()` deserializes `result.Body` with `System.Text.Json` (Newtonsoft.Json on .NET Standard 2.0). Property matching is case-sensitive, so map snake_case or lower-case fields with `JsonPropertyName`.
+`ParseJson<T>()` deserializes `result.Body` with `System.Text.Json` (Newtonsoft.Json on .NET Standard 2.0). Property matching is case-insensitive, so camelCase keys such as `login` bind to `Login` without attributes; map snake_case fields such as `public_repos` with `JsonPropertyName`.
 
 ```csharp
 using System.Text.Json.Serialization;
 using CurlDotNet;
 
 public record GitHubUser(
-    [property: JsonPropertyName("login")] string Login,
+    string Login,
     [property: JsonPropertyName("public_repos")] int PublicRepos);
 
-var result = await Curl.ExecuteAsync("curl -A 'MyApp/1.0' https://api.github.com/users/octocat");
+var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
 var user = result.ParseJson<GitHubUser>();
 Console.WriteLine($"{user.Login} has {user.PublicRepos} public repos");
 ```
 
-For one-off access without a class, `result.AsJsonDynamic()` returns a `dynamic`.
+For one-off access without a class, parse `result.Body` with `System.Text.Json.JsonDocument`. (`result.AsJsonDynamic()` returns a `JsonDocument` on .NET 8+ and .NET Framework, so `obj.property` style dynamic access does not work there.)
 
 ## Handle errors
 
-HTTP errors (4xx, 5xx) do not throw; check `IsSuccess`. Network failures throw a `CurlException` subclass.
+HTTP errors (4xx, 5xx) do not throw; check `IsSuccess`. Network failures throw a `CurlException` subclass whose `CurlErrorCode` is curl's exit code. Add `-f` to make HTTP errors throw `CurlHttpReturnedErrorException` (exit code 22), and expect the standard `OperationCanceledException` when you cancel a `CancellationToken`.
 
 ```csharp
 using CurlDotNet;
@@ -177,8 +192,8 @@ If you prefer exceptions for HTTP errors, call `result.EnsureSuccess()`; it thro
 
 ```csharp
 var results = await Curl.ExecuteManyAsync(
-    "curl -A 'MyApp/1.0' https://api.github.com/users/octocat",
-    "curl -A 'MyApp/1.0' https://api.github.com/users/torvalds");
+    "curl https://api.github.com/users/octocat",
+    "curl https://api.github.com/users/torvalds");
 
 foreach (var r in results)
     Console.WriteLine(r.StatusCode);

@@ -24,7 +24,7 @@ Console.WriteLine(result.StatusCode);   // 200
 Console.WriteLine(result.Body);         // the response body as a string
 ```
 
-The leading `curl ` is optional. HTTP error statuses (4xx, 5xx) do not throw; check `result.IsSuccess` (true for 2xx) or `result.StatusCode`.
+The leading `curl ` is optional. As with curl, the request carries `User-Agent: curl/8.7.1` and `Accept: */*` unless you change them. HTTP error statuses (4xx, 5xx) do not throw unless you add `-f`; check `result.IsSuccess` (true for 2xx) or `result.StatusCode`.
 
 ```csharp
 var result = await Curl.GetAsync("https://httpbin.org/get");
@@ -45,7 +45,7 @@ using CurlDotNet.Core;
 var result = await CurlRequestBuilder
     .Get("https://api.github.com/repos/curl/curl")
     .WithHeader("Accept", "application/vnd.github+json")
-    .WithUserAgent("CurlDotNet-Recipe")
+    .WithUserAgent("MyApp/1.0")   // optional: replaces the default curl/8.7.1
     .ExecuteAsync();
 
 Console.WriteLine(result.StatusCode);
@@ -62,12 +62,12 @@ Console.WriteLine(result.GetHeader("Content-Type"));
 var result = await Curl.ExecuteAsync(@"
     curl https://api.github.com/repos/curl/curl \
       -H 'Accept: application/vnd.github+json' \
-      -A 'CurlDotNet-Recipe'");
+      -A 'MyApp/1.0'");
 
 Console.WriteLine(result.StatusCode);
 ```
 
-Multi-line verbatim strings with backslash continuations are parsed exactly like a shell would parse them.
+Multi-line verbatim strings with backslash continuations are parsed exactly like a shell would parse them. `-H` replaces a default header of the same name (`-H 'Accept: application/json'` replaces `*/*`), `-A` sets your own User-Agent, and `-H 'User-Agent:'` removes the header altogether.
 
 ### Read response headers
 
@@ -109,21 +109,21 @@ var data = result.ParseJson<HttpBinGet>();
 Console.WriteLine($"{data.Url} from {data.Origin}");
 ```
 
-`ParseJson<T>()` uses `System.Text.Json` (Newtonsoft.Json on .NET Standard 2.0), so property names must match the JSON unless you add `[JsonPropertyName]`. For a quick look without a class, `result.AsJsonDynamic()` returns a `dynamic`.
+`ParseJson<T>()` uses `System.Text.Json` (Newtonsoft.Json on .NET Standard 2.0) and matches property names case-insensitively, so `"url"` binds to `Url` without any attribute. The `[JsonPropertyName]` attributes above are only required for names that differ in more than case, such as snake_case. For a quick look without a class, `result.AsJsonDynamic()` returns a `dynamic`.
 
 ### Save the body to a file (-o)
 
 ```csharp
-var result = await Curl.ExecuteAsync("curl -o repo.json https://api.github.com/repos/curl/curl -A CurlDotNet");
+var result = await Curl.ExecuteAsync("curl -o repo.json https://api.github.com/repos/curl/curl");
 
-Console.WriteLine(result.OutputFiles[0]);   // "repo.json"
+Console.WriteLine(result.OutputFiles[0]);   // "repo.json"; result.Body is empty, as curl prints nothing
 
 // or decide after the fact:
 var page = await Curl.ExecuteAsync("curl https://httpbin.org/html");
 await page.SaveToFileAsync("page.html");
 ```
 
-Binary responses (images, zips) are detected from the Content-Type and land in `result.BinaryData` with `result.IsBinary == true`. See [Download a File](download-file.html).
+Binary responses (images, zips) are detected from the Content-Type and the bytes, and land in `result.BinaryData` with `result.IsBinary == true`. See [Download a File](download-file.html).
 
 ### Set a timeout (-m)
 
@@ -141,19 +141,19 @@ catch (CurlOperationTimeoutException ex)
 }
 ```
 
-More in the [timeouts recipe](../timeouts.html).
+There is no timeout unless you set one; `-m` covers the whole transfer and accepts decimals (`-m 2.5`). More in the [timeouts recipe](../timeouts.html).
 
 ## Troubleshooting
 
-**403 Forbidden from api.github.com.** GitHub rejects requests without a `User-Agent`. CurlDotNet does not add one automatically, so pass `-A 'MyApp'` or `.WithUserAgent("MyApp")`.
+**403 Forbidden from api.github.com.** Usually rate limiting for unauthenticated calls; send a token. GitHub also rejects requests without a `User-Agent`, but CurlDotNet sends `curl/8.7.1` by default, so this only bites if you removed it with `-A ''` or `-H 'User-Agent:'`.
 
 **404 Not Found.** Check the URL for typos and remember that `result.Body` usually contains the server's own error message; print it.
 
-**Empty `result.Body`.** A 204 No Content reply, a `HEAD` request (`-I`), or a binary response (`result.IsBinary`, body in `result.BinaryData`) all leave `Body` empty. Check `result.StatusCode` and `result.GetHeader("Content-Type")`.
+**Empty `result.Body`.** A 204 No Content reply, a binary response (`result.IsBinary`, body in `result.BinaryData`), or `-o`/`-O` (the body went to the file) all leave `Body` empty. Check `result.StatusCode` and `result.GetHeader("Content-Type")`. (`-I` is different: like curl, it prints the response headers into `Body`.)
 
-**`ParseJson<T>()` throws `InvalidOperationException`.** The body is empty or not JSON (often an HTML error page). Check `result.IsSuccess` first and inspect `result.Body`.
+**`ParseJson<T>()` throws `InvalidOperationException`.** The body is empty or not JSON (often an HTML error page); the JSON parser's error is the inner exception. Check `result.IsSuccess` first and inspect `result.Body`.
 
-**`CurlCouldntConnectException`.** DNS failure, connection refused, or a TLS handshake failure. Check the host name, your network, and whether a proxy is required ([proxy recipe](../proxy.html)).
+**`CurlCouldntResolveHostException` or `CurlCouldntConnectException`.** The host name could not be resolved (exit code 6), or the connection was refused (exit code 7). Check the host name, your network, and whether a proxy is required ([proxy recipe](../proxy.html)). TLS problems raise `CurlSslConnectErrorException` or `CurlPeerFailedVerificationException` instead.
 
 **The server redirected and I got a 301/302.** curl does not follow redirects unless you pass `-L`. See [Follow Redirects](../follow-redirects.html).
 

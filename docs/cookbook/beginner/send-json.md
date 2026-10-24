@@ -51,7 +51,7 @@ string json = JsonSerializer.Serialize(user);
 var result = await Curl.ExecuteAsync($"curl --json '{json}' https://httpbin.org/post");
 ```
 
-`Curl.PostJsonAsync(url, object)` does the serialization and the headers in one call:
+`Curl.PostJsonAsync(url, object)` does the serialization and the headers in one call. Nothing goes through a command string, so apostrophes and quotes in the values (`O'Brien`) need no escaping and stay readable in the payload:
 
 ```csharp
 var result = await Curl.PostJsonAsync("https://httpbin.org/post",
@@ -79,23 +79,21 @@ Console.WriteLine(result.StatusCode);
 ## Read the JSON reply
 
 ```csharp
-using System.Text.Json.Serialization;
-
 public class HttpBinPost
 {
-    [JsonPropertyName("json")] public EchoedUser Json { get; set; }
-    [JsonPropertyName("url")] public string Url { get; set; }
+    public EchoedUser Json { get; set; }   // binds to "json"
+    public string Url { get; set; }        // binds to "url"
 }
 public class EchoedUser
 {
-    [JsonPropertyName("name")] public string Name { get; set; }
+    public string Name { get; set; }       // binds to "name"
 }
 
 var echo = result.ParseJson<HttpBinPost>();
 Console.WriteLine(echo.Json.Name);   // "Alice"
 ```
 
-`ParseJson<T>()` is case-sensitive by default (`System.Text.Json`; Newtonsoft.Json on .NET Standard 2.0), so use `[JsonPropertyName]` when the API uses lower-case or snake_case names. `result.AsJsonDynamic()` gives you a `dynamic` when you do not want a class.
+`ParseJson<T>()` matches property names case-insensitively (`System.Text.Json` with `PropertyNameCaseInsensitive`; Newtonsoft.Json on .NET Standard 2.0), so camelCase or lower-case JSON binds to ordinary PascalCase properties. snake_case names such as `created_at` still need `[JsonPropertyName("created_at")]` (from `System.Text.Json.Serialization`). An empty body or malformed JSON throws `InvalidOperationException` with the parser's error as the inner exception. `result.AsJsonDynamic()` gives you a `dynamic` when you do not want a class.
 
 ## Variations
 
@@ -137,7 +135,7 @@ var result = await Curl.ExecuteAsync(@"
       -d @payload.json");
 ```
 
-The path is relative to the process working directory. A missing file throws `CurlFileCouldntReadException`.
+The path is relative to the process working directory. Like curl, `-d @file` removes carriage returns and newlines from the file, which is harmless for JSON; use `--data-binary @payload.json` to send it byte-for-byte. A missing file throws `CurlReadErrorException` (exit code 26).
 
 ### Check the status before parsing
 
@@ -153,7 +151,7 @@ if (!result.IsSuccess)
 var ok = result.EnsureSuccess().ParseJson<HttpBinPost>();
 ```
 
-HTTP 4xx/5xx replies never throw on their own; `EnsureSuccess()` turns them into a `CurlDotNet.Core.CurlHttpException` carrying `StatusCode` and `ResponseBody`.
+Without `-f`, HTTP 4xx/5xx replies never throw on their own; `EnsureSuccess()` turns them into a `CurlDotNet.Core.CurlHttpException` carrying `StatusCode` and `ResponseBody`. In a command string, `--fail-with-body` throws `CurlHttpReturnedErrorException` (exit code 22) with the error body instead. See [Handle Errors](handle-errors.html).
 
 ## Troubleshooting
 
@@ -165,7 +163,7 @@ HTTP 4xx/5xx replies never throw on their own; `EnsureSuccess()` turns them into
 
 **Special characters or non-ASCII text.** The body is sent as UTF-8. If the server mangles it, make sure your `Content-Type` includes `charset=utf-8` (`--json` already implies UTF-8 JSON).
 
-**`ParseJson<T>()` returns nulls.** Property names do not match. Add `[JsonPropertyName("...")]` or inspect `result.Body` with `AsJsonDynamic()`.
+**`ParseJson<T>()` returns nulls.** Property names do not match. Case does not matter, but underscores do: add `[JsonPropertyName("...")]` for snake_case names, or inspect `result.Body` with `AsJsonDynamic()`.
 
 ## Related
 

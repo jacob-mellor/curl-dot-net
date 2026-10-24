@@ -9,7 +9,7 @@ This tutorial shows how to debug curl requests in C# with -v and --trace using C
 
 ## Verbose Output (-v)
 
-`-v` records the request line, the headers sent, and the status line and headers received. CurlDotNet puts that log at the start of `result.Body`, formatted the way curl prints it (`>` for outgoing, `<` for incoming):
+`-v` records the request line, the headers sent, and the status line and headers received. curl prints that log to standard error; CurlDotNet puts it at the start of `result.Body`, formatted the way curl prints it (`>` for outgoing, `<` for incoming). It shows the headers CurlDotNet adds by default, such as `User-Agent: curl/8.7.1` and `Accept: */*`:
 
 ```csharp
 using CurlDotNet;
@@ -21,6 +21,8 @@ Console.WriteLine(result.Body);
 // *   Trying httpbin.org...
 // > GET /get HTTP/1.1
 // > Host: httpbin.org
+// > User-Agent: curl/8.7.1
+// > Accept: */*
 // >
 // < HTTP/1.1 200 OK
 // < Content-Type: application/json
@@ -53,15 +55,15 @@ Console.WriteLine(result.GetHeader("content-type"));   // application/json
 Console.WriteLine(result.HasHeader("X-Request-Id"));   // false
 ```
 
-`-i` prints the header block before the body, as curl does. `-I` sends a HEAD request, so there is no body at all; combine it with `-i` if you want the header text in `Body`:
+`-i` prints the header block before the body, exactly as the server sent it. `-I` sends a HEAD request and, like curl, prints the header block as the output, so the header text is in `Body`. With `-L -i` you see every hop's headers, and `-D file` (or `-D -`) dumps them separately:
 
 ```csharp
 // -i: status line and headers, blank line, then the body
 var full = await Curl.ExecuteAsync("curl -i https://httpbin.org/get");
 Console.WriteLine(full.Body);
 
-// -I: HEAD request. Headers are in full.Headers; add -i to see them as text
-var head = await Curl.ExecuteAsync("curl -I -i https://httpbin.org/get");
+// -I: HEAD request; the header block is the output
+var head = await Curl.ExecuteAsync("curl -I https://httpbin.org/get");
 Console.WriteLine(head.Body);        // HTTP/1.1 200 OK + header lines, no body
 ```
 
@@ -85,21 +87,21 @@ The trace records connection and proxy selection, TLS verification, redirects an
 
 ## One-Line Summaries (-w)
 
-`-w` appends a formatted line after the body. The supported variables are `%{http_code}`, `%{size_download}`, `%{url_effective}` and `%{content_type}`:
+`-w` (`--write-out`) appends its text to `Body` right after the response body, with no extra newline, just as curl writes it to stdout. Every curl variable is supported: `%{http_code}`, `%{http_version}`, `%{size_download}`, the `%{time_*}` timings (seconds with six decimals), `%{url_effective}`, `%{num_redirects}`, `%{remote_ip}`, `%header{name}`, `%{json}` and the rest:
 
 ```csharp
 var result = await Curl.ExecuteAsync(
-    "curl -w '%{http_code} %{content_type} %{size_download}' https://httpbin.org/get");
+    "curl -w '\\n%{http_code} %{content_type} %{time_total}' https://httpbin.org/get");
 
-// The formatted line is the last line of Body
-Console.WriteLine(result.Body.Split('\n').Last());   // 200 application/json 2xx
+// The body comes first; the leading \n in the format puts the summary on its own last line
+Console.WriteLine(result.Body.Split('\n').Last());   // 200 application/json 0.412345
 ```
 
-`%{url_effective}` is handy with `-L` to see where a redirect chain ended. For plain status checks you do not need `-w` at all; `result.StatusCode` is already an `int`.
+`%{url_effective}` is handy with `-L` to see where a redirect chain ended. When the transfer fails, the `-w` output is on the exception: `CurlException.StandardOutput` has everything curl would have printed. For plain status checks you do not need `-w` at all; `result.StatusCode` is already an `int`. The [write-out cookbook page](../cookbook/write-out.html) lists every variable.
 
 ## Timing a Request
 
-`result.Timings` reports milliseconds for the main phases. Because the transport is `HttpClient`, the time to first byte (`StartTransfer`) and the total are measured directly; the DNS, TCP and TLS phases are not broken out separately and read as zero:
+`result.Timings` reports milliseconds for the main phases. The time to first byte (`StartTransfer`) and the total are always measured; `NameLookup`, `Connect` and `AppConnect` (TLS) are filled in on .NET 5 and later when the request opened a new connection, and stay zero when an existing connection was reused (and on .NET Standard 2.0 / .NET Framework). For curl's exact numbers, use `-w '%{time_namelookup} %{time_connect} %{time_appconnect} %{time_starttransfer} %{time_total}'`:
 
 ```csharp
 var result = await Curl.ExecuteAsync("curl https://httpbin.org/delay/1");
@@ -124,6 +126,8 @@ if (!check.IsValid)
     return;
 }
 ```
+
+A misspelled option (`--hedaer`) makes the command invalid and is listed in `check.ParsedOptions.UnknownOptions`. Real curl options that CurlDotNet has no implementation for (such as `--parallel` or `--ipv4`) are listed in `UnsupportedOptions` instead, so you can warn about them.
 
 ## Comparing with Hand-Written HttpClient Code
 
@@ -156,11 +160,11 @@ catch (CurlOperationTimeoutException ex)
 }
 ```
 
-An unreachable server fails with `CurlCouldntConnectException` instead, so the exception type already tells you whether the server is unreachable or just slow.
+An unreachable server fails with `CurlCouldntConnectException` instead, so the exception type already tells you whether the server is unreachable or just slow. With `--retry N`, timeouts are retried automatically before the exception reaches you (see [retries](../cookbook/retry.html)).
 
 ### Connection failures
 
-DNS failures, refused connections and TLS handshake errors all surface as `CurlCouldntConnectException` with the host and port attached:
+Each kind of connection failure has its own exception and curl exit code: `CurlCouldntResolveHostException` (6) for DNS, `CurlCouldntResolveProxyException` (5) for a proxy name, `CurlCouldntConnectException` (7) for a refused or unreachable host, and `CurlSslConnectErrorException` (35) or `CurlPeerFailedVerificationException` (60) for TLS. When a proxy is in use, the message names the proxy. A refused connection carries the host and port:
 
 ```csharp
 try
@@ -226,7 +230,7 @@ The builder equivalents are `WithProxy("http://localhost:8888")` and `Insecure()
 1. **Start with `-v`** - it answers most "what did I actually send?" questions.
 2. **Read `result.Headers` instead of parsing text** when your code needs a header value.
 3. **Use `--trace` for body-level problems** and delete the file afterwards; it contains your credentials.
-4. **Catch the specific exception** - `CurlOperationTimeoutException` and `CurlCouldntConnectException` tell you where the request failed.
+4. **Catch the specific exception** - `CurlOperationTimeoutException`, `CurlCouldntResolveHostException` and `CurlCouldntConnectException` tell you where the request failed; `ex.CurlErrorCode` is curl's exit code ([full list](../reference/curl-exit-codes.html)).
 5. **Print `ex.Suggestions`** - the library's hints often name the fix.
 6. **Check Content-Type before parsing JSON.**
 7. **Validate user-supplied commands** with `Curl.Validate` before running them.
@@ -236,7 +240,7 @@ The builder equivalents are `WithProxy("http://localhost:8888")` and `Insecure()
 
 - `-v` prepends a verbose log to `Body`; `-i` adds the header block; `-I` sends HEAD.
 - `--trace` and `--trace-ascii` write a complete wire dump to a file.
-- `-w '%{http_code}'` appends a summary line; `result.Timings` gives time to first byte and total.
+- `-w '%{http_code}'` appends curl's write-out text to `Body`; `result.Timings` gives the phase timings in milliseconds.
 - `Curl.Validate` checks a command without sending it; `Curl.ToHttpClient` shows the equivalent .NET code.
 
 More help: [Common Issues](../troubleshooting/common-issues.html) and the [Error Reference](../troubleshooting/error-reference.html).

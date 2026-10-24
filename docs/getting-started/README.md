@@ -1,3 +1,8 @@
+---
+title: "Getting Started with CurlDotNet - curl in C#"
+description: "Get started with CurlDotNet: install the package, run your first curl command in C#, and configure timeouts, redirects, proxies and TLS."
+---
+
 # Getting Started
 
 Quick start guide for CurlDotNet.

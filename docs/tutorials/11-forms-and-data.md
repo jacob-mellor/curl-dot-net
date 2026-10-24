@@ -24,7 +24,7 @@ Console.WriteLine(result.StatusCode);   // 200
 Console.WriteLine(result.Body);         // JSON with a "form": { "username": ..., "email": ... }
 ```
 
-You can repeat `-d` once per field; curl joins them with `&`:
+You can repeat `-d` once per field; curl joins them with `&`. `-d ''` sends an empty body, and `--data-ascii` is an alias for `-d`:
 
 ```csharp
 var result = await Curl.ExecuteAsync(@"curl \
@@ -42,7 +42,18 @@ var result = await Curl.ExecuteAsync(@"curl \
   --data-urlencode 'comment=Hello world & friends' \
   --data-urlencode 'email=john@example.com' \
   https://httpbin.org/post");
+// body: comment=Hello+world+%26+friends&email=john%40example.com
 ```
+
+The encoding is curl's: spaces become `+` (not `%20`) and only the part after the first `=` is encoded. All five curl forms work:
+
+| Form | Sends |
+|------|-------|
+| `--data-urlencode 'content'` | `content` encoded |
+| `--data-urlencode '=content'` | `content` encoded (use this when the content itself contains `=`) |
+| `--data-urlencode 'name=content'` | `name=` followed by `content` encoded |
+| `--data-urlencode '@file'` | the file's contents encoded |
+| `--data-urlencode 'name@file'` | `name=` followed by the file's contents encoded |
 
 ### Convenience helper and builder
 
@@ -151,6 +162,21 @@ var result = await Curl.ExecuteAsync(@"curl \
 
 ## Query Parameters
 
+### Let curl build the query (-G)
+
+`-G` (`--get`) turns every `-d` and `--data-urlencode` value into the query string of a GET request instead of a POST body, exactly as in curl:
+
+```csharp
+// Same as: curl -G --data-urlencode 'q=curl tutorial' -d page=1 https://httpbin.org/get
+var result = await Curl.ExecuteAsync(
+    "curl -G --data-urlencode 'q=curl tutorial' -d page=1 https://httpbin.org/get");
+// requests https://httpbin.org/get?q=curl+tutorial&page=1
+```
+
+`-G -I` does the same for a HEAD request, and `--url-query` appends query parameters without touching the body. If you really want a GET with a body, write `-X GET -d '...'`.
+
+### Build the URL yourself
+
 Query strings belong in the URL. Encode each key and value with `Uri.EscapeDataString`, then quote the URL so `&` is not misread:
 
 ```csharp
@@ -212,6 +238,8 @@ var result = await Curl.ExecuteAsync(
     "-d 'username=john_doe' https://example.com/login");
 ```
 
+curl's cookie jar works too: `-c cookies.txt` on the first request saves the cookies in Netscape format, and `-b cookies.txt` on the second sends them back, following curl's domain, path and expiry rules. See the [cookies recipe](../cookbook/cookies.html).
+
 Use a real HTML parser in production code; the regex is only there to keep the example short.
 
 ## Best Practices
@@ -226,7 +254,8 @@ Use a real HTML parser in production code; the regex is only there to keep the e
 
 ## Summary
 
-- `-d 'a=1&b=2'` posts a URL-encoded form; `--data-urlencode` encodes values for you.
+- `-d 'a=1&b=2'` posts a URL-encoded form; `--data-urlencode` encodes values for you (spaces as `+`).
+- `-G` moves the data into the query string of a GET.
 - `-F` builds multipart forms with text fields and files.
 - `--json`, `Curl.PostJsonAsync` and `WithJson` send JSON; `-H 'Content-Type: ...' -d` handles XML and text.
 - Query strings are built with `Uri.EscapeDataString` and placed in the URL.

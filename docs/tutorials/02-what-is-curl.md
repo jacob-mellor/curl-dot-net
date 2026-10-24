@@ -200,7 +200,7 @@ CurlDotNet is written in C#. It:
 | Feature | curl (command line) | CurlDotNet |
 |---------|---------------------|------------|
 | Parse responses | Manual | `result.ParseJson<T>()` |
-| Error handling | Exit codes | C# exceptions and `result.StatusCode` |
+| Error handling | Exit codes | C# exceptions carrying the same exit code (`ex.CurlErrorCode`), plus `result.StatusCode` |
 | Type safety | None | C# types |
 | IntelliSense | None | Yes |
 | Integration | Shell scripts | Any .NET application |
@@ -228,8 +228,8 @@ var result = await Curl.ExecuteAsync(@"
 ");
 
 Assert.Equal(200, result.StatusCode);
-dynamic echo = result.AsJsonDynamic();
-Assert.Equal(true, (bool)echo.json.test);
+using var echo = System.Text.Json.JsonDocument.Parse(result.Body);
+Assert.True(echo.RootElement.GetProperty("json").GetProperty("test").GetBoolean());
 ```
 
 ### Scenario 2: Building an Integration
@@ -255,8 +255,8 @@ var charge = await Curl.ExecuteAsync($@"
 
 if (charge.IsSuccess)
 {
-    dynamic data = charge.AsJsonDynamic();
-    Console.WriteLine($"Charge id: {data.id}");
+    using var data = System.Text.Json.JsonDocument.Parse(charge.Body);
+    Console.WriteLine($"Charge id: {data.RootElement.GetProperty("id")}");
 }
 ```
 

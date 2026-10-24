@@ -31,14 +31,14 @@ public record Slideshow(
 
 ## Watch the property-name casing
 
-Which serializer `ParseJson<T>()` uses depends on the build of CurlDotNet your app loads:
+Which serializer `ParseJson<T>()` uses depends on the build of CurlDotNet your app loads, but property names match case-insensitively on every build:
 
 | Your app targets | Serializer | Property names |
 |---|---|---|
-| .NET 8 / 9 / 10, .NET Framework 4.7.2 / 4.8 | System.Text.Json, default options | **case-sensitive** |
+| .NET 8 / 9 / 10, .NET Framework 4.7.2 / 4.8 | System.Text.Json with `PropertyNameCaseInsensitive = true` | case-insensitive |
 | Anything that resolves the netstandard2.0 build (for example .NET 6 or 7) | Newtonsoft.Json | case-insensitive |
 
-So on .NET 8, a C# property `Title` does **not** bind to JSON `"title"` unless you add `[JsonPropertyName]` as above, or pass options. The extension overload in the `CurlDotNet` namespace accepts `JsonSerializerOptions`:
+So a C# property `Title` binds to JSON `"title"` without any attribute. Names that differ by more than case, such as `snake_case` keys (`"created_at"` to `CreatedAt`), still need `[JsonPropertyName]` (or `[JsonProperty]` for Newtonsoft). To control the options yourself, the extension overload in the `CurlDotNet` namespace accepts `JsonSerializerOptions`:
 
 ```csharp
 using System.Text.Json;
@@ -95,7 +95,7 @@ var id = result.ParseJson<System.Text.Json.JsonElement>().GetProperty("uuid").Ge
 ## When parsing fails
 
 - Empty body: `InvalidOperationException` ("Body is empty"). Check `result.IsSuccess` first, because error responses are often empty or HTML.
-- Invalid JSON or a type mismatch: `InvalidOperationException` that wraps the serializer's exception.
+- Invalid JSON or a type mismatch: `InvalidOperationException` whose `InnerException` is the serializer's `JsonException`.
 - Binary responses have an empty `Body`; check `result.IsBinary`.
 
 ## Save the JSON

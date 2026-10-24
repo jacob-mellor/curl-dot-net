@@ -1,3 +1,8 @@
+---
+title: "Your First curl Request in C# with CurlDotNet"
+description: "Make your first curl request in C# with CurlDotNet: run a command string, read the status, headers and body, and handle errors."
+---
+
 # Your First Request
 
 This guide walks you through making your first HTTP request with CurlDotNet.
@@ -64,6 +69,8 @@ var result = await Curl.ExecuteAsync(@"
 ");
 ```
 
+The `User-Agent` header is optional: like curl, CurlDotNet sends `User-Agent: curl/8.7.1` when you do not set one.
+
 ### 2. Builder API (Type-Safe)
 
 Get IntelliSense and compile-time checking:
@@ -95,7 +102,7 @@ await Curl.DownloadAsync("https://example.com/file.pdf", "output.pdf");
 
 ## Working with JSON
 
-Most APIs return JSON. CurlDotNet makes it easy to work with:
+Most APIs return JSON. CurlDotNet makes it easy to work with. `ParseJson<T>()` matches property names case-insensitively, so the camelCase keys `login`, `name` and `followers` bind to the PascalCase properties below:
 
 ```csharp
 // Define your model
@@ -137,7 +144,7 @@ try
 }
 catch (CurlDotNet.Exceptions.CurlTimeoutException ex)
 {
-    Console.WriteLine($"Request timed out after {ex.Timeout} seconds");
+    Console.WriteLine($"Request timed out after {ex.Timeout}");   // only when you set -m / --max-time
 }
 catch (CurlDotNet.Exceptions.CurlCouldntResolveHostException ex)
 {
@@ -191,11 +198,12 @@ class Program
             // Check result
             if (result.IsSuccess)
             {
-                var user = result.ParseJson<dynamic>();
-                Console.WriteLine($"Username: {user.login}");
-                Console.WriteLine($"Name: {user.name}");
-                Console.WriteLine($"Public Repos: {user.public_repos}");
-                Console.WriteLine($"Followers: {user.followers}");
+                using var doc = System.Text.Json.JsonDocument.Parse(result.Body);
+                var user = doc.RootElement;
+                Console.WriteLine($"Username: {user.GetProperty("login")}");
+                Console.WriteLine($"Name: {user.GetProperty("name")}");
+                Console.WriteLine($"Public Repos: {user.GetProperty("public_repos")}");
+                Console.WriteLine($"Followers: {user.GetProperty("followers")}");
             }
             else
             {

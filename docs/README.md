@@ -5,7 +5,7 @@ description: "CurlDotNet documentation hub: run curl commands in C# and .NET. Tu
 
 # CurlDotNet documentation: run curl commands in C#
 
-CurlDotNet lets you run curl commands in C#: paste the command from an API's documentation into `Curl.ExecuteAsync` and read the result as a `CurlResult`. It is pure .NET with no native curl binary, and targets .NET Framework 4.8, .NET Standard 2.0 and .NET 8, 9 and 10. This page is the map of the documentation.
+CurlDotNet lets you run curl commands in C#: paste the command from an API's documentation into `Curl.ExecuteAsync` and read the result as a `CurlResult`. It is pure .NET with no native curl binary, and targets .NET Framework 4.7.2 and 4.8, .NET Standard 2.0 and .NET 8, 9 and 10. It reproduces curl 8.7.1's command-line behaviour, checked against 620 runnable tests from curl's own test suite (see [curl test suite results](reference/curl-test-suite.html)). This page is the map of the documentation.
 
 ## Installation
 
@@ -63,7 +63,7 @@ Fourteen short lessons from "what is .NET" to debugging requests, written for re
 
 ### [Cookbook](cookbook/)
 
-One task per page: [GET](cookbook/beginner/simple-get.html), [POST JSON](cookbook/beginner/send-json.html), [forms](cookbook/beginner/post-form.html), [upload](cookbook/beginner/upload-file.html), [download](cookbook/beginner/download-file.html), [errors](cookbook/beginner/handle-errors.html), [REST APIs](cookbook/beginner/call-api.html), [redirects](cookbook/follow-redirects.html), [cookies](cookbook/cookies.html), [proxies](cookbook/proxy.html), [timeouts](cookbook/timeouts.html), [HEAD](cookbook/head-request.html), [PUT/DELETE/PATCH](cookbook/http-methods.html), [auth schemes](cookbook/auth-schemes.html).
+One task per page: [GET](cookbook/beginner/simple-get.html), [POST JSON](cookbook/beginner/send-json.html), [forms](cookbook/beginner/post-form.html), [upload](cookbook/beginner/upload-file.html), [download](cookbook/beginner/download-file.html), [errors](cookbook/beginner/handle-errors.html), [REST APIs](cookbook/beginner/call-api.html), [redirects](cookbook/follow-redirects.html), [cookies](cookbook/cookies.html), [proxies](cookbook/proxy.html), [timeouts](cookbook/timeouts.html), [retries](cookbook/retry.html), [-w write-out](cookbook/write-out.html), [multiple URLs and globbing](cookbook/multiple-urls-and-globbing.html), [config files and variables](cookbook/config-files-and-variables.html), [HEAD](cookbook/head-request.html), [PUT/DELETE/PATCH](cookbook/http-methods.html), [auth schemes](cookbook/auth-schemes.html).
 
 ### [API guide](api-guide/README.html) and [API reference](api/)
 
@@ -83,7 +83,7 @@ What each exception type means and when the library throws it: timeouts, connect
 
 ### Reference
 
-[curl CLI compatibility](reference/curl-cli-compatibility.html) (which flags work today), [libcurl mapping](reference/libcurl-mapping.html), [framework compatibility](framework-compatibility.html), [supported protocols](supported-protocols.html) and [articles](articles/) on CI/CD and implementation patterns.
+[curl CLI compatibility](reference/curl-cli-compatibility.html) (which flags work today), [curl exit codes](reference/curl-exit-codes.html), [curl test suite results](reference/curl-test-suite.html), [libcurl mapping](reference/libcurl-mapping.html), [framework compatibility](framework-compatibility.html), [supported protocols](supported-protocols.html) and [articles](articles/) on CI/CD and implementation patterns.
 
 ## Common tasks
 
@@ -94,6 +94,7 @@ What each exception type means and when the library throws it: timeouts, connect
 | Download or upload a file | [download](cookbook/beginner/download-file.html), [upload](cookbook/beginner/upload-file.html) |
 | Use a bearer token or basic auth | [auth schemes](cookbook/auth-schemes.html) |
 | Set a timeout | [curl timeout in C#](cookbook/timeouts.html) |
+| Retry transient failures | [curl --retry in C#](cookbook/retry.html) |
 | Handle a 404 or a timeout | [handle errors](cookbook/beginner/handle-errors.html) |
 | Check which curl flags work | [curl CLI compatibility](reference/curl-cli-compatibility.html) |
 
@@ -105,4 +106,4 @@ What each exception type means and when the library throws it: timeouts, connect
 
 ---
 
-*Documentation for CurlDotNet 9.7.x, updated October 2026.*
+*Documentation for CurlDotNet 9.8.x, updated October 2026.*

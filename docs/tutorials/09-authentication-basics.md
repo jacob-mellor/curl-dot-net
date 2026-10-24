@@ -48,6 +48,8 @@ var result2 = await CurlRequestBuilder.Get("https://httpbin.org/basic-auth/alice
     .ExecuteAsync();
 ```
 
+As in curl, `-u` splits at the first colon, so a password may itself contain colons. Credentials in the URL (`https://alice:secret@example.com/`) are sent as Basic too.
+
 You can also write the header by hand. This is what `-u` does internally.
 
 ```csharp
@@ -67,6 +69,9 @@ string accessToken = Environment.GetEnvironmentVariable("API_TOKEN");
 // curl string
 var result = await Curl.ExecuteAsync(
     $"curl -H 'Authorization: Bearer {accessToken}' https://httpbin.org/bearer");
+
+// curl's dedicated flag builds the same header
+var same = await Curl.ExecuteAsync($"curl --oauth2-bearer {accessToken} https://httpbin.org/bearer");
 
 // Builder
 var result2 = await CurlRequestBuilder.Get("https://httpbin.org/bearer")
@@ -109,6 +114,28 @@ var ntlm = await Curl.ExecuteAsync("curl --ntlm -u 'DOMAIN\\alice:secret' https:
 // Let the server choose
 var any = await Curl.ExecuteAsync("curl --anyauth -u alice:secret https://httpbin.org/basic-auth/alice/secret");
 ```
+
+Digest and NTLM (v1 and v2) are negotiated inside CurlDotNet, in pure C#, the way curl does it: the challenge is answered on the same connection, and the NTLM messages are byte-identical to curl's. `--anyauth` prefers Digest, then NTLM, then Basic. A `POST` or `PUT` first sends a `Content-Length: 0` probe so the body is not uploaded twice. `--negotiate` uses .NET's built-in Negotiate (Kerberos/SPNEGO) support.
+
+What happens when it goes wrong:
+
+- A wrong password is a normal result with `StatusCode == 401`, not an exception.
+- A challenge CurlDotNet cannot process throws `CurlAuthErrorException` (curl exit code 94).
+- On a redirect to a different host, `Authorization` (from `-u`, `-H`, `--oauth2-bearer` or the URL) is dropped unless you add `--location-trusted`, so credentials never leak to a third party.
+
+### Credentials from .netrc
+
+curl can read credentials from a `.netrc` file so they never appear in the command. CurlDotNet supports `-n`/`--netrc`, `--netrc-optional`, `--netrc-file FILE` and the `NETRC` environment variable:
+
+```csharp
+// ~/.netrc:  machine api.example.com login alice password secret
+var result = await Curl.ExecuteAsync("curl -n https://api.example.com/data");
+
+// or an explicit file
+var result2 = await Curl.ExecuteAsync("curl --netrc-file ./ci.netrc https://api.example.com/data");
+```
+
+[Config files, variables and .netrc](../cookbook/config-files-and-variables.html) covers `.netrc` together with `-K` config files and `--variable`.
 
 ## Getting an OAuth 2.0 Access Token
 

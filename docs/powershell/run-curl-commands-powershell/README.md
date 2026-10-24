@@ -12,7 +12,7 @@ Setup is covered in [installing CurlDotNet for PowerShell](../install-curldotnet
 ## Run a command and read the result
 
 ```powershell
-Add-Type -Path "$HOME/.curldotnet/9.7.0/lib/net8.0/CurlDotNet.dll"
+Add-Type -Path "$HOME/.curldotnet/9.8.0/lib/net8.0/CurlDotNet.dll"
 
 $r = [CurlDotNet.Curl]::Execute('curl -H "Accept: application/json" https://httpbin.org/json')
 
@@ -43,7 +43,7 @@ The backtick continuations, and bash-style `\` continuations, are joined by Curl
 
 ## Secrets from environment variables
 
-CurlDotNet expands `$env:NAME` (and `$NAME`) itself, so the token stays out of the string and out of your history:
+CurlDotNet expands `$env:NAME` (and `$NAME`) itself, so the token stays out of the string and out of your history. Like a shell, it expands them unquoted or inside the command's double quotes, not inside its single quotes:
 
 ```powershell
 $env:API_TOKEN = 'abc123'
@@ -58,7 +58,7 @@ $r.StatusCode   # 200
 ```powershell
 $out = Join-Path $PWD 'logo.png'
 $r = [CurlDotNet.Curl]::Execute("curl -L -o `"$out`" https://httpbin.org/image/png")
-$r.IsBinary          # True
+$r.OutputFiles       # the path; $r.Body is empty, as curl prints nothing with -o
 (Get-Item $out).Length
 ```
 
@@ -89,9 +89,10 @@ try {
 
 ## Notes
 
-- Without `-m`, CurlDotNet waits at most 30 seconds for the response headers.
-- CurlDotNet sends no `User-Agent` unless you pass `-A`. Some APIs, such as GitHub's, require one.
-- These PowerShell snippets were written against the 9.7.0 API and checked in C#, but were not run in a PowerShell session for this page.
+- As with curl.exe, there is no timeout unless you pass `-m` (which covers the whole transfer) or `--connect-timeout`. Add `--retry 3` to retry timeouts and transient 5xx answers.
+- CurlDotNet sends `User-Agent: curl/8.7.1` like curl.exe, so APIs that require a User-Agent, such as GitHub's, work without `-A`.
+- With `-f`, a status of 400 or above throws `CurlHttpReturnedErrorException` (curl code 22) instead of returning a result.
+- These PowerShell snippets were written against the 9.8.0 API and checked in C#, but were not run in a PowerShell session for this page.
 
 ## Related
 

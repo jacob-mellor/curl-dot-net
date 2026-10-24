@@ -28,6 +28,8 @@ Troubleshooting CurlDotNet: fix common curl errors in C# by matching the symptom
 | JSON will not parse | Data | [JSON Parsing Errors](common-issues.html#json-parsing-errors) |
 | Code will not compile | Development | [Compilation Errors](common-issues.html#compilation-errors) |
 | NullReferenceException at runtime | Development | [Runtime Errors](common-issues.html#runtime-errors) |
+| Cannot write `-o` file / read `-d @file` | Files | [Transfer and file errors](../exceptions/transfer-errors.html) |
+| Any other curl exit code | Reference | [Error Reference](error-reference.html#exit-code-table) |
 
 Each section states the problem, the cause, the fix (code or commands) and how to prevent it.
 
@@ -35,8 +37,9 @@ Each section states the problem, the cause, the fix (code or commands) and how t
 
 CurlDotNet separates transport failures from HTTP status codes, exactly as the curl command-line tool does:
 
-- **Transport failures throw.** DNS lookup failure, connection refused and TLS handshake failure throw `CurlCouldntConnectException`; an expired `--max-time` throws `CurlOperationTimeoutException` (catch its base `CurlTimeoutException`); a cancelled `CancellationToken` throws `CurlAbortedByCallbackException`. All derive from `CurlException` in `CurlDotNet.Exceptions`.
-- **HTTP 4xx and 5xx do not throw.** `ExecuteAsync` returns a `CurlResult` with `IsSuccess == false` and the `StatusCode`. Call `result.EnsureSuccess()` if you want an exception (`CurlDotNet.Core.CurlHttpException`).
+- **Transport failures throw, with curl's exit code.** A host that does not resolve throws `CurlCouldntResolveHostException` (6), a refused connection `CurlCouldntConnectException` (7), a TLS failure `CurlSslConnectErrorException` (35) or `CurlPeerFailedVerificationException` (60), an expired `--max-time` or `--connect-timeout` `CurlOperationTimeoutException` (28; catch its base `CurlTimeoutException`), an unwritable `-o` file `CurlWriteErrorException` (23). All derive from `CurlException` in `CurlDotNet.Exceptions`, and `CurlErrorCode` holds the number.
+- **HTTP 4xx and 5xx do not throw** unless the command has `-f`/`--fail`. `ExecuteAsync` returns a `CurlResult` with `IsSuccess == false` and the `StatusCode`. With `-f` it throws `CurlHttpReturnedErrorException` (22), like curl; or call `result.EnsureSuccess()` (`CurlDotNet.Core.CurlHttpException`).
+- **Cancellation is standard .NET.** A cancelled `CancellationToken` throws `OperationCanceledException`.
 
 ```csharp
 using CurlDotNet;
@@ -53,13 +56,13 @@ catch (CurlCouldntConnectException ex) { Console.WriteLine($"No connection to {e
 catch (CurlException ex) { Console.WriteLine($"curl error {ex.CurlErrorCode}: {ex.Message}"); }
 ```
 
-Every `CurlException` carries `Command`, `CurlErrorCode` (the curl exit code, when known), `Suggestions` (a list of fix hints) and `DiagnosticInfo`. See the [Error Reference](error-reference.html) for the full mapping.
+Every `CurlException` carries `Command`, `CurlErrorCode` (the curl exit code, when known), `StandardOutput` (what curl would have printed before failing), `Suggestions` (a list of fix hints) and `DiagnosticInfo`. Its message says how to fix the problem. See the [Error Reference](error-reference.html) for every exception type and code, and [curl exit codes](../reference/curl-exit-codes.html) for the curl tool's numbered list.
 
 ## Diagnostic Tools
 
 ### Enable verbose mode
 
-The `-v` flag prints the request and response headers, the same as curl on the command line:
+The `-v` flag adds the request and response headers to the start of `result.Body`, the same information curl prints on the command line; `--trace-ascii FILE` writes a full trace:
 
 ```csharp
 var result = await Curl.ExecuteAsync("curl -v https://httpbin.org/get");

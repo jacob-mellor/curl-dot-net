@@ -89,8 +89,9 @@ static Task<CurlResult> Search(string userQuery, CancellationToken ct) =>
 
 ## Notes
 
-- Always pass `HttpContext.RequestAborted` (or the action's `CancellationToken`) so abandoned requests stop calling upstream.
-- Set a timeout shorter than your own response budget; see [timeouts](../curl-timeout-csharp/README.md).
+- Always pass `HttpContext.RequestAborted` (or the action's `CancellationToken`) so abandoned requests stop calling upstream. Cancellation surfaces as `OperationCanceledException`, which ASP.NET Core already treats as an aborted request.
+- `LibCurl` does not throw for network failures: a DNS error or timeout comes back as a result with `IsSuccess == false` and the `CurlException` in `result.Exception`. The static `Curl` methods and `CurlRequestBuilder` throw instead.
+- There is no timeout unless you set one, so set one shorter than your own response budget; see [timeouts](../curl-timeout-csharp/README.md).
 - Do not use the synchronous `Curl.Execute` in request handlers; it blocks a thread-pool thread.
 - CurlDotNet has no `AddCurl()` extension; register `LibCurl` or your own wrapper type as shown.
 

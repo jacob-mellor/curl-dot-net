@@ -1,6 +1,6 @@
 ---
 title: "CurlDotNet Cookbook Overview: curl Recipes in C#"
-description: "CurlDotNet cookbook overview: short curl recipes in C# for GET, POST, forms, uploads, downloads, redirects, cookies, proxies, timeouts and auth."
+description: "CurlDotNet cookbook overview: short curl recipes in C# for GET, POST, forms, uploads, downloads, redirects, cookies, proxies, timeouts, retries, write-out and auth."
 ---
 
 # CurlDotNet Cookbook overview: curl recipes in C#
@@ -20,12 +20,16 @@ The CurlDotNet cookbook is a set of short curl recipes in C#, one HTTP task per 
 ## One flag at a time
 
 - [curl follow redirects in C# (curl -L)](follow-redirects.html)
-- [curl with cookies in C# (curl -b)](cookies.html)
+- [curl with cookies in C# (curl -b and -c)](cookies.html)
 - [curl proxy in C# (curl -x and SOCKS5)](proxy.html)
 - [curl timeout in C# (--max-time and --connect-timeout)](timeouts.html)
 - [curl -I HEAD request in C#](head-request.html)
 - [curl PUT, DELETE and PATCH requests in C#](http-methods.html)
 - [curl digest, NTLM and basic auth in C#](auth-schemes.html)
+- [curl --retry in C#](retry.html)
+- [curl -w write-out in C#](write-out.html)
+- [curl multiple URLs and URL globbing in C#](multiple-urls-and-globbing.html)
+- [curl config files, --variable and .netrc in C#](config-files-and-variables.html)
 
 ## Quick finder
 
@@ -35,7 +39,9 @@ The CurlDotNet cookbook is a set of short curl recipes in C#, one HTTP task per 
 
 **Get through:** [a proxy](proxy.html), [a login](auth-schemes.html), [a redirect](follow-redirects.html), [a cookie-protected page](cookies.html)
 
-**Stay in control:** [timeouts](timeouts.html), [errors and retries](beginner/handle-errors.html)
+**Stay in control:** [timeouts](timeouts.html), [retries](retry.html), [errors](beginner/handle-errors.html), [status and timing with -w](write-out.html)
+
+**Many requests at once:** [several URLs and globs](multiple-urls-and-globbing.html), [shared options in a config file](config-files-and-variables.html)
 
 ## Test before you build
 

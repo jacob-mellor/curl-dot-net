@@ -81,7 +81,7 @@ var deleted = await api.DeleteAsync("/delete");
 
 ## With LibCurl
 
-`LibCurl.PutAsync` and `PatchAsync` serialize an object body, but in 9.7.0 they do not add a JSON `Content-Type` themselves. Add it as a default header:
+`LibCurl.PutAsync` and `PatchAsync` serialize an object body to JSON, but they do not add a JSON `Content-Type` themselves (without one the body goes out as `application/x-www-form-urlencoded`, as with `curl -d`). Add it as a default header:
 
 ```csharp
 using CurlDotNet.Lib;
@@ -95,7 +95,9 @@ Console.WriteLine(result.StatusCode);
 
 ## Checking the result
 
-Expect `200 OK`, `201 Created`, `202 Accepted` or `204 No Content` on success; `result.IsSuccess` covers all of them. A `409 Conflict` or `412 Precondition Failed` does not throw, so check the status, or call `EnsureSuccess()` to turn any non-2xx status into an exception.
+Expect `200 OK`, `201 Created`, `202 Accepted` or `204 No Content` on success; `result.IsSuccess` covers all of them. A `409 Conflict` or `412 Precondition Failed` does not throw, so check the status, call `EnsureSuccess()` to turn any non-2xx status into an exception, or add `-f` to the command to have curl's `CurlHttpReturnedErrorException` (exit code 22) thrown for any status of 400 or above.
+
+`-T file` is a shortcut for a PUT of a file's bytes, and `-X GET -d '...'` sends a GET with a body, both as in curl. With `-L`, a method set with `-X` is kept on every redirect hop.
 
 ## Related
 

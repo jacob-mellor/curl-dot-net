@@ -5,7 +5,7 @@ description: "curl download file in C# (curl -o) and upload with -F using CurlDo
 
 # Tutorial 10: curl download file in C# (curl -o) and upload with -F
 
-This tutorial shows how to curl download file in C# (curl -o) and upload with -F using CurlDotNet. You will save responses to disk, keep the remote file name with `-O`, work with binary data in memory, resume partial downloads with `-r`, and upload files as multipart forms.
+This tutorial shows how to curl download file in C# (curl -o) and upload with -F using CurlDotNet. You will save responses to disk, keep the remote file name with `-O`, work with binary data in memory, resume partial downloads with `-C -` or `-r`, upload a raw file with `-T`, and upload files as multipart forms.
 
 If you have not read [Tutorial 5: Understanding Results](05-understanding-results.html) yet, do that first; this page builds on `CurlResult`.
 
@@ -23,10 +23,26 @@ var result = await Curl.ExecuteAsync("curl -o image.png https://httpbin.org/imag
 
 Console.WriteLine(result.StatusCode);                     // 200
 Console.WriteLine($"Saved: {result.OutputFiles[0]}");     // Saved: image.png
+Console.WriteLine(result.Body.Length);                    // 0: the body went to the file, as with curl
 
 // Convenience helper with the same effect
 await Curl.DownloadAsync("https://httpbin.org/image/png", "image.png");
 ```
+
+As with curl, `-o` and `-O` send the body to the file and leave `result.Body` empty (curl prints nothing to stdout then). Read the file, or `result.OutputFiles`, to get at the content. A few related curl options work the same way:
+
+| Option | Effect |
+|--------|--------|
+| `-i -o file` | The response header block is written into the file before the body |
+| `-D file` / `-D -` | Response headers go to a separate file / to `result.Body` |
+| `--output-dir dir`, `--create-dirs` | Put the file in a directory, creating missing directories |
+| `--no-clobber`, `--skip-existing` | Never overwrite / skip the download when the file already exists |
+| `-J` | With `-O`, use the server's `Content-Disposition` filename (never overwrites) |
+| `-R` | Set the file's modification time from `Last-Modified` |
+| `--remove-on-error` | Delete the output file when the transfer fails |
+| `--max-filesize N` | Refuse bodies larger than N bytes (`CurlFileSizeExceededException`, exit 63) |
+
+A missing output directory (without `--create-dirs`) throws `CurlWriteErrorException` (exit 23), not a raw `IOException`.
 
 The builder version uses `WithOutput`:
 
@@ -132,9 +148,29 @@ var result = await Curl.ExecuteAsync($"curl {parts} https://httpbin.org/post");
 Console.WriteLine(result.IsSuccess ? "Uploaded" : $"HTTP {result.StatusCode}");
 ```
 
-## Partial and Resumed Downloads (-r)
+### Upload a raw file (-T)
 
-A range request asks for part of a file. The server answers `206 Partial Content` when it honours the range:
+`-T`/`--upload-file` sends the file's bytes as the request body of a `PUT`. If the URL ends in `/`, the file name is appended, as curl does:
+
+```csharp
+// Same as: curl -T report.pdf https://httpbin.org/put
+var result = await Curl.ExecuteAsync("curl -T report.pdf https://httpbin.org/put");
+```
+
+A missing `-T` or `-F` file throws `CurlReadErrorException` (exit 26) before anything is sent.
+
+## Partial and Resumed Downloads (-C, -r)
+
+The curl way to resume an interrupted download is `-C -` (`--continue-at -`): CurlDotNet looks at the size of the existing output file, asks the server for the rest with a `Range` header, and appends what arrives:
+
+```csharp
+// Same as: curl -C - -o big.bin https://example.com/big.bin
+var result = await Curl.ExecuteAsync("curl -C - -o big.bin https://example.com/big.bin");
+```
+
+`-C N` resumes from a fixed byte offset. If the server ignores the range and sends the whole file again, the transfer fails with `CurlRangeErrorException` (exit 33), exactly like curl, so a complete file is never appended to a partial one. A `416 Range Not Satisfiable` reply to `-C -` means the file is already complete and leaves it untouched. Resuming an upload (`-C` with `-d` or `-T`) throws `CurlBadFunctionArgumentException` (exit 43).
+
+`-r` asks for an explicit byte range. The server answers `206 Partial Content` when it honours the range:
 
 ```csharp
 // Same as: curl -r 0-1023 -o first-kb.bin https://httpbin.org/range/4096
@@ -144,7 +180,7 @@ var result = await Curl.ExecuteAsync(
 Console.WriteLine(result.StatusCode);   // 206
 ```
 
-To resume an interrupted download, ask for everything from the bytes you already have and append:
+You can also resume by hand: ask for everything from the bytes you already have and append:
 
 ```csharp
 const string path = "big.bin";
@@ -196,7 +232,7 @@ finally
 
 ## Error Handling for File Operations
 
-A missing upload file is detected before anything is sent and throws `CurlFileCouldntReadException`:
+A missing upload file is detected before anything is sent and throws `CurlReadErrorException` (curl exit code 26):
 
 ```csharp
 using CurlDotNet.Exceptions;
@@ -205,13 +241,13 @@ try
 {
     await Curl.ExecuteAsync("curl -F 'file=@missing.pdf' https://httpbin.org/post");
 }
-catch (CurlFileCouldntReadException ex)
+catch (CurlReadErrorException ex)
 {
     Console.WriteLine($"Upload file not found: {ex.Message}");
 }
 ```
 
-Large downloads need a longer deadline. Set it with `-m` in the command or with `CurlSettings.WithTimeout` (seconds):
+Like curl, CurlDotNet has no timeout unless you set one, so a large download is never cut off by a hidden default. When you do want a deadline, set it with `-m` in the command or with `CurlSettings.WithTimeout` (seconds); `-m` covers the whole transfer, body included:
 
 ```csharp
 var settings = new CurlSettings().WithTimeout(300);
@@ -229,18 +265,18 @@ Remember that HTTP 4xx and 5xx responses do not throw; check `result.IsSuccess` 
 1. **Use `-o` or `DownloadAsync` for anything large** - it writes straight to disk instead of holding the body in memory.
 2. **Check `IsBinary` before treating a response as text** - `Body` is for text, `BinaryData` is for everything else.
 3. **Verify checksums when the publisher provides them.**
-4. **Use `-r` to resume** - but handle the `200` case where the server ignores the range.
+4. **Use `-C -` to resume** - it appends to the existing file and fails with exit 33 if the server ignores the range.
 5. **Delete temporary files in a `finally` block.**
-6. **Set a generous `-m` for big transfers** - the default timeout is tuned for API calls, not large downloads.
+6. **If you set `-m` on big transfers, make it generous** - it bounds the whole download, not just the wait for headers.
 7. **Quote `-F` values that contain spaces** and use `@` only for file paths.
-8. **Catch `CurlFileCouldntReadException`** to give a clear message when an upload path is wrong.
+8. **Catch `CurlReadErrorException`** to give a clear message when an upload path is wrong.
 
 ## Summary
 
-- `curl -o file url` and `Curl.DownloadAsync(url, path)` save a download to disk; `-O` keeps the remote name.
+- `curl -o file url` and `Curl.DownloadAsync(url, path)` save a download to disk and leave `result.Body` empty; `-O` keeps the remote name.
 - `result.BinaryData`, `result.IsBinary` and `result.SaveToFile(path)` handle downloads kept in memory.
-- `-F 'field=@path'` uploads files; the builder offers `WithFile` and `WithMultipartForm`.
-- `-r` requests byte ranges for partial and resumed downloads.
+- `-F 'field=@path'` uploads files as a form; `-T file` PUTs the raw bytes; the builder offers `WithFile` and `WithMultipartForm`.
+- `-C -` resumes a download; `-r` requests explicit byte ranges.
 
 See also the cookbook recipes [Download a File](../cookbook/beginner/download-file.html) and [Upload a File](../cookbook/beginner/upload-file.html).
 

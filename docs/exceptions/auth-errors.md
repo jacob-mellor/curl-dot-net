@@ -1,11 +1,11 @@
 ---
 title: "curl 401 and 403 Authentication Errors in C# (CurlDotNet)"
-description: "Handle curl authentication errors in C#: how CurlDotNet reports 401/403, how to send -u, --digest and bearer tokens, and how to retry with new credentials."
+description: "Handle curl authentication errors in C#: how CurlDotNet reports 401/403, -u, --digest, --ntlm and bearer tokens, CurlAuthErrorException (94), and retrying with new credentials."
 ---
 
 # curl Authentication Errors in C# (401 and 403)
 
-curl authentication errors in C# show up as HTTP 401 Unauthorized or 403 Forbidden responses when credentials are missing, wrong, or sent with the wrong scheme. CurlDotNet does not throw for these: the request completes and you get a `CurlResult` with `IsSuccess == false` and the `StatusCode`, so you decide whether to retry, refresh a token, or fail.
+curl authentication errors in C# show up as HTTP 401 Unauthorized or 403 Forbidden responses when credentials are missing, wrong, or sent with the wrong scheme. CurlDotNet does not throw for these: the request completes and you get a `CurlResult` with `IsSuccess == false` and the `StatusCode`, so you decide whether to retry, refresh a token, or fail. The one authentication exception is `CurlAuthErrorException` (exit code 94), thrown when a Digest, NTLM or Negotiate exchange cannot be carried out at all.
 
 ## How Authentication Failures Surface
 
@@ -22,7 +22,34 @@ else if (result.StatusCode == 403)
 
 The `WWW-Authenticate` response header tells you which scheme the server expects (`Basic`, `Digest`, `Bearer`, ...).
 
-If you prefer an exception, call `result.EnsureSuccess()`; it throws `CurlDotNet.Core.CurlHttpException` with `StatusCode`, `ResponseBody` and `ResponseHeaders`.
+If you prefer an exception, add `-f` to the command (it throws `CurlHttpReturnedErrorException`, exit code 22) or call `result.EnsureSuccess()` (it throws `CurlDotNet.Core.CurlHttpException` with `StatusCode`, `ResponseBody` and `ResponseHeaders`).
+
+## When Authentication Throws
+
+| Exception | `CurlErrorCode` | Thrown when |
+|-----------|----:|-------------|
+| `CurlAuthErrorException` | 94 | `--digest`, `--ntlm`, `--negotiate` or `--anyauth` (or the `--proxy-*` variants) cannot process the server's `WWW-Authenticate` / the proxy's `Proxy-Authenticate` challenge, for example because a parameter is malformed or repeated. Properties: `Scheme` (digest, ntlm, negotiate or anyauth) and `Proxy` |
+| `CurlException` (plain) | 100 | The NTLM user name (with domain) is too long for the NTLM message |
+| `CurlAuthenticationException`, `CurlLoginDeniedException` | 67 | Reserved: they exist in `CurlDotNet.Exceptions` but nothing throws them today |
+
+A wrong password is not an exception: the server answers 401 again and you get that result.
+
+```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
+
+try
+{
+    var result = await Curl.ExecuteAsync("curl --digest -u user:passwd https://httpbin.org/digest-auth/auth/user/passwd");
+    Console.WriteLine(result.StatusCode);   // 200, or 401 for wrong credentials
+}
+catch (CurlAuthErrorException ex)
+{
+    Console.WriteLine($"{ex.Scheme} negotiation failed{(ex.Proxy ? " with the proxy" : "")}: {ex.Message}");
+}
+```
+
+**Fix:** try `--basic` (or `--proxy-basic`) if the server also offers Basic, and inspect the challenge with `-v`.
 
 ## Sending Credentials
 
@@ -46,7 +73,7 @@ var result = await CurlRequestBuilder
 
 ### Digest, NTLM and Negotiate
 
-Pick the scheme with the matching curl flag; `--anyauth` lets the server choose:
+Pick the scheme with the matching curl flag; `--anyauth` lets the server choose (preferring Digest, then NTLM, then Basic). The challenge and response are computed in-library in pure C#, like curl: a POST or PUT first sends a `Content-Length: 0` probe, and no Basic header is sent up front when a challenge scheme is selected:
 
 ```csharp
 var digest = await Curl.ExecuteAsync("curl --digest -u user:passwd https://httpbin.org/digest-auth/auth/user/passwd");
@@ -94,6 +121,10 @@ async Task<CurlResult> CallWithTokenRefresh(string url)
 - Verify the username and password
 - Wrap values containing spaces or special characters in single quotes inside the command string
 - Check that the credentials have not expired or been revoked
+
+### Credentials Lost on a Redirect
+
+With `-L`, the `Authorization` header (from `-u`, `--oauth2-bearer`, `-H 'Authorization: ...'` or `user:pass@` in the URL) is not sent to a different host, as in curl. If the API redirects to another host and then answers 401, add `--location-trusted` when you trust the target.
 
 ### Wrong Authentication Scheme
 

@@ -61,10 +61,31 @@ var result = await CurlRequestBuilder.Get("https://api.github.com/users/octocat"
 ```csharp
 var settings = new CurlSettings()
     .WithHeader("Accept", "application/json")
-    .WithUserAgent("MyApp/1.0");
+    .WithHeader("User-Agent", "MyApp/1.0");
 
 var a = await Curl.ExecuteAsync("curl https://httpbin.org/get", settings);
 var b = await Curl.ExecuteAsync("curl https://httpbin.org/headers", settings);
+```
+
+Use `WithHeader("User-Agent", ...)` here: the engine applies `CurlSettings` headers, timeouts, redirects, `-k`, retries, progress and cancellation, but `CurlSettings.WithUserAgent` is not applied to the request. To change the User-Agent for every request in the process, set `Curl.DefaultUserAgent`.
+
+### Headers CurlDotNet Sends by Default
+
+Like curl, every request carries `User-Agent: curl/8.7.1` and `Accept: */*` unless you say otherwise, so APIs that reject anonymous clients (GitHub's, for example) work without `-A`. The value comes from `Curl.DefaultUserAgent` (built from the constant `Curl.CurlCompatVersion`, `"8.7.1"`).
+
+| You write | What is sent |
+|-----------|--------------|
+| nothing | `User-Agent: curl/8.7.1` and `Accept: */*` |
+| `-A 'MyApp/1.0'` | `User-Agent: MyApp/1.0` |
+| `-A ''` | no `User-Agent` header |
+| `-H 'User-Agent:'` / `-H 'Accept:'` | that default header is removed |
+| `-H 'X-Empty;'` | `X-Empty:` with an empty value |
+| `-H @headers.txt` | one header per line, read from the file |
+| `-H 'X-A: 1' -H 'X-A: 2'` | `X-A: 1, 2` (duplicate names are joined with ", ") |
+
+```csharp
+// Change the default for the whole process
+Curl.DefaultUserAgent = "MyApp/2.0 (+https://example.com)";
 ```
 
 ## Common Request Headers
@@ -318,7 +339,7 @@ Console.WriteLine(result.Body);   // shows X-Custom and User-Agent as received
 
 ## Best Practices
 
-1. Set a descriptive `User-Agent` (`-A`); some APIs reject requests without one
+1. Set a descriptive `User-Agent` (`-A`) for your own app; without one CurlDotNet identifies itself as `curl/8.7.1`, as curl does
 2. Match `Content-Type` to the body you send
 3. Read rate-limit headers and back off before a 429
 4. Use `ETag` / `If-None-Match` to avoid re-downloading unchanged data

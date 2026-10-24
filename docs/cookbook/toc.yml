@@ -23,7 +23,7 @@
   items:
     - name: curl Follow Redirects in C# (curl -L)
       href: follow-redirects.md
-    - name: curl with Cookies in C# (curl -b)
+    - name: curl with Cookies in C# (curl -b, -c)
       href: cookies.md
     - name: curl Proxy in C# (curl -x and SOCKS5)
       href: proxy.md
@@ -35,3 +35,11 @@
       href: http-methods.md
     - name: curl Digest, NTLM and Basic Auth in C#
       href: auth-schemes.md
+    - name: curl --retry in C#
+      href: retry.md
+    - name: curl -w Write-Out in C#
+      href: write-out.md
+    - name: curl Multiple URLs and URL Globbing in C#
+      href: multiple-urls-and-globbing.md
+    - name: curl Config Files, --variable and .netrc in C#
+      href: config-files-and-variables.md

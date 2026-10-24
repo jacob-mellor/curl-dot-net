@@ -1,3 +1,8 @@
+---
+title: "Migrate to CurlDotNet from HttpClient or RestSharp"
+description: "Migration guides for moving C# code from HttpClient or RestSharp to CurlDotNet, with side-by-side curl commands and equivalents."
+---
+
 # Migration Guides
 
 Moving to CurlDotNet from another HTTP client? These guides will help you migrate your existing code with minimal effort.

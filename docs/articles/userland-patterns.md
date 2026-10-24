@@ -1,6 +1,6 @@
 ---
-title: CurlDotNet Implementation Patterns for curl in C#
-description: Reusable C# patterns for running curl commands with CurlDotNet: observability, retries, environment matrices, replay harnesses, policy checks and more.
+title: "CurlDotNet Implementation Patterns for curl in C#"
+description: "Reusable C# patterns for running curl commands with CurlDotNet: observability, retries, environment matrices, replay harnesses, policy checks and more."
 ---
 
 # CurlDotNet Implementation Patterns for Running curl in C#
@@ -97,7 +97,7 @@ var result = await Curl.ExecuteAsync("curl https://httpbin.org/get", Profiles.Ba
 Console.WriteLine(result.StatusCode);
 ```
 
-`CurlSettings` also offers `WithConnectTimeout`, `WithFollowRedirects`, `WithInsecure`, `WithProxy`, `WithUserAgent`, `WithHeaders` and `WithCancellation`.
+`CurlSettings` also offers `WithConnectTimeout`, `WithFollowRedirects`, `WithInsecure`, `WithRetries`, `WithHeaders` and `WithCancellation`, all of which the engine applies. (`WithProxy`, `WithUserAgent`, `WithCookies` and `WithProgress` exist on the class but are not applied to the request; put `-x`, `-A` or `-H 'User-Agent: ...'`, and `-b`/`-c` in the command instead.)
 
 ## Pattern 5: Contract-Locked Responses
 
@@ -223,7 +223,19 @@ if (remaining == 0)
 
 ## Pattern 11: Retries for Transient Failures
 
-**Why it is useful:** `--retry` is not implemented yet (and `CurlSettings.WithRetries` is not acted on in the current release), so a small loop is the way to retry timeouts, connection failures and selected HTTP status codes.
+**Why it is useful:** Transient failures (timeouts, 429, 503) should not fail a whole job. curl's `--retry` handles the common case: it retries timeouts and HTTP 408/429/500/502/503/504 with doubling back-off, honours `Retry-After`, and `--retry-max-time` caps the total. `CurlSettings.WithRetries(count, delayMs)` retries any failure. See [curl --retry in C#](../cookbook/retry.html).
+
+```csharp
+using CurlDotNet;
+using CurlDotNet.Core;
+
+var result = await Curl.ExecuteAsync("curl -m 10 --retry 3 https://httpbin.org/status/503");
+
+var viaSettings = await Curl.ExecuteAsync("curl -m 10 https://httpbin.org/get",
+    new CurlSettings().WithRetries(count: 3, delayMs: 500));
+```
+
+For a custom policy, such as retrying only some status codes, a small loop still works:
 
 ```csharp
 using CurlDotNet;
@@ -280,7 +292,7 @@ async Task WarmAsync(IEnumerable<string> urls, CancellationToken token)
 }
 ```
 
-Cancelling the token while a request is in flight throws `CurlAbortedByCallbackException`.
+Cancelling the token while a request is in flight throws the standard `OperationCanceledException` (as does `PeriodicTimer.WaitForNextTickAsync`), so one `catch (OperationCanceledException)` around `WarmAsync` handles shutdown.
 
 ## Pattern 14: Policy Checks Before Execution
 

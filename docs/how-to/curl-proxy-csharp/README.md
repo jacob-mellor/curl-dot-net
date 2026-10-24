@@ -22,7 +22,7 @@ var result = await Curl.ExecuteAsync(
 Console.WriteLine(result.Body);  // shows the proxy's public IP, not yours
 ```
 
-`-x proxy.internal:8080` without a scheme also works; CurlDotNet assumes `http://`, as curl does.
+`-x proxy.internal:8080` without a scheme also works; CurlDotNet assumes `http://`, as curl does, and a proxy given without a port uses curl's default of 1080. Plain `http://` requests are sent to the proxy with the absolute URL and `Proxy-Connection: Keep-Alive`, like curl; `https://` requests go through a `CONNECT` tunnel. `-p` / `--proxytunnel` forces a tunnel for `http://` URLs too (.NET 5 and later), and `--proxy-header` adds headers meant only for the proxy.
 
 ## Authenticated proxy
 
@@ -36,6 +36,8 @@ var result = await Curl.ExecuteAsync("""
     """);
 ```
 
+`-U` is the short form of `--proxy-user`, and `-x http://alice:s3cret@proxy.internal:8080` works too. The credentials are sent preemptively as Basic. For proxies that want a challenge, add `--proxy-digest`, `--proxy-ntlm`, `--proxy-negotiate` or `--proxy-anyauth`; Digest, NTLM and anyauth are negotiated in-library for plain `http://` requests through the proxy.
+
 ## SOCKS5
 
 ```csharp
@@ -45,7 +47,7 @@ var result = await Curl.ExecuteAsync(
     "curl --socks5 127.0.0.1:1080 https://httpbin.org/ip");
 ```
 
-SOCKS support comes from .NET's own `HttpClientHandler`, which handles `socks5://` proxies from .NET 6 onward. On .NET Framework (the net472 and net48 builds), SOCKS proxies are not available; use an HTTP proxy there.
+`--socks4`, `--socks4a`, `--socks5-hostname` and `-x socks5h://host:port` are accepted as well. SOCKS support comes from .NET's own handler, which handles `socks4://`, `socks4a://` and `socks5://` proxies from .NET 6 onward. On .NET Framework (the net472 and net48 builds), SOCKS proxies are not available; use an HTTP proxy there.
 
 ## The fluent builder
 
@@ -72,17 +74,17 @@ var result = await curl.GetAsync("https://httpbin.org/ip");
 
 ## When you do not pass -x
 
-Requests without `-x` or `--socks5` use the shared `HttpClient`, which follows .NET's default proxy behavior. On .NET Core and .NET 5+ that means the `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` environment variables, or the system proxy settings on Windows.
+Without `-x` or `--socks5`, CurlDotNet reads the proxy environment variables the way curl does: `http_proxy` (lower case only, as curl ignores `HTTP_PROXY`), `https_proxy` or `HTTPS_PROXY`, and `all_proxy` or `ALL_PROXY`. Hosts listed in `--noproxy` or `no_proxy` / `NO_PROXY` (names, domain suffixes, IP addresses, CIDR ranges, or `*`) go direct. `-x ""` turns proxies off for one command. When none of these variables is set, the request uses the shared `HttpClient`, which keeps .NET's default proxy behavior (the system proxy settings on Windows).
 
 ## How it works
 
-`-x` and `--socks5` make CurlDotNet build a dedicated `HttpClientHandler` for that request with a `WebProxy` (and `NetworkCredential` when `--proxy-user` is given). Other requests keep the pooled client. A proxy that cannot be reached surfaces as a `CurlException`; see [error handling](../curl-error-handling-csharp/README.md).
+A proxy, whether from `-x`, `--socks5` or the environment, makes CurlDotNet build a dedicated handler for that request with the proxy configured. Other requests keep the pooled client. A proxy failure names the proxy, not the target: a proxy host that does not resolve throws `CurlCouldntResolveProxyException` (exit code 5, where an unresolvable target host without a proxy is `CurlCouldntResolveHostException`, 6), and a proxy that refuses the connection throws `CurlCouldntConnectException` (7). See [error handling](../curl-error-handling-csharp/README.md).
 
 ## Debugging
 
 Add `--trace trace.txt` to write a trace file that records which proxy (explicit or system) the request went through. `-v` adds the verbose request and response log to the start of `result.Body`.
 
-The proxy behavior on this page was checked against the 9.7.0 source and its option parsing, not against a live proxy server.
+The proxy behavior on this page was checked against the 9.8.0 source and its tests (which run against an in-process proxy stub), not against a live corporate proxy server.
 
 ## Related
 

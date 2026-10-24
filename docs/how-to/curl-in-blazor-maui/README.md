@@ -64,10 +64,10 @@ The code runs on your server, so everything on the other how-to pages applies: p
 In WebAssembly the code runs in the browser, where .NET's `HttpClient` is built on the browser's `fetch`. That brings browser rules:
 
 - The target API must allow your origin through CORS.
-- The browser controls TLS, redirects and proxies. CurlDotNet configures an `HttpClientHandler` (redirects off, decompression on, and for some flags a certificate callback, proxy or credentials), and the browser handler does not support all of those settings.
+- The browser controls TLS, redirects and proxies. On .NET 5 and later CurlDotNet builds a `SocketsHttpHandler` with its own connect callback (redirects and automatic decompression off, and for some flags a certificate callback, proxy or credentials), and a browser cannot open raw sockets, so that handler is not available there.
 - `-o` would write to the WebAssembly virtual file system, not the user's disk.
 
-CurlDotNet has not been tested in Blazor WebAssembly for this page, and some of those handler settings may throw `PlatformNotSupportedException` there. The dependable pattern is to run CurlDotNet in your server API (ASP.NET Core) and have the WebAssembly client call that API with the injected `HttpClient`.
+CurlDotNet has not been tested in Blazor WebAssembly for this page, and creating that handler is expected to throw `PlatformNotSupportedException` there. The dependable pattern is to run CurlDotNet in your server API (ASP.NET Core) and have the WebAssembly client call that API with the injected `HttpClient`.
 
 ## .NET MAUI
 

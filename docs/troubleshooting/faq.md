@@ -58,7 +58,7 @@ await Curl.ExecuteAsync("curl -H 'Authorization: Bearer token123' https://httpbi
 await Curl.ExecuteAsync("curl -H 'X-API-Key: mykey' https://httpbin.org/headers");
 ```
 
-`--digest`, `--ntlm`, `--negotiate` and `--anyauth` are also accepted. See [Authentication Basics](../tutorials/09-authentication-basics.html).
+`--digest`, `--ntlm`, `--negotiate` and `--anyauth` are negotiated in-library like curl, and `--oauth2-bearer TOKEN` sends a bearer token. See [Authentication Basics](../tutorials/09-authentication-basics.html).
 
 ### How do I send JSON data?
 
@@ -90,7 +90,7 @@ The static `Curl` methods can be called from multiple threads at once; each call
 
 ### How do I handle errors?
 
-HTTP 4xx and 5xx responses do not throw; check `IsSuccess` and `StatusCode`. Transport failures (DNS, connection, TLS, timeout) throw a `CurlException` subclass.
+HTTP 4xx and 5xx responses do not throw unless the command has `-f`/`--fail`; check `IsSuccess` and `StatusCode`. Transport failures (DNS, connection, TLS, timeout, unwritable output file) throw a `CurlException` subclass whose `CurlErrorCode` is curl's exit code. A cancelled token throws `OperationCanceledException`.
 
 ```csharp
 using CurlDotNet;
@@ -106,45 +106,40 @@ catch (CurlTimeoutException ex) { Console.WriteLine($"Timed out after {ex.Timeou
 catch (CurlCouldntConnectException ex) { Console.WriteLine($"Cannot reach {ex.Host}:{ex.Port}"); }
 ```
 
-If you prefer exceptions for HTTP errors, call `result.EnsureSuccess()`, which throws `CurlDotNet.Core.CurlHttpException`. See the [Error Reference](error-reference.html).
+If you prefer exceptions for HTTP errors, add `-f` (throws `CurlHttpReturnedErrorException`, exit code 22) or call `result.EnsureSuccess()`, which throws `CurlDotNet.Core.CurlHttpException`. See the [Error Reference](error-reference.html) for every exception type and code.
 
 ### How do I set a timeout?
 
 ```csharp
-// Process-wide default for commands without -m (HTTP falls back to 30 s when this is 0)
+// Process-wide default for commands without -m (0, the default, means no limit at all)
 Curl.DefaultMaxTimeSeconds = 30;
 
-// Per request
+// Per request: whole transfer, body included; decimals work
 await Curl.ExecuteAsync("curl --max-time 10 https://httpbin.org/get");
 
-// Caller-side cancellation (throws CurlAbortedByCallbackException)
+// Connection phase only
+await Curl.ExecuteAsync("curl --connect-timeout 2.5 --max-time 10 https://httpbin.org/get");
+
+// Caller-side cancellation (throws OperationCanceledException)
 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 await Curl.ExecuteAsync("curl https://httpbin.org/get", cts.Token);
 ```
 
+There is no hidden default timeout: a command without `-m` waits as long as the server keeps the connection open. An expired limit throws `CurlOperationTimeoutException` (exit code 28).
+
 ### Does curl's --retry flag work?
 
-Not yet. Retry in your own code instead; a short loop around `ExecuteAsync` is enough for most cases:
+Yes. `--retry N` retries timeouts and HTTP 408, 429, 500, 502, 503 and 504, starting with a 1-second pause that doubles each time (or a fixed `--retry-delay`, decimals allowed) and honouring `Retry-After`. `--retry-max-time` caps the total time, `--retry-connrefused` also retries refused connections and `--retry-all-errors` retries any failure:
 
 ```csharp
-using CurlDotNet.Core;
-
-async Task<CurlResult> ExecuteWithRetries(string command, int attempts = 3)
-{
-    for (int i = 1; ; i++)
-    {
-        var result = await Curl.ExecuteAsync(command);
-        if (result.StatusCode < 500 || i == attempts) return result;
-        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i)));
-    }
-}
+var result = await Curl.ExecuteAsync("curl --retry 3 --retry-delay 2 -m 10 https://httpbin.org/status/503");
 ```
 
-See [Timeout Errors](common-issues.html#timeout-errors) for retrying on exceptions as well.
+From code, `new CurlSettings().WithRetries(3, 1000)` (namespace `CurlDotNet.Core`) retries any failure with a fixed delay. See [curl --retry in C#](../cookbook/retry.html).
 
 ### Do cookies work?
 
-Cookie strings work: `curl -b 'session=abc; theme=dark' https://httpbin.org/cookies`. Cookie jar files (`-c`) and reading cookies from a file are not supported yet.
+Yes. Cookie strings work (`curl -b 'session=abc; theme=dark' https://httpbin.org/cookies`), `-b FILE` loads a Netscape cookie file, `-c JAR` writes the cookies the server set, and `-j` drops session cookies when loading. Within one command, cookies set on a redirect hop are sent on the next one. See [Cookie errors](../exceptions/cookie-errors.html).
 
 ## Performance Questions
 
@@ -175,7 +170,7 @@ Write directly to a file with `-o` or `Curl.DownloadAsync(url, path)` rather tha
 
 ### Does CurlDotNet support all curl options?
 
-The common options work: `-X -H -d --data-binary --data-urlencode --json -F -u -A -e -b -L --max-redirs -k -x -m -o -O -I -i -v --compressed -r -w` and the auth switches. Some options are not implemented yet (for example `--retry`, `-c` cookie jars, `--cert`/`--cacert`; `--connect-timeout` is parsed but only enforced for FTP). See [curl CLI Compatibility](../reference/curl-cli-compatibility.html), and [open an issue](https://github.com/jacob-mellor/curl-dot-net/issues) if you need one that is missing.
+CurlDotNet parses curl 8.7.1's complete option table, and the HTTP, FTP and file options are implemented: methods, headers, every `-d`/`--data-*` form, `-F`, `-G`, `-T`, `--json`, auth (Basic, Digest, NTLM, Negotiate, `--anyauth`, `--oauth2-bearer`, `.netrc`), cookies and jars, redirects, proxies (HTTP and SOCKS), `--retry`, `--max-time` and `--connect-timeout`, output options (`-o`, `-O`, `-D`, `-J`, `--create-dirs`, `-C`), `-w`, URL globbing, several URLs and `-K` config files. Options the library does not implement are still parsed (their values are consumed) and listed in `CurlOptions.UnsupportedOptions`. `--cacert`, `--cert` and `--key` are stored but not applied by the transport (use the OS trust store; for client certificates use `HttpClient` directly, and `Curl.ToHttpClient(command)` generates the starting code), and `--parallel` runs the transfers one after another. See [curl CLI Compatibility](../reference/curl-cli-compatibility.html), and [open an issue](https://github.com/jacob-mellor/curl-dot-net/issues) if you need one that is missing.
 
 ### Can I use CurlDotNet with ASP.NET Core?
 
@@ -207,13 +202,13 @@ Blazor Server works like any other ASP.NET Core app. In Blazor WebAssembly the b
 
 ### Why am I getting SSL errors?
 
-TLS failures (self-signed, expired or mismatched certificates) surface as `CurlCouldntConnectException`. For development only, skip verification:
+A rejected certificate (self-signed, expired or mismatched) throws `CurlPeerFailedVerificationException` (exit code 60), and other handshake failures `CurlSslConnectErrorException` (35); catch `CurlSslException` for both. For development only, skip verification:
 
 ```csharp
 await Curl.ExecuteAsync("curl -k https://localhost:5001/");
 ```
 
-For production, install the server's CA certificate in the operating system trust store. `--cacert` is not supported yet. See [SSL Certificate Errors](common-issues.html#ssl-certificate-errors).
+For production, install the server's CA certificate in the operating system trust store. `--cacert` is parsed but not applied, so a private CA must be trusted at the operating-system level. See [SSL Certificate Errors](common-issues.html#ssl-certificate-errors).
 
 ### Why does my curl command work in the terminal but not in CurlDotNet?
 
@@ -222,7 +217,8 @@ Common reasons:
 1. **Shell expansion** - backticks and `$(...)` are shell features; compute the value in C# and interpolate it.
 2. **File paths** - `@file` paths are relative to the process working directory, not your source file.
 3. **Quoting** - inside a C# string, `"` must be escaped (`\"`, or `""` in a verbatim `@"..."` string).
-4. **Unsupported option** - check [curl CLI Compatibility](../reference/curl-cli-compatibility.html).
+4. **Unsupported or mistyped option** - check [curl CLI Compatibility](../reference/curl-cli-compatibility.html); `Curl.Validate(command)` reports typos.
+5. **`~/.curlrc`** - the curl tool reads it automatically; CurlDotNet never does. Pass its options explicitly, or load it with `-K` and the file's full path.
 
 ### Why am I getting a 401 Unauthorized response?
 

@@ -26,7 +26,9 @@ Console.WriteLine(result.StatusCode);  // 200
 Console.WriteLine(result.Body);        // httpbin echoes "files" and "form"
 ```
 
-`@` means "read this file". Relative paths resolve against the process's current directory (`Environment.CurrentDirectory`), so use absolute paths in services. A missing file throws an `IOException` (for example `FileNotFoundException`) before anything is sent.
+`@` means "read this file". Relative paths resolve against the process's current directory (`Environment.CurrentDirectory`), so use absolute paths in services. A missing file throws `CurlReadErrorException` (curl exit code 26) before anything is sent.
+
+The request body follows curl's format: curl's boundary style, quoted field names, no `Content-Type` on text fields, and for files a `filename=` plus a content type guessed from the extension.
 
 ## Files and fields with the fluent builder
 
@@ -45,7 +47,7 @@ var result = await CurlRequestBuilder
 Console.WriteLine(result.StatusCode);
 ```
 
-For a single file with no other fields, `.WithFile("file", "report.txt")` is shorter. In version 9.7.0, combining `WithFile` with `WithFormData` drops the text fields, so use `WithMultipartForm` whenever you need both.
+For a single file with no other fields, `.WithFile("file", "report.txt")` is shorter. `WithFormData` builds a URL-encoded body, not multipart fields, so combining it with `WithFile` drops the text fields; use `WithMultipartForm` whenever you need both.
 
 ## Upload several files
 
@@ -62,23 +64,29 @@ Console.WriteLine(result.StatusCode);
 
 ## Raw body upload instead of multipart
 
-Some APIs (S3 pre-signed URLs, many blob stores) want the file as the raw request body rather than a form. Use `--data-binary @file`:
+Some APIs (S3 pre-signed URLs, many blob stores) want the file as the raw request body rather than a form. Use `-T` / `--upload-file`, which sends a `PUT` with the file's bytes (when the URL ends in `/`, the file name is appended, as in curl):
 
 ```csharp
 using CurlDotNet;
 
 var result = await Curl.ExecuteAsync(
-    "curl -X PUT --data-binary @photo.jpg -H 'Content-Type: image/jpeg' https://httpbin.org/put");
+    "curl -T photo.jpg -H 'Content-Type: image/jpeg' https://httpbin.org/put");
 
 Console.WriteLine(result.StatusCode);
 ```
 
+`-X PUT --data-binary @photo.jpg` sends the same bytes. Use `--data-binary` rather than `-d @file`: `-d` strips carriage returns, newlines and NUL bytes from the file, as curl does.
+
 With the builder, read the bytes yourself and call `.WithBinaryData(File.ReadAllBytes("photo.jpg"))`.
 
-## Limitations
+## Field modifiers
 
-- The `;type=` and `;filename=` modifiers after `@path` (as in `-F 'file=@a.jpg;type=image/jpeg'`) are not parsed in 9.7.0; they are read as part of the file name.
-- `-T` / `--upload-file` is not supported; use `-X PUT --data-binary @file`.
+curl's `-F` syntax is supported in full:
+
+- `;type=` and `;filename=` after `@path`, as in `-F 'file=@a.jpg;type=image/jpeg;filename=avatar.jpg'`, and `;headers=` for extra part headers.
+- `-F 'name=<file'` sends the file's contents as a text field rather than as a file part.
+- `--form-string 'name=@literal'` sends a value that starts with `@` or `<` as-is.
+- `--form-escape` escapes field and file names the way curl's option does.
 
 ## Related
 

@@ -19,13 +19,15 @@ using System.Threading.Tasks;
 using CurlDotNet;
 
 var result = await Curl.ExecuteAsync(
-    "curl https://api.github.com/repos/curl/curl -A CurlDotNet-Recipe");
+    "curl https://api.github.com/repos/curl/curl");
 
 Console.WriteLine(result.StatusCode);   // 200
 Console.WriteLine(result.Body);         // JSON describing the repository
 ```
 
-HTTP error statuses do not throw; a 404 comes back as a result with `IsSuccess == false` and `StatusCode == 404`.
+Like curl, CurlDotNet sends `User-Agent: curl/8.7.1` and `Accept: */*` by default, so APIs that insist on a User-Agent (GitHub's does) work without extra flags. Use `-A 'MyApp/1.0'` when you want to identify your own app.
+
+Without `-f`, HTTP error statuses do not throw; a 404 comes back as a result with `IsSuccess == false` and `StatusCode == 404`.
 
 ### Every method via -X
 
@@ -57,7 +59,7 @@ var result = await Curl.ExecuteAsync($@"
     curl https://api.github.com/user \
       -H 'Authorization: Bearer {token}' \
       -H 'Accept: application/vnd.github+json' \
-      -A 'CurlDotNet-Recipe'");
+      -A 'MyApp/1.0'");
 
 Console.WriteLine(result.StatusCode);   // 200, or 401 if the token is wrong
 ```
@@ -98,7 +100,7 @@ var starred = await api.GetAsync("https://api.github.com/user/starred");
 Console.WriteLine($"{me.StatusCode} {starred.StatusCode}");
 ```
 
-`LibCurl` also has `PostAsync(url, data)`, `PutAsync`, `PatchAsync`, `DeleteAsync` and `HeadAsync`; an object passed as `data` is serialized to JSON.
+`LibCurl` also has `PostAsync(url, data)`, `PutAsync`, `PatchAsync`, `DeleteAsync` and `HeadAsync`; an object passed as `data` is serialized to JSON. `WithUserAgent` is optional; it replaces the default `curl/8.7.1`. Unlike `Curl.ExecuteAsync`, `LibCurl` reports a transport failure as a failed `CurlResult` (its `Exception` property is set) instead of throwing, and throws `OperationCanceledException` when you cancel.
 
 ## Read the reply as a C# object
 
@@ -107,17 +109,18 @@ using System.Text.Json.Serialization;
 
 public class Repo
 {
-    [JsonPropertyName("full_name")] public string FullName { get; set; }
+    public string Description { get; set; }                                   // "description": case-insensitive match
+    [JsonPropertyName("full_name")] public string FullName { get; set; }      // snake_case needs the attribute
     [JsonPropertyName("stargazers_count")] public int Stars { get; set; }
 }
 
-var result = await Curl.ExecuteAsync("curl https://api.github.com/repos/curl/curl -A CurlDotNet");
+var result = await Curl.ExecuteAsync("curl https://api.github.com/repos/curl/curl");
 var repo = result.EnsureSuccess().ParseJson<Repo>();
 
 Console.WriteLine($"{repo.FullName} has {repo.Stars} stars");
 ```
 
-`EnsureSuccess()` returns the same result on 2xx and throws `CurlDotNet.Core.CurlHttpException` (with `StatusCode`, `ResponseBody`, `ResponseHeaders`) otherwise, so you can chain straight into `ParseJson<T>()`. Property names must match the JSON unless you add `[JsonPropertyName]`; a `List<Repo>` works for array replies.
+`EnsureSuccess()` returns the same result on 2xx and throws `CurlDotNet.Core.CurlHttpException` (with `StatusCode`, `ResponseBody`, `ResponseHeaders`) otherwise, so you can chain straight into `ParseJson<T>()`. Property names are matched case-insensitively, so `description` binds to `Description`; snake_case names need `[JsonPropertyName]`. A `List<Repo>` works for array replies.
 
 ### Handle failures
 
@@ -126,7 +129,7 @@ using CurlDotNet.Exceptions;
 
 try
 {
-    var repo = (await Curl.ExecuteAsync("curl -m 10 https://api.github.com/repos/nope/nope -A X"))
+    var repo = (await Curl.ExecuteAsync("curl -m 10 https://api.github.com/repos/nope/nope"))
         .EnsureSuccess().ParseJson<Repo>();
 }
 catch (CurlDotNet.Core.CurlHttpException ex)   // 4xx / 5xx
@@ -164,8 +167,8 @@ Digest, NTLM and other schemes are covered in [Authentication schemes](../auth-s
 
 ```csharp
 var results = await Curl.ExecuteManyAsync(
-    "curl https://api.github.com/repos/curl/curl -A X",
-    "curl https://api.github.com/repos/dotnet/runtime -A X");
+    "curl https://api.github.com/repos/curl/curl",
+    "curl https://api.github.com/repos/dotnet/runtime");
 
 foreach (var r in results)
     Console.WriteLine(r.StatusCode);
@@ -175,13 +178,13 @@ foreach (var r in results)
 
 **401 Unauthorized.** The token is missing, expired, or in the wrong header. Confirm it is `Authorization: Bearer <token>` (some APIs use `Token <token>` or `X-Api-Key`) and that the environment variable is actually set in the process that runs your app.
 
-**403 Forbidden from api.github.com.** GitHub requires a `User-Agent`; CurlDotNet does not add one, so pass `-A` or `.WithUserAgent(...)`. A 403 with a `Retry-After` header means you are rate-limited; read `result.GetHeader("Retry-After")` and wait.
+**403 Forbidden from api.github.com.** Usually rate limiting: unauthenticated calls are capped per hour. Send a token, and if the reply has a `Retry-After` header, wait that long. (GitHub also requires a `User-Agent`; CurlDotNet sends `curl/8.7.1` by default, so only check this if you removed it with `-A ''` or `-H 'User-Agent:'`.)
 
 **404 Not Found.** Check the path and any ids in the URL. `result.Body` normally carries the API's own message.
 
-**429 Too Many Requests.** Slow down and honour `Retry-After`: read `result.GetHeader("Retry-After")`, wait that many seconds, then send the request again (see [Handle Errors](handle-errors.html) for a retry loop).
+**429 Too Many Requests.** Slow down and honour `Retry-After`. `--retry 3` does this for you: it retries 429 (and 408/5xx) responses and waits as long as the `Retry-After` header asks. See [curl --retry in C#](../retry.html).
 
-**`ParseJson<T>()` throws.** The body is empty (204, HEAD) or not JSON (an HTML error page). Call `EnsureSuccess()` first and inspect `result.Body` or `result.AsJsonDynamic()`.
+**`ParseJson<T>()` throws `InvalidOperationException`.** The body is empty (204, HEAD) or not JSON (an HTML error page); the JSON parser's error is the inner exception. Call `EnsureSuccess()` first and inspect `result.Body` or `result.AsJsonDynamic()`.
 
 **The reply is a redirect (301/302).** Add `-L` to follow it; see [Follow Redirects](../follow-redirects.html).
 

@@ -73,9 +73,9 @@ Inside Lambda, the role's credentials also include a session token (`AWS_SESSION
 ## Serverless checklist
 
 - **Reuse across invocations.** The static `Curl` class keeps one `HttpClient` for the life of the process, so warm invocations reuse connections. Do not create and dispose a `LibCurl` on every invocation; keep it in a static field.
-- **Timeouts.** `-m` (default 30 seconds) limits the wait for the response headers, not the body download. Keep `-m` plus the expected download time below the function's own timeout so you can return a clean error instead of being killed.
+- **Timeouts.** There is no timeout unless you set one, so always pass `-m` (or set `Curl.DefaultMaxTimeSeconds` at startup). `-m` covers the whole transfer, body included; keep it below the function's own timeout so you can return a clean error instead of being killed. With `--retry`, each attempt gets its own `-m`, so cap the total with `--retry-max-time`.
 - **Writable paths.** Lambda only allows writes under `/tmp`. On Azure Functions use `Path.GetTempPath()`. Build `-o` paths from those.
-- **Secrets.** Read tokens from configuration or Key Vault / Secrets Manager, not from the command literal. The parser expands `$NAME` environment variables inside commands.
+- **Secrets.** Read tokens from configuration or Key Vault / Secrets Manager, not from the command literal. The parser expands `$NAME` environment variables inside commands, as a shell would (in double quotes or unquoted, not inside single quotes).
 - **Cold start.** CurlDotNet adds one managed assembly; it has no native dependencies to load.
 
 ## Related

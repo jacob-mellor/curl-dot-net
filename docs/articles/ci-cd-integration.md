@@ -1,6 +1,6 @@
 ---
-title: Run curl Commands in CI/CD with .NET - CurlDotNet
-description: How to run curl commands in CI/CD with .NET using CurlDotNet: GitHub Actions, Azure DevOps and Docker smoke tests with timeouts, retries and secrets.
+title: "Run curl Commands in CI/CD with .NET - CurlDotNet"
+description: "How to run curl commands in CI/CD with .NET using CurlDotNet: GitHub Actions, Azure DevOps and Docker smoke tests with timeouts, retries and secrets."
 ---
 
 # Run curl Commands in CI/CD with .NET (GitHub Actions, Azure DevOps, Docker)
@@ -66,7 +66,7 @@ steps:
     API_TOKEN: $(apiToken)
 ```
 
-Use pipeline variables or Azure Key Vault secrets for sensitive data and reference them as `$API_TOKEN` in the curl string.
+Use pipeline variables or Azure Key Vault secrets for sensitive data and reference them as `$API_TOKEN` in the curl string. CurlDotNet expands `$NAME`, `${NAME}` and `%NAME%` from the environment outside single quotes, as a shell would, so write `-H "Authorization: Bearer $API_TOKEN"` with double quotes.
 
 ## Containerized Smoke Tests
 
@@ -88,31 +88,38 @@ Run the image from any orchestrator to confirm an API behaves before or after a 
 
 ### Timeouts and retries
 
-Set `--max-time` in the command (the deadline CurlDotNet enforces for HTTP) and retry transient failures with a short loop; `--retry` is not implemented yet:
+There is no timeout unless you set one, so always put `--max-time` in pipeline commands; it bounds the whole transfer, body included. Retry transient failures with curl's own `--retry`, which retries timeouts and HTTP 408/429/500/502/503/504 with doubling back-off and honours `Retry-After`:
 
 ```csharp
 using CurlDotNet;
-using CurlDotNet.Core;
-using CurlDotNet.Exceptions;
-CurlResult result = null;
-for (var attempt = 1; attempt <= 3; attempt++)
-{
-    try
-    {
-        result = await Curl.ExecuteAsync("curl --max-time 10 https://httpbin.org/status/200");
-        if (result.StatusCode < 500) break;
-    }
-    catch (CurlException) when (attempt < 3) { }
-    await Task.Delay(500 * attempt);
-}
-Console.WriteLine(result?.StatusCode);
+
+var result = await Curl.ExecuteAsync(
+    "curl --max-time 10 --retry 3 --retry-max-time 60 https://httpbin.org/status/200");
+Console.WriteLine(result.StatusCode);
 ```
 
-A request that exceeds `--max-time` throws `CurlDotNet.Exceptions.CurlOperationTimeoutException`; a refused connection or DNS failure throws `CurlCouldntConnectException`.
+Add `--retry-connrefused` while a freshly deployed service is still starting, or use `new CurlSettings().WithRetries(3, 500)` to retry any failure. See [curl --retry in C#](../cookbook/retry.html).
+
+A request that exceeds `--max-time` throws `CurlDotNet.Exceptions.CurlOperationTimeoutException` (exit code 28); a DNS failure throws `CurlCouldntResolveHostException` (6) and a refused connection `CurlCouldntConnectException` (7). `ex.CurlErrorCode` is the exit code curl would have returned, which makes a convenient process exit code; see [curl exit codes](../reference/curl-exit-codes.html).
 
 ### Fail fast on HTTP errors
 
-HTTP 4xx/5xx responses do not throw by default. Call `result.EnsureSuccess()` and print the body when it fails:
+HTTP 4xx/5xx responses do not throw by default. Add `-f` (or `--fail-with-body` to keep the response body) to make them throw `CurlHttpReturnedErrorException` with exit code 22, exactly like `curl -f` in a shell script, or check the result and print the body when it fails:
+
+```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
+
+try
+{
+    await Curl.ExecuteAsync("curl -f --max-time 10 https://httpbin.org/status/503");
+}
+catch (CurlException ex)
+{
+    Console.Error.WriteLine(ex.Message);
+    Environment.Exit(ex.CurlErrorCode ?? 1);   // 22, as curl -f would exit
+}
+```
 
 ```csharp
 using CurlDotNet;

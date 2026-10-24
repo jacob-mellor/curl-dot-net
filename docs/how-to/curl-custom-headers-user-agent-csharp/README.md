@@ -27,9 +27,9 @@ var result = await Curl.ExecuteAsync("""
 Console.WriteLine(result.Body);  // httpbin echoes the headers it received
 ```
 
-## Set a User-Agent: CurlDotNet sends none by default
+## Set a User-Agent: curl's defaults apply until you do
 
-The curl CLI always sends `User-Agent: curl/<version>`. CurlDotNet sends no User-Agent unless you set one. Most servers do not care, but some do; the GitHub REST API answers 403 without one:
+Like the curl CLI, CurlDotNet sends `User-Agent: curl/8.7.1` (`Curl.DefaultUserAgent`) and `Accept: */*` on every request, so APIs that insist on a User-Agent, such as GitHub's REST API, work without any extra flag. Use `-A` to identify your own app:
 
 ```csharp
 using CurlDotNet;
@@ -37,8 +37,18 @@ using CurlDotNet;
 var result = await Curl.ExecuteAsync(
     "curl -A 'my-app/1.0' https://api.github.com/repos/jacob-mellor/curl-dot-net");
 
-Console.WriteLine(result.StatusCode);  // 200 (403 without -A)
+Console.WriteLine(result.StatusCode);  // 200 (also 200 without -A)
 ```
+
+The other header rules match curl:
+
+| You write | Sent |
+|---|---|
+| `-A ''` | No User-Agent header |
+| `-H 'User-Agent:'` or `-H 'Accept:'` | Removes that default header |
+| `-H 'X-Empty;'` | `X-Empty:` with an empty value |
+| `-H @headers.txt` | One header per line from the file |
+| `-H 'X-A: 1' -H 'X-A: 2'` | `X-A: 1, 2` |
 
 ## The fluent builder
 
@@ -67,7 +77,18 @@ var result = await Curl.ExecuteAsync(
 Console.WriteLine(result.Body);  // {"cookies": {"session": "abc", "theme": "dark"}}
 ```
 
-The builder equivalent is `.WithCookie("session=abc; theme=dark")`. Cookie jar files (`-c`) are not supported, so persist cookies yourself if you need them across runs.
+The builder equivalent is `.WithCookie("session=abc; theme=dark")`. Repeated `-b` strings are joined with `"; "`.
+
+Cookie files work like the curl CLI: `-c cookies.txt` writes the cookies the server sets to a Netscape-format jar, and `-b cookies.txt` (a value without `=`) reads them back on the next run. With either one, cookies set during a redirect chain are sent on the following hops:
+
+```csharp
+using CurlDotNet;
+
+await Curl.ExecuteAsync("curl -c cookies.txt https://httpbin.org/cookies/set?session=abc");
+var result = await Curl.ExecuteAsync("curl -b cookies.txt https://httpbin.org/cookies");
+
+Console.WriteLine(result.Body);  // {"cookies": {"session": "abc"}}
+```
 
 ## Read response headers
 
@@ -101,5 +122,6 @@ var result = await curl.GetAsync("https://httpbin.org/headers");
 
 - [Bearer token authentication](../curl-bearer-token-csharp/README.md)
 - [HEAD requests and response headers](../curl-head-request-csharp/README.md)
+- [Cookies cookbook](../../cookbook/cookies.md)
 - [Paste curl commands from API docs](../../powershell/paste-curl-command-powershell-csharp/README.md)
 - [All how-to guides](../README.md)

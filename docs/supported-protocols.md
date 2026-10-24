@@ -1,6 +1,6 @@
 ---
-title: Protocols Supported by CurlDotNet (HTTP, HTTPS, FTP) in C#
-description: Protocols supported by CurlDotNet in C#: HTTP and HTTPS in full, FTP and FTPS downloads, uploads and listings, and file:// URLs. Other schemes throw.
+title: "Protocols Supported by CurlDotNet (HTTP, HTTPS, FTP) in C#"
+description: "Protocols supported by CurlDotNet in C#: HTTP and HTTPS in full, FTP and FTPS downloads, uploads and listings, and file:// URLs. Other schemes throw."
 ---
 
 # Protocols Supported by CurlDotNet (HTTP, HTTPS, FTP) in C#
@@ -19,7 +19,9 @@ var https = await Curl.ExecuteAsync("curl https://httpbin.org/get");
 Console.WriteLine($"{http.StatusCode} {https.StatusCode}");
 ```
 
-TLS is handled by the .NET runtime. `-k` / `--insecure` disables certificate validation for development:
+The HTTP version flags are applied to each request: `--http1.0` and `--http1.1` pin the version, `--http2` and `--http3` ask for HTTP/2 or HTTP/3 and allow a lower version when the server does not offer it, and `--http2-prior-knowledge` and `--http3-only` require it. On .NET 5 and later this sets `HttpRequestMessage.Version` and `VersionPolicy`; on .NET Standard 2.0 and .NET Framework only the version is set and the runtime's `HttpClient` decides. HTTP/3 also needs QUIC support in the operating system.
+
+TLS is handled by the .NET runtime against the operating system's trust store (`--cacert`, `--cert` and `--key` are parsed but not applied). `-k` / `--insecure` disables certificate validation for development:
 
 ```csharp
 using CurlDotNet;
@@ -36,6 +38,7 @@ FTP and FTPS are served by `FtpHandler`, built on the runtime's `FtpWebRequest`.
 |---------------|---------------|
 | `curl ftp://host/path/file.txt` | Download the file (`RETR`) |
 | `curl ftp://host/path/` (trailing slash) | List the directory (`NLST`; `-v` gives the detailed `LIST`) |
+| `curl -T local.txt ftp://host/path/file.txt` | Upload a local file byte for byte (`STOR`) |
 | `curl -d 'content' ftp://host/path/file.txt` | Upload the string body (`STOR`) |
 | `curl -X DELE ftp://host/path/file.txt` | Custom FTP command: `DELE`, `MKD`, `RMD`, `PWD`, `SIZE`, `MDTM`, `LIST`, `NLST`, `RETR`, `STOR` |
 
@@ -52,7 +55,7 @@ var file = await Curl.ExecuteAsync(
 Console.WriteLine(file.OutputFiles[0]);
 ```
 
-Binary downloads land in `result.BinaryData`; text downloads and listings in `result.Body`. FTP server errors throw `CurlFtpException` (with `FtpStatusCode`); a host that cannot be reached throws `CurlCouldntConnectException`. `-T` (upload a local file) is not implemented yet; use `-d @file` style bodies or `-X STOR` with `-d`.
+Binary downloads land in `result.BinaryData`; text downloads and listings in `result.Body`. FTP server errors throw `CurlFtpException` (with `FtpStatusCode`); a host that cannot be reached throws `CurlCouldntConnectException`; a missing `-T` file throws `CurlReadErrorException` (exit code 26). FTP goes through `FtpWebRequest`, so the HTTP-only options (`--retry`, `-w`, cookies, resume with `-C`) do not apply to it, and on a runtime without `FtpWebRequest` an FTP URL fails with exit code 1.
 
 ## Local Files (file://)
 
@@ -71,7 +74,7 @@ Binary files are returned in `BinaryData`; `-o` copies the file to the output pa
 
 ## Unsupported Schemes
 
-`sftp://`, `scp://`, `smtp://`, `imap://`, `ldap://`, `telnet://` and other curl-supported schemes are not implemented. Executing one throws `CurlDotNet.Exceptions.CurlUnsupportedProtocolException`:
+`sftp://`, `scp://`, `smtp://`, `imap://`, `pop3://`, `ldap://`, `telnet://`, `dict://`, `tftp://`, `mqtt://` and the other non-HTTP, non-FTP schemes curl supports are not implemented. Executing one throws `CurlDotNet.Exceptions.CurlUnsupportedProtocolException` (curl exit code 1):
 
 ```csharp
 using CurlDotNet;
@@ -87,7 +90,7 @@ catch (CurlUnsupportedProtocolException ex)
 }
 ```
 
-HTTP/2 and HTTP/3 selection flags (`--http2`, `--http3`) are not supported yet; the runtime negotiates HTTP/1.1 or HTTP/2 on its own.
+A URL without a scheme gets `http://`, as in curl (`ftp.` host names get `ftp://`), and `--proto-default` changes that default.
 
 ## Security Considerations
 

@@ -46,11 +46,13 @@ dotnet add package CurlDotNet
 ```csharp
 using CurlDotNet;
 
-var result = await Curl.ExecuteAsync("curl -A 'MyApp/1.0' https://api.github.com/users/octocat");
+var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
 
 Console.WriteLine(result.StatusCode);  // 200
 Console.WriteLine(result.Body);        // the JSON response
 ```
+
+Like curl, CurlDotNet sends `User-Agent: curl/8.7.1` and `Accept: */*` unless you set your own, so APIs that insist on a User-Agent, such as GitHub's, just work. Use `-A 'MyApp/1.0'` to name your app instead.
 
 The same request with the fluent builder, if you prefer typed C# over a command string:
 
@@ -70,7 +72,7 @@ Every call returns a `CurlResult`:
 |--------|---------------|
 | `StatusCode` | HTTP status as an `int`, e.g. `200`, `404` |
 | `IsSuccess` | `true` when the status is 2xx |
-| `Body` | Response body as a string |
+| `Body` | What curl would print: the response body as a string (empty with `-o`, which writes the file instead) |
 | `Headers` | Response headers (case-insensitive dictionary) |
 | `BinaryData` | Response bytes when the content is binary (images, PDFs, zips) |
 | `ParseJson<T>()` | Deserialize the body into your own class |
@@ -126,7 +128,7 @@ var result = await Curl.ExecuteAsync("curl -u user:passwd https://httpbin.org/ba
 
 ## What happens when something goes wrong
 
-An HTTP error such as 404 or 500 does not throw. The call returns normally with `IsSuccess == false` and the status code and body available, exactly as curl would print them. Network-level failures (DNS lookup failed, connection refused, timeout) throw a `CurlException` from the `CurlDotNet.Exceptions` namespace, with a `CurlErrorCode` matching curl's exit codes and a `Suggestions` list describing how to fix the problem.
+An HTTP error such as 404 or 500 does not throw. The call returns normally with `IsSuccess == false` and the status code and body available, exactly as curl would print them. Add `-f`/`--fail` and an HTTP error of 400 or above throws `CurlHttpReturnedErrorException` instead, just as curl exits with code 22. Network-level failures (DNS lookup failed, connection refused, timeout) throw a `CurlException` from the `CurlDotNet.Exceptions` namespace, with a `CurlErrorCode` matching curl's exit codes (see [curl exit codes](reference/curl-exit-codes.html)) and a `Suggestions` list describing how to fix the problem. As with curl, there is no timeout unless you set one with `-m`.
 
 ```csharp
 using CurlDotNet.Exceptions;
