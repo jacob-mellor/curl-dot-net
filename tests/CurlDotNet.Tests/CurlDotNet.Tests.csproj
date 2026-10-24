@@ -65,4 +65,10 @@
     <ProjectReference Include="..\..\src\CurlDotNet\CurlDotNet.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Test classes are not run in parallel: several tests legitimately change process-wide defaults
+         (Curl.DefaultFollowRedirects, DefaultMaxTimeSeconds, DefaultFlavor...) and would race otherwise. -->
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
