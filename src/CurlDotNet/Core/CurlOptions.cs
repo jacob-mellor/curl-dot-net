@@ -746,11 +746,14 @@ namespace CurlDotNet.Core
         /// <remarks>
         /// <para>The options object returned by the parser describes the first transfer; every entry here
         /// is a complete, independent <see cref="CurlOptions"/> for the next one, in command-line order.
-        /// Options given before <c>--next</c> apply to every URL of that group, exactly as in curl:
+        /// The options of a <c>--next</c> group apply to every URL of that group wherever they appear, and
+        /// the nth <c>-o</c>/<c>-O</c>/<c>-T</c> belongs to the nth URL, exactly as in curl:
         /// <c>curl -H "X: 1" https://a.example/ https://b.example/ --next -d x=1 https://c.example/</c>
         /// yields a first transfer for <c>a</c> and two additional ones, <c>b</c> (with the header) and
         /// <c>c</c> (a POST without it).</para>
-        /// <para>An empty list means the command describes a single transfer.</para>
+        /// <para>An empty list means the command describes a single transfer. Executing a command string
+        /// runs the first transfer; to run the others, pass each entry to
+        /// <c>Curl.ExecuteAsync(CurlOptions)</c> in order.</para>
         /// </remarks>
         public List<CurlOptions> AdditionalTransfers { get; } = new List<CurlOptions>();
 
@@ -771,6 +774,21 @@ namespace CurlDotNet.Core
 
         /// <summary>Header names in <see cref="Headers"/> that an option such as <c>--json</c> added, which a later <c>-H</c> replaces.</summary>
         internal HashSet<string> ImplicitHeaders { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary><c>-p</c> / <c>--proxytunnel</c>: requests go through a CONNECT tunnel, so no proxy headers are added to them.</summary>
+        internal bool ProxyTunnelRequested { get; set; }
+
+        /// <summary><c>--noproxy</c> host list (comma separated, <c>*</c> for all); null means "use NO_PROXY from the environment".</summary>
+        internal string? NoProxyHosts { get; set; }
+
+        /// <summary><c>--proxy-header</c> lines, sent on requests that go through a plain HTTP proxy.</summary>
+        internal List<string> ProxyHeaderLines { get; } = new List<string>();
+
+        /// <summary>The proxy authentication method (<c>--proxy-basic</c>, <c>--proxy-digest</c>...); null means Basic.</summary>
+        internal string? ProxyAuthMethod { get; set; }
+
+        /// <summary>True for <c>--proxy1.0</c>, which talks HTTP/1.0 to the proxy.</summary>
+        internal bool ProxyHttp10 { get; set; }
 
         /// <summary>The scheme <c>--proto-default</c> gives URLs written without one.</summary>
         internal string? DefaultProtocol { get; set; }
@@ -829,6 +847,11 @@ namespace CurlDotNet.Core
             clone.DataParts.AddRange(DataParts);
             clone.UrlQueryParts.AddRange(UrlQueryParts);
             clone.DefaultProtocol = DefaultProtocol;
+            clone.ProxyTunnelRequested = ProxyTunnelRequested;
+            clone.NoProxyHosts = NoProxyHosts;
+            clone.ProxyHeaderLines.AddRange(ProxyHeaderLines);
+            clone.ProxyAuthMethod = ProxyAuthMethod;
+            clone.ProxyHttp10 = ProxyHttp10;
             clone.ImplicitHeaders.UnionWith(ImplicitHeaders);
             clone.CredentialsFromUrl = CredentialsFromUrl;
             clone.RequestKinds.AddRange(RequestKinds);

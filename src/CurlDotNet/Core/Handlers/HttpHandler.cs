@@ -511,6 +511,9 @@ namespace CurlDotNet.Core
                 }
             }
 
+            // Through a plain HTTP proxy: Proxy-Connection: Keep-Alive, preemptive Proxy-Authorization, --proxy-header
+            RequestShaping.ApplyProxyHeaders(request, options, uri, suppressed);
+
             // Range (-r, and -C OFFSET): curl sends the value verbatim after "bytes=", multi-ranges included
             if (!string.IsNullOrEmpty(options.Range) && options.UploadFile == null && !suppressed.Contains("Range") && !request.Headers.Contains("Range"))
             {
@@ -553,6 +556,12 @@ namespace CurlDotNet.Core
                 if (RequestShaping.CanSendBody(method))
                 {
                     request.Content = RequestShaping.CreateUploadContent(options.BinaryData, options); // -T
+
+                    // -T with -r uploads a part: curl sends Content-Range: bytes RANGE/TOTAL instead of Range
+                    if (!string.IsNullOrEmpty(options.Range) && options.ResumeFrom == null && !options.Headers.ContainsKey("Content-Range"))
+                    {
+                        request.Content.Headers.TryAddWithoutValidation("Content-Range", $"bytes {options.Range}/{options.BinaryData.Length}");
+                    }
                 }
             }
             else if (parsedBody != null)

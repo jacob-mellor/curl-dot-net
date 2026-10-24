@@ -438,6 +438,18 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
+        public async Task UploadFile_WithRange_SendsContentRangeInsteadOfRange()
+        {
+            var file = WriteFile("part.txt", "testdata\n");
+
+            var (request, body) = await SendAsync(_parser.Parse($"curl -T {Q(file)} -r 0-4 http://example.com/r"));
+
+            HeaderValue(request, "Content-Range").Should().Be("bytes 0-4/9");
+            request.Headers.Contains("Range").Should().BeFalse();
+            body.Should().HaveCount(9);
+        }
+
+        [Fact]
         public void UploadFile_Missing_IsReadErrorTwentySix()
         {
             var ex = Assert.Throws<CurlReadErrorException>(() => _parser.Parse("curl -T /no/such/file.bin http://example.com/"));
@@ -722,7 +734,7 @@ namespace CurlDotNet.Tests
 
             var options = _parser.Parse($"curl --url-query \"my name\" --url-query \"yes=s i r\" --url-query v@{Q(file)} --url-query +%3d http://example.com/p");
 
-            options.Url.Should().Be("http://example.com/p?my+name&yes=s+i+r&v=a+b%0A&%3d");
+            options.Url.Should().Be("http://example.com/p?my+name&yes=s+i+r&v=a+b%0A&%3D");
         }
 
         [Fact]
@@ -796,6 +808,47 @@ namespace CurlDotNet.Tests
         {
             Assert.Throws<CurlException>(() => _parser.Parse($"curl {option} -C 1 -o out.txt http://example.com/"))
                 .CurlErrorCode.Should().Be(2);
+        }
+
+        [Fact]
+        public async Task PlainHttpProxy_GetsProxyConnectionAndPreemptiveBasic()
+        {
+            var (request, _) = await SendAsync(_parser.Parse("curl -x 127.0.0.1:3128 -U fake@user:pass --proxy-header \"X-Proxy: 1\" http://example.com/"));
+
+            HeaderValue(request, "Proxy-Connection").Should().Be("Keep-Alive");
+            request.Headers.ProxyAuthorization!.Parameter.Should().Be(Convert.ToBase64String(Encoding.UTF8.GetBytes("fake@user:pass")));
+            HeaderValue(request, "X-Proxy").Should().Be("1");
+        }
+
+        [Fact]
+        public async Task ProxyUrlCredentials_AreSentPreemptively()
+        {
+            var (request, _) = await SendAsync(_parser.Parse("curl -x http://f%61ke:@127.0.0.1:3128 http://example.com/"));
+
+            request.Headers.ProxyAuthorization!.Parameter.Should().Be("ZmFrZTo=");
+        }
+
+        [Theory]
+        [InlineData("curl -x 127.0.0.1:3128 https://example.com/")]
+        [InlineData("curl -x 127.0.0.1:3128 -p http://example.com/")]
+        [InlineData("curl -x 127.0.0.1:3128 --noproxy example.com http://www.example.com/")]
+        [InlineData("curl -x 127.0.0.1:3128 --noproxy \"*\" http://example.com/")]
+        [InlineData("curl -x socks5://127.0.0.1:1080 http://example.com/")]
+        public async Task TunnelledDirectOrSocksRequests_GetNoProxyHeaders(string command)
+        {
+            var (request, _) = await SendAsync(_parser.Parse(command + " -U u:p"));
+
+            request.Headers.Contains("Proxy-Connection").Should().BeFalse();
+            request.Headers.Contains("Proxy-Authorization").Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task ProxyDigest_DoesNotSendPreemptiveBasic()
+        {
+            var (request, _) = await SendAsync(_parser.Parse("curl -x 127.0.0.1:3128 -U u:p --proxy-digest http://example.com/"));
+
+            request.Headers.Contains("Proxy-Authorization").Should().BeFalse();
+            HeaderValue(request, "Proxy-Connection").Should().Be("Keep-Alive");
         }
 
         #endregion

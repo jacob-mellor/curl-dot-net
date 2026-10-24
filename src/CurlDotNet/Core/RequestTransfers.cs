@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using CurlDotNet.Exceptions;
 
 namespace CurlDotNet.Core
@@ -495,7 +496,8 @@ namespace CurlDotNet.Core
         {
             if (value.StartsWith("+", StringComparison.Ordinal))
             {
-                return value.Substring(1);
+                // Added as-is, except that curl's URL parser normalises percent-escapes to upper case (%3d -> %3D)
+                return Regex.Replace(value.Substring(1), "%[0-9a-fA-F]{2}", m => m.Value.ToUpperInvariant());
             }
 
             static string Encode(string text) => FormEncode(text);

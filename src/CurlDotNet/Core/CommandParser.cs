@@ -1234,9 +1234,61 @@ namespace CurlDotNet.Core
         /// </summary>
         private void ApplyOption(CurlOptions options, string typed, string value, ref bool methodSpecified, ParseContext context)
         {
+            RecordProxyRequestShaping(options, typed, value);
+            if (typed == "--form" || typed == "--form-string")
+            {
+                // Multipart options select a multipart POST whichever handler builds the form
+                SetRequestKind(options, RequestKind.MimePost, $"multipart POST ({(typed == "--form" ? "-F, --form" : "--form-string")})");
+            }
+
             if (!ProcessOption(typed, value, options, ref methodSpecified))
             {
                 options.UnsupportedOptions.Add(typed);
+            }
+        }
+
+        /// <summary>
+        /// Remembers the proxy options that change the request itself (curl adds
+        /// <c>Proxy-Connection: Keep-Alive</c>, preemptive <c>Proxy-Authorization: Basic</c> and
+        /// <c>--proxy-header</c> lines to requests sent through a plain HTTP proxy), whoever else handles them.
+        /// </summary>
+        private static void RecordProxyRequestShaping(CurlOptions options, string typed, string value)
+        {
+            switch (typed)
+            {
+                case "--proxytunnel":
+                    options.ProxyTunnelRequested = true;
+                    break;
+                case "--no-proxytunnel":
+                    options.ProxyTunnelRequested = false;
+                    break;
+                case "--noproxy":
+                    options.NoProxyHosts = value;
+                    break;
+                case "--proxy-header":
+                    options.ProxyHeaderLines.Add(value);
+                    break;
+                case "--proxy-basic":
+                    options.ProxyAuthMethod = "basic";
+                    break;
+                case "--proxy-digest":
+                    options.ProxyAuthMethod = "digest";
+                    break;
+                case "--proxy-ntlm":
+                    options.ProxyAuthMethod = "ntlm";
+                    break;
+                case "--proxy-negotiate":
+                    options.ProxyAuthMethod = "negotiate";
+                    break;
+                case "--proxy-anyauth":
+                    options.ProxyAuthMethod = "anyauth";
+                    break;
+                case "--proxy1.0":
+                    options.ProxyHttp10 = true;
+                    break;
+                case "--proxy":
+                    options.ProxyHttp10 = false;
+                    break;
             }
         }
 
@@ -1446,6 +1498,7 @@ namespace CurlDotNet.Core
                     return true;
 
                 case "--proxy":
+                case "--proxy1.0":
                     options.Proxy = value;
                     return true;
 

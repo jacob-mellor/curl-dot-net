@@ -305,6 +305,115 @@ namespace CurlDotNet.Core
 #endif
         }
 
+        /// <summary>
+        /// Adds what curl puts on a request that travels through a plain HTTP proxy (an <c>http://</c> URL,
+        /// no <c>-p</c> tunnel): <c>Proxy-Connection: Keep-Alive</c>, preemptive
+        /// <c>Proxy-Authorization: Basic</c> for <c>-U</c> or <c>user:password@</c> in the proxy URL
+        /// (unless <c>--proxy-digest</c> and friends ask for a challenge), and <c>--proxy-header</c> lines.
+        /// </summary>
+        internal static void ApplyProxyHeaders(HttpRequestMessage request, CurlOptions options, Uri uri, ISet<string> suppressed)
+        {
+            var proxy = GetHttpProxyUri(options, uri);
+            if (proxy == null)
+            {
+                return;
+            }
+
+            foreach (var line in options.ProxyHeaderLines)
+            {
+                var colon = line.IndexOf(':');
+                if (colon <= 0)
+                {
+                    continue;
+                }
+
+                var name = line.Substring(0, colon).Trim();
+                var value = line.Substring(colon + 1).Trim();
+                if (value.Length == 0)
+                {
+                    suppressed.Add(name);
+                    continue;
+                }
+
+                request.Headers.Remove(name);
+                request.Headers.TryAddWithoutValidation(name, value);
+            }
+
+            var credentials = options.ProxyCredentials ?? GetUrlCredentials(proxy);
+            var basic = options.ProxyAuthMethod == null || options.ProxyAuthMethod == "basic";
+            if (credentials != null && basic && !suppressed.Contains("Proxy-Authorization") && !request.Headers.Contains("Proxy-Authorization"))
+            {
+                var token = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{credentials.UserName}:{credentials.Password}"));
+                request.Headers.ProxyAuthorization = new AuthenticationHeaderValue("Basic", token);
+            }
+
+            if (request.Version.Major < 2 && !suppressed.Contains("Proxy-Connection") && !request.Headers.Contains("Proxy-Connection"))
+            {
+                request.Headers.TryAddWithoutValidation("Proxy-Connection", "Keep-Alive");
+            }
+        }
+
+        /// <summary>
+        /// The HTTP proxy a request to <paramref name="uri"/> goes through, or null when it is sent directly,
+        /// tunnelled, or through a SOCKS proxy. <c>--noproxy</c> (or <c>NO_PROXY</c>) exclusions are honoured.
+        /// </summary>
+        internal static Uri? GetHttpProxyUri(CurlOptions options, Uri uri)
+        {
+            if (string.IsNullOrEmpty(options.Proxy) || options.ProxyTunnelRequested ||
+                !string.Equals(uri.Scheme, "http", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var text = options.Proxy!.Trim();
+            if (text.IndexOf("://", StringComparison.Ordinal) < 0)
+            {
+                text = "http://" + text;
+            }
+
+            if (!Uri.TryCreate(text, UriKind.Absolute, out var proxy) ||
+                !(proxy.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) || proxy.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)))
+            {
+                return null;
+            }
+
+            var noProxy = options.NoProxyHosts ?? Environment.GetEnvironmentVariable("NO_PROXY") ?? Environment.GetEnvironmentVariable("no_proxy");
+            return IsNoProxyMatch(noProxy, uri.Host) ? null : proxy;
+        }
+
+        /// <summary>curl's <c>--noproxy</c> matching: <c>*</c>, exact names, and domain suffixes (<c>example.com</c> covers <c>www.example.com</c>).</summary>
+        internal static bool IsNoProxyMatch(string? noProxy, string host)
+        {
+            if (string.IsNullOrWhiteSpace(noProxy))
+            {
+                return false;
+            }
+
+            host = host.Trim('[', ']').TrimEnd('.');
+            foreach (var raw in noProxy!.Split(','))
+            {
+                var entry = raw.Trim().TrimEnd('.');
+                if (entry.Length == 0)
+                {
+                    continue;
+                }
+
+                if (entry == "*")
+                {
+                    return true;
+                }
+
+                entry = entry.TrimStart('.').Trim('[', ']');
+                if (string.Equals(host, entry, StringComparison.OrdinalIgnoreCase) ||
+                    host.EndsWith("." + entry, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         /// <summary>Formats a date the way HTTP conditional headers need it: <c>Sun, 12 Dec 1999 12:00:00 GMT</c>.</summary>
         internal static string FormatHttpDate(DateTimeOffset date)
         {
