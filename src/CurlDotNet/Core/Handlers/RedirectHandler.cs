@@ -45,6 +45,8 @@ namespace CurlDotNet.Core.Handlers
             var currentRequest = request;
             var options = transfer.Options;
 
+            try
+            {
             while (IsRedirect(current.StatusCode))
             {
                 var location = transfer.GetLocation(current);
@@ -88,9 +90,23 @@ namespace CurlDotNet.Core.Handlers
                 transfer.HopOptions = hop;
                 currentRequest = transfer.PrepareRequest(hop);
                 transfer.AppendVerboseRequest(currentRequest);
+                var previous = current;
                 current = await transfer.SendAsync(currentRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                if (!ReferenceEquals(previous, current) && !ReferenceEquals(previous, response))
+                {
+                    previous.Dispose(); // drained intermediate hop (the first response belongs to the caller)
+                }
                 transfer.AppendVerboseResponse(current);
                 transfer.Timings.Redirect = (DateTime.UtcNow - transfer.StartTime).TotalMilliseconds;
+            }
+            }
+            catch
+            {
+                if (!ReferenceEquals(current, response))
+                {
+                    current.Dispose();
+                }
+                throw;
             }
 
             return (current, currentRequest);

@@ -63,7 +63,41 @@ namespace CurlDotNet.Core
             _redirectHandler = new RedirectHandler();
         }
 
+        /// <summary>Key in <see cref="Exception.Data"/> holding the standard-output part of -w for a failed transfer.</summary>
+        internal const string WriteOutDataKey = "CurlDotNet.WriteOut";
+
         public async Task<CurlResult> ExecuteAsync(CurlOptions options, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await ExecuteWithRetryAsync(options, cancellationToken);
+            }
+            catch (CurlException ex) when (!string.IsNullOrEmpty(options.WriteOut))
+            {
+                // curl expands -w for failed transfers too (%{exitcode}, %{errormsg}, %{onerror}): the
+                // %{stderr} part goes to --stderr, the stdout part travels on the exception
+                var message = ex.Message;
+                var newline = message.IndexOf('\n');
+                var context = new WriteOutContext
+                {
+                    ExitCode = ex.CurlErrorCode ?? 1,
+                    ErrorMessage = newline < 0 ? message : message.Substring(0, newline),
+                    ResponseCode = ex is CurlDotNet.Exceptions.CurlHttpException http ? http.StatusCode : 0,
+                    Url = options.Url,
+                    UrlEffective = options.Url,
+                    Method = (options.CustomMethod ?? options.Method ?? "GET").ToUpperInvariant(),
+                };
+                var expanded = WriteOutFormatter.Format(options.WriteOut!, context);
+                WriteStderr(options, expanded.Stderr);
+                if (expanded.Stdout.Length > 0)
+                {
+                    ex.Data[WriteOutDataKey] = expanded.Stdout;
+                }
+                throw;
+            }
+        }
+
+        private async Task<CurlResult> ExecuteWithRetryAsync(CurlOptions options, CancellationToken cancellationToken)
         {
             if (options.Retry <= 0)
             {
@@ -287,6 +321,15 @@ namespace CurlDotNet.Core
 
                 // Only our own linked token can have fired: this is --max-time (exit code 28), like curl
                 var received = transfer.LastExchange?.BytesReceived ?? 0;
+                if (timeoutSeconds <= 0)
+                {
+                    // no --max-time: HttpClient gave up on its own (for example a stalled TLS handshake)
+                    trace?.Error("HttpClient cancelled the request without a --max-time limit.");
+                    throw new CurlOperationTimeoutException(0,
+                        $"The transfer to {transfer.CurrentRequest?.RequestUri?.Host ?? options.Url} was abandoned by HttpClient's internal timeout after {received} bytes " +
+                        "(the server stopped answering, often during a TLS handshake). Check that the port speaks the protocol of the URL; set -m/--max-time to control the limit yourself.",
+                        options.OriginalCommand);
+                }
                 trace?.Error($"Operation timed out after {timeoutSeconds} seconds.");
                 throw new CurlOperationTimeoutException(timeoutSeconds,
                     $"Operation timed out after {(long)(timeoutSeconds * 1000)} milliseconds with {received} bytes received " +
@@ -732,12 +775,12 @@ namespace CurlDotNet.Core
                     .Select(t => t.Trim().ToLowerInvariant()).Where(t => t == "gzip" || t == "x-gzip" || t == "deflate").ToList();
                 if (codings.Count > 0)
                 {
-                    body = DecodeContentEncoding(body, codings);
+                    body = DecodeOrFail(body, codings, "Transfer-Encoding", command);
                 }
             }
             if (failure == null && options.Compressed)
             {
-                body = DecodeContentEncoding(body, response.Content!.Headers.ContentEncoding);
+                body = DecodeOrFail(body, response.Content!.Headers.ContentEncoding, "Content-Encoding", command);
             }
 
             // -C/--continue-at: 416 means "already complete" (curl ignores the body); a reply without
@@ -1299,6 +1342,21 @@ namespace CurlDotNet.Core
                 }
             }
             return body;
+        }
+
+        /// <summary>Decodes a body; corrupt compressed data is curl's "Error while processing content unencoding" (61).</summary>
+        private static byte[] DecodeOrFail(byte[] body, ICollection<string> encodings, string header, string? command)
+        {
+            try
+            {
+                return DecodeContentEncoding(body, encodings);
+            }
+            catch (Exception ex) when (ex is InvalidDataException || ex is IOException)
+            {
+                throw new CurlBadContentEncodingException(string.Join(", ", encodings),
+                    $"Error while processing content unencoding: the body announced with {header}: {string.Join(", ", encodings)} could not be decoded ({ex.Message}). " +
+                    "Drop --compressed/--tr-encoding to save the raw bytes, or report the broken encoding to the server owner", command);
+            }
         }
 
         private static byte[] Inflate(byte[] body, Func<Stream, Stream> open)

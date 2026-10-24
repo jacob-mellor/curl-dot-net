@@ -808,7 +808,14 @@ namespace CurlDotNet.Core
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
             var n = await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            OnRead(buffer.Span.Slice(0, n), buffer.Length);
+            if (System.Runtime.InteropServices.MemoryMarshal.TryGetArray<byte>(buffer, out var segment) && segment.Array != null)
+            {
+                OnRead(segment.Array, segment.Offset, buffer.Length, n); // no copy for the usual array-backed buffer
+            }
+            else
+            {
+                OnRead(buffer.Span.Slice(0, n), buffer.Length);
+            }
             return n;
         }
 

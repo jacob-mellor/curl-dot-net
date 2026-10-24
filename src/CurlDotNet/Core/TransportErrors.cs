@@ -313,6 +313,19 @@ namespace CurlDotNet.Core
                 }
             }
 
+            var tls = FindTlsFailure(ex);
+            if (tls != null)
+            {
+                var host = uri.Host;
+                var certificate = tls.Message.IndexOf("certificate", StringComparison.OrdinalIgnoreCase) >= 0;
+                return certificate
+                    ? (CurlException)new CurlPeerFailedVerificationException(
+                        $"{host}'s TLS certificate was rejected ({InnermostMessage(ex)}). If the server uses a private CA, trust it with --cacert; " +
+                        "for local testing only, -k/--insecure skips the check.", command)
+                    : new CurlSslConnectErrorException(
+                        $"the TLS handshake with {host} failed ({InnermostMessage(ex)}). Check that the port speaks TLS and that the server supports a modern TLS version.", command);
+            }
+
             var exchange = transfer.LastExchange;
             var recorded = exchange != null && exchange.Segments.Count > 0;
 
@@ -508,6 +521,24 @@ namespace CurlDotNet.Core
             }
 
             return new CurlReceiveErrorException(ReceiveMessage($"the response could not be processed ({ex.GetType().Name}: {ex.Message})", uri), options.OriginalCommand);
+        }
+
+        private static Exception? FindTlsFailure(Exception ex)
+        {
+            for (var e = ex; e != null; e = e.InnerException)
+            {
+                if (e is System.Security.Authentication.AuthenticationException)
+                {
+                    return e;
+                }
+#if NET8_0_OR_GREATER
+                if (e is HttpRequestException hre && hre.HttpRequestError == HttpRequestError.SecureConnectionError)
+                {
+                    return e.InnerException ?? e;
+                }
+#endif
+            }
+            return null;
         }
 
         private static bool IsResponseEnded(Exception ex)

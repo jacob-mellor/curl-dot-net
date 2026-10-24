@@ -707,6 +707,21 @@ namespace CurlDotNet.Exceptions
         {
             CertificateError = certError;
         }
+
+        /// <summary>
+        /// Initializes a new instance with a specific curl exit code, such as 35 (CURLE_SSL_CONNECT_ERROR)
+        /// for a TLS handshake that failed for a reason other than certificate verification.
+        /// </summary>
+        /// <param name="message">What happened and how to fix it (the documentation link is appended).</param>
+        /// <param name="certError">Details about the certificate error, if any.</param>
+        /// <param name="command">The curl command that failed.</param>
+        /// <param name="curlErrorCode">The curl exit code.</param>
+        protected CurlSslException(string message, string? certError, string? command, int curlErrorCode)
+            : base($"{message}\nFor SSL/TLS troubleshooting, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md",
+                   curlErrorCode, command)
+        {
+            CertificateError = certError;
+        }
     }
 
     /// <summary>

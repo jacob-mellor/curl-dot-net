@@ -184,7 +184,7 @@ namespace CurlDotNet.Core
                 ViaProxy = proxyUri != null,
                 Transcript = Transcript,
             };
-            if (Options.ProxyTunnel && proxyUri != null)
+            if (proxyUri != null && (Options.ProxyTunnel || Proxy!.SelfTunnels(uri)))
             {
                 settings.TunnelProxy = proxyUri;
                 settings.TunnelAuthorization = Proxy!.PreemptiveAuthorization;
@@ -292,23 +292,31 @@ namespace CurlDotNet.Core
             RequestsSent++;
             WireExchange.Current = exchange;
             var response = await Client.SendAsync(request, completion, cancellationToken).ConfigureAwait(false);
-
-            TransportErrors.ValidateHeads(exchange, this);
-
-            if (Cookies != null)
+            try
             {
-                var heads = exchange.Heads;
-                if (heads.Count > 0)
+                TransportErrors.ValidateHeads(exchange, this);
+
+                if (Cookies != null)
                 {
-                    foreach (var head in heads)
+                    var heads = exchange.Heads;
+                    if (heads.Count > 0)
                     {
-                        Cookies.StoreFromResponse(request.RequestUri!, HopOptions, head.GetHeaders("Set-Cookie"));
+                        foreach (var head in heads)
+                        {
+                            Cookies.StoreFromResponse(request.RequestUri!, HopOptions, head.GetHeaders("Set-Cookie"));
+                        }
+                    }
+                    else if (response.Headers.TryGetValues("Set-Cookie", out var values))
+                    {
+                        Cookies.StoreFromResponse(request.RequestUri!, HopOptions, values);
                     }
                 }
-                else if (response.Headers.TryGetValues("Set-Cookie", out var values))
-                {
-                    Cookies.StoreFromResponse(request.RequestUri!, HopOptions, values);
-                }
+            }
+            catch
+            {
+                // the caller never sees this response, so release its connection here
+                response.Dispose();
+                throw;
             }
 
             return response;

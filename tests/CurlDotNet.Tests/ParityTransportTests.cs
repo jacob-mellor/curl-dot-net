@@ -355,6 +355,44 @@ namespace CurlDotNet.Tests
         }
 #endif
 
+#if NET5_0_OR_GREATER
+        [Fact]
+        public async Task Proxy_HttpsUrl_OpensTunnelWithPreemptiveBasicAuth()
+        {
+            // the "proxy" accepts the tunnel but then speaks plain HTTP, so the TLS handshake fails (35)
+            using var proxy = new RawReplyServer("HTTP/1.1 200 Connection established\r\n\r\nthis is not a TLS server hello at all, just text\r\n\r\n") { KeepAlive = true };
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl -k -x http://alice:s3cret@127.0.0.1:{proxy.Port} https://secure.invalid/");
+
+            var thrown = await act.Should().ThrowAsync<CurlSslConnectErrorException>();
+            thrown.Which.CurlErrorCode.Should().Be(35);
+            var connect = proxy.Requests.First();
+            FirstLine(connect).Should().Be("CONNECT secure.invalid:443 HTTP/1.1");
+            Line(connect, "Proxy-Authorization").Should().Be("Proxy-Authorization: Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes("alice:s3cret")));
+        }
+
+        [Fact]
+        public async Task CorruptCompressedBody_IsBadContentEncoding61()
+        {
+            using var server = new RawReplyServer("HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Length: 11\r\n\r\nnot gzip!!!");
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl --compressed {server.Url("/")}");
+
+            (await act.Should().ThrowAsync<CurlBadContentEncodingException>()).Which.CurlErrorCode.Should().Be(61);
+        }
+
+        [Fact]
+        public async Task WriteOut_OnFailure_ExpandsExitCodeAndErrorMessage()
+        {
+            var stderr = P("err.txt");
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl --stderr {Q(stderr)} -w \"%{{stderr}}%{{onerror}}code=%{{exitcode}}\" http://127.0.0.1:{ClosedPort()}/");
+
+            await act.Should().ThrowAsync<CurlCouldntConnectException>();
+            File.ReadAllText(stderr).Should().Be("code=7");
+        }
+#endif
+
         // ------------------------------------------------------------------ redirects
 
         [Fact]

@@ -158,9 +158,11 @@ namespace CurlDotNet.Core
             _noProxy = noProxy;
             UserCredentials = credentials;
             AuthScheme = string.IsNullOrEmpty(authScheme) ? "basic" : authScheme!.ToLowerInvariant();
-            if (credentials != null && AuthScheme != "basic")
+            if (credentials != null && (AuthScheme != "basic" || !CurlTransport.SupportsRecording))
             {
-                // Challenge schemes are answered by the handler after the proxy's 407.
+                // Challenge schemes are answered by the handler after the proxy's 407. Where CurlDotNet
+                // cannot open the CONNECT tunnel itself (.NET Framework/netstandard2.0) Basic is
+                // answered that way too, one round trip later than curl.
                 Credentials = credentials;
             }
         }
@@ -184,11 +186,28 @@ namespace CurlDotNet.Core
             return string.Equals(destination.Scheme, "https", StringComparison.OrdinalIgnoreCase) ? _httpsProxy : _httpProxy;
         }
 
-        /// <inheritdoc />
-        public Uri? GetProxy(Uri destination) => ProxyFor(destination) ?? destination;
+        /// <summary>
+        /// True when CurlDotNet opens the CONNECT tunnel for <paramref name="destination"/> itself (an
+        /// https URL through an HTTP proxy with Basic or no proxy auth), so the CONNECT request carries
+        /// curl's headers and a preemptive Proxy-Authorization. HttpClient then connects "directly"
+        /// through the tunnel the connect callback built.
+        /// </summary>
+        public bool SelfTunnels(Uri destination)
+        {
+            if (!CurlTransport.SupportsRecording || AuthScheme != "basic"
+                || !string.Equals(destination.Scheme, "https", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            var proxy = ProxyFor(destination);
+            return proxy != null && (proxy.Scheme == "http");
+        }
 
         /// <inheritdoc />
-        public bool IsBypassed(Uri host) => ProxyFor(host) == null;
+        public Uri? GetProxy(Uri destination) => IsBypassed(destination) ? destination : ProxyFor(destination);
+
+        /// <inheritdoc />
+        public bool IsBypassed(Uri host) => ProxyFor(host) == null || SelfTunnels(host);
 
         /// <summary>The Basic <c>Proxy-Authorization</c> value to send preemptively, or null.</summary>
         public string? PreemptiveAuthorization

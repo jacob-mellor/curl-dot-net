@@ -558,7 +558,7 @@ namespace CurlDotNet.Exceptions
         /// <param name="message">The error message.</param>
         /// <param name="command">The curl command that failed.</param>
         public CurlSslConnectErrorException(string message, string? command = null)
-            : base($"SSL connect error: {message}", null, command)
+            : base($"SSL connect error: {message}", null, command, 35)
         {
         }
     }
