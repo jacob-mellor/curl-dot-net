@@ -401,7 +401,11 @@ namespace CurlDotNet.Core
         private HttpRequestMessage CreateRequest(CurlOptions options)
         {
             var method = GetHttpMethod(options);
-            var request = new HttpRequestMessage(method, options.Url);
+            var uri = RequestShaping.BuildRequestUri(options);
+            var request = new HttpRequestMessage(method, uri);
+
+            // --http1.0 / --http1.1 / --http2 / --http2-prior-knowledge / --http3
+            RequestShaping.ApplyHttpVersion(request, options);
 
             // Add headers. An empty value (-H "Accept:") means "do not send this header at all",
             // exactly as in curl, which also suppresses our defaults below.
@@ -410,7 +414,7 @@ namespace CurlDotNet.Core
             {
                 if (header.Key.StartsWith("@", StringComparison.Ordinal))
                 {
-                    continue; // unresolved -H @file reference
+                    continue; // unread -H @file reference
                 }
 
                 if (string.IsNullOrEmpty(header.Value))
@@ -419,24 +423,45 @@ namespace CurlDotNet.Core
                     continue;
                 }
 
-                if (IsContentHeader(header.Key))
+                if (RequestShaping.IsContentHeader(header.Key))
                 {
                     // Will be added with content
                     continue;
                 }
 
-                if (header.Key.Equals("User-Agent", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(options.UserAgent))
+                if (header.Key.Equals("User-Agent", StringComparison.OrdinalIgnoreCase) && options.UserAgent != null)
                 {
                     continue; // -A / -H "User-Agent:" both land in options.UserAgent; add it once below
+                }
+
+                if (header.Key.Equals("Host", StringComparison.OrdinalIgnoreCase))
+                {
+                    request.Headers.Host = header.Value; // -H "Host: name" replaces curl's Host header
+                    continue;
                 }
 
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
-            // User-Agent: -A wins, then any -H value, then curl's default (curl/8.7.1)
-            if (!string.IsNullOrEmpty(options.UserAgent))
+            // -H "Name;" sends the header with an empty value
+            foreach (var name in options.EmptyHeaders)
             {
-                request.Headers.TryAddWithoutValidation("User-Agent", options.UserAgent);
+                if ((options.Headers.TryGetValue(name, out var given) && !string.IsNullOrEmpty(given)) ||
+                    RequestShaping.IsContentHeader(name) || name.Equals("Host", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                request.Headers.TryAddWithoutValidation(name, string.Empty);
+            }
+
+            // User-Agent: -A wins (-A "" sends none at all), then any -H value, then curl's default (curl/8.7.1)
+            if (options.UserAgent != null)
+            {
+                if (options.UserAgent.Length > 0 && !suppressed.Contains("User-Agent"))
+                {
+                    request.Headers.TryAddWithoutValidation("User-Agent", options.UserAgent);
+                }
             }
             else if (!suppressed.Contains("User-Agent") && !request.Headers.Contains("User-Agent") && !string.IsNullOrEmpty(Curl.DefaultUserAgent))
             {
@@ -449,38 +474,60 @@ namespace CurlDotNet.Core
                 request.Headers.TryAddWithoutValidation("Accept", "*/*");
             }
 
-            // Set referer
-            if (!string.IsNullOrEmpty(options.Referer))
+            // Referer (-e) is sent verbatim, even when it is not an absolute URL (-e firstone.html)
+            if (!string.IsNullOrEmpty(options.Referer) && !suppressed.Contains("Referer") && !request.Headers.Contains("Referer"))
             {
-                request.Headers.Referrer = new Uri(options.Referer);
+                request.Headers.TryAddWithoutValidation("Referer", options.Referer);
             }
 
-            // Set cookies
-            if (!string.IsNullOrEmpty(options.Cookie))
+            // Cookies (-b): curl sends a value containing '=' as cookie data; without '=' it names a cookie file
+            if (!string.IsNullOrEmpty(options.Cookie) && options.Cookie!.IndexOf('=') >= 0)
             {
-                request.Headers.Add("Cookie", options.Cookie);
+                request.Headers.TryAddWithoutValidation("Cookie", options.Cookie);
             }
 
-            // Set authorization
-            if (options.AwsSigV4 != null && options.Credentials != null)
+            // Authorization: an explicit -H wins, then --oauth2-bearer, then AWS SigV4 (signed below),
+            // then preemptive Basic from -u or from user:password@ in the URL being requested.
+            if (!request.Headers.Contains("Authorization") && !suppressed.Contains("Authorization"))
             {
-                // AWS SigV4 signing - must happen after content is set, so we defer it below
-                // (handled after content is added)
-            }
-            else if (options.Credentials != null && !UsesChallengeAuth(options))
-            {
-                // Preemptive Basic (curl's default for -u). Challenge schemes
-                // (--digest etc.) are answered by the handler's Credentials instead;
-                // sending Basic here would leak the password and break digest (issue #40).
-                var auth = Convert.ToBase64String(Encoding.UTF8.GetBytes(
-                    $"{options.Credentials.UserName}:{options.Credentials.Password}"));
-                request.Headers.Authorization = new AuthenticationHeaderValue("Basic", auth);
+                if (!string.IsNullOrEmpty(options.OAuth2Bearer))
+                {
+                    request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + options.OAuth2Bearer);
+                }
+                else if (options.AwsSigV4 != null && options.Credentials != null)
+                {
+                    // AWS SigV4 signing needs the payload hash, so it happens after content is set
+                }
+                else
+                {
+                    // Challenge schemes (--digest etc.) are answered by the handler's Credentials instead;
+                    // sending Basic here would leak the password and break digest (issue #40).
+                    var credentials = RequestShaping.GetCredentials(options, uri);
+                    if (credentials != null && !UsesChallengeAuth(options))
+                    {
+                        var auth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{credentials.UserName}:{credentials.Password}"));
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", auth);
+                    }
+                }
             }
 
-            // Set range
-            if (!string.IsNullOrEmpty(options.Range))
+            // Through a plain HTTP proxy: Proxy-Connection: Keep-Alive, preemptive Proxy-Authorization, --proxy-header
+            RequestShaping.ApplyProxyHeaders(request, options, uri, suppressed);
+
+            // Range (-r, and -C OFFSET): curl sends the value verbatim after "bytes=", multi-ranges included
+            if (!string.IsNullOrEmpty(options.Range) && options.UploadFile == null && !suppressed.Contains("Range") && !request.Headers.Contains("Range"))
             {
-                request.Headers.Range = ParseRange(options.Range);
+                request.Headers.TryAddWithoutValidation("Range", "bytes=" + options.Range);
+            }
+
+            // Time condition (-z): If-Modified-Since by default, If-Unmodified-Since for -z -DATE
+            if (options.TimeCondition.HasValue && options.TimeConditionType != CurlTimeCondition.LastModified)
+            {
+                var conditionHeader = options.TimeConditionType == CurlTimeCondition.IfUnmodifiedSince ? "If-Unmodified-Since" : "If-Modified-Since";
+                if (!suppressed.Contains(conditionHeader) && !request.Headers.Contains(conditionHeader))
+                {
+                    request.Headers.TryAddWithoutValidation(conditionHeader, RequestShaping.FormatHttpDate(options.TimeCondition.Value));
+                }
             }
 
             // Set compression acceptance (--compressed flag). Decoding happens in CreateResult so the
@@ -494,30 +541,60 @@ namespace CurlDotNet.Core
 #endif
             }
 
-            // Add content
-            if (ShouldHaveContent(method, options))
+            // Add content. Parsed commands carry their exact body; curl sends it whatever the method
+            // (-X GET -d x is a GET with a body). Hand-built options keep the classic rules.
+            var parsedBody = options.GetParsedBody();
+            if (options.Files.Any() || options.FormData.Any())
+            {
+                if (ShouldHaveContent(method, options))
+                {
+                    request.Content = CreateContent(options); // multipart (-F)
+                }
+            }
+            else if (options.UploadFile != null && options.BinaryData != null)
+            {
+                if (RequestShaping.CanSendBody(method))
+                {
+                    request.Content = RequestShaping.CreateUploadContent(options.BinaryData, options); // -T
+
+                    // -T with -r uploads a part: curl sends Content-Range: bytes RANGE/TOTAL instead of Range
+                    if (!string.IsNullOrEmpty(options.Range) && options.ResumeFrom == null && !options.Headers.ContainsKey("Content-Range"))
+                    {
+                        request.Content.Headers.TryAddWithoutValidation("Content-Range", $"bytes {options.Range}/{options.BinaryData.Length}");
+                    }
+                }
+            }
+            else if (parsedBody != null)
+            {
+                if (RequestShaping.CanSendBody(method))
+                {
+                    request.Content = RequestShaping.CreateDataContent(parsedBody, options); // -d, --data-binary, --json ...
+                }
+            }
+            else if (ShouldHaveContent(method, options))
             {
                 request.Content = CreateContent(options);
+            }
 
-                // Apply content headers that were skipped from request.Headers above.
-                // In .NET HttpClient, headers like Content-Range, Content-Encoding, etc.
-                // must be set on HttpContent.Headers, not HttpRequestMessage.Headers.
-                if (request.Content != null)
+            // Apply content headers that were skipped from request.Headers above.
+            // In .NET HttpClient, headers like Content-Range, Content-Encoding, etc.
+            // must be set on HttpContent.Headers, not HttpRequestMessage.Headers.
+            if (request.Content != null)
+            {
+                foreach (var header in options.Headers)
                 {
-                    foreach (var header in options.Headers)
+                    if (RequestShaping.IsContentHeader(header.Key) && !string.IsNullOrEmpty(header.Value) &&
+                        !string.Equals(header.Key, "Content-Type", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (IsContentHeader(header.Key) &&
-                            !string.Equals(header.Key, "Content-Type", StringComparison.OrdinalIgnoreCase))
-                        {
-                            // Content-Type is already handled in CreateContent()
-                            request.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
-                        }
+                        // Content-Type is already handled with the content
+                        request.Content.Headers.Remove(header.Key);
+                        request.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
                     }
                 }
             }
 
             // Apply AWS SigV4 signing after content is set (signing requires payload hash)
-            if (options.AwsSigV4 != null && options.Credentials != null)
+            if (options.AwsSigV4 != null && options.Credentials != null && string.IsNullOrEmpty(options.OAuth2Bearer))
             {
                 AwsSigV4Signer.SignRequest(
                     request,

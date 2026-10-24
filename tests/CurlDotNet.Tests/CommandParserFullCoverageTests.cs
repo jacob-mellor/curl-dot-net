@@ -106,7 +106,7 @@ namespace CurlDotNet.Tests
 
         [Theory]
         [InlineData("curl %API_URL%", "API_URL", "https://api.example.com")]
-        [InlineData("curl -H 'Authorization: Bearer %TOKEN%'", "TOKEN", "secret123")]
+        [InlineData("curl -H \"Authorization: Bearer %TOKEN%\"", "TOKEN", "secret123")]
         public void Parse_ExpandsWindowsCmdEnvironmentVariables(string command, string varName, string varValue)
         {
             // Arrange
@@ -163,7 +163,7 @@ namespace CurlDotNet.Tests
         [Theory]
         [InlineData("curl ${API_URL}", "API_URL", "https://api.example.com")]
         [InlineData("curl $API_URL", "API_URL", "https://api.example.com")]
-        [InlineData("curl -H 'Authorization: Bearer ${TOKEN}'", "TOKEN", "secret123")]
+        [InlineData("curl -H \"Authorization: Bearer ${TOKEN}\"", "TOKEN", "secret123")]
         public void Parse_ExpandsBashEnvironmentVariables(string command, string varName, string varValue)
         {
             // Arrange
@@ -260,12 +260,12 @@ namespace CurlDotNet.Tests
             var options = _parser.Parse(command);
 
             // Assert
-            options.Data.Should().Be("name=John%20Doe");
+            options.Data.Should().Be("name=John+Doe"); // curl 8 encodes spaces as +
         }
 
         [Theory]
-        [InlineData("hello world & more", "hello%20world%20%26%20more")]          // content
-        [InlineData("=a b=c", "a%20b%3Dc")]                                       // =content keeps the '=' in content encoded
+        [InlineData("hello world & more", "hello+world+%26+more")]          // content
+        [InlineData("=a b=c", "a+b%3Dc")]                                       // =content keeps the '=' in content encoded
         [InlineData("comment=café/ümlaut", "comment=caf%C3%A9%2F%C3%BCmlaut")]   // name=content, UTF-8
         [InlineData("keep-._~=keep-._~", "keep-._~=keep-._~")]                   // unreserved chars untouched
         public void Parse_DataUrlEncode_MatchesCurlEscaping(string argument, string expected)
@@ -286,7 +286,7 @@ namespace CurlDotNet.Tests
 
                 var options = _parser.Parse($"curl --data-urlencode body@{CommandParser.ShellQuote(path)} https://api.example.com");
 
-                options.Data.Should().Be("body=line%20one%0Aline%20two");
+                options.Data.Should().Be("body=line+one%0Aline+two");
             }
             finally
             {
@@ -299,7 +299,7 @@ namespace CurlDotNet.Tests
         {
             var options = _parser.Parse("curl --data-urlencode 'a=1 2' --data-urlencode 'b=3&4' -d plain=5 https://api.example.com");
 
-            options.Data.Should().Be("a=1%202&b=3%264&plain=5");
+            options.Data.Should().Be("a=1+2&b=3%264&plain=5");
         }
 
         [Fact]

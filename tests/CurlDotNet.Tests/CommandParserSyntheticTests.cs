@@ -341,8 +341,8 @@ namespace CurlDotNet.Tests
 
             // Assert
             options.Method.Should().Be("POST");
-            // curl percent-encodes the value part of each --data-urlencode argument
-            options.Data.Should().Be("name=John%20Doe&email=john%40example.com");
+            // curl percent-encodes the value part of each --data-urlencode argument (spaces as +, like curl 8)
+            options.Data.Should().Be("name=John+Doe&email=john%40example.com");
         }
 
         #endregion
@@ -647,7 +647,7 @@ Line 3' \
             Environment.SetEnvironmentVariable("TEST_TOKEN", "secret123");
             try
             {
-                const string command = @"curl -H 'Authorization: Bearer %TEST_TOKEN%' https://api.example.com";
+                const string command = @"curl -H ""Authorization: Bearer %TEST_TOKEN%"" https://api.example.com";
 
                 // Act
                 var options = _parser.Parse(command);
@@ -671,7 +671,7 @@ Line 3' \
             Environment.SetEnvironmentVariable("TEST_API_KEY", "key456");
             try
             {
-                const string command = @"curl -H 'X-API-Key: $env:TEST_API_KEY' https://api.example.com";
+                const string command = @"curl -H ""X-API-Key: $env:TEST_API_KEY"" https://api.example.com";
 
                 // Act
                 var options = _parser.Parse(command);
