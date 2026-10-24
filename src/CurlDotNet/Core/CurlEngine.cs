@@ -486,24 +486,25 @@ namespace CurlDotNet.Core
             {
                 handlerLines.Add("    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator, // curl -k");
             }
-            if (options.FollowLocation)
+            if (options.FollowLocation || options.LocationTrusted)
             {
                 handlerLines.Add("    AllowAutoRedirect = true, // curl -L");
-                handlerLines.Add($"    MaxAutomaticRedirections = {options.MaxRedirects},");
-            }
-
-            if (handlerLines.Count > 0)
-            {
-                sb.AppendLine("var handler = new HttpClientHandler");
-                sb.AppendLine("{");
-                foreach (var line in handlerLines) sb.AppendLine(line);
-                sb.AppendLine("};");
-                sb.AppendLine("using var client = new HttpClient(handler);");
+                if (options.MaxRedirects > 0)
+                {
+                    handlerLines.Add($"    MaxAutomaticRedirections = {options.MaxRedirects}, // --max-redirs");
+                }
             }
             else
             {
-                sb.AppendLine("using var client = new HttpClient();");
+                // HttpClient follows redirects by default; curl only does with -L
+                handlerLines.Add("    AllowAutoRedirect = false, // curl without -L returns the 3xx response itself");
             }
+
+            sb.AppendLine("var handler = new HttpClientHandler");
+            sb.AppendLine("{");
+            foreach (var line in handlerLines) sb.AppendLine(line);
+            sb.AppendLine("};");
+            sb.AppendLine("using var client = new HttpClient(handler);");
 
             if (options.MaxTime.HasValue && options.MaxTime.Value > 0)
             {

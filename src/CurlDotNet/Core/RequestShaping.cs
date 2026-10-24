@@ -536,8 +536,11 @@ namespace CurlDotNet.Core
 
         private static void ApplyContentType(HttpContent content, CurlOptions options, string? defaultType)
         {
-            if (options.Headers.TryGetValue("Content-Type", out var contentType))
+            // hand-built options may use a case-sensitive dictionary ("content-type"): header names are case-insensitive
+            var explicitType = options.Headers.FirstOrDefault(h => string.Equals(h.Key, "Content-Type", StringComparison.OrdinalIgnoreCase));
+            if (explicitType.Key != null)
             {
+                var contentType = explicitType.Value;
                 if (!string.IsNullOrEmpty(contentType))
                 {
                     content.Headers.TryAddWithoutValidation("Content-Type", contentType);

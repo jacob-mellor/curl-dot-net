@@ -855,10 +855,10 @@ namespace CurlDotNet.Core
                 return MultipartFormBuilder.Build(MultipartFormBuilder.PartsFor(options), options);
             }
 
-            // Binary data
+            // Binary data: sent as-is, labelled only by an explicit -H "Content-Type: ..." (like -T)
             if (options.BinaryData != null)
             {
-                return new ByteArrayContent(options.BinaryData);
+                return RequestShaping.CreateUploadContent(options.BinaryData, options);
             }
 
             // Text data
@@ -894,34 +894,11 @@ namespace CurlDotNet.Core
                             "Check that the file exists, is not locked by another program and is readable by this process; use --data-raw if the @ is meant literally.",
                             DocLinks.TutorialFormsAndData), options.OriginalCommand, ex);
                     }
-                    var byteContent = new ByteArrayContent(fileBytes);
-
-                    if (options.Headers.TryGetValue("Content-Type", out var fileContentType))
-                    {
-                        byteContent.Headers.ContentType = MediaTypeHeaderValue.Parse(fileContentType);
-                    }
-                    else
-                    {
-                        byteContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/x-www-form-urlencoded");
-                    }
-
-                    return byteContent;
+                    // the -H Content-Type is sent verbatim (no parsing that could reject it), else curl's form default
+                    return RequestShaping.CreateDataContent(fileBytes, options);
                 }
 
-                var content = new StringContent(data, Encoding.UTF8);
-
-                // Set content type from headers if specified
-                if (options.Headers.TryGetValue("Content-Type", out var contentType))
-                {
-                    content.Headers.ContentType = MediaTypeHeaderValue.Parse(contentType);
-                }
-                else
-                {
-                    // Default to application/x-www-form-urlencoded for POST data
-                    content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/x-www-form-urlencoded");
-                }
-
-                return content;
+                return RequestShaping.CreateDataContent(Encoding.UTF8.GetBytes(data), options);
             }
 
             return null;

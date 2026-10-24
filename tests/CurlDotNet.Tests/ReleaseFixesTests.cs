@@ -288,6 +288,117 @@ namespace CurlDotNet.Tests
             ex.CurlErrorCode.Should().Be(3);
         }
 
+        // ------------------------------------------------------------------ speed options
+
+        [Fact]
+        public async Task SpeedLimit_AbortsAStalledBody_WithExit28()
+        {
+            using var server = new RawReplyServer("HTTP/1.1 200 OK\r\nContent-Length: 1000\r\n\r\nstart") { StallMilliseconds = 8000 };
+
+            var clock = Stopwatch.StartNew();
+            Func<Task> act = () => Curl.ExecuteAsync($"curl --speed-limit 100 --speed-time 1 {server.Url("/slow")}");
+
+            var ex = (await act.Should().ThrowAsync<CurlOperationTimeoutException>()).Which;
+            clock.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(6));
+            ex.CurlErrorCode.Should().Be(28);
+            ex.WhatHappened.Should().StartWith("Operation too slow. Less than 100 bytes/sec transferred the last 1 seconds");
+            ExceptionMessageTests.AssertWhatFixLink(ex);
+        }
+
+        [Fact]
+        public async Task SpeedLimit_DoesNotAbortAFastTransfer()
+        {
+            using var server = new RawReplyServer(Ok);
+
+            var result = await Curl.ExecuteAsync($"curl -Y 1 -y 5 {server.Url("/")}");
+
+            result.Body.Should().Be("ok\n");
+        }
+
+        [Fact]
+        public async Task LimitRate_SlowsTheBodyDownToTheCap()
+        {
+            var body = new string('x', 3000);
+            using var server = new RawReplyServer($"HTTP/1.1 200 OK\r\nContent-Length: {body.Length}\r\n\r\n{body}");
+
+            var clock = Stopwatch.StartNew();
+            var result = await Curl.ExecuteAsync($"curl --limit-rate 2000 {server.Url("/")}");
+
+            result.Body.Should().Be(body);
+            clock.Elapsed.Should().BeGreaterOrEqualTo(TimeSpan.FromMilliseconds(1300), "3000 bytes at 2000 bytes/s take about 1.5 s");
+        }
+
+        // ------------------------------------------------------------------ G. content types and generated code
+
+        private static string? Header(string request, string name) =>
+            request.Split(new[] { "\r\n" }, StringSplitOptions.None)
+                .FirstOrDefault(l => l.StartsWith(name + ":", StringComparison.OrdinalIgnoreCase));
+
+        [Fact]
+        public async Task BinaryData_KeepsTheExplicitContentType()
+        {
+            using var server = new RawReplyServer(Ok);
+            var options = new CurlOptions
+            {
+                Url = server.Url("/upload"),
+                Method = "POST",
+                BinaryData = new byte[] { 0x89, 0x50, 0x4E, 0x47 },
+                Headers = new System.Collections.Generic.Dictionary<string, string> { ["content-type"] = "image/png" },
+            };
+
+            await Curl.ExecuteAsync(options);
+
+            Header(server.Requests.Single(), "Content-Type").Should().Be("Content-Type: image/png");
+        }
+
+        [Fact]
+        public async Task UploadFile_KeepsTheExplicitContentType_AndSendsNoneOtherwise()
+        {
+            File.WriteAllBytes(P("blob.bin"), new byte[] { 1, 2, 3 });
+            using var server = new RawReplyServer(Ok);
+
+            await Curl.ExecuteAsync($"curl -T {Q(P("blob.bin"))} -H \"Content-Type: application/octet-stream\" {server.Url("/a/")}");
+            await Curl.ExecuteAsync($"curl -T {Q(P("blob.bin"))} {server.Url("/b/")}");
+
+            Header(server.Requests[0], "Content-Type").Should().Be("Content-Type: application/octet-stream");
+            Header(server.Requests[1], "Content-Type").Should().BeNull("curl sends no Content-Type for -T unless -H gives one");
+        }
+
+        [Fact]
+        public async Task DataWithAnUnparsableContentType_IsSentVerbatim_NotARawFormatException()
+        {
+            using var server = new RawReplyServer(Ok);
+            var options = new CurlOptions
+            {
+                Url = server.Url("/"),
+                Method = "POST",
+                Data = "a=1",
+                Headers = new System.Collections.Generic.Dictionary<string, string> { ["Content-Type"] = "weird type;;" },
+            };
+
+            await Curl.ExecuteAsync(options);
+
+            Header(server.Requests.Single(), "Content-Type").Should().Be("Content-Type: weird type;;");
+        }
+
+        [Fact]
+        public void ToHttpClient_WithoutL_TurnsAutoRedirectOff()
+        {
+            var code = Curl.ToHttpClient("curl https://example.com/old");
+
+            code.Should().Contain("AllowAutoRedirect = false").And.Contain("new HttpClient(handler)");
+            code.Should().NotContain("AllowAutoRedirect = true");
+        }
+
+        [Fact]
+        public void ToHttpClient_WithL_FollowsRedirects()
+        {
+            var code = Curl.ToHttpClient("curl -L --max-redirs 5 https://example.com/old");
+
+            code.Should().Contain("AllowAutoRedirect = true").And.Contain("MaxAutomaticRedirections = 5");
+            code.Should().NotContain("AllowAutoRedirect = false");
+        }
+
         // ------------------------------------------------------------------ C. -w %{json}
 
         [Fact]

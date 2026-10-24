@@ -1168,7 +1168,9 @@ namespace CurlDotNet
         /// </summary>
         /// <remarks>
         /// <para>The generated code covers the method, URL, headers, body, basic credentials (<c>-u</c>), proxy
-        /// (<c>-x</c>), <c>-k</c> and <c>-L</c>; options with no <c>HttpClient</c> equivalent are left out. Nothing is
+        /// (<c>-x</c>), <c>-k</c> and <c>-L</c>; options with no <c>HttpClient</c> equivalent are left out. Because
+        /// <c>HttpClient</c> follows redirects by default and curl does not, a command without <c>-L</c> produces a handler
+        /// with <c>AllowAutoRedirect = false</c>, so the generated code sees the same 3xx response curl would. Nothing is
         /// sent. The output contains any password or token from the command in clear text, so do not log it.</para>
         /// <para>Example: <c>string code = Curl.ToHttpClient("curl -X POST -H 'Content-Type: application/json' -d '{\"a\":1}' https://api.example.com");</c>
         /// returns code that builds an <c>HttpRequestMessage(HttpMethod.Post, ...)</c> with a <c>StringContent</c> body.</para>
