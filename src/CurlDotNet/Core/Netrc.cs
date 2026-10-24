@@ -34,7 +34,6 @@ namespace CurlDotNet.Core
     /// <summary>Reads curl's .netrc format and picks the credentials for a host.</summary>
     internal static class Netrc
     {
-        private const string DocsUrl = "https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/index.md";
 
         /// <summary>
         /// The credentials a request to <paramref name="uri"/> uses when <c>-n</c>/<c>--netrc-optional</c>
@@ -229,8 +228,10 @@ namespace CurlDotNet.Core
             var tokens = new List<string>();
             var lines = text.Replace("\r\n", "\n").Split('\n');
             var inMacro = false;
-            foreach (var line in lines)
+            for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
             {
+                var line = lines[lineIndex];
+                var lineNumber = lineIndex + 1;
                 if (inMacro)
                 {
                     if (line.Trim().Length == 0)
@@ -278,8 +279,10 @@ namespace CurlDotNet.Core
                         if (!closed)
                         {
                             throw new CurlReadErrorException(path,
-                                $"The .netrc file \"{path}\" has a quoted value without its closing quote (\"). " +
-                                "Close the quote, or remove the quotes around values that contain no spaces. See " + DocsUrl,
+                                CurlException.Compose(
+                                    $"The .netrc file \"{path}\" has a quoted value without its closing quote (\") on line {lineNumber}.",
+                                    "Close the quote, or remove the quotes around values that contain no spaces; a valid entry looks like: machine api.example.com login alice password \"two words\".",
+                                    DocLinks.HowToBasicAuth),
                                 command);
                         }
                         token = sb.ToString();

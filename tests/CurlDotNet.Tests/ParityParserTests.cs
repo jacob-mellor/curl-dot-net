@@ -310,7 +310,7 @@ namespace CurlDotNet.Tests
             var ex = Assert.Throws<CurlException>(() => _parser.Parse("curl https://example.com -H"));
 
             ex.CurlErrorCode.Should().Be(2);
-            ex.Message.Should().Contain("-H").And.Contain("docs/exceptions");
+            ex.Message.Should().Contain("-H").And.Contain("See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/");
         }
 
         #endregion
@@ -449,7 +449,7 @@ namespace CurlDotNet.Tests
             var ex = Assert.Throws<CurlReadErrorException>(() => _parser.Parse("curl -T /no/such/file.bin http://example.com/"));
 
             ex.CurlErrorCode.Should().Be(26);
-            ex.Message.Should().Contain("does not exist").And.Contain("docs/exceptions");
+            ex.Message.Should().Contain("does not exist").And.Contain("See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/");
         }
 
         [Theory]

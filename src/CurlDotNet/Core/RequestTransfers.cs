@@ -102,9 +102,12 @@ namespace CurlDotNet.Core
             if (transfers.Count == 0)
             {
                 throw new CurlInvalidCommandException(
-                    "No URL specified in command. Add the URL to fetch (for example \"curl https://example.com\"). " +
-                    "If the command has one, a quote that is never closed may have swallowed it, or the command was written for a " +
-                    "different shell: see " + FlavorDocs + " and https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/url-errors.md",
+                    CurlException.Compose(
+                        $"No URL specified in command \"{ErrorText.Preview(MaskCredentials(originalCommand), 120)}\": every word was read as an option or an option value.",
+                        "Add the URL to fetch, for example \"curl https://example.com\". If the command has one, an option that takes a value may have swallowed it " +
+                        "(-H, -d, -o and -u need a value right after them), a quote may never be closed, or the command was written for another shell " +
+                        "(pass the matching CurlFlavor, such as CurlFlavor.WindowsCmd or CurlFlavor.PowerShell).",
+                        DocLinks.HowToFlavors),
                     "URL", originalCommand);
             }
 
@@ -143,6 +146,16 @@ namespace CurlDotNet.Core
                     AddUrl(context, url);
                 }
             }
+        }
+
+        private static readonly Regex SecretArgument = new Regex(
+            @"(?<flag>(?:^|\s)(?:-u|--user|-U|--proxy-user|--oauth2-bearer)\s+)(?<value>'[^']*'|""[^""]*""|\S+)|(?<flag>(?:Authorization|Cookie):\s*)(?<value>[^'""\r\n]+)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        /// <summary>The command with -u/-U/--oauth2-bearer values and Authorization/Cookie header values replaced by ***.</summary>
+        internal static string MaskCredentials(string? command)
+        {
+            return string.IsNullOrEmpty(command) ? string.Empty : SecretArgument.Replace(command, m => m.Groups["flag"].Value + "***");
         }
 
         /// <summary>Reads a text file named by an option, one line per entry; failures become exit code 26.</summary>
@@ -320,9 +333,10 @@ namespace CurlDotNet.Core
             {
                 throw new CurlReadErrorException(
                     file,
-                    $"-T {file} means \"upload standard input\", which CurlDotNet does not support. " +
-                    "Save the content to a file and use -T path/to/file, or send it inline with --data-binary. " +
-                    "See " + RequestShaping.DocsBase + "index.md",
+                    CurlException.Compose(
+                        $"-T {file} means \"upload standard input\" in curl, and CurlDotNet runs inside your process, which has no standard input to read.",
+                        "Save the content to a file and use -T path/to/file (for example -T backup.tar.gz), or send it inline with --data-binary 'text'.",
+                        DocLinks.HowToUpload),
                     options.OriginalCommand);
             }
 
@@ -359,9 +373,11 @@ namespace CurlDotNet.Core
             {
                 throw new CurlDotNet.Exceptions.CurlBadFunctionArgumentException(
                     "--continue-at",
-                    "HTTP upload cannot be resumed: -C/--continue-at resumes downloads, but this command also sends a body " +
-                    "(-d, -F or -T). Remove -C to send the whole body, or use -r/--range to fetch part of a download. " +
-                    "See " + RequestShaping.DocsBase + "http-errors.md",
+                    CurlException.Compose(
+                        $"HTTP upload cannot be resumed: -C/--continue-at {(options.ResumeFrom.Value < 0 ? "-" : options.ResumeFrom.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))} resumes downloads, " +
+                        $"but this command also sends a body to {ErrorText.SafeUrl(options.Url)} (-d, -F or -T).",
+                        "Remove -C to send the whole body again, or, to fetch only part of a download, drop the body and use -r/--range (for example -r 1000-).",
+                        DocLinks.HowToDownload),
                     options.OriginalCommand);
             }
         }
@@ -382,9 +398,12 @@ namespace CurlDotNet.Core
                 if (recorded.Key == "--no-clobber" || recorded.Key == "--remove-on-error")
                 {
                     throw new CurlException(
-                        $"--continue-at is mutually exclusive with {recorded.Key}: resuming appends to an existing file, " +
-                        $"which {recorded.Key} is meant to protect. Remove one of the two options. " +
-                        "See " + RequestShaping.DocsBase + "index.md",
+                        CurlException.Compose(
+                            $"--continue-at is mutually exclusive with {recorded.Key}: resuming appends to an existing file, which {recorded.Key} is meant to protect.",
+                            recorded.Key == "--no-clobber"
+                                ? "Remove -C to download to a new numbered file, or remove --no-clobber to resume into the existing file."
+                                : "Remove -C, or remove --remove-on-error so a failed resume keeps the partial file for the next attempt.",
+                            DocLinks.HowToDownload),
                         2,
                         options.OriginalCommand);
                 }
