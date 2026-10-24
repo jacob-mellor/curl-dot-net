@@ -795,11 +795,21 @@ namespace CurlDotNet.Core
         /// <summary>
         /// Adds the scheme curl would guess for a URL given without one: <c>ftp.example.com</c>
         /// becomes <c>ftp://ftp.example.com</c>, anything else becomes <c>http://...</c>.
-        /// URLs that already carry a scheme are returned unchanged.
+        /// URLs that already carry a scheme are returned unchanged, except that curl's tolerance for
+        /// a single slash (<c>http:/example.com/</c>) is applied.
         /// </summary>
         /// <param name="url">The URL as typed on the command line.</param>
         /// <returns>A URL with a scheme.</returns>
         public static string NormalizeUrl(string url)
+        {
+            return NormalizeUrl(url, null);
+        }
+
+        /// <summary>
+        /// Like <see cref="NormalizeUrl(string)"/>, with the scheme <c>--proto-default</c> named for URLs
+        /// that have none (no <c>ftp.</c> guessing then, as in curl).
+        /// </summary>
+        internal static string NormalizeUrl(string url, string? defaultScheme)
         {
             if (string.IsNullOrEmpty(url))
             {
@@ -810,6 +820,18 @@ namespace CurlDotNet.Core
             if (Regex.IsMatch(trimmed, @"^[A-Za-z][A-Za-z0-9+.-]*://"))
             {
                 return trimmed;
+            }
+
+            // curl accepts "http:/host/path" (one slash) for its own schemes
+            var oneSlash = Regex.Match(trimmed, @"^(https?|ftps?):/(?!/)", RegexOptions.IgnoreCase);
+            if (oneSlash.Success)
+            {
+                return oneSlash.Groups[1].Value + "://" + trimmed.Substring(oneSlash.Length);
+            }
+
+            if (!string.IsNullOrEmpty(defaultScheme))
+            {
+                return defaultScheme + "://" + trimmed;
             }
 
             if (trimmed.StartsWith("ftp.", StringComparison.OrdinalIgnoreCase))
@@ -1549,6 +1571,19 @@ namespace CurlDotNet.Core
                     options.UrlQueryParts.Add(value);
                     return true;
 
+                case "--proto-default":
+                    options.DefaultProtocol = value.Trim();
+                    return true;
+
+                case "--etag-compare":
+                    // curl reads the first line of the file now; a missing or empty file compares against ""
+                    var etag = File.Exists(value)
+                        ? ReadAllLinesForOption(value, "--etag-compare", options.OriginalCommand).FirstOrDefault()?.Trim()
+                        : null;
+                    options.Headers["If-None-Match"] = string.IsNullOrEmpty(etag) ? "\"\"" : etag!;
+                    options.ImplicitHeaders.Add("If-None-Match");
+                    return true;
+
                 case "--limit-rate":
                 case "--speed-limit":
                     options.SpeedLimit = ParseSize(value);
@@ -1742,10 +1777,11 @@ namespace CurlDotNet.Core
             var colonIndex = header.IndexOf(':');
             var semicolonIndex = header.IndexOf(';');
 
-            if (semicolonIndex > 0 && (colonIndex < 0 || semicolonIndex < colonIndex))
+            if (semicolonIndex > 0 && colonIndex < 0)
             {
-                // "Name;" sends an empty header, but only when nothing but whitespace follows the semicolon
-                if (header.Substring(semicolonIndex + 1).Trim().Length == 0)
+                // "Name;" sends an empty header, but only when the semicolon ends the argument
+                // ("X-Test;  " and "X-Test;junk" are not headers at all, as in curl's http.c)
+                if (semicolonIndex == header.Length - 1)
                 {
                     var emptyName = header.Substring(0, semicolonIndex).Trim();
                     if (emptyName.Length > 0)
@@ -1897,11 +1933,12 @@ namespace CurlDotNet.Core
         /// <summary>
         /// Applies curl's <c>--data-urlencode</c> rules to one argument:
         /// <c>content</c>, <c>=content</c>, <c>name=content</c>, <c>@file</c> and <c>name@file</c>.
-        /// Only the content part is percent-encoded; the name and the <c>=</c> separator are kept.
+        /// Only the content part is encoded; the name and the <c>=</c> separator are kept. Like curl 8,
+        /// spaces become <c>+</c> and every other byte outside <c>A-Z a-z 0-9 - . _ ~</c> becomes <c>%XX</c>.
         /// </summary>
         /// <param name="value">The raw argument following <c>--data-urlencode</c>.</param>
         /// <returns>The encoded <c>name=value</c> pair (or bare encoded content).</returns>
-        /// <exception cref="CurlException">Thrown with exit code 26 when a referenced file cannot be read.</exception>
+        /// <exception cref="CurlReadErrorException">Thrown with exit code 26 when a referenced file cannot be read.</exception>
         private static string UrlEncodeDataArgument(string value)
         {
             if (string.IsNullOrEmpty(value))
@@ -1915,7 +1952,7 @@ namespace CurlDotNet.Core
             {
                 var name = value.Substring(0, eq);
                 var content = value.Substring(eq + 1);
-                return name.Length > 0 ? name + "=" + PercentEncode(content) : PercentEncode(content);
+                return name.Length > 0 ? name + "=" + FormEncode(content) : FormEncode(content);
             }
 
             var at = value.IndexOf('@');
@@ -1923,20 +1960,20 @@ namespace CurlDotNet.Core
             {
                 var name = value.Substring(0, at);
                 var path = value.Substring(at + 1);
-                string fileContent;
-                try
-                {
-                    fileContent = System.IO.File.ReadAllText(path);
-                }
-                catch (Exception ex)
-                {
-                    throw new CurlException($"Failed to open {path}: {ex.Message}", 26);
-                }
-
-                return name.Length > 0 ? name + "=" + PercentEncode(fileContent) : PercentEncode(fileContent);
+                var fileContent = Encoding.UTF8.GetString(RequestShaping.ReadFileForOption(path, "--data-urlencode @file", null));
+                return name.Length > 0 ? name + "=" + FormEncode(fileContent) : FormEncode(fileContent);
             }
 
-            return PercentEncode(value);
+            return FormEncode(value);
+        }
+
+        /// <summary>
+        /// <see cref="PercentEncode"/> with spaces as <c>+</c>, the encoding curl's <c>--data-urlencode</c>
+        /// and <c>--url-query</c> use.
+        /// </summary>
+        private static string FormEncode(string value)
+        {
+            return PercentEncode(value).Replace("%20", "+");
         }
 
         /// <summary>

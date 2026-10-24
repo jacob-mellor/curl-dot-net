@@ -772,6 +772,9 @@ namespace CurlDotNet.Core
         /// <summary>Header names in <see cref="Headers"/> that an option such as <c>--json</c> added, which a later <c>-H</c> replaces.</summary>
         internal HashSet<string> ImplicitHeaders { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>The scheme <c>--proto-default</c> gives URLs written without one.</summary>
+        internal string? DefaultProtocol { get; set; }
+
         /// <summary><c>--url-query</c> arguments, applied to <see cref="Url"/> when the transfer is finished.</summary>
         internal List<string> UrlQueryParts { get; } = new List<string>();
 
@@ -825,6 +828,7 @@ namespace CurlDotNet.Core
             clone.GlobMatches.AddRange(GlobMatches);
             clone.DataParts.AddRange(DataParts);
             clone.UrlQueryParts.AddRange(UrlQueryParts);
+            clone.DefaultProtocol = DefaultProtocol;
             clone.ImplicitHeaders.UnionWith(ImplicitHeaders);
             clone.CredentialsFromUrl = CredentialsFromUrl;
             clone.RequestKinds.AddRange(RequestKinds);

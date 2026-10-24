@@ -382,7 +382,7 @@ namespace CurlDotNet.Tests
         {
             var options = _parser.Parse("curl -G -d a=1 --data-urlencode \"b=x y\" https://example.com/p?q=1");
 
-            options.Url.Should().Be("https://example.com/p?q=1&a=1&b=x%20y");
+            options.Url.Should().Be("https://example.com/p?q=1&a=1&b=x+y");
             options.Data.Should().BeNull();
             options.Method.Should().BeNull();
 
@@ -733,6 +733,71 @@ namespace CurlDotNet.Tests
             options.Headers["Content-Type"].Should().Be("application/xml");
         }
 
+        [Fact]
+        public void DataUrlencode_EncodesSpacesAsPlus_LikeCurl8()
+        {
+            _parser.Parse("curl --data-urlencode \"a=b c~*\" http://example.com/").Data.Should().Be("a=b+c~%2A");
+        }
+
+        [Theory]
+        [InlineData("X-Spaced;  ")]
+        [InlineData("X-Junk;junk")]
+        public void SemicolonHeader_MustEndWithTheSemicolon(string header)
+        {
+            var options = _parser.Parse($"curl -H {Q(header)} http://example.com/");
+
+            options.EmptyHeaders.Should().BeEmpty();
+            options.Headers.Should().BeEmpty();
+        }
+
+        [Theory]
+        [InlineData("http:/example.com/a", "http://example.com/a")]
+        [InlineData("https:/example.com/a", "https://example.com/a")]
+        public void SingleSlashScheme_IsRepaired(string url, string expected)
+        {
+            _parser.Parse($"curl {url}").Url.Should().Be(expected);
+        }
+
+        [Fact]
+        public void ProtoDefault_IsUsedForSchemelessUrls()
+        {
+            _parser.Parse("curl --proto-default https ftp.example.com/x").Url.Should().Be("https://ftp.example.com/x");
+            _parser.Parse("curl ftp.example.com/x").Url.Should().Be("ftp://ftp.example.com/x");
+        }
+
+        [Fact]
+        public async Task EtagCompare_SendsIfNoneMatch()
+        {
+            var file = WriteFile("etag.txt", "\"21025-dc7-39462498\"\n");
+
+            var (request, _) = await SendAsync(_parser.Parse($"curl --etag-compare {Q(file)} http://example.com/"));
+            var (blank, _) = await SendAsync(_parser.Parse("curl --etag-compare /no/such/etag http://example.com/"));
+
+            HeaderValue(request, "If-None-Match").Should().Be("\"21025-dc7-39462498\"");
+            HeaderValue(blank, "If-None-Match").Should().Be("\"\"");
+        }
+
+        [Fact]
+        public async Task ContinueAtDash_ResumesFromTheExistingOutputFile()
+        {
+            var output = WriteFile("partial.bin", new string('x', 40));
+
+            var options = _parser.Parse($"curl -C - -o {Q(output)} http://example.com/file");
+            var (request, _) = await SendAsync(new CurlOptions { Url = options.Url, Range = options.Range });
+
+            options.ResumeFrom.Should().Be(40);
+            HeaderValue(request, "Range").Should().Be("bytes=40-");
+        }
+
+        [Theory]
+        [InlineData("--no-clobber")]
+        [InlineData("--remove-on-error")]
+        public void ContinueAt_IsExclusiveWithOutputProtection(string option)
+        {
+            Assert.Throws<CurlException>(() => _parser.Parse($"curl {option} -C 1 -o out.txt http://example.com/"))
+                .CurlErrorCode.Should().Be(2);
+        }
+
         #endregion
 
         #region Shell emulation
@@ -898,6 +963,15 @@ namespace CurlDotNet.Tests
 
             options.AdditionalTransfers.Should().BeEmpty();
             options.Url.Should().Be("http://example.com/{a,b}");
+        }
+
+        [Fact]
+        public void EmptyBrackets_AreNotGlobs()
+        {
+            var options = _parser.Parse("curl \"http://example.com/we/want/[]/page{}\"");
+
+            options.AdditionalTransfers.Should().BeEmpty();
+            options.Url.Should().Be("http://example.com/we/want/[]/page{}");
         }
 
         [Fact]

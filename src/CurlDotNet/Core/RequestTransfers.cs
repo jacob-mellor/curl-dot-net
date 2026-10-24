@@ -223,7 +223,7 @@ namespace CurlDotNet.Core
         private static void FinishTransfer(CurlOptions options, string url, List<string> matches, Dictionary<string, string> named,
             bool hasOutputSlot, string? outputSlot, string? upload, TransferGroup group, ref bool methodSpecified)
         {
-            options.Url = NormalizeUrl(url);
+            options.Url = NormalizeUrl(url, options.DefaultProtocol);
             options.GlobMatches.Clear();
             options.GlobMatches.AddRange(matches);
 
@@ -258,6 +258,8 @@ namespace CurlDotNet.Core
 
             ValidateRequestKinds(options);
             ValidateResume(options);
+            ValidateExclusiveWithResume(options, group);
+            ApplyAutoResume(options);
             RequestShaping.BuildRequestBody(options);
             ShapeUrl(options);
 
@@ -320,6 +322,57 @@ namespace CurlDotNet.Core
                     "See " + RequestShaping.DocsBase + "http-errors.md",
                     43,
                     options.OriginalCommand);
+            }
+        }
+
+        /// <summary>
+        /// curl refuses <c>-C</c> together with <c>--no-clobber</c> or <c>--remove-on-error</c>
+        /// ("--continue-at is mutually exclusive with ...", exit code 2).
+        /// </summary>
+        private static void ValidateExclusiveWithResume(CurlOptions options, TransferGroup group)
+        {
+            if (options.ResumeFrom == null)
+            {
+                return;
+            }
+
+            foreach (var recorded in group.Recorded)
+            {
+                if (recorded.Key == "--no-clobber" || recorded.Key == "--remove-on-error")
+                {
+                    throw new CurlException(
+                        $"--continue-at is mutually exclusive with {recorded.Key}: resuming appends to an existing file, " +
+                        $"which {recorded.Key} is meant to protect. Remove one of the two options. " +
+                        "See " + RequestShaping.DocsBase + "index.md",
+                        2,
+                        options.OriginalCommand);
+                }
+            }
+        }
+
+        /// <summary>
+        /// <c>-C -</c>: resume from the size of the output file that already exists, by asking for
+        /// <c>Range: bytes=SIZE-</c>. Nothing is resumed when the file is missing or empty.
+        /// </summary>
+        private static void ApplyAutoResume(CurlOptions options)
+        {
+            if (options.ResumeFrom != -1 || string.IsNullOrEmpty(options.OutputFile) || options.OutputFile == "-")
+            {
+                return;
+            }
+
+            try
+            {
+                var info = new FileInfo(options.OutputFile);
+                if (info.Exists && info.Length > 0)
+                {
+                    options.ResumeFrom = info.Length;
+                    options.Range = info.Length + "-";
+                }
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            {
+                // An unusable output path is reported when the response is written
             }
         }
 
@@ -445,7 +498,7 @@ namespace CurlDotNet.Core
                 return value.Substring(1);
             }
 
-            string Encode(string text) => PercentEncode(text).Replace("%20", "+");
+            static string Encode(string text) => FormEncode(text);
 
             // Like --data-urlencode, curl looks for '=' first; only without one does '@' mean "read a file"
             var eq = value.IndexOf('=');

@@ -246,6 +246,13 @@ namespace CurlDotNet.Core
                     continue;
                 }
 
+                // curl leaves empty "[]" and "{}" alone
+                if ((c == '{' || c == '[') && i + 1 < text.Length && text[i + 1] == (c == '{' ? '}' : ']'))
+                {
+                    literal.Append(c).Append(text[++i]);
+                    continue;
+                }
+
                 if (c == '{')
                 {
                     FlushLiteral();
