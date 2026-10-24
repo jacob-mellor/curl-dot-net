@@ -1,5 +1,5 @@
 ---
 title: "Getting Started"
-redirect_to: README.html
+redirect_to: /getting-started/README.html
 sitemap: false
 ---

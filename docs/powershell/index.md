@@ -1,5 +1,5 @@
 ---
 title: "Using CurlDotNet from PowerShell and .NET scripts"
-redirect_to: README.html
+redirect_to: /powershell/README.html
 sitemap: false
 ---

@@ -1,5 +1,5 @@
 ---
 title: "How to install CurlDotNet for PowerShell and C#"
-redirect_to: README.html
+redirect_to: /powershell/install-curldotnet-powershell/README.html
 sitemap: false
 ---

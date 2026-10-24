@@ -1,5 +1,5 @@
 ---
 title: "How CurlDotNet works"
-redirect_to: README.html
+redirect_to: /how-to/how-curldotnet-works/README.html
 sitemap: false
 ---
