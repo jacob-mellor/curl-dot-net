@@ -31,7 +31,7 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>9.8.0</Version>
+    <Version>9.8.1</Version>
     <AssemblyVersion>9.7.0.0</AssemblyVersion>
     <FileVersion>9.7.0.0</FileVersion>
 
@@ -80,7 +80,9 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 9.8.0 - curl parity release: tested against curl's own test suite
+    <PackageReleaseNotes>Version 9.8.1 - documentation site navigation fix (folder URLs redirect to their pages); library unchanged since 9.8.0
+
+Version 9.8.0 - curl parity release: tested against curl's own test suite
 
 PARITY: tests/CurlDotNet.CurlSuite replays 1,092 HTTP tests from curl's own suite against a local stub
    server and compares the exact bytes on the wire. 607 of 620 runnable tests pass (97.9%), 216 byte-exact;
