@@ -58,7 +58,10 @@ namespace CurlDotNet.Core
         /// </summary>
         public HttpHandler(HttpClient httpClient, bool ownsHttpClient = false)
         {
-            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient), CurlException.Compose(
+                "The HttpClient passed to CurlDotNet is null.",
+                "Pass an HttpClient instance (for example one from IHttpClientFactory), or use the constructor without an HttpClient to let CurlDotNet create its own.",
+                DocLinks.HowToAspNetCore));
             _ownsHttpClient = ownsHttpClient;
             _redirectHandler = new RedirectHandler();
         }
@@ -98,6 +101,7 @@ namespace CurlDotNet.Core
             // bytes to it; header-only attempts (-i, -f) stay in the file
             var state = new AttemptState();
             var toStdout = string.IsNullOrEmpty(options.OutputFile) && !options.UseRemoteFileName;
+            string? lastFailure = null;
             for (var attempt = 0; ; attempt++)
             {
                 var retriesLeft = options.Retry - attempt;
@@ -116,6 +120,7 @@ namespace CurlDotNet.Core
                 }
                 catch (CurlException ex)
                 {
+                    lastFailure = ex.WhatHappened;
                     if (retriesLeft > 0)
                     {
                         if (ex is CurlOperationTimeoutException)
@@ -175,7 +180,11 @@ namespace CurlDotNet.Core
                     {
                         result.Body = earlierStdout.ToString();
                     }
-                    return result ?? throw new CurlOperationTimeoutException(options.RetryMaxTime, options.OriginalCommand);
+                    var limit = options.RetryMaxTime.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    return result ?? throw new CurlOperationTimeoutException(options.RetryMaxTime, CurlException.Compose(
+                        $"--retry-max-time {limit} seconds ran out after {attempt + 1} attempt(s) to {ErrorText.SafeUrl(options.Url)}; the last attempt failed: {lastFailure ?? reason}",
+                        $"Raise --retry-max-time (seconds), or fix what makes every attempt fail; the next retry would have waited {delaySeconds.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} seconds.",
+                        DocLinks.Timeout), options.OriginalCommand);
                 }
 
                 await Task.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken);
@@ -283,9 +292,10 @@ namespace CurlDotNet.Core
                 if (options.ResumeFrom.HasValue && options.ResumeFrom.Value != 0 && request.Content != null)
                 {
                     // curl cannot resume an upload over HTTP (exit 43) and refuses to try
-                    throw new CurlBadFunctionArgumentException("-C/--continue-at",
-                        $"-C/--continue-at {(options.ResumeFrom.Value < 0 ? "-" : options.ResumeFrom.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))} cannot be combined with a request body (-d, -F or -T): resuming an HTTP upload is not supported. " +
-                        "Send the whole body again without -C.", options.OriginalCommand);
+                    throw new CurlBadFunctionArgumentException("-C/--continue-at", CurlException.Compose(
+                        $"-C/--continue-at {(options.ResumeFrom.Value < 0 ? "-" : options.ResumeFrom.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))} cannot be combined with a request body (-d, -F or -T) for {ErrorText.SafeUrl(options.Url)}: resuming an HTTP upload is not supported",
+                        "Send the whole body again without -C; -C only resumes downloads (it asks the server for the bytes after the ones already in the -o file).",
+                        DocLinks.HowToUpload), options.OriginalCommand);
                 }
 
                 if (trace != null)
@@ -352,30 +362,39 @@ namespace CurlDotNet.Core
                 }
                 throw;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException canceled)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
                     trace?.Error("Request was canceled by the caller before a response was received.");
-                    throw new CurlAbortedByCallbackException(options.OriginalCommand);
+                    throw new CurlAbortedByCallbackException(CurlException.Compose(
+                        $"The request to {ErrorText.SafeUrl(transfer.CurrentRequest?.RequestUri?.AbsoluteUri ?? options.Url)} was cancelled by the caller's CancellationToken before the transfer finished",
+                        "This is expected when you cancel on purpose (catch OperationCanceledException); otherwise check what cancels the token, " +
+                        "for example CancelAfter, an ASP.NET Core RequestAborted token or a disposed CancellationTokenSource.",
+                        DocLinks.TutorialCancellation), options.OriginalCommand, canceled);
                 }
 
                 // Only our own linked token can have fired: this is --max-time (exit code 28), like curl
                 var received = transfer.LastExchange?.BytesReceived ?? 0;
+                var host = transfer.CurrentRequest?.RequestUri?.Host ?? ErrorText.SafeUrl(options.Url);
                 if (timeoutSeconds <= 0)
                 {
                     // no --max-time: HttpClient gave up on its own (for example a stalled TLS handshake)
                     trace?.Error("HttpClient cancelled the request without a --max-time limit.");
-                    throw new CurlOperationTimeoutException(0,
-                        $"The transfer to {transfer.CurrentRequest?.RequestUri?.Host ?? options.Url} was abandoned by HttpClient's internal timeout after {received} bytes " +
-                        "(the server stopped answering, often during a TLS handshake). Check that the port speaks the protocol of the URL; set -m/--max-time to control the limit yourself.",
-                        options.OriginalCommand);
+                    throw new CurlOperationTimeoutException(0, CurlException.Compose(
+                        $"Operation timed out: HttpClient abandoned the transfer to {host} after {received} bytes received, although no -m/--max-time was set",
+                        "This happens with an HttpClient you passed in whose Timeout is shorter than the transfer (new HttpClient() defaults to 100 seconds): " +
+                        "set its Timeout to Timeout.InfiniteTimeSpan and limit the transfer with -m/--max-time instead. A server that stops answering " +
+                        "during the TLS handshake (wrong port for https://) looks the same.",
+                        DocLinks.Timeout), options.OriginalCommand);
                 }
                 trace?.Error($"Operation timed out after {timeoutSeconds} seconds.");
-                throw new CurlOperationTimeoutException(timeoutSeconds,
-                    $"Operation timed out after {(long)(timeoutSeconds * 1000)} milliseconds with {received} bytes received " +
-                    $"(-m/--max-time {timeoutSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture)}). Raise --max-time for slow servers or large downloads.",
-                    options.OriginalCommand);
+                var limit = timeoutSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                throw new CurlOperationTimeoutException(timeoutSeconds, CurlException.Compose(
+                    $"Operation timed out after {(long)(timeoutSeconds * 1000)} milliseconds with {received} bytes received from {host} (-m/--max-time {limit})",
+                    $"-m/--max-time {limit} limits the whole transfer in seconds (connect, server think time and download); raise it for slow servers or " +
+                    "large downloads, or use --connect-timeout to limit only the connection phase.",
+                    DocLinks.Timeout), options.OriginalCommand);
             }
             catch (Exception ex) when (ex is HttpRequestException || ex is IOException)
             {
@@ -399,7 +418,14 @@ namespace CurlDotNet.Core
                 {
                     throw mapped;
                 }
-                throw;
+
+                // Translate maps every HttpRequestException/IOException; never let a raw one escape
+                var failedUri = transfer.CurrentRequest?.RequestUri;
+                throw new CurlReceiveErrorException(CurlException.Compose(
+                    $"Failure when receiving data from {failedUri?.Host ?? ErrorText.SafeUrl(options.Url)}: {ex.GetType().Name}: {ex.Message}",
+                    "The connection broke while the request was sent or the response was read; retry with --retry 3, " +
+                    "or inspect the exchange with -v or --trace-ascii - to see where it stopped.",
+                    DocLinks.Http), options.OriginalCommand);
             }
             catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException || ex is FormatException
                                        || ex is NotSupportedException || ex is System.ComponentModel.Win32Exception)
@@ -709,6 +735,14 @@ namespace CurlDotNet.Core
             // Apply AWS SigV4 signing after content is set (signing requires payload hash)
             if (options.AwsSigV4 != null && options.Credentials != null && string.IsNullOrEmpty(options.OAuth2Bearer))
             {
+                if (string.IsNullOrEmpty(options.Credentials.UserName) || string.IsNullOrEmpty(options.Credentials.Password))
+                {
+                    throw new CurlBadFunctionArgumentException("--aws-sigv4", CurlException.Compose(
+                        $"--aws-sigv4 {options.AwsSigV4.Provider1} needs both an access key and a secret key, but -u/--user gave " +
+                        (string.IsNullOrEmpty(options.Credentials.UserName) ? "no access key" : "no secret key") + $" for {ErrorText.SafeUrl(options.Url)}",
+                        "Pass the keys as -u ACCESS_KEY_ID:SECRET_ACCESS_KEY (for temporary credentials also add -H \"x-amz-security-token: TOKEN\").",
+                        DocLinks.CookbookAuthSchemes), options.OriginalCommand);
+                }
                 AwsSigV4Signer.SignRequest(
                     request,
                     options.AwsSigV4,
@@ -793,7 +827,18 @@ namespace CurlDotNet.Core
                     // Read as raw bytes to preserve binary data integrity.
                     // File.ReadAllText() corrupts binary files by decoding invalid UTF-8
                     // sequences as replacement characters (U+FFFD) then re-encoding.
-                    var fileBytes = File.ReadAllBytes(filePath);
+                    byte[] fileBytes;
+                    try
+                    {
+                        fileBytes = File.ReadAllBytes(filePath);
+                    }
+                    catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                    {
+                        throw new CurlReadErrorException(filePath, CurlException.Compose(
+                            $"Failed to open/read local data from file '{filePath}' given with -d @{filePath} ({ex.GetType().Name}: {ex.Message})",
+                            "Check that the file exists, is not locked by another program and is readable by this process; use --data-raw if the @ is meant literally.",
+                            DocLinks.TutorialFormsAndData), options.OriginalCommand);
+                    }
                     var byteContent = new ByteArrayContent(fileBytes);
 
                     if (options.Headers.TryGetValue("Content-Type", out var fileContentType))
@@ -892,7 +937,10 @@ namespace CurlDotNet.Core
             else if (bodyError != null)
             {
                 failure = TransportErrors.Translate(bodyError, transfer, readingBody: true)
-                          ?? new CurlReceiveErrorException(bodyError.Message, command);
+                          ?? new CurlReceiveErrorException(CurlException.Compose(
+                              $"Failure when receiving data from {request.RequestUri?.Host}: the body broke off after {rawBody.Length} bytes ({bodyError.GetType().Name}: {bodyError.Message})",
+                              "The connection dropped while the response body was downloading; retry with --retry 3, or resume a download to a file with -C - -o FILE.",
+                              DocLinks.Http), command);
                 if (failure is CurlPartialFileException partial && partial.BytesExpected.HasValue
                     && (options.IgnoreContentLength || (options.Raw && finalHead?.GetHeader("Transfer-Encoding") != null)))
                 {

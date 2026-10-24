@@ -295,7 +295,7 @@ namespace CurlDotNet.Core
                     {
                         if (System.IO.File.Exists(target)) offset = new System.IO.FileInfo(target).Length;
                     }
-                    catch (System.IO.IOException)
+                    catch (Exception ex) when (ex is System.IO.IOException || ex is UnauthorizedAccessException)
                     {
                         offset = 0;
                     }
@@ -326,7 +326,7 @@ namespace CurlDotNet.Core
                     }
                 }
             }
-            catch (System.IO.IOException)
+            catch (Exception ex) when (ex is System.IO.IOException || ex is UnauthorizedAccessException)
             {
                 // unreadable: curl sends the blank ETag
             }

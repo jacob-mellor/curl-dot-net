@@ -316,7 +316,12 @@ namespace CurlDotNet.Core
 
             if (!Uri.TryCreate(text, UriKind.Absolute, out var uri) || string.IsNullOrEmpty(uri.Host))
             {
-                throw new CurlCouldntResolveProxyException(proxy, command);
+                // never print a proxy password: hide everything before the '@'
+                var at = proxy.LastIndexOf('@');
+                var shown = at >= 0 ? "***@" + proxy.Substring(at + 1) : proxy;
+                throw new CurlCouldntResolveProxyException(shown,
+                    "it is not a valid proxy address; write it as host, host:port or scheme://user:password@host:port (http, https, socks4, socks4a, socks5, socks5h)",
+                    command);
             }
 
             var scheme = uri.Scheme.ToLowerInvariant();

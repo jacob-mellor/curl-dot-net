@@ -79,7 +79,7 @@ namespace CurlDotNet.Core
                 // Handle output file (-o)
                 if (!string.IsNullOrEmpty(options.OutputFile))
                 {
-                    await WriteOutputAsync(options.OutputFile, textContent, binaryContent, cancellationToken);
+                    await WriteOutputAsync(options.OutputFile, textContent, binaryContent, options, "-o/--output", cancellationToken);
                     result.OutputFiles.Add(options.OutputFile);
                 }
                 else if (options.UseRemoteFileName)
@@ -90,7 +90,7 @@ namespace CurlDotNet.Core
                         remoteName = "curl-download";
                     }
                     var destination = Path.Combine(Directory.GetCurrentDirectory(), remoteName);
-                    await WriteOutputAsync(destination, textContent, binaryContent, cancellationToken);
+                    await WriteOutputAsync(destination, textContent, binaryContent, options, "-O/--remote-name", cancellationToken);
                     result.OutputFiles.Add(destination);
                 }
 
@@ -98,11 +98,15 @@ namespace CurlDotNet.Core
             }
             catch (UnauthorizedAccessException)
             {
-                throw new CurlFileCouldntReadException($"Permission denied: {filePath}");
+                // the message of this exception type names the file and says to check that it is readable
+                throw new CurlFileCouldntReadException(filePath, options.OriginalCommand);
             }
             catch (IOException ex)
             {
-                throw new CurlReadErrorException(filePath, ex.Message);
+                throw new CurlReadErrorException(filePath, CurlException.Compose(
+                    $"Couldn't read the file '{filePath}' named by {ErrorText.SafeUrl(options.Url)} ({ex.GetType().Name}: {ex.Message})",
+                    "Check that no other program holds the file locked and that the disk or network share is still available, then retry.",
+                    DocLinks.ErrorReference), options.OriginalCommand);
             }
         }
 
@@ -120,7 +124,34 @@ namespace CurlDotNet.Core
             return !Array.Exists(textExtensions, ext => ext == extension);
         }
 
-        private static async Task WriteOutputAsync(string destination, string? textContent, byte[]? binaryContent, CancellationToken cancellationToken)
+        /// <summary>
+        /// Writes the file:// content to the output file. A failure is a write error (exit 23) that names
+        /// the output path, never a read error of the source file.
+        /// </summary>
+        private static async Task WriteOutputAsync(string destination, string? textContent, byte[]? binaryContent, CurlOptions options, string what,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await WriteOutputCoreAsync(destination, textContent, binaryContent, cancellationToken).ConfigureAwait(false);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                throw new CurlWriteErrorException(destination, CurlException.Compose(
+                    $"Failed writing '{destination}' given with {what}: access denied ({ex.Message})",
+                    "Write somewhere this process may write (for example Path.GetTempPath()), or clear the file's read-only flag.",
+                    DocLinks.HowToDownload), options.OriginalCommand);
+            }
+            catch (IOException ex)
+            {
+                throw new CurlWriteErrorException(destination, CurlException.Compose(
+                    $"Failed writing '{destination}' given with {what}: {ex.Message}",
+                    "Check that the disk is not full, that no other program holds the file open, and that the path names a file rather than a folder.",
+                    DocLinks.HowToDownload), options.OriginalCommand);
+            }
+        }
+
+        private static async Task WriteOutputCoreAsync(string destination, string? textContent, byte[]? binaryContent, CancellationToken cancellationToken)
         {
             var directory = Path.GetDirectoryName(destination);
             if (!string.IsNullOrEmpty(directory))
