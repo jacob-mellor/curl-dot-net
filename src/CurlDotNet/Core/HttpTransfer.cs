@@ -118,6 +118,10 @@ namespace CurlDotNet.Core
             // redirects. A relative or empty value is not a URI, so it is added as a raw header here.
             var effective = hop;
             string? rawReferer = null;
+            if (hop.AutoReferer)
+            {
+                AutoReferer = true; // the parser already removed ";auto" from the value
+            }
             if (hop.Referer != null)
             {
                 var referer = hop.Referer;
@@ -175,7 +179,16 @@ namespace CurlDotNet.Core
             {
                 // --tr-encoding: ask for a compressed transfer-encoding (hop-by-hop, hence Connection: TE)
                 request.Headers.TryAddWithoutValidation("TE", "gzip");
-                request.Headers.Connection.Add("TE");
+                // a custom -H "Connection: x" gets ", TE" appended; an empty one (-H "Connection;") becomes just TE
+                var custom = request.Headers.TryGetValues("Connection", out var values)
+                    ? values.Where(v => !string.IsNullOrWhiteSpace(v)).ToList()
+                    : new List<string>();
+                request.Headers.Remove("Connection");
+                foreach (var value in custom)
+                {
+                    request.Headers.TryAddWithoutValidation("Connection", value);
+                }
+                request.Headers.TryAddWithoutValidation("Connection", "TE");
             }
 
             var settings = new TransportRequestSettings

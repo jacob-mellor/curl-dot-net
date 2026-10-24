@@ -806,6 +806,18 @@ namespace CurlDotNet.Core
         /// <summary><c>--out-null</c>: the response headers (<c>-i</c>) and body are read and discarded.</summary>
         internal bool DiscardOutput { get; set; }
 
+        /// <summary><c>-n</c>/<c>--netrc</c>, <c>--netrc-optional</c>: whether credentials come from a .netrc file.</summary>
+        internal NetrcMode NetrcMode { get; set; }
+
+        /// <summary><c>--netrc-file FILE</c>: the .netrc file to read instead of <c>$NETRC</c> or <c>~/.netrc</c>.</summary>
+        internal string? NetrcFile { get; set; }
+
+        /// <summary>
+        /// Set on a redirect hop to another host, port or scheme without <c>--location-trusted</c>: the
+        /// <c>--oauth2-bearer</c> token is not sent there (and does not fall back to Basic).
+        /// </summary>
+        internal bool CrossOriginHop { get; set; }
+
         /// <summary><c>--url-query</c> arguments, applied to <see cref="Url"/> when the transfer is finished.</summary>
         internal List<string> UrlQueryParts { get; } = new List<string>();
 
@@ -862,6 +874,8 @@ namespace CurlDotNet.Core
             clone.DefaultProtocol = DefaultProtocol;
             clone.CookieFiles = new List<string>(CookieFiles);
             clone.DiscardOutput = DiscardOutput;
+            clone.NetrcMode = NetrcMode;
+            clone.NetrcFile = NetrcFile;
             clone.ProxyTunnelRequested = ProxyTunnelRequested;
             clone.NoProxyHosts = NoProxyHosts;
             clone.ProxyHeaderLines.AddRange(ProxyHeaderLines);

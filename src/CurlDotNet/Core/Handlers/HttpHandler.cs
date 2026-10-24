@@ -582,7 +582,11 @@ namespace CurlDotNet.Core
             {
                 if (!string.IsNullOrEmpty(options.OAuth2Bearer))
                 {
-                    request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + options.OAuth2Bearer);
+                    // the token belongs to the first origin: a redirect elsewhere gets no Authorization at all
+                    if (!options.CrossOriginHop)
+                    {
+                        request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + options.OAuth2Bearer);
+                    }
                 }
                 else if (options.AwsSigV4 != null && options.Credentials != null)
                 {

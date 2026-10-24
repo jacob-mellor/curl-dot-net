@@ -122,7 +122,6 @@ namespace CurlDotNet.Tests
         [InlineData("--ciphers ALL", "--ciphers")]
         [InlineData("--no-sessionid", "--no-sessionid")]
         [InlineData("-q", "--disable")]
-        [InlineData("-n", "--netrc")]
         [InlineData("-l", "--list-only")]
         [InlineData("-a", "--append")]
         [InlineData("-B", "--use-ascii")]

@@ -250,10 +250,11 @@ namespace CurlDotNet.Core
             var fromUrl = GetUrlCredentials(uri);
             if (options.Credentials != null && !options.CredentialsFromUrl)
             {
-                return options.Credentials;
+                return options.Credentials; // -u wins over the URL and over .netrc
             }
 
-            return fromUrl ?? options.Credentials;
+            // -n / --netrc-optional: the .netrc entry for this host (looked up again on every redirect hop)
+            return Netrc.Resolve(options, uri, fromUrl ?? options.Credentials);
         }
 
         /// <summary>Decodes <c>user[:password]</c> from a URL's user-info part, or returns null when there is none.</summary>

@@ -256,6 +256,7 @@ namespace CurlDotNet.Core
                             && DomainMatches(c, host)
                             && PathMatches(c.Path, path)
                             && (!c.Secure || secure))
+                .Take(MaxCookiesSent) // curl stops collecting at 150 matches (in jar order), then sorts them
                 .OrderByDescending(c => c.Path.Length)
                 .ThenByDescending(c => c.Domain.Length)
                 .ThenByDescending(c => c.Name.Length)

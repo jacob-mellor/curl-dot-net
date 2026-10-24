@@ -235,6 +235,92 @@ namespace CurlDotNet.Tests
             result.StatusCode.Should().Be(200);
         }
 
+        // ------------------------------------------------------------------ .netrc
+
+        private static string Basic(string userPass) => "Authorization: Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(userPass));
+
+        [Fact]
+        public async Task Netrc_MachineEntry_SuppliesBasicCredentials()
+        {
+            var netrc = P("netrc");
+            File.WriteAllText(netrc, "machine 127.0.0.1 login alice password s3cret\n");
+            using var server = new RawReplyServer(Hello);
+
+            await Curl.ExecuteAsync($"curl --netrc-file {Q(netrc)} {server.Url("/")}");
+
+            Line(server.Requests.Single(), "Authorization").Should().Be(Basic("alice:s3cret"));
+        }
+
+        [Fact]
+        public async Task Netrc_UrlUser_PicksThatLogin()
+        {
+            var netrc = P("netrc");
+            File.WriteAllText(netrc, "machine 127.0.0.1 login user1 password one\nmachine 127.0.0.1 login user2 password two\n");
+            using var server = new RawReplyServer(Hello);
+
+            await Curl.ExecuteAsync($"curl --netrc-optional --netrc-file {Q(netrc)} http://user2@127.0.0.1:{server.Port}/");
+
+            Line(server.Requests.Single(), "Authorization").Should().Be(Basic("user2:two"));
+        }
+
+        [Fact]
+        public async Task Netrc_QuotedValues_EscapesAndMacdefAreHandled()
+        {
+            var netrc = P("netrc");
+            File.WriteAllText(netrc,
+                "macdef init\n  machine 127.0.0.1 login wrong password \"broken\n\n" +
+                "# a comment\nmachine 127.0.0.1\n  login \"user one\"\n  password \"with\\tTAB\"\n");
+            using var server = new RawReplyServer(Hello);
+
+            await Curl.ExecuteAsync($"curl -n --netrc-file {Q(netrc)} {server.Url("/")}");
+
+            Line(server.Requests.Single(), "Authorization").Should().Be(Basic("user one:with\tTAB"));
+        }
+
+        [Fact]
+        public async Task Netrc_UserOption_WinsOverTheFile()
+        {
+            var netrc = P("netrc");
+            File.WriteAllText(netrc, "default login fromfile password filepass\n");
+            using var server = new RawReplyServer(Hello);
+
+            await Curl.ExecuteAsync($"curl -n --netrc-file {Q(netrc)} -u me:mine {server.Url("/")}");
+
+            Line(server.Requests.Single(), "Authorization").Should().Be(Basic("me:mine"));
+        }
+
+        [Fact]
+        public async Task Netrc_RedirectToOtherHost_UsesThatHostsEntry()
+        {
+            var netrc = P("netrc");
+            File.WriteAllText(netrc, "machine first.example login a password 1\nmachine second.example login b password 2\n");
+            using var proxy = new RawReplyServer(
+                "HTTP/1.1 302 Found\r\nLocation: http://second.example/next\r\nContent-Length: 0\r\n\r\n",
+                "HTTP/1.1 302 Found\r\nLocation: http://third.example/last\r\nContent-Length: 0\r\n\r\n",
+                Hello);
+
+            await Curl.ExecuteAsync($"curl -L -x 127.0.0.1:{proxy.Port} --netrc-optional --netrc-file {Q(netrc)} http://first.example/");
+
+            var requests = proxy.Requests;
+            Line(requests[0], "Authorization").Should().Be(Basic("a:1"));
+            Line(requests[1], "Authorization").Should().Be(Basic("b:2"));
+            Line(requests[2], "Authorization").Should().BeNull();
+        }
+
+        [Fact]
+        public async Task Netrc_UnterminatedQuote_IsReadError26()
+        {
+            var netrc = P("netrc");
+            File.WriteAllText(netrc, "machine 127.0.0.1 login x password \"oops\n");
+            using var server = new RawReplyServer(Hello);
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl -n --netrc-file {Q(netrc)} {server.Url("/")}");
+
+            var thrown = await act.Should().ThrowAsync<CurlReadErrorException>();
+            thrown.Which.CurlErrorCode.Should().Be(26);
+            thrown.Which.Message.Should().Contain(".netrc").And.Contain("closing quote");
+        }
+
         // ------------------------------------------------------------------ -b repeated
 
         [Fact]

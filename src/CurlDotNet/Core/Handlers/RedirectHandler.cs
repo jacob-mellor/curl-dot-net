@@ -171,6 +171,13 @@ namespace CurlDotNet.Core.Handlers
                 }
             }
 
+            if (previous.CredentialsFromUrl && string.IsNullOrEmpty(target.UserInfo) && !SameOrigin(transfer.FirstUri, target))
+            {
+                // user:password@ in a URL belongs to that host only, even with --location-trusted (which
+                // is about -u credentials)
+                hop.Credentials = null;
+            }
+
             if (!previous.LocationTrusted && !SameOrigin(transfer.FirstUri, target))
             {
                 if (string.IsNullOrEmpty(target.UserInfo))
@@ -180,6 +187,7 @@ namespace CurlDotNet.Core.Handlers
                 hop.Headers.Remove("Authorization");
                 hop.Headers.Remove("Cookie");
                 hop.AwsSigV4 = null;
+                hop.CrossOriginHop = true;
                 if (hop.Cookie != null && hop.Cookie.IndexOf('=') >= 0)
                 {
                     hop.Cookie = null; // a -b "name=value" string only goes to the first origin
