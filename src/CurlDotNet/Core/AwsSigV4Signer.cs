@@ -42,7 +42,7 @@ namespace CurlDotNet.Core
     /// <para>The access key and secret key are not part of this value: pass them with
     /// <c>-u ACCESS_KEY_ID:SECRET_ACCESS_KEY</c>. For temporary credentials add
     /// <c>-H "x-amz-security-token: TOKEN"</c>. When <c>--oauth2-bearer</c> is also given, no SigV4 signature is added.</para>
-    /// <para>Guide with a full S3 example: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/cookbook/auth-schemes.md.
+    /// <para>Guide with a full S3 example: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/cookbook/auth-schemes.md
     /// curl's own reference: https://curl.se/libcurl/c/CURLOPT_AWS_SIGV4.html.</para>
     /// </remarks>
     /// <example>

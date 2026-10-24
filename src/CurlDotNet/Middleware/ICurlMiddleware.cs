@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using CurlDotNet.Core;
+using CurlDotNet.Exceptions;
 
 namespace CurlDotNet.Middleware
 {
@@ -201,11 +202,19 @@ namespace CurlDotNet.Middleware
         /// <param name="key">The property name, for example <c>"tenant"</c>. Must not be null.</param>
         /// <param name="value">Any value, including null.</param>
         /// <returns>This same <see cref="CurlContext"/>.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="key"/> is null (raised by the dictionary). Fix: pass a non-null key.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="key"/> is null. Fix: pass a non-null key such as <c>"tenant"</c>.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/guides/logging-observability.md</exception>
         /// <seealso cref="GetProperty{T}(string)"/>
         /// <seealso cref="Properties"/>
         public CurlContext WithProperty(string key, object value)
         {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key), CurlException.Compose(
+                    "CurlContext.WithProperty(key, value) was called with a null key.",
+                    "Pass a non-null key such as \"tenant\" or \"requestId\"; read it back later with GetProperty<T>(key).",
+                    DocLinks.LoggingGuide));
+            }
             Properties[key] = value;
             return this;
         }
@@ -223,7 +232,8 @@ namespace CurlDotNet.Middleware
         /// <typeparam name="T">The type the value was stored as.</typeparam>
         /// <param name="key">The property name used with <see cref="WithProperty(string, object)"/>. Must not be null.</param>
         /// <returns>The stored value, or <c>default(T)</c> (null, 0, false...) when it is missing or not a <typeparamref name="T"/>.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="key"/> is null (raised by the dictionary). Fix: pass a non-null key.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="key"/> is null. Fix: pass a non-null key such as <c>"tenant"</c>.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/guides/logging-observability.md</exception>
         /// <seealso cref="WithProperty(string, object)"/>
         public T GetProperty<T>(string key)
         {

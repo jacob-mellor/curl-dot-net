@@ -733,13 +733,14 @@ namespace CurlDotNet.Exceptions
 
     /// <summary>
     /// Output could not be written (exit code 23, CURLE_WRITE_ERROR): the file for <c>-o</c>, <c>-O</c>, <c>-D</c>,
-    /// <c>-c</c>, <c>--trace</c>, <c>--etag-save</c> or <c>--stderr</c> could not be created or written;
-    /// <see cref="FilePath"/> names it.
+    /// <c>-c</c> or <c>--etag-save</c> could not be created or written; <see cref="FilePath"/> names it.
     /// </summary>
     /// <remarks>
     /// <para>Thrown when the folder does not exist (without <c>--create-dirs</c>), the user may not write there, the disk is
     /// full, the name is invalid on this OS, <c>--no-clobber</c> ran out of names, or <c>-O -J</c> would overwrite a file.
-    /// <c>-D</c> is checked before connecting, like curl.</para>
+    /// <c>-D</c> is checked before connecting, like curl. Not covered: <c>--trace</c>/<c>--trace-ascii</c> create their
+    /// folder themselves, <c>--stderr</c> falls back to the console, and an <c>--etag-save</c> folder that does not exist
+    /// skips the transfer with a warning instead of failing.</para>
     /// <para>Example: <c>catch (CurlWriteErrorException ex) { Console.WriteLine($"Cannot write {ex.FilePath}: {ex.Suggestions[0]}"); }</c></para>
     /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</para>
     /// </remarks>
@@ -956,7 +957,8 @@ namespace CurlDotNet.Exceptions
     /// <para>Thrown by the HTTP handler and the transport; the first line uses curl's wording
     /// (<c>Operation timed out after 5000 milliseconds with 1024 bytes received</c>,
     /// <c>Connection timed out after 2000 milliseconds</c>). <see cref="CurlTimeoutException.Timeout"/> holds the limit.
-    /// Cancelling your own token is <see cref="CurlAbortedByCallbackException"/> instead.</para>
+    /// Cancelling your own token throws <see cref="OperationCanceledException"/> instead (with a
+    /// <see cref="CurlAbortedByCallbackException"/> as its InnerException).</para>
     /// <para>Example: <c>catch (CurlOperationTimeoutException ex) { Console.WriteLine($"Timed out ({ex.Timeout?.TotalSeconds} s) - raising -m"); }</c></para>
     /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/timeout-errors.md</para>
     /// </remarks>
@@ -1103,11 +1105,13 @@ namespace CurlDotNet.Exceptions
     }
 
     /// <summary>
-    /// A <c>file://</c> URL names a file that could not be opened (exit code 37, CURLE_FILE_COULDNT_READ_FILE);
-    /// <see cref="FilePath"/> names it.
+    /// A local file could not be opened (exit code 37, CURLE_FILE_COULDNT_READ_FILE): the path of a <c>file://</c>
+    /// URL, or a missing file after <c>-d @</c>/<c>--data-binary @</c>; <see cref="FilePath"/> names it.
     /// </summary>
     /// <remarks>
-    /// <para>Thrown by the file handler. Fixes: check the path (use three slashes for absolute paths:
+    /// <para>Thrown by the file handler for <c>file://</c> URLs it may not read, and by the HTTP handler when the file named
+    /// in <c>-d @file</c> does not exist (a file that exists but cannot be read is <see cref="CurlReadErrorException"/>, exit 26).
+    /// Fixes: check the path (use three slashes for absolute paths:
     /// <c>file:///C:/data/x.txt</c> or <c>file:///home/me/x.txt</c>), that it is a file and not a folder, and the
     /// permissions. Example: <c>catch (CurlFileCouldntReadException ex) { Console.WriteLine($"No such file: {ex.FilePath}"); }</c></para>
     /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</para>
@@ -1134,6 +1138,21 @@ namespace CurlDotNet.Exceptions
         /// <seealso cref="CurlReadErrorException"/>
         public CurlFileCouldntReadException(string filePath, string command = null)
             : base($"Couldn't open file {filePath} (could not read file: {filePath})", 37, command)
+        {
+            FilePath = filePath;
+        }
+
+        /// <summary>
+        /// Creates the error (exit code 37) for <paramref name="filePath"/> with the caller's own explanation and fix,
+        /// for situations other than a <c>file://</c> URL (such as <c>-d @missing.json</c>).
+        /// </summary>
+        /// <remarks><para>Example: <c>throw new CurlFileCouldntReadException(path, "Couldn't open file 'body.json' given with -d @body.json: it does not exist.\nCheck the path.", command);</c></para></remarks>
+        /// <param name="filePath">The file path that could not be opened.</param>
+        /// <param name="message">What happened (first line) and how to fix it (following lines).</param>
+        /// <param name="command">The curl command that caused the exception, or null.</param>
+        /// <seealso cref="CurlFileCouldntReadException(string, string)"/>
+        public CurlFileCouldntReadException(string filePath, string message, string? command)
+            : base(message, 37, command)
         {
             FilePath = filePath;
         }
@@ -1190,14 +1209,17 @@ namespace CurlDotNet.Exceptions
     }
 
     /// <summary>
-    /// The transfer was stopped on purpose (exit code 42, CURLE_ABORTED_BY_CALLBACK): your
-    /// <c>CancellationToken</c> was cancelled, or your progress callback threw.
+    /// The transfer was stopped on purpose (exit code 42, CURLE_ABORTED_BY_CALLBACK): your progress callback threw,
+    /// or (seen only as an InnerException) your <c>CancellationToken</c> was cancelled.
     /// </summary>
     /// <remarks>
-    /// <para>Thrown by the HTTP handler when the caller's token fires before the response arrives, and when a handler passed
-    /// to <c>CurlSettings.WithProgress</c>/<c>CurlOptions.ProgressHandler</c> throws (that exception is the inner
-    /// exception). Timeouts set with <c>-m</c> are <see cref="CurlOperationTimeoutException"/> instead.</para>
-    /// <para>Example: <c>catch (CurlAbortedByCallbackException) when (cts.IsCancellationRequested) { /* user pressed Cancel */ }</c></para>
+    /// <para>You catch this type directly when a handler passed to <c>CurlSettings.WithProgress</c> /
+    /// <c>CurlOptions.ProgressHandler</c> throws; the handler's exception is the <see cref="Exception.InnerException"/>.</para>
+    /// <para>Cancelling your own token is different: the public APIs (<c>Curl.ExecuteAsync</c>, <c>CurlRequestBuilder</c>,
+    /// <c>LibCurl</c>) throw the standard <see cref="OperationCanceledException"/>, with this exception as its InnerException,
+    /// so write <c>catch (OperationCanceledException) when (cts.IsCancellationRequested) { /* user pressed Cancel */ }</c>.
+    /// Timeouts set with <c>-m</c> are <see cref="CurlOperationTimeoutException"/> instead.</para>
+    /// <para>Example: <c>catch (CurlAbortedByCallbackException ex) { Console.WriteLine($"Progress handler failed: {ex.InnerException?.Message}"); }</c></para>
     /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/12-cancellation-tokens.md</para>
     /// </remarks>
     /// <seealso cref="CurlOperationTimeoutException"/>
@@ -1776,7 +1798,7 @@ namespace CurlDotNet.Exceptions
     /// <c>--cacert ca.pem</c>, use the host name the certificate was issued for, renew an expired certificate, or for local
     /// testing only use <c>-k/--insecure</c>. Corporate TLS inspection proxies need their root CA installed.</para>
     /// <para>Example: <c>catch (CurlPeerFailedVerificationException ex) { Console.WriteLine(ex.WhatHappened); }</c></para>
-    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md; how-to:
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md how-to:
     /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-ignore-ssl-certificate-csharp/README.md</para>
     /// </remarks>
     /// <seealso cref="CurlSslConnectErrorException"/>

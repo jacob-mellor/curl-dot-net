@@ -138,8 +138,9 @@ namespace CurlDotNet.Core
         /// The response body as raw bytes when it is binary (image, PDF, zip, Office file, or anything that is not
         /// text); null for text responses, whose content is in <see cref="Body"/>.
         /// </summary>
-        /// <value>The bytes exactly as received (after <c>--compressed</c> decoding), or null. Also filled when the body
-        /// was written to a file with <c>-o</c>.</value>
+        /// <value>The bytes exactly as received (after <c>--compressed</c> decoding) for a binary response, or null for a
+        /// text response. A binary body written to a file with <c>-o</c> is kept here too; a text body written with
+        /// <c>-o</c> is in neither <see cref="Body"/> nor this property, only in the file.</value>
         /// <remarks>
         /// <para>A response is binary when its <c>Content-Type</c> is not a text type, or when the bytes look binary even
         /// under a text type (a server sending an .xlsx as <c>text/plain</c>). Force it with
@@ -283,7 +284,8 @@ namespace CurlDotNet.Core
             if (string.IsNullOrEmpty(Body))
             {
                 throw new CurlParsingException(CurlException.Compose(
-                    $"ParseJson<{typeof(T).Name}>() found no JSON to parse: the response body of {DescribeRequest()} is empty (HTTP {StatusCode}).",
+                    $"ParseJson<{TypeName(typeof(T))}>() found no JSON to parse: the response body of {DescribeRequest()} " +
+                    (IsBinary ? $"is binary ({BinaryData.Length} bytes in BinaryData, HTTP {StatusCode})." : $"is empty (HTTP {StatusCode})."),
                     EmptyBodyFix(), DocLinks.HowToParseJson),
                     GetHeader("Content-Type"), typeof(T), Command);
             }
@@ -303,7 +305,7 @@ namespace CurlDotNet.Core
 #endif
             {
                 throw new CurlParsingException(CurlException.Compose(
-                    $"ParseJson<{typeof(T).Name}>() could not read the response body of {DescribeRequest()} as {typeof(T).Name}: {ex.Message} " +
+                    $"ParseJson<{TypeName(typeof(T))}>() could not read the response body of {DescribeRequest()} as {TypeName(typeof(T))}: {ex.Message} " +
                     $"(HTTP {StatusCode}, Content-Type: {GetHeader("Content-Type") ?? "none"}, body starts with \"{ErrorText.Preview(Body, 60)}\").",
                     BadJsonFix(typeof(T)), DocLinks.HowToParseJson),
                     GetHeader("Content-Type"), typeof(T), Command, ex);
@@ -311,11 +313,27 @@ namespace CurlDotNet.Core
             catch (Exception ex) when (ex is NotSupportedException || ex is InvalidOperationException || ex is ArgumentException || ex is MissingMethodException)
             {
                 throw new CurlParsingException(CurlException.Compose(
-                    $"ParseJson<{typeof(T).Name}>() cannot create a {typeof(T).FullName} from JSON ({ex.GetType().Name}: {ex.Message}).",
+                    $"ParseJson<{TypeName(typeof(T))}>() cannot create a {TypeName(typeof(T))} from JSON ({ex.GetType().Name}: {ex.Message}).",
                     "Use a concrete class with a public parameterless constructor and settable properties (not an interface or abstract type), or read the data with AsJsonDynamic().",
                     DocLinks.HowToParseJson),
                     GetHeader("Content-Type"), typeof(T), Command, ex);
             }
+        }
+
+        /// <summary>A C#-style type name for messages: <c>Dictionary&lt;String, Object&gt;</c> instead of <c>Dictionary`2</c>.</summary>
+        private static string TypeName(Type type)
+        {
+            if (!type.IsGenericType)
+            {
+                return type.Name;
+            }
+            var name = type.Name;
+            var tick = name.IndexOf('`');
+            if (tick >= 0)
+            {
+                name = name.Substring(0, tick);
+            }
+            return name + "<" + string.Join(", ", type.GetGenericArguments().Select(TypeName)) + ">";
         }
 
         /// <summary>The fix for an empty body, depending on where the data went.</summary>
@@ -419,8 +437,9 @@ namespace CurlDotNet.Core
             if (string.IsNullOrWhiteSpace(Body))
             {
                 throw new CurlParsingException(CurlException.Compose(
-                    $"AsJsonDynamic() found no JSON to parse: the response body of {DescribeRequest()} is empty (HTTP {StatusCode}).",
-                    "Check StatusCode before parsing (204 No Content and HEAD requests have no body), and make sure the request asks for JSON, for example with -H 'Accept: application/json'.",
+                    $"AsJsonDynamic() found no JSON to parse: the response body of {DescribeRequest()} " +
+                    (IsBinary ? $"is binary ({BinaryData.Length} bytes in BinaryData, HTTP {StatusCode})." : $"is empty (HTTP {StatusCode})."),
+                    EmptyBodyFix(),
                     DocLinks.HowToParseJson),
                     GetHeader("Content-Type"), typeof(object), Command);
             }
@@ -1121,7 +1140,7 @@ namespace CurlDotNet.Core
             if (transformer == null)
             {
                 throw new ArgumentNullException(nameof(transformer), CurlException.Compose(
-                    $"Transform<{typeof(T).Name}>() was called with a null function.",
+                    $"Transform<{TypeName(typeof(T))}>() was called with a null function.",
                     "Pass a function of the result, for example r => r.StatusCode.",
                     DocLinks.HowToParseJson));
             }

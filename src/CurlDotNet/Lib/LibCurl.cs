@@ -40,7 +40,8 @@ namespace CurlDotNet.Lib
     /// write error) does not throw. The method returns a <see cref="CurlResult"/> with <c>StatusCode == 0</c>, an
     /// empty body and the <see cref="CurlException"/> in <see cref="CurlResult.Exception"/> (its message says what
     /// happened and how to fix it). HTTP error statuses (404, 500) are normal results with that status code. Only
-    /// caller cancellation throws (<see cref="OperationCanceledException"/>). If you prefer exceptions, use
+    /// caller cancellation (<see cref="OperationCanceledException"/>) and a body object that cannot be serialized to JSON
+    /// (<see cref="CurlParsingException"/>) throw. If you prefer exceptions, use
     /// <see cref="CurlRequestBuilder"/> or <see cref="Curl.ExecuteAsync(string)"/>, or call
     /// <c>if (result.Exception != null) throw result.Exception;</c>.</para>
     /// <para>Known limitation of this class (not of the rest of CurlDotNet): requests go through a plain
@@ -183,6 +184,9 @@ namespace CurlDotNet.Lib
         /// <param name="cancellationToken">Token that cancels the request; <c>default</c> for none.</param>
         /// <returns>The <see cref="CurlResult"/>; for a transfer failure <c>StatusCode</c> 0 and the error in
         /// <see cref="CurlResult.Exception"/>.</returns>
+        /// <exception cref="CurlParsingException"><paramref name="data"/> is an object that cannot be serialized to JSON
+        /// (a reference cycle, a delegate or stream member); the parser's exception is the InnerException. Fix: send a plain
+        /// DTO or a JSON string. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md</exception>
         /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled. See
         /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/12-cancellation-tokens.md</exception>
         /// <example>
@@ -217,6 +221,9 @@ namespace CurlDotNet.Lib
         /// <param name="cancellationToken">Token that cancels the request; <c>default</c> for none.</param>
         /// <returns>The <see cref="CurlResult"/>; for a transfer failure <c>StatusCode</c> 0 and the error in
         /// <see cref="CurlResult.Exception"/>.</returns>
+        /// <exception cref="CurlParsingException"><paramref name="data"/> is an object that cannot be serialized to JSON
+        /// (a reference cycle, a delegate or stream member); the parser's exception is the InnerException. Fix: send a plain
+        /// DTO or a JSON string. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md</exception>
         /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled. See
         /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/12-cancellation-tokens.md</exception>
         /// <seealso cref="CurlRequestBuilder.Put"/>
@@ -245,6 +252,9 @@ namespace CurlDotNet.Lib
         /// <param name="cancellationToken">Token that cancels the request; <c>default</c> for none.</param>
         /// <returns>The <see cref="CurlResult"/>; for a transfer failure <c>StatusCode</c> 0 and the error in
         /// <see cref="CurlResult.Exception"/>.</returns>
+        /// <exception cref="CurlParsingException"><paramref name="data"/> is an object that cannot be serialized to JSON
+        /// (a reference cycle, a delegate or stream member); the parser's exception is the InnerException. Fix: send a plain
+        /// DTO or a JSON string. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md</exception>
         /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled. See
         /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/12-cancellation-tokens.md</exception>
         /// <seealso cref="CurlRequestBuilder.Patch"/>
@@ -730,12 +740,23 @@ namespace CurlDotNet.Lib
             if (data == null) return null;
             if (data is string s) return s;
 
+            try
+            {
 #if NETSTANDARD2_0
-            // Use Newtonsoft.Json for older frameworks
-            return Newtonsoft.Json.JsonConvert.SerializeObject(data);
+                // Use Newtonsoft.Json for older frameworks
+                return Newtonsoft.Json.JsonConvert.SerializeObject(data);
 #else
-            return System.Text.Json.JsonSerializer.Serialize(data);
+                return System.Text.Json.JsonSerializer.Serialize(data);
 #endif
+            }
+            catch (Exception ex) when (!(ex is OutOfMemoryException))
+            {
+                throw new CurlParsingException(CurlException.Compose(
+                    $"LibCurl could not serialize the {data.GetType().Name} request body to JSON: {ex.Message}",
+                    "Send a plain data object (a DTO without reference cycles, delegates or streams), or serialize it yourself and pass the JSON string as the body.",
+                    DocLinks.HowToPostJson),
+                    "application/json", data.GetType(), null, ex);
+            }
         }
 
         #endregion

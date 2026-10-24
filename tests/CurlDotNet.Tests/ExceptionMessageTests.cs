@@ -399,5 +399,98 @@ namespace CurlDotNet.Tests
             var ex = act.Should().Throw<CurlException>().Which;
             AssertWhatFixLink(ex).Should().Contain("-H");
         }
+
+        // ------------------------------------------------------------------ findings of the hostile review
+
+        [Fact]
+        public async Task MalformedUrl_WithCredentials_DoesNotPrintThePassword()
+        {
+            Func<Task> act = () => Curl.ExecuteAsync("curl 'http://alice:SECRETPW@exa mple.com/?token=abc'");
+
+            var ex = (await act.Should().ThrowAsync<CurlException>()).Which;
+            ex.Message.Should().NotContain("SECRETPW").And.NotContain("token=abc");
+            AssertWhatFixLink(ex);
+        }
+
+        [Fact]
+        public void SafeUrl_UnparseableUrl_StripsUserInfoAndQuery()
+        {
+            ErrorText.SafeUrl("http://alice:pw@exa mple.com/a?key=1").Should().Be("http://exa mple.com/a?...");
+        }
+
+        [Fact]
+        public async Task ExecuteOptions_WithNullHeaders_RunsInsteadOfNullReference()
+        {
+            using var server = new RawReplyServer("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok");
+
+            var result = await Curl.ExecuteAsync(new CurlOptions { Url = server.Url(), Headers = null });
+
+            result.StatusCode.Should().Be(200);
+            new CurlOptions { Url = "https://x", Headers = null }.Clone().Headers.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task UnsupportedProxyScheme_IsExitCode7WithTheProxyNamed_NotAReceiveError()
+        {
+            Func<Task> act = () => Curl.ExecuteAsync("curl -x bad://proxy.local:3128 http://example.invalid/");
+
+            var ex = (await act.Should().ThrowAsync<CurlException>()).Which;
+            ex.Should().NotBeOfType<CurlReceiveErrorException>();
+            ex.CurlErrorCode.Should().Be(7);
+            AssertWhatFixLink(ex).Should().Contain("bad://proxy.local");
+        }
+
+        [Fact]
+        public async Task InvalidMethodToken_IsBadArgument43_NotAReceiveError()
+        {
+            using var server = new RawReplyServer("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok");
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl -X 'BAD METHOD' {server.Url()}");
+
+            var ex = (await act.Should().ThrowAsync<CurlException>()).Which;
+            ex.CurlErrorCode.Should().Be(43);
+            AssertWhatFixLink(ex).Should().Contain("BAD METHOD");
+        }
+
+        private sealed class Cyclic
+        {
+            public Cyclic Self { get; set; }
+        }
+
+        [Fact]
+        public void WithJson_UnserializableObject_IsParsingExceptionWithFix()
+        {
+            var cyclic = new Cyclic();
+            cyclic.Self = cyclic;
+
+            Action act = () => CurlRequestBuilder.Post("https://api.example.com/x").WithJson(cyclic);
+
+            var ex = act.Should().Throw<CurlParsingException>().Which;
+            ex.InnerException.Should().NotBeNull();
+            AssertWhatFixLink(ex).Should().Contain("WithJson").And.Contain("Cyclic");
+        }
+
+        [Fact]
+        public void BuilderAndContext_NullNames_ExplainWhatAndHow()
+        {
+            Action header = () => CurlRequestBuilder.Get("https://x.example").WithHeader(null, "v");
+            Action upload = () => CurlRequestBuilder.Post("https://x.example").WithUploadFile(null, "a.txt");
+            Action property = () => new CurlDotNet.Middleware.CurlContext().WithProperty(null, 1);
+
+            header.Should().Throw<ArgumentNullException>().Which.Message.Should().Contain("header name").And.Contain(DocsPrefix);
+            upload.Should().Throw<ArgumentNullException>().Which.Message.Should().Contain("field name").And.Contain(DocsPrefix);
+            property.Should().Throw<ArgumentNullException>().Which.Message.Should().Contain("null key").And.Contain(DocsPrefix);
+        }
+
+        [Fact]
+        public void ParseJson_BinaryBody_SaysBinaryNotEmpty_AndNamesGenericTypesReadably()
+        {
+            var result = new CurlResult { StatusCode = 200, Body = string.Empty, BinaryData = new byte[] { 1, 2, 3, 4, 5, 6 } };
+
+            Action act = () => result.ParseJson<Dictionary<string, object>>();
+
+            var ex = act.Should().Throw<CurlParsingException>().Which;
+            ex.WhatHappened.Should().Contain("is binary (6 bytes").And.Contain("Dictionary<String, Object>").And.NotContain("`");
+        }
     }
 }

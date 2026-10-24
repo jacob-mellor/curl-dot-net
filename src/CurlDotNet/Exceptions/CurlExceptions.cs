@@ -22,12 +22,16 @@ using System.Text;
 namespace CurlDotNet.Exceptions
 {
     /// <summary>
-    /// Base class of every error CurlDotNet throws: catch it to handle any failed curl command, read
+    /// Base class of every transfer error CurlDotNet throws: catch it to handle any failed curl command, read
     /// <see cref="CurlErrorCode"/> for curl's exit code and <see cref="Message"/> for what happened and how to fix it.
     /// </summary>
     /// <remarks>
-    /// <para>Every failure of <c>Curl.ExecuteAsync</c>, <c>Curl.Execute</c>, <see cref="CurlDotNet.Core.CurlRequestBuilder"/>
-    /// and <see cref="CurlDotNet.Lib.LibCurl"/> surfaces as a <see cref="CurlException"/> subclass. There is one subclass
+    /// <para>Every transfer failure of <c>Curl.ExecuteAsync</c>, <c>Curl.Execute</c>, <see cref="CurlDotNet.Core.CurlRequestBuilder"/>
+    /// and <see cref="CurlDotNet.Lib.LibCurl"/> surfaces as a <see cref="CurlException"/> subclass. Three things do not:
+    /// cancelling your own token (<see cref="OperationCanceledException"/>), invalid arguments such as a null command
+    /// (<see cref="ArgumentException"/> with the same what/fix/link text), and <c>CurlResult.EnsureSuccess()</c> /
+    /// <c>EnsureStatus()</c>, which throw <see cref="CurlDotNet.Core.CurlHttpException"/> (a plain <see cref="Exception"/>,
+    /// unlike <see cref="CurlHttpException"/> in this namespace). There is one subclass
     /// per curl exit code (for example <see cref="CurlCouldntResolveHostException"/> for exit code 6,
     /// <see cref="CurlOperationTimeoutException"/> for 28, <see cref="CurlPeerFailedVerificationException"/> for 60), so
     /// you can catch exactly the failures you can handle and let the rest bubble up.</para>
@@ -41,7 +45,7 @@ namespace CurlDotNet.Exceptions
     /// <para>Example: <c>try { var r = await Curl.ExecuteAsync("curl https://api.example.com/users"); }
     /// catch (CurlCouldntResolveHostException ex) { Console.WriteLine($"Bad host {ex.Hostname}"); }
     /// catch (CurlTimeoutException) { /* retry later */ } catch (CurlException ex) { Console.WriteLine($"curl exit {ex.CurlErrorCode}: {ex.Message}"); }</c></para>
-    /// <para>Exit code table and handling patterns: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md.
+    /// <para>Exit code table and handling patterns: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md
     /// Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</para>
     /// </remarks>
     /// <example>
@@ -251,7 +255,8 @@ namespace CurlDotNet.Exceptions
         /// <para>Older message formats such as <c>For DNS troubleshooting, see: URL</c> are normalised to a
         /// single trailing <c>See URL</c> line, so a message never carries two links. When a CurlDotNet
         /// exception has no link of its own, the page for its exit code is appended. A message you pass to a
-        /// constructor yourself is returned unchanged unless it contains such a link or an exit code is set.</para>
+        /// constructor yourself is returned unchanged unless it contains such a link, an exit code is set, or an inner
+        /// exception is given (its first message line is then appended as <c>(caused by Type: message)</c>).</para>
         /// <para><see cref="Exception.ToString"/>, <see cref="ToDetailedString"/>, <see cref="ToJson"/> and
         /// <see cref="ToUserFriendlyMessage"/> all use this normalised text.</para>
         /// </remarks>
@@ -319,7 +324,7 @@ namespace CurlDotNet.Exceptions
         /// <para>Exit codes are the <c>CURLE_*</c> values from <c>curl.h</c>: 6 = could not resolve host,
         /// 7 = could not connect, 22 = HTTP error with <c>-f</c>, 23 = write error, 28 = timeout, 60 = certificate
         /// not trusted. The full table is at
-        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md.</para>
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</para>
         /// <para>Example: <c>throw new CurlException("Upload of 'big.iso' was refused by the server.\nSplit the file or raise the server limit.", 25, command);</c>
         /// produces a message ending with the documentation link for exit code 25.</para>
         /// </remarks>
@@ -1006,19 +1011,23 @@ namespace CurlDotNet.Exceptions
     }
 
     /// <summary>
-    /// Thrown before anything is sent when the curl command string cannot be understood: no URL, an unclosed
-    /// quote, a missing option value, or syntax from a different shell than the one CurlDotNet was told to read.
+    /// Thrown before anything is sent when the curl command string cannot be understood: shell syntax the chosen
+    /// <see cref="CurlDotNet.CurlFlavor"/> cannot read, an Invoke-WebRequest feature with no curl
+    /// equivalent, a <c>--next</c> group without a URL, or a malformed <c>--resolve</c>/<c>--connect-to</c> value.
     /// </summary>
     /// <remarks>
     /// <para>Raised by the command parser (<c>Curl.ExecuteAsync</c>, <c>Curl.Execute</c>, <c>Curl.Validate</c>) and by the
     /// shell-flavor readers (bash, cmd, PowerShell, Invoke-WebRequest). Nothing has touched the network, so this is
     /// always a problem in the command text, never in the server. <see cref="InvalidPart"/> names the piece that
     /// could not be read. Derived types: <see cref="CurlUnknownOptionException"/> (an option curl does not have,
-    /// exit code 48 in curl) and <see cref="CurlOptionSyntaxException"/> (an option value curl cannot parse, exit code 49).</para>
+    /// exit code 48 in curl) and <see cref="CurlOptionSyntaxException"/> (a <c>--resolve</c>/<c>--connect-to</c> value
+    /// curl cannot parse, exit code 49). Two other command problems use the base <see cref="CurlException"/> instead: an
+    /// option missing its value (<c>-H</c> at the end) or with a non-numeric value (exit code 2), and a command with no
+    /// URL at all (exit code 3); unknown options are ignored by <c>Execute</c> and reported only by <c>Curl.Validate</c>.</para>
     /// <para>Usual fixes: start with the URL or <c>curl URL</c>; quote values with spaces (<c>-H 'X-Name: a b'</c>);
     /// close every quote; when the command was copied from Windows cmd or PowerShell, pass the matching
     /// <see cref="CurlDotNet.CurlFlavor"/> (or <c>CurlFlavor.Auto</c>).</para>
-    /// <para>Example: <c>try { await Curl.ExecuteAsync("curl -X POST"); } catch (CurlInvalidCommandException ex) { Console.WriteLine($"Fix the command near '{ex.InvalidPart}': {ex.Suggestions[0]}"); }</c>.
+    /// <para>Example: <c>try { await Curl.ExecuteAsync("curl --resolve 80:example.com:127.0.0.1 http://example.com/"); } catch (CurlInvalidCommandException ex) { Console.WriteLine($"Fix the command near '{ex.InvalidPart}': {ex.Suggestions[0]}"); }</c>.
     /// Call <c>Curl.Validate(command)</c> first to check user-supplied commands without throwing.</para>
     /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md and
     /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</para>
@@ -1027,7 +1036,7 @@ namespace CurlDotNet.Exceptions
     /// <code>
     /// try
     /// {
-    ///     var result = await Curl.ExecuteAsync("curl -X POST");   // no URL
+    ///     var result = await Curl.ExecuteAsync("curl --resolve 80:example.com:127.0.0.1 http://example.com/");   // host and port swapped
     /// }
     /// catch (CurlInvalidCommandException ex)
     /// {
@@ -1121,8 +1130,8 @@ namespace CurlDotNet.Exceptions
     }
 
     /// <summary>
-    /// Base type for failures to reach the server or proxy at the network level (name resolution, refused or
-    /// unreachable connection); catch it to handle "could not connect" in one place.
+    /// Base type for network-level failures raised by your own code or older callers (name resolution, refused or
+    /// unreachable connection); the transport throws the per-exit-code types listed in the remarks instead.
     /// </summary>
     /// <remarks>
     /// <para>No HTTP exchange happened: the request was never answered. <see cref="Host"/> and <see cref="Port"/> say
@@ -1141,9 +1150,13 @@ namespace CurlDotNet.Exceptions
     /// {
     ///     var result = await Curl.ExecuteAsync("curl https://internal-server:8443/api");
     /// }
-    /// catch (CurlConnectionException ex)
+    /// catch (CurlCouldntConnectException ex)          // what the transport throws (exit code 7)
     /// {
     ///     Console.WriteLine($"Cannot connect to {ex.Host}:{ex.Port} - {ex.Suggestions[0]}");
+    /// }
+    /// catch (CurlConnectionException ex)              // raised by your own code or middleware
+    /// {
+    ///     Console.WriteLine($"Cannot connect to {ex.Host}:{ex.Port}");
     /// }
     /// </code>
     /// </example>
@@ -1262,7 +1275,11 @@ namespace CurlDotNet.Exceptions
     /// {
     ///     var result = await Curl.ExecuteAsync("curl https://non-existent-domain.invalid");
     /// }
-    /// catch (CurlDnsException ex)
+    /// catch (CurlCouldntResolveHostException ex)      // what the transport throws (exit code 6)
+    /// {
+    ///     Console.WriteLine($"DNS lookup failed for: {ex.Hostname}");
+    /// }
+    /// catch (CurlDnsException ex)                     // raised by your own code
     /// {
     ///     Console.WriteLine($"DNS lookup failed for: {ex.Host}");
     /// }
@@ -1311,11 +1328,12 @@ namespace CurlDotNet.Exceptions
     /// <para>CurlDotNet throws the derived <see cref="CurlOperationTimeoutException"/> when <c>-m/--max-time</c> or
     /// <c>--connect-timeout</c> (or <c>Curl.DefaultMaxTimeSeconds</c> / <c>Curl.DefaultConnectTimeoutSeconds</c>)
     /// expires, and when a caller-supplied <c>HttpClient</c> gives up on its own <c>Timeout</c>. Cancelling your own
-    /// <c>CancellationToken</c> is not a timeout: it ends with <see cref="CurlAbortedByCallbackException"/> (42).</para>
+    /// <c>CancellationToken</c> is not a timeout: it ends with <see cref="OperationCanceledException"/> (whose InnerException
+    /// is a <see cref="CurlAbortedByCallbackException"/>, exit code 42).</para>
     /// <para>Fixes: raise the limit (<c>-m 120</c> for large downloads, <c>--connect-timeout 10</c> for slow networks),
     /// check that the server is up, or add <c>--retry 3</c>. <see cref="Timeout"/> tells which limit expired.
     /// Example: <c>catch (CurlTimeoutException ex) { Console.WriteLine($"Gave up after {ex.Timeout?.TotalSeconds} s"); }</c></para>
-    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/timeout-errors.md;
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/timeout-errors.md
     /// tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-timeout-csharp/README.md</para>
     /// </remarks>
     /// <example>
@@ -1424,7 +1442,7 @@ namespace CurlDotNet.Exceptions
     /// <para>Fixes for an untrusted certificate: install the issuing CA on the machine or pass it with
     /// <c>--cacert ca.pem</c>, fix an expired or mismatched certificate on the server, or (for local testing only) use
     /// <c>-k/--insecure</c>. Example: <c>catch (CurlSslException ex) { Console.WriteLine(ex.CertificateError ?? ex.WhatHappened); }</c></para>
-    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md;
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/ssl-errors.md
     /// how-to: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-ignore-ssl-certificate-csharp/README.md</para>
     /// </remarks>
     /// <seealso cref="CurlPeerFailedVerificationException"/>
@@ -1496,7 +1514,7 @@ namespace CurlDotNet.Exceptions
     /// <para>Fixes: check <c>-u user:password</c> (quote it if the password has special characters), the account's
     /// permissions, and the scheme (<c>--basic</c>, <c>--digest</c>, <c>--ntlm</c>).
     /// Example: <c>catch (CurlAuthenticationException ex) { Console.WriteLine($"Login failed ({ex.AuthMethod ?? "any method"})"); }</c></para>
-    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/auth-errors.md;
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/auth-errors.md
     /// how-to: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-basic-auth-csharp/README.md</para>
     /// </remarks>
     /// <seealso cref="CurlLoginDeniedException"/>
@@ -1551,7 +1569,7 @@ namespace CurlDotNet.Exceptions
     /// <para>Use <see cref="IsClientError"/>/<see cref="IsServerError"/> and the <c>Is*</c> shortcuts to branch, and
     /// <see cref="GetRetryAfter"/> to honour the server's back-off. Example:
     /// <c>catch (CurlHttpException ex) when (ex.IsUnauthorized) { await RefreshTokenAsync(); }</c></para>
-    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md;
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md
     /// tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md</para>
     /// </remarks>
     /// <seealso cref="CurlHttpReturnedErrorException"/>
@@ -2385,16 +2403,20 @@ namespace CurlDotNet.Exceptions
     /// this type is for application code that manages cookie files. Cookie files use the Netscape format written by
     /// <c>-c</c>; <c>-b</c> also accepts a literal <c>name=value; other=2</c> string.</para>
     /// <para>Example: <c>catch (CurlCookieException ex) { Console.WriteLine($"Cookie file problem: {ex.CookieJarPath}"); }</c></para>
-    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/cookie-errors.md;
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/cookie-errors.md
     /// cookbook: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/cookbook/cookies.md</para>
     /// </remarks>
     /// <example>
     /// <code>
     /// try
     /// {
-    ///     var result = await Curl.ExecuteAsync("curl --cookie-jar cookies.txt https://example.com");
+    ///     var result = await Curl.ExecuteAsync("curl --cookie-jar state/cookies.txt https://example.com");
     /// }
-    /// catch (CurlCookieException ex)
+    /// catch (CurlWriteErrorException ex)              // what the engine throws when -c cannot be saved (exit 23)
+    /// {
+    ///     Console.WriteLine($"Cookie jar not saved: {ex.FilePath} - {ex.Suggestions[0]}");
+    /// }
+    /// catch (CurlCookieException ex)                  // raised by your own cookie-file code
     /// {
     ///     Console.WriteLine($"Cookie error: {ex.WhatHappened} ({ex.CookieJarPath})");
     /// }
@@ -2450,7 +2472,7 @@ namespace CurlDotNet.Exceptions
     /// A long chain is usually a loop (A redirects to B, B back to A), often caused by cookies or a login page.</para>
     /// <para>Fixes: inspect the chain with <c>curl -i -L URL</c>, keep cookies with <c>-b cookies.txt -c cookies.txt</c>,
     /// or raise <c>--max-redirs</c>. Example: <c>catch (CurlRedirectException ex) { Console.WriteLine($"Stopped after {ex.RedirectCount} hops at {ex.LastUrl}"); }</c></para>
-    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/redirect-errors.md;
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/redirect-errors.md
     /// how-to: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-follow-redirects-csharp/README.md</para>
     /// </remarks>
     /// <example>
@@ -2459,7 +2481,11 @@ namespace CurlDotNet.Exceptions
     /// {
     ///     var result = await Curl.ExecuteAsync("curl -L https://example.com/redirect-loop");
     /// }
-    /// catch (CurlRedirectException ex)
+    /// catch (CurlTooManyRedirectsException ex)        // what the engine throws (exit code 47)
+    /// {
+    ///     Console.WriteLine($"Too many redirects: {ex.RedirectCount}");
+    /// }
+    /// catch (CurlRedirectException ex)                // raised by your own redirect-following code
     /// {
     ///     Console.WriteLine($"Too many redirects: {ex.RedirectCount}, last URL {ex.LastUrl}");
     /// }

@@ -283,6 +283,12 @@ namespace CurlDotNet.Core
             var uri = transfer.CurrentRequest?.RequestUri ?? transfer.FirstUri;
             var viaProxy = transfer.CurrentViaProxy;
 
+            var clientSide = ClientSideFailure(ex, transfer);
+            if (clientSide != null)
+            {
+                return clientSide;
+            }
+
             for (var e = ex; e != null; e = e.InnerException)
             {
                 if (e is CurlException curl)
@@ -543,6 +549,12 @@ namespace CurlDotNet.Core
             var options = transfer.Options;
             var uri = transfer.CurrentRequest?.RequestUri ?? transfer.FirstUri;
 
+            var clientSide = ClientSideFailure(ex, transfer);
+            if (clientSide != null)
+            {
+                return clientSide;
+            }
+
             // HttpClient sometimes reports malformed responses (bad trailers, bad header values) with
             // framework exceptions; the recorded bytes say what curl would have reported
             var exchange = transfer.LastExchange;
@@ -567,6 +579,46 @@ namespace CurlDotNet.Core
             }
 
             return new CurlReceiveErrorException(ReceiveMessage($"the response could not be processed ({ex.GetType().Name}: {ex.Message})", uri), options.OriginalCommand, ex);
+        }
+
+        /// <summary>
+        /// Failures HttpClient reports for something wrong in the request itself (nothing was received), which must
+        /// not be reported as a receive or connection error: an unsupported proxy scheme, an invalid -X method token,
+        /// or a -H Content-Length that does not match the body.
+        /// </summary>
+        private static CurlException? ClientSideFailure(Exception ex, HttpTransfer transfer)
+        {
+            var options = transfer.Options;
+            var command = options.OriginalCommand;
+            for (var e = ex; e != null; e = e.InnerException)
+            {
+                if (e is NotSupportedException && e.Message.IndexOf("prox", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    var proxy = string.IsNullOrEmpty(options.Proxy) ? "(the proxy from http_proxy/https_proxy/all_proxy)" : ErrorText.SafeUrl(options.Proxy);
+                    // curl: "Unsupported proxy scheme for 'bad://proxy'" with CURLE_COULDNT_CONNECT
+                    return new CurlException(CurlException.Compose(
+                        $"Unsupported proxy scheme for '{proxy}': {e.Message.TrimEnd('.')}",
+                        "Write the proxy as http://host:port, https://host:port, socks4://, socks4a:// or socks5://host:port in -x/--proxy (or in the http_proxy/https_proxy/all_proxy variables).",
+                        DocLinks.HowToProxy), 7, command, e);
+                }
+                if (e is FormatException && e.Message.IndexOf("method", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    var method = options.CustomMethod ?? options.Method ?? "(none)";
+                    return new CurlBadFunctionArgumentException("-X", CurlException.Compose(
+                        $"The request method \"{method}\" given with -X/--request is not a valid HTTP method token ({e.Message.TrimEnd('.')})",
+                        "Use a single word without spaces or separators, such as -X PUT, -X DELETE or -X PROPFIND.",
+                        DocLinks.HowToPutDeletePatch), command);
+                }
+                if (e.Message.IndexOf("Content-Length promised", StringComparison.OrdinalIgnoreCase) >= 0
+                    || (e.Message.IndexOf("Content-Length", StringComparison.OrdinalIgnoreCase) >= 0 && e.Message.IndexOf("request content bytes", StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    return new CurlSendErrorException(CurlException.Compose(
+                        $"the request body does not match the Content-Length header ({e.Message.TrimEnd('.')})",
+                        "Remove the -H 'Content-Length: ...' header and let curl compute it from -d/--data-binary/-F, or make the body exactly that many bytes.",
+                        DocLinks.HowToHeaders), command);
+                }
+            }
+            return null;
         }
 
         private static Exception? FindTlsFailure(Exception ex)

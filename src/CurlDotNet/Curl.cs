@@ -358,16 +358,21 @@ namespace CurlDotNet
         /// <param name="command">The curl command line as text, for example <c>curl -s https://api.example.com/users?page=2</c>
         /// or just <c>https://api.example.com</c>. Must contain a URL. Quote values with spaces as the source shell
         /// would (<c>-H 'Accept: application/json'</c>).</param>
-        /// <returns>A <see cref="CurlResult"/>: <see cref="CurlResult.StatusCode"/> (HTTP status; 0 for file:// and
-        /// skipped transfers), <see cref="CurlResult.Body"/> (standard output text), <see cref="CurlResult.Headers"/>
+        /// <returns>A <see cref="CurlResult"/>: <see cref="CurlResult.StatusCode"/> (the HTTP status; for <c>file://</c> 200, or
+        /// 404 when the file does not exist; 0 for a transfer skipped by <c>--skip-existing</c>), <see cref="CurlResult.Body"/> (standard output text), <see cref="CurlResult.Headers"/>
         /// (response headers, case-insensitive), <see cref="CurlResult.BinaryData"/> (for non-text responses),
         /// <see cref="CurlResult.OutputFiles"/>, <see cref="CurlResult.Timings"/> and <see cref="CurlResult.Command"/>.</returns>
         /// <exception cref="ArgumentException"><paramref name="command"/> is null, empty or only whitespace. Fix: pass a command
         /// that contains a URL. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/run-curl-command-in-csharp/README.md</exception>
-        /// <exception cref="CurlInvalidCommandException">The command text cannot be read: an unterminated quote, an
-        /// option missing its value (<c>-H</c> at the end), or a malformed option value (exit code 2 or 49). The message
-        /// names the option. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
-        /// <exception cref="CurlMalformedUrlException">No URL, or a URL curl cannot parse (exit code 3). Fix: check the
+        /// <exception cref="CurlInvalidCommandException">A <c>--resolve</c> or <c>--connect-to</c> value curl cannot parse
+        /// (<see cref="CurlOptionSyntaxException"/>, exit code 49), a command with several URL groups but no URL, or shell
+        /// syntax the chosen <see cref="CurlFlavor"/> cannot read. The message names the option. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <exception cref="CurlException">Thrown as the base type with exit code 2 for an option missing its value
+        /// (<c>-H</c> at the end) or a value that is not a number (<c>--max-filesize abc</c>), and with exit code 3 for a
+        /// command without any URL. The message names the option and shows a valid value. (Invalid numbers for
+        /// <c>-m</c>, <c>--connect-timeout</c>, <c>--max-redirs</c> and <c>--retry</c> are currently ignored rather than
+        /// reported.) See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <exception cref="CurlMalformedUrlException">A URL that cannot be parsed (exit code 3). Fix: check the
         /// scheme and host, percent-encode spaces. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/url-errors.md</exception>
         /// <exception cref="CurlUnsupportedProtocolException">A scheme CurlDotNet does not implement, such as
         /// <c>gopher://</c> (exit code 1). See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/supported-protocols.md</exception>
@@ -386,11 +391,13 @@ namespace CurlDotNet
         /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/http-errors.md</exception>
         /// <exception cref="CurlTooManyRedirectsException">With <c>-L</c>, more redirects than <c>--max-redirs</c> allows
         /// (exit code 47). See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/redirect-errors.md</exception>
-        /// <exception cref="CurlWriteErrorException">An output file (<c>-o</c>, <c>-D</c>, <c>-c</c>, <c>--trace</c>) could
-        /// not be written, for example because its folder does not exist (exit code 23). Fix: create the folder or add
+        /// <exception cref="CurlWriteErrorException">An output file (<c>-o</c>, <c>-O</c>, <c>-D</c>, <c>-c</c>) could
+        /// not be written, for example because its folder does not exist (exit code 23). (<c>--trace</c> creates its
+        /// folder itself; an <c>--etag-save</c> folder that does not exist skips the transfer with a warning on standard error.) Fix: create the folder or add
         /// <c>--create-dirs</c>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
         /// <exception cref="CurlReadErrorException">A file named with <c>@</c> (<c>-d @body.json</c>, <c>-F file=@a.png</c>,
-        /// <c>-T</c>) could not be read (exit code 26). See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <c>-T</c>) could not be read (exit code 26); a <c>-d @file</c> that does not exist at all is
+        /// <see cref="CurlFileCouldntReadException"/> (exit code 37). See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
         /// <exception cref="CurlException">Any other curl failure; <see cref="CurlException.CurlErrorCode"/> is curl's exit
         /// code and the message says what happened, how to fix it, and links the page for that code. Full table:
         /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
@@ -938,7 +945,15 @@ namespace CurlDotNet
         }
 
         /// <summary>Serializes the PostJson payload, turning serializer failures into a CurlParsingException.</summary>
-        private static string SerializeJsonForPost(object data, string url)
+        private static string SerializeJsonForPost(object data, string url) =>
+            SerializeJsonOrThrow(data, "Curl.PostJsonAsync", url, "or serialize it yourself and call Curl.PostAsync(url, json)");
+
+        /// <summary>
+        /// Serializes a request body to JSON (System.Text.Json, or Newtonsoft.Json on .NET Standard 2.0), turning a
+        /// serializer failure (reference cycle, unsupported member type) into a <see cref="CurlParsingException"/> that
+        /// names the API, the object type and the URL.
+        /// </summary>
+        internal static string SerializeJsonOrThrow(object data, string api, string? url, string alternative)
         {
             try
             {
@@ -947,8 +962,8 @@ namespace CurlDotNet
             catch (Exception ex) when (!(ex is OutOfMemoryException))
             {
                 throw new CurlParsingException(CurlException.Compose(
-                    $"Curl.PostJsonAsync could not serialize the {data?.GetType().Name ?? "null"} object to JSON for {ErrorText.SafeUrl(url)}: {ex.Message}",
-                    "Send a plain data object (a DTO without reference cycles, delegates or streams), or serialize it yourself and call Curl.PostAsync(url, json).",
+                    $"{api} could not serialize the {data?.GetType().Name ?? "null"} object to JSON for {ErrorText.SafeUrl(url)}: {ex.Message}",
+                    $"Send a plain data object (a DTO without reference cycles, delegates or streams), {alternative}.",
                     DocLinks.HowToPostJson),
                     "application/json", data?.GetType() ?? typeof(object), null, ex);
             }
@@ -989,7 +1004,8 @@ namespace CurlDotNet
         /// <c>/tmp/file.pdf</c>), a relative path (<c>downloads/file.pdf</c>, relative to the current directory) or just a
         /// file name. Its folder must already exist.</param>
         /// <returns>The <see cref="CurlResult"/>: <see cref="CurlResult.StatusCode"/>, <see cref="CurlResult.Headers"/>,
-        /// <see cref="CurlResult.OutputFiles"/> (contains <paramref name="outputPath"/>) and the body in memory.</returns>
+        /// <see cref="CurlResult.OutputFiles"/> (contains <paramref name="outputPath"/>). The body is in the file, not in
+        /// <see cref="CurlResult.Body"/> (empty); <see cref="CurlResult.BinaryData"/> also holds it for binary downloads.</returns>
         /// <exception cref="ArgumentException"><paramref name="url"/> or <paramref name="outputPath"/> is null, empty or whitespace.
         /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</exception>
         /// <exception cref="CurlWriteErrorException">The file could not be written: its folder does not exist, the path is

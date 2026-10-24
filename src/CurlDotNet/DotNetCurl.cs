@@ -143,7 +143,20 @@ namespace CurlDotNet
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
             {
-                return CurlAsync(command, cts.Token).GetAwaiter().GetResult();
+                try
+                {
+                    return CurlAsync(command, cts.Token).GetAwaiter().GetResult();
+                }
+                catch (OperationCanceledException ex) when (cts.IsCancellationRequested)
+                {
+                    // the caller passed a number of seconds, not a token: say that the deadline expired
+                    throw new OperationCanceledException(CurlException.Compose(
+                        $"DotNetCurl.Curl(command, {timeoutSeconds}) gave up: the request to {ErrorText.UrlFromCommand(command) ?? "the server"} did not finish within {timeoutSeconds} second(s).",
+                        timeoutSeconds == 0
+                            ? "A timeout of 0 cancels at once; pass the number of seconds to wait, or call DotNetCurl.Curl(command) to wait without a deadline."
+                            : "Pass a larger timeoutSeconds, or put -m SECONDS in the command to get curl's timeout error (CurlOperationTimeoutException, exit code 28) instead.",
+                        DocLinks.HowToTimeout), ex, cts.Token);
+                }
             }
         }
 

@@ -33,8 +33,17 @@ namespace CurlDotNet.Exceptions
                 var query = string.IsNullOrEmpty(uri.Query) ? string.Empty : "?...";
                 return $"{uri.Scheme}://{uri.Host}{port}{uri.AbsolutePath}{query}";
             }
-            return Preview(url!, 200);
+            // not parseable: still never print user:password@ or a query string
+            var text = UserInfo.Replace(url!, "$1");
+            var q = text.IndexOf('?');
+            if (q >= 0)
+            {
+                text = text.Substring(0, q) + "?...";
+            }
+            return Preview(text, 200);
         }
+
+        private static readonly Regex UserInfo = new Regex(@"^([A-Za-z][A-Za-z0-9+.-]*://)[^/@]*@", RegexOptions.CultureInvariant);
 
         /// <summary>
         /// The first URL in a curl command, made safe with <see cref="SafeUrl"/>; null when the command has none.

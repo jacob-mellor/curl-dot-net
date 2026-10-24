@@ -330,12 +330,21 @@ namespace CurlDotNet.Core
         ///     .ExecuteAsync();
         /// </code>
         /// </example>
+        /// <exception cref="ArgumentNullException"><paramref name="name"/> is null, empty or whitespace. Fix: pass a header
+        /// name such as <c>"Accept"</c>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-custom-headers-user-agent-csharp/README.md</exception>
         /// <seealso cref="WithHeaders"/>
         /// <seealso cref="WithUserAgent"/>
         /// <seealso cref="CurlOptions.Headers"/>
         /// <seealso cref="CurlDotNet.Lib.LibCurl.WithHeader"/>
         public CurlRequestBuilder WithHeader(string name, string value)
         {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentNullException(nameof(name), CurlException.Compose(
+                    $"CurlRequestBuilder.WithHeader(name, value) was called with {(name == null ? "a null" : "an empty")} header name for {ErrorText.SafeUrl(_options.Url)}.",
+                    "Pass a header name such as \"Accept\" or \"X-Api-Key\"; the value goes in the second argument.",
+                    DocLinks.HowToHeaders));
+            }
             _options.Headers[name] = value;
             return this;
         }
@@ -478,17 +487,18 @@ namespace CurlDotNet.Core
         ///     .ExecuteAsync();
         /// </code>
         /// </example>
+        /// <exception cref="CurlParsingException"><paramref name="data"/> cannot be serialized to JSON (a reference cycle,
+        /// a delegate or stream member); the serializer's exception is the InnerException. Fix: pass a plain DTO, or
+        /// serialize it yourself and use <see cref="WithData"/>. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md</exception>
         /// <seealso cref="WithData"/>
         /// <seealso cref="Curl.PostJsonAsync(string, object)"/>
         /// <seealso cref="CurlDotNet.Lib.LibCurl.PostAsync"/>
         /// <seealso cref="CurlResult.ParseJson{T}"/>
         public CurlRequestBuilder WithJson(object data)
         {
-#if NETSTANDARD2_0
-            _options.Data = Newtonsoft.Json.JsonConvert.SerializeObject(data);
-#else
-            _options.Data = Curl.SerializeJson(data);
-#endif
+            _options.Data = Curl.SerializeJsonOrThrow(data, "CurlRequestBuilder.WithJson(data)", _options.Url,
+                "or serialize it yourself and call WithData(json) plus WithHeader(\"Content-Type\", \"application/json\")");
             _options.Headers["Content-Type"] = "application/json";
             if (string.IsNullOrEmpty(_options.Method) || _options.Method == "GET")
                 _options.Method = "POST";
@@ -951,11 +961,20 @@ namespace CurlDotNet.Core
         /// <param name="parameterName">The form field name the server expects, such as <c>"file"</c>.</param>
         /// <param name="filePath">Path of the file to upload, absolute or relative to the current directory.</param>
         /// <returns>This builder, for chaining.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="parameterName"/> is null or empty. Fix: pass the form field
+        /// name the server expects, such as <c>"file"</c>. See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-file-upload-csharp/README.md</exception>
         /// <seealso cref="WithFile(string, string)"/>
         /// <seealso cref="WithFile(string)"/>
         /// <seealso cref="CurlOptions.Files"/>
         public CurlRequestBuilder WithUploadFile(string parameterName, string filePath)
         {
+            if (string.IsNullOrEmpty(parameterName))
+            {
+                throw new ArgumentNullException(nameof(parameterName), CurlException.Compose(
+                    $"CurlRequestBuilder.WithUploadFile(parameterName, filePath) was called with {(parameterName == null ? "a null" : "an empty")} form field name for '{filePath}'.",
+                    "Pass the field name the server expects, such as \"file\" or \"attachment\" (curl's -F 'file=@path').",
+                    DocLinks.HowToUpload));
+            }
             _options.Files[parameterName] = filePath;
             return this;
         }

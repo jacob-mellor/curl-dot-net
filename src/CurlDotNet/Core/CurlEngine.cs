@@ -173,7 +173,12 @@ namespace CurlDotNet.Core
                     "Create a new instance, or keep the instance alive (for example as a singleton) for as long as you send requests.",
                     DocLinks.HowItWorks));
 
-            if (options.AdditionalTransfers.Count == 0)
+            // hand-built options may null out the collections; treat that as "none" instead of a NullReferenceException
+            options.Headers ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            options.FormData ??= new Dictionary<string, string>();
+            options.Files ??= new Dictionary<string, string>();
+
+            if (options.AdditionalTransfers == null || options.AdditionalTransfers.Count == 0)
             {
                 return await ExecuteTransferAsync(options, cancellationToken);
             }
@@ -311,8 +316,17 @@ namespace CurlDotNet.Core
             }
             catch (UriFormatException ex)
             {
+                // the parser adds http:// to a URL without a scheme (like curl); name the text the user typed
+                var typed = options.Url ?? string.Empty;
+                var added = typed.StartsWith("http://", StringComparison.Ordinal)
+                            && !string.IsNullOrEmpty(options.OriginalCommand)
+                            && options.OriginalCommand!.IndexOf(typed, StringComparison.Ordinal) < 0
+                            && options.OriginalCommand.IndexOf(typed.Substring(7), StringComparison.Ordinal) >= 0;
+                var shown = added
+                    ? $"'{ErrorText.SafeUrl(typed.Substring(7))}' (read as '{ErrorText.SafeUrl(typed)}' after adding http://, because it has no scheme curl recognises)"
+                    : $"'{ErrorText.SafeUrl(typed)}'";
                 throw new CurlMalformedUrlException(options.Url, CurlException.Compose(
-                    $"'{ErrorText.SafeUrl(options.Url)}' could not be parsed as a URL ({ex.Message})",
+                    $"{shown} could not be parsed as a URL ({ex.Message})",
                     "Write it as scheme://host[:port]/path, percent-encode spaces (%20) and other special characters, and quote the URL in the command when it contains & ? or spaces.",
                     DocLinks.Url), options.OriginalCommand);
             }

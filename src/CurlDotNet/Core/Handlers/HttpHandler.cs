@@ -821,7 +821,10 @@ namespace CurlDotNet.Core
                     var filePath = data.Substring(1);
                     if (!File.Exists(filePath))
                     {
-                        throw new CurlFileCouldntReadException(filePath, options.OriginalCommand);
+                        throw new CurlFileCouldntReadException(filePath, CurlException.Compose(
+                            $"Couldn't open file '{filePath}' given with -d @{filePath}: it does not exist (relative paths start in {Environment.CurrentDirectory})",
+                            "Check the spelling and the current directory, or pass an absolute path; use --data-raw if the @ is meant literally.",
+                            DocLinks.TutorialFormsAndData), options.OriginalCommand);
                     }
 
                     // Read as raw bytes to preserve binary data integrity.

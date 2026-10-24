@@ -268,6 +268,10 @@ namespace CurlDotNet.Core
         /// <see cref="CurlDotNet.Exceptions.CurlWriteErrorException"/> (exit 23). <see cref="NoClobber"/>,
         /// <see cref="SkipExisting"/>, <see cref="RemoveOnError"/> and <see cref="ResumeFrom"/> (<c>-C -</c>) change how
         /// an existing file is treated.</para>
+        /// <para>For <c>file://</c> URLs the file handler is simpler: it always creates the output folder (no
+        /// <see cref="CreateDirs"/> needed), returns status 404 for a missing source file instead of failing (so
+        /// <see cref="FailOnError"/> does not apply), and ignores <see cref="NoClobber"/>, <see cref="OutputDir"/>,
+        /// <see cref="DumpHeaderFile"/> and <see cref="WriteOut"/>.</para>
         /// <para>Example: <c>curl -o report.pdf https://example.com/report.pdf</c> is
         /// <c>new CurlOptions { Url = "https://example.com/report.pdf", OutputFile = "report.pdf" }</c>.
         /// Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</para>
@@ -1334,13 +1338,13 @@ namespace CurlDotNet.Core
             {
                 Url = Url,
                 Method = Method,
-                Headers = new Dictionary<string, string>(Headers),
+                Headers = Headers == null ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) : new Dictionary<string, string>(Headers),
                 Data = Data,
                 DataUrlEncode = DataUrlEncode,
                 DataRaw = DataRaw,
                 BinaryData = BinaryData,
-                FormData = new Dictionary<string, string>(FormData),
-                Files = new Dictionary<string, string>(Files),
+                FormData = new Dictionary<string, string>(FormData ?? new Dictionary<string, string>()),
+                Files = new Dictionary<string, string>(Files ?? new Dictionary<string, string>()),
                 OutputFile = OutputFile,
                 UseRemoteFileName = UseRemoteFileName,
                 IncludeHeaders = IncludeHeaders,

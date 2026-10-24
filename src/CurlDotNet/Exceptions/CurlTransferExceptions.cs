@@ -165,7 +165,7 @@ namespace CurlDotNet.Exceptions
     /// a parameter twice. A plain wrong password is not this error: it ends with a normal 401 result.
     /// <see cref="Scheme"/> and <see cref="Proxy"/> say which negotiation failed.</para>
     /// <para>Example: <c>catch (CurlAuthErrorException ex) when (ex.Proxy) { Console.WriteLine($"Proxy {ex.Scheme} auth failed"); }</c></para>
-    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/auth-errors.md; schemes:
+    /// <para>Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/auth-errors.md schemes:
     /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/cookbook/auth-schemes.md</para>
     /// </remarks>
     /// <seealso cref="CurlAuthenticationException"/>

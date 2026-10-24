@@ -39,7 +39,7 @@ namespace CurlDotNet.Middleware
     /// running; configure the pipeline once at start-up (for example as a singleton in ASP.NET Core).</para>
     /// <para>Example: <c>var pipeline = CurlMiddlewarePipeline.CreateBuilder().UseLogging(Console.WriteLine).UseRetry(3, TimeSpan.FromMilliseconds(500)).WithHandler(ctx =&gt; Curl.ExecuteAsync(ctx.Command, ctx.CancellationToken)).Build();</c>
     /// then <c>var result = await pipeline.ExecuteAsync(new CurlContext { Command = "curl https://api.example.com/health" });</c>.</para>
-    /// <para>Logging and metrics guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/guides/logging-observability.md;
+    /// <para>Logging and metrics guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/guides/logging-observability.md
     /// retries, timeouts and cancellation: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/guides/advanced.md</para>
     /// </remarks>
     /// <seealso cref="CurlMiddlewarePipelineBuilder"/>
