@@ -691,6 +691,20 @@ namespace CurlDotNet.Tests
             thrown.Which.StandardOutput.Should().Be("Data\n");
         }
 
+        [Fact]
+        public async Task DigestUserWithControlCharacters_IsHashedDecoded_ButWrittenPercentEncoded()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 401 Auth\r\nWWW-Authenticate: Digest realm=\"testrealm%0a%0d\", nonce=\"1053604145\"\r\nContent-Length: 0\r\n\r\n",
+                Hello);
+
+            await Curl.ExecuteAsync($"curl --digest http://hello%0a%0d:there@127.0.0.1:{server.Port}/");
+
+            // curl test 3221
+            Line(server.Requests[1], "Authorization").Should().Be(
+                "Authorization: Digest username=\"hello%0A%0D\", realm=\"testrealm%0a%0d\", nonce=\"1053604145\", uri=\"/\", response=\"64e5ae1b90f05309847ac483c1094284\"");
+        }
+
         private static int ClosedPortNumber()
         {
             var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);

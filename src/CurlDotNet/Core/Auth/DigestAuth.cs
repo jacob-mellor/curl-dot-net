@@ -239,7 +239,8 @@ namespace CurlDotNet.Core.Auth
                 ? Hash(ha1 + ":" + Nonce + ":" + nc + ":" + _cnonce + ":" + Qop + ":" + ha2)
                 : Hash(ha1 + ":" + Nonce + ":" + ha2);
 
-            var userQuoted = userh ?? Quote(user);
+            // control characters never reach the header line: curl writes them %XX-encoded (test 3221)
+            var userQuoted = userh ?? Quote(EncodeControlCharacters(user));
             var realmQuoted = Quote(Realm ?? string.Empty);
             var uriQuoted = Quote(uri);
 
@@ -270,6 +271,24 @@ namespace CurlDotNet.Core.Auth
             if (UserHash)
             {
                 sb.Append(", userhash=true");
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>Writes control characters (CR, LF, ...) as upper-case <c>%XX</c> so they cannot split the header line.</summary>
+        private static string EncodeControlCharacters(string value)
+        {
+            var sb = new StringBuilder(value.Length);
+            foreach (var c in value)
+            {
+                if (c < 0x20 || c == 0x7F)
+                {
+                    sb.Append('%').Append(((int)c).ToString("X2", CultureInfo.InvariantCulture));
+                }
+                else
+                {
+                    sb.Append(c);
+                }
             }
             return sb.ToString();
         }

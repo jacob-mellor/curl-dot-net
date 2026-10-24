@@ -237,7 +237,8 @@ namespace CurlDotNet.Core.Auth
                     }
                     else
                     {
-                        var target = side.IsProxy && request.RequestUri!.IsAbsoluteUri ? request.RequestUri.PathAndQuery : request.RequestUri!.PathAndQuery;
+                        // curl hashes the path and query (also for requests sent to a proxy with an absolute URI)
+                        var target = request.RequestUri!.PathAndQuery;
                         value = "Digest " + side.Digest.CreateResponse(credentials.UserName ?? string.Empty, credentials.Password ?? string.Empty,
                             request.Method.Method, target);
                         side.Done = true;
