@@ -74,6 +74,9 @@ namespace CurlDotNet
         /// is detected as <see cref="Posix"/> and sends <c>POST / HTTP/1.1</c> with
         /// <c>Content-Type: application/json</c> and the 7-byte body <c>{"a":1}</c>.</para>
         /// </remarks>
+        /// <seealso cref="Curl.DetectFlavor(string)"/>
+        /// <seealso cref="Curl.DefaultFlavor"/>
+        /// <seealso href="https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md">curl flavors guide</seealso>
         Auto = 0,
 
         /// <summary>
@@ -104,6 +107,9 @@ namespace CurlDotNet
         /// <para>Example: <c>curl -H "Authorization: Bearer $TOKEN" -d '{"a":1}' https://api.example.com</c> with
         /// <c>TOKEN=abc</c> sends <c>Authorization: Bearer abc</c> and the body <c>{"a":1}</c>.</para>
         /// </remarks>
+        /// <seealso cref="WindowsCmd"/>
+        /// <seealso cref="PowerShell"/>
+        /// <seealso cref="Curl.ExecuteAsync(string, CurlFlavor)"/>
         Posix = 1,
 
         /// <summary>
@@ -133,6 +139,9 @@ namespace CurlDotNet
         /// <para>Example: <c>curl -H "Content-Type: application/json" -d "{\"a\":1}" https://api.example.com</c>
         /// sends <c>Content-Type: application/json</c> and the body <c>{"a":1}</c>.</para>
         /// </remarks>
+        /// <seealso cref="PowerShell"/>
+        /// <seealso cref="Posix"/>
+        /// <seealso cref="Curl.ExecuteAsync(string, CurlFlavor)"/>
         WindowsCmd = 2,
 
         /// <summary>
@@ -171,6 +180,9 @@ namespace CurlDotNet
         /// <para>Example: <c>curl.exe -H 'Content-Type: application/json' -d '{\"a\":1}' https://api.example.com</c>
         /// sends <c>Content-Type: application/json</c> and the body <c>{"a":1}</c>.</para>
         /// </remarks>
+        /// <seealso cref="InvokeWebRequest"/>
+        /// <seealso cref="WindowsCmd"/>
+        /// <seealso cref="Curl.ExecuteAsync(string, CurlFlavor)"/>
         PowerShell = 3,
 
         /// <summary>
@@ -209,6 +221,9 @@ namespace CurlDotNet
         /// sends <c>POST / HTTP/1.1</c> with <c>Content-Type: application/json</c> and the body <c>{"a":1}</c>,
         /// the same bytes as the <see cref="Posix"/> command <c>curl -L --max-redirs 5 -X POST -H 'Content-Type: application/json' -d '{"a":1}' https://api.example.com</c>.</para>
         /// </remarks>
+        /// <seealso cref="PowerShell"/>
+        /// <seealso cref="Curl.ToPowershellCode(string)">The opposite direction: curl to Invoke-RestMethod</seealso>
+        /// <seealso cref="Curl.ExecuteAsync(string, CurlFlavor)"/>
         InvokeWebRequest = 4
     }
 }
