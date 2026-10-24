@@ -362,7 +362,7 @@ namespace CurlDotNet.Tests
             // Act & Assert
             Action act = () => CurlRequestBuilder.Post("https://api.example.com")
                 .WithFile("document", "nonexistent.txt");
-            act.Should().Throw<FileNotFoundException>().WithMessage("*nonexistent.txt*");
+            act.Should().Throw<CurlDotNet.Exceptions.CurlReadErrorException>().WithMessage("*nonexistent.txt*");
         }
 
         #endregion
