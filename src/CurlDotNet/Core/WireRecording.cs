@@ -775,17 +775,22 @@ namespace CurlDotNet.Core
         /// <inheritdoc />
         public override bool CanSeek => false;
 
+        private static readonly string NotSeekable = CurlDotNet.Exceptions.CurlException.Compose(
+            "The recorded network stream of a CurlDotNet connection is forward-only: Length, Position, Seek and SetLength are not supported.",
+            "Read the stream sequentially (CanSeek is false); copy it into a MemoryStream first if you need random access.",
+            CurlDotNet.Exceptions.DocLinks.HowItWorks);
+
         /// <inheritdoc />
         public override bool CanWrite => _inner.CanWrite;
 
         /// <inheritdoc />
-        public override long Length => throw new NotSupportedException();
+        public override long Length => throw new NotSupportedException(NotSeekable);
 
         /// <inheritdoc />
         public override long Position
         {
-            get => throw new NotSupportedException();
-            set => throw new NotSupportedException();
+            get => throw new NotSupportedException(NotSeekable);
+            set => throw new NotSupportedException(NotSeekable);
         }
 
         /// <inheritdoc />
@@ -834,10 +839,10 @@ namespace CurlDotNet.Core
         }
 
         /// <inheritdoc />
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException(NotSeekable);
 
         /// <inheritdoc />
-        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException(NotSeekable);
 
         /// <summary>
         /// While a request head that needs a <see cref="RequestRewrite"/> is being written, collects it;
