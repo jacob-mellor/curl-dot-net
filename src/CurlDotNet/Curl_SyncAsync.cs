@@ -98,6 +98,34 @@ namespace CurlDotNet
         }
 
         /// <summary>
+        /// Executes a curl command copied from a specific shell and blocks the calling thread until the response
+        /// arrives.
+        /// </summary>
+        /// <param name="command">The command exactly as it was pasted, with or without the leading <c>curl</c> /
+        /// <c>curl.exe</c> / <c>Invoke-WebRequest</c>.</param>
+        /// <param name="flavor">Where it came from: <see cref="CurlFlavor.Posix"/> (bash/zsh),
+        /// <see cref="CurlFlavor.WindowsCmd"/> (curl.exe in cmd.exe), <see cref="CurlFlavor.PowerShell"/> (curl.exe in
+        /// PowerShell), <see cref="CurlFlavor.InvokeWebRequest"/> (Invoke-WebRequest / Invoke-RestMethod syntax) or
+        /// <see cref="CurlFlavor.Auto"/> to detect it. Overrides <see cref="DefaultFlavor"/> for this call.</param>
+        /// <returns>The <see cref="CurlResult"/>.</returns>
+        /// <exception cref="Exceptions.CurlInvalidCommandException">The text breaks the flavor's rules or uses an
+        /// untranslatable <c>Invoke-WebRequest</c> parameter; the message says how to fix it.</exception>
+        /// <exception cref="Exceptions.CurlException">The request fails.</exception>
+        /// <remarks>
+        /// <para>Blocks the thread; prefer <see cref="ExecuteAsync(string, CurlFlavor)"/> in async code. See that method
+        /// for what changes between flavors.</para>
+        /// <para>Example: <c>var result = Curl.Execute("curl -H \"Accept: application/json\" -d \"{\\\"a\\\":1}\" https://api.example.com", CurlFlavor.WindowsCmd);</c>
+        /// sends the body <c>{"a":1}</c>.</para>
+        /// </remarks>
+        /// <seealso cref="ExecuteAsync(string, CurlFlavor)"/>
+        /// <seealso cref="DefaultFlavor"/>
+        public static CurlResult Execute(string command, CurlFlavor flavor)
+        {
+            // This BLOCKS the thread until complete
+            return ExecuteAsync(command, flavor).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
         /// <para><b>⚠️ SYNCHRONOUS with settings - Blocks thread with advanced options.</b></para>
         /// </summary>
         public static CurlResult Execute(string command, CurlSettings settings)

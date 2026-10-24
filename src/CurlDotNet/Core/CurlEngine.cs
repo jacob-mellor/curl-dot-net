@@ -106,11 +106,29 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Execute a curl command with custom settings.
+        /// Execute a curl command written for the given shell flavor (see <see cref="CurlFlavor"/>).
+        /// </summary>
+        /// <param name="command">The command text.</param>
+        /// <param name="flavor">The shell the text was written for; <see cref="CurlFlavor.Auto"/> detects it.</param>
+        /// <param name="cancellationToken">Token used to cancel the request.</param>
+        public async Task<CurlResult> ExecuteAsync(string command, CurlFlavor flavor, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(command))
+            {
+                throw new ArgumentException("Command cannot be null or empty", nameof(command));
+            }
+
+            var options = _parser.Parse(command, flavor);
+            return await ExecuteAsync(options, cancellationToken);
+        }
+
+        /// <summary>
+        /// Execute a curl command with custom settings. The command is read with
+        /// <see cref="CurlSettings.Flavor"/>, or <see cref="Curl.DefaultFlavor"/> when that is not set.
         /// </summary>
         public async Task<CurlResult> ExecuteAsync(string command, CurlSettings settings)
         {
-            var options = _parser.Parse(command);
+            var options = _parser.Parse(command, settings?.Flavor ?? Curl.DefaultFlavor);
 
             // Apply settings to options
             if (settings != null)
@@ -299,13 +317,21 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// Validate a curl command without executing it.
+        /// Validate a curl command without executing it, reading it with <see cref="Curl.DefaultFlavor"/>.
         /// </summary>
         public ValidationResult Validate(string command)
         {
+            return Validate(command, Curl.DefaultFlavor);
+        }
+
+        /// <summary>
+        /// Validate a curl command written for the given shell flavor without executing it.
+        /// </summary>
+        public ValidationResult Validate(string command, CurlFlavor flavor)
+        {
             try
             {
-                var options = _parser.Parse(command);
+                var options = _parser.Parse(command, flavor);
 
                 if (string.IsNullOrEmpty(options.Url))
                 {

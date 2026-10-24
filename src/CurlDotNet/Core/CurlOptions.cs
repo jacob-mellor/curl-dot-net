@@ -325,6 +325,31 @@ namespace CurlDotNet.Core
         public string? OriginalCommand { get; set; }
 
         /// <summary>
+        /// The shell flavor the command text was read with: which quoting, escaping, line-continuation and
+        /// variable rules turned <see cref="OriginalCommand"/> into curl arguments.
+        /// </summary>
+        /// <value>
+        /// <see cref="CurlFlavor.Auto"/> (the default) on options you build yourself. After a command string
+        /// has been parsed it is the flavor actually used: the one you asked for, or, when you asked for
+        /// <see cref="CurlFlavor.Auto"/>, the one Auto detected (<see cref="CurlFlavor.Posix"/>,
+        /// <see cref="CurlFlavor.WindowsCmd"/>, <see cref="CurlFlavor.PowerShell"/> or
+        /// <see cref="CurlFlavor.InvokeWebRequest"/>). Every transfer of a multi-URL command carries the same value.
+        /// </value>
+        /// <remarks>
+        /// <para>Setting it on a <see cref="CurlOptions"/> object you pass to <see cref="Curl.ExecuteAsync(CurlOptions)"/>
+        /// has no effect, because nothing is parsed there; choose the flavor when you pass a command string, with
+        /// <see cref="Curl.ExecuteAsync(string, CurlFlavor)"/>, <see cref="CurlSettings.WithFlavor(CurlFlavor)"/>
+        /// or <see cref="Curl.DefaultFlavor"/>.</para>
+        /// <para>Example: after <c>var v = Curl.Validate("curl.exe -d '{\"a\":1}' https://x.example", CurlFlavor.PowerShell);</c>
+        /// <c>v.ParsedOptions.Flavor</c> is <c>CurlFlavor.PowerShell</c>; log it next to the command when a pasted
+        /// request does not behave the way it did in the terminal.</para>
+        /// </remarks>
+        /// <seealso cref="Curl.DetectFlavor(string)"/>
+        /// <seealso cref="Curl.DefaultFlavor"/>
+        /// <seealso cref="CurlSettings.WithFlavor(CurlFlavor)"/>
+        public CurlFlavor Flavor { get; set; }
+
+        /// <summary>
         /// Whether to show progress bar (--progress-bar).
         /// </summary>
         public bool ProgressBar { get; set; }
@@ -550,6 +575,7 @@ namespace CurlDotNet.Core
                 WriteOut = WriteOut,
                 ProgressHandler = ProgressHandler,
                 OriginalCommand = OriginalCommand,
+                Flavor = Flavor,
                 ProgressBar = ProgressBar,
                 KeepAliveTime = KeepAliveTime,
                 DnsServers = DnsServers,

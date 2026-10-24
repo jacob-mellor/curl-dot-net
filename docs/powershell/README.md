@@ -20,6 +20,7 @@ $r = [CurlDotNet.Curl]::Execute('curl -H "Accept: application/json" https://http
 | [Install CurlDotNet for PowerShell](install-curldotnet-powershell/README.md) | Downloading the package, which DLL to load in PowerShell 7 and in Windows PowerShell 5.1, `dotnet add package`, `#r "nuget: CurlDotNet"` and `#:package` |
 | [Run curl commands from PowerShell](run-curl-commands-powershell/README.md) | `[CurlDotNet.Curl]::Execute`, reading `.StatusCode`, `.Headers` and `.Body`, `ConvertFrom-Json`, here-strings, errors |
 | [curl vs Invoke-WebRequest vs Invoke-RestMethod](curl-vs-invoke-webrequest/README.md) | The `curl` alias in 5.1, why pasted commands break, how CurlDotNet's parser handles backtick continuations and Windows-style `\"` escapes |
+| [curl flavors: bash, CMD, PowerShell and Invoke-WebRequest](../how-to/curl-flavors-bash-cmd-powershell/README.md) | `CurlFlavor.PowerShell` for `curl.exe` commands, `CurlFlavor.InvokeWebRequest` for `-Uri`/`-Headers @{}` syntax, how `Auto` tells them apart, and the bytes each sends |
 | [Paste a curl command from API docs](paste-curl-command-powershell-csharp/README.md) | GitHub, Stripe and OpenAI-style commands, run unchanged in C# or PowerShell |
 | [Convert curl to PowerShell code](curl-to-powershell-code/README.md) | `Curl.ToPowershellCode` for native `Invoke-RestMethod` code, and what to add by hand |
 

@@ -116,6 +116,26 @@ namespace CurlDotNet.Core
         /// </summary>
         public int BufferSize { get; set; } = 8192;
 
+        /// <summary>
+        /// The shell the command string was written for, which decides how its quotes, escapes, line
+        /// continuations and variables are read; <c>null</c> (the default) means <see cref="Curl.DefaultFlavor"/>.
+        /// </summary>
+        /// <value>
+        /// <c>null</c> to use <see cref="Curl.DefaultFlavor"/> (normally <see cref="CurlFlavor.Auto"/>), or one of
+        /// <see cref="CurlFlavor.Auto"/>, <see cref="CurlFlavor.Posix"/>, <see cref="CurlFlavor.WindowsCmd"/>,
+        /// <see cref="CurlFlavor.PowerShell"/> or <see cref="CurlFlavor.InvokeWebRequest"/>.
+        /// </value>
+        /// <remarks>
+        /// <para>Only used by the methods that take a command string together with these settings, such as
+        /// <see cref="Curl.ExecuteAsync(string, CurlSettings)"/>. The flavor actually used is reported afterwards in
+        /// <see cref="CurlOptions.Flavor"/>.</para>
+        /// <para>Example: <c>new CurlSettings { Flavor = CurlFlavor.WindowsCmd }</c> reads
+        /// <c>curl -d "{\"a\":1}" https://api.example.com</c> with cmd.exe rules, so the body is <c>{"a":1}</c>.</para>
+        /// </remarks>
+        /// <seealso cref="WithFlavor(CurlFlavor)"/>
+        /// <seealso cref="Curl.DefaultFlavor"/>
+        public CurlFlavor? Flavor { get; set; }
+
         #region Fluent Builder Methods
 
         /// <summary>
@@ -269,6 +289,32 @@ namespace CurlDotNet.Core
             return this;
         }
 
+        /// <summary>
+        /// Sets the shell the command string was written for (see <see cref="CurlFlavor"/>) and returns these
+        /// settings for chaining.
+        /// </summary>
+        /// <param name="flavor">
+        /// <see cref="CurlFlavor.Auto"/> to detect it from the text; <see cref="CurlFlavor.Posix"/> for bash/zsh
+        /// (macOS, Linux, Git Bash); <see cref="CurlFlavor.WindowsCmd"/> for <c>curl.exe</c> in cmd.exe;
+        /// <see cref="CurlFlavor.PowerShell"/> for <c>curl.exe</c> in PowerShell; or
+        /// <see cref="CurlFlavor.InvokeWebRequest"/> for PowerShell's <c>Invoke-WebRequest</c> / <c>curl</c> alias
+        /// syntax. Overrides <see cref="Curl.DefaultFlavor"/> for requests made with these settings.
+        /// </param>
+        /// <returns>This <see cref="CurlSettings"/> instance.</returns>
+        /// <remarks>
+        /// <para>Example: <c>await Curl.ExecuteAsync("curl.exe -d '{\"a\":1}' https://api.example.com", new CurlSettings().WithFlavor(CurlFlavor.PowerShell).WithTimeout(30));</c>
+        /// sends the body <c>{"a":1}</c>. For a one-off call without other settings,
+        /// <see cref="Curl.ExecuteAsync(string, CurlFlavor)"/> is shorter.</para>
+        /// </remarks>
+        /// <seealso cref="Flavor"/>
+        /// <seealso cref="Curl.DefaultFlavor"/>
+        /// <seealso cref="CurlOptions.Flavor"/>
+        public CurlSettings WithFlavor(CurlFlavor flavor)
+        {
+            Flavor = flavor;
+            return this;
+        }
+
         #endregion
 
         /// <summary>
@@ -281,7 +327,8 @@ namespace CurlDotNet.Core
                 MaxTimeSeconds = Curl.DefaultMaxTimeSeconds > 0 ? Curl.DefaultMaxTimeSeconds : (int?)null,
                 ConnectTimeoutSeconds = Curl.DefaultConnectTimeoutSeconds > 0 ? Curl.DefaultConnectTimeoutSeconds : (int?)null,
                 FollowRedirects = Curl.DefaultFollowRedirects,
-                Insecure = Curl.DefaultInsecure
+                Insecure = Curl.DefaultInsecure,
+                Flavor = Curl.DefaultFlavor
             };
         }
     }

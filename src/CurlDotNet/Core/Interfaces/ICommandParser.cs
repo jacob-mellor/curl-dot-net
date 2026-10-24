@@ -27,6 +27,14 @@ namespace CurlDotNet.Core
         CurlOptions Parse(string command);
 
         /// <summary>
+        /// Parse a command written for a specific shell flavor (see <see cref="CurlFlavor"/>).
+        /// </summary>
+        /// <param name="command">The command string</param>
+        /// <param name="flavor">The shell the text was written for; <see cref="CurlFlavor.Auto"/> detects it</param>
+        /// <returns>Parsed options, with <see cref="CurlOptions.Flavor"/> set to the flavor used</returns>
+        CurlOptions Parse(string command, CurlFlavor flavor);
+
+        /// <summary>
         /// Validate a curl command without fully parsing.
         /// </summary>
         /// <param name="command">The curl command string</param>

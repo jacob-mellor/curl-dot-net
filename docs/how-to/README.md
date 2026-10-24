@@ -17,6 +17,7 @@ dotnet add package CurlDotNet
 |---|---|
 | [Run a curl command in C#](run-curl-command-in-csharp/README.md) | How do I run a curl command in C#? |
 | [Convert curl to C#](convert-curl-to-csharp/README.md) | How do I turn a curl command into HttpClient, Python, fetch or PowerShell code? |
+| [curl flavors: bash, CMD, PowerShell, Invoke-WebRequest](curl-flavors-bash-cmd-powershell/README.md) | Why does the same pasted command send different bytes from bash, cmd.exe and PowerShell, and how do I pick the right `CurlFlavor`? |
 | [Run curl synchronously](curl-synchronously-in-csharp/README.md) | How do I make a blocking call with `Curl.Execute` in a console app or script? |
 | [How CurlDotNet works](how-curldotnet-works/README.md) | What happens between the curl string and the HTTP request? |
 | [curl vs HttpClient](curl-vs-httpclient-csharp/README.md) | When should I use CurlDotNet and when raw HttpClient? |
