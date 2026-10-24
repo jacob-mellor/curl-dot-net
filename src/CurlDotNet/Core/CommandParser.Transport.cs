@@ -210,6 +210,10 @@ namespace CurlDotNet.Core
                     }
                     return true;
 
+                case "--raw":
+                    options.Raw = true;
+                    return true;
+
                 case "--tr-encoding":
                     options.TransferEncoding = true;
                     return true;

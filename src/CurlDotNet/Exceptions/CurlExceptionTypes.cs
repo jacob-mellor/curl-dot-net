@@ -111,6 +111,19 @@ namespace CurlDotNet.Exceptions
         {
             MalformedUrl = url;
         }
+
+        /// <summary>
+        /// Initializes a new instance with an explanation of what is wrong with the URL, for URLs that
+        /// did not come from the command line (such as a redirect's <c>Location</c> header).
+        /// </summary>
+        /// <param name="url">The malformed URL.</param>
+        /// <param name="detail">What is wrong and how to fix it.</param>
+        /// <param name="command">The curl command that was executing.</param>
+        public CurlMalformedUrlException(string url, string detail, string? command)
+            : base($"Malformed URL: {detail}\nFor URL syntax help, see: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/url-errors.md", 3, command)
+        {
+            MalformedUrl = url;
+        }
     }
 
     /// <summary>

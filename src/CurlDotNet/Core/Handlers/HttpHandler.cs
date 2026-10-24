@@ -75,6 +75,9 @@ namespace CurlDotNet.Core
             // Output that went to stdout cannot be taken back, so each attempt's stdout is kept, like curl.
             var retryStarted = DateTime.UtcNow;
             var earlierStdout = new StringBuilder();
+            // curl truncates the output file before a retry only when the failed attempt wrote body
+            // bytes to it; header-only attempts (-i, -f) stay in the file
+            var state = new AttemptState();
             var toStdout = string.IsNullOrEmpty(options.OutputFile) && !options.UseRemoteFileName;
             for (var attempt = 0; ; attempt++)
             {
@@ -84,7 +87,8 @@ namespace CurlDotNet.Core
                 TimeSpan? retryAfter = null;
                 try
                 {
-                    result = await ExecuteAttemptAsync(options, cancellationToken);
+                    state.WroteBody = false;
+                    result = await ExecuteAttemptAsync(options, cancellationToken, state);
                     if (retriesLeft > 0 && IsTransientStatus(result.StatusCode))
                     {
                         reason = $"HTTP {result.StatusCode}";
@@ -122,6 +126,7 @@ namespace CurlDotNet.Core
                 {
                     earlierStdout.Append(result.Body);
                 }
+                state.AppendOutput = state.OutputPath != null && !state.WroteBody;
 
                 var delaySeconds = retryAfter?.TotalSeconds
                     ?? (options.RetryDelay > 0 ? options.RetryDelay : Math.Min(Math.Pow(2, attempt), 600));
@@ -153,7 +158,20 @@ namespace CurlDotNet.Core
             return null;
         }
 
-        private async Task<CurlResult> ExecuteAttemptAsync(CurlOptions options, CancellationToken cancellationToken)
+        /// <summary>What one --retry attempt left behind, so the next attempt can continue the output file.</summary>
+        private sealed class AttemptState
+        {
+            /// <summary>Set by the caller: append to the output file instead of truncating it.</summary>
+            public bool AppendOutput;
+
+            /// <summary>Set by the attempt: body bytes were written to the output file.</summary>
+            public bool WroteBody;
+
+            /// <summary>Set by the attempt: the file that was written.</summary>
+            public string? OutputPath;
+        }
+
+        private async Task<CurlResult> ExecuteAttemptAsync(CurlOptions options, CancellationToken cancellationToken, AttemptState? attempt = null)
         {
             var verboseLog = options.Verbose ? new StringBuilder() : null;
             var trace = TraceWriter.TryCreate(options);
@@ -253,7 +271,7 @@ namespace CurlDotNet.Core
                 trace?.RecvHeaders(response);
 
                 readingBody = true;
-                return await FinishTransferAsync(transfer, request, response, token, verboseLog, trace);
+                return await FinishTransferAsync(transfer, request, response, token, verboseLog, trace, attempt);
             }
             catch (CurlException)
             {
@@ -638,7 +656,7 @@ namespace CurlDotNet.Core
         /// cookie jar, in the order curl does.
         /// </summary>
         private async Task<CurlResult> FinishTransferAsync(HttpTransfer transfer, HttpRequestMessage request, HttpResponseMessage response,
-            CancellationToken cancellationToken, StringBuilder? verboseLog, TraceWriter? trace)
+            CancellationToken cancellationToken, StringBuilder? verboseLog, TraceWriter? trace, AttemptState? attempt)
         {
             var options = transfer.Options;
             var command = options.OriginalCommand;
@@ -686,6 +704,11 @@ namespace CurlDotNet.Core
             }
 
             CurlException? failure = null;
+            if (bodyError == null && finalHead?.Trailers != null)
+            {
+                failure = TransportErrors.ValidateTrailers(finalHead, transfer);
+            }
+
             if (bodyError is FileSizeLimitReached)
             {
                 failure = new CurlFileSizeExceededException(options.MaxFileSize!.Value, rawBody.Length, command);
@@ -694,7 +717,8 @@ namespace CurlDotNet.Core
             {
                 failure = TransportErrors.Translate(bodyError, transfer, readingBody: true)
                           ?? new CurlReceiveErrorException(bodyError.Message, command);
-                if (failure is CurlPartialFileException partial && partial.BytesExpected.HasValue && options.IgnoreContentLength)
+                if (failure is CurlPartialFileException partial && partial.BytesExpected.HasValue
+                    && (options.IgnoreContentLength || (options.Raw && finalHead?.GetHeader("Transfer-Encoding") != null)))
                 {
                     failure = null; // --ignore-content-length: whatever arrived before the close is the body
                 }
@@ -728,7 +752,14 @@ namespace CurlDotNet.Core
                 }
                 else if (contentRange == null && request.Method == HttpMethod.Get)
                 {
-                    throw new CurlRangeErrorException(transfer.ResumeOffset, status, command);
+                    if (announced.HasValue && announced.Value == transfer.ResumeOffset)
+                    {
+                        body = Array.Empty<byte>(); // "the entire document is already downloaded"
+                    }
+                    else
+                    {
+                        throw new CurlRangeErrorException(transfer.ResumeOffset, status, command);
+                    }
                 }
             }
 
@@ -756,12 +787,17 @@ namespace CurlDotNet.Core
             }
 
             var effectiveUrl = request.RequestUri!.AbsoluteUri;
-            var failOnHttp = status >= 400 && (options.FailOnError || options.FailWithBody);
+            // a 416 while resuming means "already complete", which is not a failure even with -f
+            var failOnHttp = status >= 400 && (options.FailOnError || options.FailWithBody) && !(resuming && status == 416);
             string? outputPath = null;
             string? writtenPath = null;
-            // --etag-compare + 304: the copy on disk is current, so it is left alone
-            var notModified = status == 304 && !string.IsNullOrEmpty(options.EtagCompare);
-            if ((!failOnHttp || options.FailWithBody) && !notModified)
+            // A 304 with nothing to write (no -i headers, no body) leaves an existing file alone: curl
+            // only creates the output file when the first byte arrives (--etag-compare relies on it)
+            var notModified = status == 304 && !includeHeaders && body.Length == 0;
+            // -f writes the -i header blocks but never the error body; --fail-with-body keeps it
+            var outputBody = failOnHttp && !options.FailWithBody ? Array.Empty<byte>() : (failure == null ? body : rawBody);
+            var nothingToWrite = failOnHttp && !options.FailWithBody && !includeHeaders;
+            if (!notModified && !nothingToWrite)
             {
                 outputPath = TransferOutput.ResolveOutputPath(options, transfer, finalHead, effectiveUrl);
             }
@@ -770,14 +806,20 @@ namespace CurlDotNet.Core
             {
                 var fromHeader = options.UseRemoteFileName && options.RemoteHeaderName && string.IsNullOrEmpty(options.OutputFile)
                                  && TransferOutput.ContentDispositionFileName(finalHead?.GetHeader("Content-Disposition") ?? result.GetHeader("Content-Disposition")) != null;
-                writtenPath = resuming ? outputPath : TransferOutput.PrepareTarget(outputPath, options, fromHeader);
-                if (resuming)
+                // a resumed download, or a retry after an attempt that wrote no body, continues the file
+                var append = resuming || (attempt?.AppendOutput ?? false);
+                writtenPath = append ? outputPath : TransferOutput.PrepareTarget(outputPath, options, fromHeader);
+                if (append)
                 {
                     TransferOutput.EnsureDirectory(writtenPath, options, "-o/--output");
                 }
-                var bytes = BuildOutputBytes(includeHeaders ? headerText : null, failure == null ? body : rawBody, includeHeaders ? finalHead?.Trailers : null);
-                // a resumed download is appended to the partial file
-                TransferOutput.WriteFile(writtenPath, bytes, append: resuming, options, options.UseRemoteFileName && string.IsNullOrEmpty(options.OutputFile) ? "-O/--remote-name" : "-o/--output");
+                var bytes = BuildOutputBytes(includeHeaders ? headerText : null, outputBody, includeHeaders ? finalHead?.Trailers : null);
+                TransferOutput.WriteFile(writtenPath, bytes, append, options, options.UseRemoteFileName && string.IsNullOrEmpty(options.OutputFile) ? "-O/--remote-name" : "-o/--output");
+                if (attempt != null)
+                {
+                    attempt.WroteBody |= outputBody.Length > 0;
+                    attempt.OutputPath = writtenPath;
+                }
                 result.OutputFiles.Add(writtenPath);
                 if (options.RemoteTime && failure == null)
                 {
@@ -1034,7 +1076,7 @@ namespace CurlDotNet.Core
                 RedirectUrl = transfer.RedirectUrl ?? string.Empty,
                 Method = request.Method.Method,
                 Scheme = uri.Scheme.ToLowerInvariant(),
-                Referer = request.Headers.Referrer?.OriginalString ?? string.Empty,
+                Referer = request.Headers.TryGetValues("Referer", out var referers) ? referers.FirstOrDefault() ?? string.Empty : string.Empty,
                 NumRedirects = transfer.RedirectCount,
                 FilenameEffective = writtenPath ?? string.Empty,
                 ProxyUsed = transfer.CurrentViaProxy,

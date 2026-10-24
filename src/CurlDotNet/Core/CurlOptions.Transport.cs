@@ -260,6 +260,14 @@ namespace CurlDotNet.Core
         public bool TransferEncoding { get; set; }
 
         /// <summary>
+        /// Pass transfer-codings through instead of interpreting them.
+        /// </summary>
+        /// <remarks><para>Set by <c>--raw</c>. Unknown <c>Transfer-Encoding</c> values are then accepted and the
+        /// body is read until the server closes. HttpClient always removes chunked framing, so chunk
+        /// sizes are not written to the output as curl would.</para></remarks>
+        public bool Raw { get; set; }
+
+        /// <summary>
         /// Creates a member-wise copy so a redirect hop can change its URL, method or headers without
         /// touching the caller's options. Collections are shared; replace them before modifying.
         /// </summary>

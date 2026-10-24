@@ -105,13 +105,45 @@ namespace CurlDotNet.Core
         /// <summary>Requests sent (excluding HttpClient's own auth retries).</summary>
         public int RequestsSent { get; private set; }
 
+        /// <summary>True when --referer ended in ";auto": redirect hops send the previous URL as Referer.</summary>
+        public bool AutoReferer { get; private set; }
+
         /// <summary>The byte offset -C/--continue-at resumes from (0 = not resuming).</summary>
         public long ResumeOffset { get; private set; }
 
         /// <summary>Builds the request for <paramref name="hop"/> and adds curl's transport headers.</summary>
         public HttpRequestMessage PrepareRequest(CurlOptions hop)
         {
-            var request = _createRequest(hop);
+            // curl sends -e/--referer verbatim; ";auto" (alone or after a value) turns on auto-referer for
+            // redirects. A relative or empty value is not a URI, so it is added as a raw header here.
+            var effective = hop;
+            string? rawReferer = null;
+            if (hop.Referer != null)
+            {
+                var referer = hop.Referer;
+                if (referer.EndsWith(";auto", StringComparison.Ordinal))
+                {
+                    AutoReferer = true;
+                    referer = referer.Substring(0, referer.Length - 5);
+                }
+                if (referer.Length == 0 || !Uri.TryCreate(referer, UriKind.Absolute, out _))
+                {
+                    effective = hop.ShallowCopy();
+                    effective.Referer = null;
+                    rawReferer = referer.Length > 0 ? referer : null;
+                }
+                else if (!ReferenceEquals(referer, hop.Referer))
+                {
+                    effective = hop.ShallowCopy();
+                    effective.Referer = referer;
+                }
+            }
+
+            var request = _createRequest(effective);
+            if (rawReferer != null)
+            {
+                request.Headers.TryAddWithoutValidation("Referer", rawReferer);
+            }
             var uri = request.RequestUri!;
             var proxyUri = Proxy?.ProxyFor(uri);
             var tunnel = proxyUri != null && (Options.ProxyTunnel || !string.Equals(uri.Scheme, "http", StringComparison.OrdinalIgnoreCase));

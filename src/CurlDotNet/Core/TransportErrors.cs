@@ -113,7 +113,7 @@ namespace CurlDotNet.Core
         internal static CurlException? ValidateTransferEncoding(RawResponseHead head, CurlOptions options)
         {
             var values = head.GetHeaders("Transfer-Encoding").ToList();
-            if (values.Count == 0 || head.IsInformational)
+            if (values.Count == 0 || head.IsInformational || options.Raw)
             {
                 return null;
             }
@@ -134,10 +134,6 @@ namespace CurlDotNet.Core
                 }
                 if (token == "identity")
                 {
-                    if (tokens.Count > 1 && i == tokens.Count - 1)
-                    {
-                        return new CurlBadContentEncodingException(raw, "identity cannot follow another transfer-coding", command);
-                    }
                     continue;
                 }
                 if ((token == "gzip" || token == "x-gzip" || token == "deflate") && options.TransferEncoding)
@@ -160,6 +156,16 @@ namespace CurlDotNet.Core
         {
             var nl = text.IndexOf('\n');
             return (nl < 0 ? text : text.Substring(0, nl)).TrimEnd('\r');
+        }
+
+        /// <summary>curl rejects chunked trailers that contain a NUL byte (exit 8).</summary>
+        public static CurlException? ValidateTrailers(RawResponseHead head, HttpTransfer transfer)
+        {
+            if (head.Trailers != null && head.Trailers.IndexOf('\0') >= 0)
+            {
+                return new CurlWeirdServerReplyException(WeirdMessage("a chunked-body trailer contains a NUL byte", transfer), transfer.Options.OriginalCommand);
+            }
+            return null;
         }
 
         private static string WeirdMessage(string what, HttpTransfer transfer)
@@ -426,6 +432,12 @@ namespace CurlDotNet.Core
 
             if (final.IsInformational)
             {
+                if (!pending)
+                {
+                    // only an interim response and then the connection closed: nothing usable arrived
+                    return new CurlGotNothingException(uri.Host, command,
+                        $"The server only sent \"{StatusLineOf(final.Text)}\" before closing. ");
+                }
                 return new CurlWeirdServerReplyException(WeirdMessage($"the server sent \"{StatusLineOf(final.Text)}\" and then data that is not an HTTP response", transfer), command);
             }
 
@@ -437,8 +449,14 @@ namespace CurlDotNet.Core
                     : new CurlWeirdServerReplyException(WeirdMessage(problemFinal.Value.Message, transfer), command);
             }
 
+            if (parser.PendingTrailerText.IndexOf('\0') >= 0 || (final.Trailers?.IndexOf('\0') ?? -1) >= 0)
+            {
+                return new CurlWeirdServerReplyException(WeirdMessage("a chunked-body trailer contains a NUL byte", transfer), command);
+            }
+
             if (!final.BodyComplete)
             {
+
                 if (parser.Closed || IsResponseEnded(ex))
                 {
                     if (final.DeclaredLength.HasValue || final.Chunked)
@@ -465,6 +483,19 @@ namespace CurlDotNet.Core
         {
             var options = transfer.Options;
             var uri = transfer.CurrentRequest?.RequestUri ?? transfer.FirstUri;
+
+            // HttpClient sometimes reports malformed responses (bad trailers, bad header values) with
+            // framework exceptions; the recorded bytes say what curl would have reported
+            var exchange = transfer.LastExchange;
+            if (exchange != null && exchange.ReceivedAnything)
+            {
+                var fromWire = FromRecording(ex, exchange, transfer, readingBody: true, uri);
+                if (!(fromWire is CurlReceiveErrorException))
+                {
+                    return fromWire;
+                }
+            }
+
             var serverScheme = HttpHandler.UsesChallengeAuth(options) ? options.AuthScheme : null;
             var proxyScheme = transfer.Proxy != null && transfer.Proxy.AuthScheme != "basic" && transfer.Proxy.UserCredentials != null
                 ? transfer.Proxy.AuthScheme

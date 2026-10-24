@@ -53,7 +53,7 @@ namespace CurlDotNet.Core.Handlers
                     break; // curl stops quietly at a 3xx without (usable) Location
                 }
 
-                var target = ResolveLocation(currentRequest.RequestUri!, location!);
+                var target = ResolveLocation(currentRequest.RequestUri!, location!, options.OriginalCommand);
                 if (target == null)
                 {
                     break;
@@ -169,6 +169,13 @@ namespace CurlDotNet.Core.Handlers
                 }
             }
 
+            if (transfer.AutoReferer && transfer.CurrentRequest?.RequestUri != null)
+            {
+                // --referer ";auto": the page that redirected, without credentials or fragment
+                var from = new UriBuilder(transfer.CurrentRequest.RequestUri) { UserName = string.Empty, Password = string.Empty, Fragment = string.Empty };
+                hop.Referer = from.Uri.AbsoluteUri;
+            }
+
             if (!string.Equals(previous.Url.Length > 0 ? new Uri(previous.Url).Host : string.Empty, target.Host, StringComparison.OrdinalIgnoreCase))
             {
                 // a custom -H "Host: ..." names the first server; curl drops it when the redirect changes host
@@ -207,7 +214,7 @@ namespace CurlDotNet.Core.Handlers
         /// Resolves a raw Location value against the request URL the way curl does.
         /// Returns null when the value cannot form a URL.
         /// </summary>
-        internal static Uri? ResolveLocation(Uri baseUri, string location)
+        internal static Uri? ResolveLocation(Uri baseUri, string location, string? command = null)
         {
             var value = location.Trim(' ', '\t', '\r', '\n');
             if (value.Length == 0)
@@ -222,6 +229,19 @@ namespace CurlDotNet.Core.Handlers
             }
 
             var encoded = EncodeLocation(value);
+
+            // curl accepts "http:///host/path" (three slashes) but rejects four or more (exit 3)
+            var schemeMatch = Regex.Match(encoded, @"^([A-Za-z][A-Za-z0-9+.\-]*):(/{3,})");
+            if (schemeMatch.Success)
+            {
+                if (schemeMatch.Groups[2].Value.Length > 3)
+                {
+                    throw new CurlMalformedUrlException(location,
+                        $"The redirect target \"{location}\" is not a valid URL: it has {schemeMatch.Groups[2].Value.Length} slashes after the scheme. Fix the server's Location header (scheme://host/path), or fetch the intended URL directly.", command);
+                }
+                encoded = schemeMatch.Groups[1].Value + "://" + encoded.Substring(schemeMatch.Length);
+            }
+
             try
             {
                 if (encoded.StartsWith("//", StringComparison.Ordinal))

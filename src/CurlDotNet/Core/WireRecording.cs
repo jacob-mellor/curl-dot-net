@@ -237,6 +237,9 @@ namespace CurlDotNet.Core
         /// <summary>The bytes of an unfinished header block, decoded as ISO-8859-1.</summary>
         public string PendingHeadText => WireText.Latin1.GetString(_head.GetBuffer(), 0, (int)_head.Length);
 
+        /// <summary>Trailer text received so far for an unfinished chunked body.</summary>
+        public string PendingTrailerText => _state == State.Trailers ? _trailers.ToString() + _line : string.Empty;
+
         /// <summary>The response whose body is currently being received, if any.</summary>
         public RawResponseHead? Current => _current;
 
