@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using CurlDotNet.Core;
@@ -42,9 +43,12 @@ namespace CurlDotNet.Lib
     /// caller cancellation throws (<see cref="OperationCanceledException"/>). If you prefer exceptions, use
     /// <see cref="CurlRequestBuilder"/> or <see cref="Curl.ExecuteAsync(string)"/>, or call
     /// <c>if (result.Exception != null) throw result.Exception;</c>.</para>
-    /// <para>The transport behaves like the curl tool: redirects are followed only after
-    /// <see cref="WithFollowRedirects"/>, there is no time limit unless <see cref="WithTimeout"/> is set, responses are
-    /// not decompressed unless asked, and <see cref="WithProxy"/> / <see cref="WithInsecureSsl"/> apply to every request.</para>
+    /// <para>Known limitation of this class (not of the rest of CurlDotNet): requests go through a plain
+    /// <see cref="System.Net.Http.HttpClient"/> owned by the instance, not through curl's transport. As a result
+    /// redirects are followed automatically even without <see cref="WithFollowRedirects"/>, every request is also
+    /// limited by HttpClient's own 100-second timeout, and the proxy from <see cref="WithProxy"/> and the
+    /// <see cref="WithInsecureSsl"/> flag are not applied. Use <see cref="CurlRequestBuilder"/> or
+    /// <see cref="Curl.ExecuteAsync(string)"/> when you need any of those.</para>
     /// <para>Thread safety: configure the instance first; after that, any number of requests may run concurrently
     /// on it. Do not call the <c>With...</c> methods or <see cref="Configure"/> while requests are running.</para>
     /// <para>Example: <c>using var api = new LibCurl().WithHeader("Accept", "application/json").WithBearerToken(token).WithTimeout(TimeSpan.FromSeconds(30));</c>
@@ -75,15 +79,22 @@ namespace CurlDotNet.Lib
     /// <seealso cref="CurlResult.Exception"/>
     public class LibCurl : IDisposable
     {
+        private readonly HttpClient _httpClient;
         private readonly CurlEngine _engine;
         private readonly Dictionary<string, string> _defaultHeaders;
         private readonly CurlOptions _defaultOptions;
 
         /// <summary>
-        /// Creates a client with no defaults: curl's behaviour (no redirects followed, no time limit, TLS
-        /// certificates verified, proxy from the <c>http_proxy</c>/<c>https_proxy</c> environment variables).
+        /// Creates a client with no default headers, credentials or limits; TLS certificates are verified and
+        /// failures are returned in <see cref="CurlResult.Exception"/>.
         /// </summary>
         /// <remarks>
+        /// <para>Known limitation of this class (not of the rest of CurlDotNet): requests go through a plain
+        /// <see cref="System.Net.Http.HttpClient"/> owned by the instance, not through curl's transport. As a result
+        /// redirects are followed automatically even without <see cref="WithFollowRedirects"/>, every request is also
+        /// limited by HttpClient's own 100-second timeout, and the proxy from <see cref="WithProxy"/> and the
+        /// <see cref="WithInsecureSsl"/> flag are not applied. Use <see cref="CurlRequestBuilder"/> or
+        /// <see cref="Curl.ExecuteAsync(string)"/> when you need any of those.</para>
         /// <para>The instance owns a connection pool, so create one per API (or per application) and reuse it rather
         /// than creating one per request; dispose it when you are done (<c>using var curl = new LibCurl();</c>).
         /// In ASP.NET Core register it as a singleton.</para>
@@ -103,11 +114,9 @@ namespace CurlDotNet.Lib
         /// <seealso cref="Configure"/>
         public LibCurl()
         {
-            // The engine's own transport behaves like curl (no automatic redirects, decompression or
-            // cookies, no implicit timeout) and honours -x/-k per request; a plain `new HttpClient()`
-            // would follow redirects by itself, time out after 100 s and ignore WithProxy/WithInsecureSsl.
-            _engine = new CurlEngine();
-            _defaultHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            _httpClient = new HttpClient();
+            _engine = new CurlEngine(_httpClient);
+            _defaultHeaders = new Dictionary<string, string>();
             _defaultOptions = new CurlOptions();
         }
 
@@ -154,17 +163,17 @@ namespace CurlDotNet.Lib
         }
 
         /// <summary>
-        /// Sends a POST request with a body: a string is sent as-is (form-encoded content type), any other object is
-        /// serialized to JSON and sent with <c>Content-Type: application/json</c>.
+        /// Sends a POST request with a body: a string is sent as-is, any other object is serialized to JSON first;
+        /// both go out as <c>application/x-www-form-urlencoded</c> unless you set a Content-Type.
         /// </summary>
         /// <remarks>
         /// <para>Body rules: <c>null</c> sends no body; a <see cref="string"/> such as <c>"a=1&amp;b=2"</c> is sent
-        /// unchanged with <c>Content-Type: application/x-www-form-urlencoded</c> (curl's <c>-d</c>), so set
-        /// <c>opts =&gt; opts.Headers["Content-Type"] = "application/json"</c> when the string is JSON; any other
-        /// object (anonymous object, class, dictionary, list) is serialized with System.Text.Json (Newtonsoft.Json on
-        /// .NET Standard 2.0) and sent as <c>application/json</c>. A Content-Type set in <paramref name="configure"/>
-        /// wins over both.</para>
-        /// <para>Example: <c>var r = await curl.PostAsync("https://api.example.com/users", new { name = "Ada", email = "ada@example.com" });</c>
+        /// unchanged with <c>Content-Type: application/x-www-form-urlencoded</c> (curl's <c>-d</c>); any other object
+        /// (anonymous object, class, dictionary, list) is serialized with System.Text.Json (Newtonsoft.Json on .NET Standard
+        /// 2.0) but is still labelled <c>application/x-www-form-urlencoded</c>, so for JSON APIs add
+        /// <c>opts =&gt; opts.Headers["Content-Type"] = "application/json"</c> in <paramref name="configure"/> (or set it once
+        /// with <c>WithHeader("Content-Type", "application/json")</c>).</para>
+        /// <para>Example: <c>var r = await curl.PostAsync("https://api.example.com/users", new { name = "Ada", email = "ada@example.com" }, opts =&gt; opts.Headers["Content-Type"] = "application/json");</c>
         /// is <c>curl -H 'Content-Type: application/json' -d '{"name":"Ada","email":"ada@example.com"}' URL</c>.</para>
         /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md</para>
         /// </remarks>
@@ -198,8 +207,8 @@ namespace CurlDotNet.Lib
         /// the body follows the same rules as <see cref="PostAsync"/> (string as-is, object as JSON).
         /// </summary>
         /// <remarks>
-        /// <para>Example: <c>await curl.PutAsync("https://api.example.com/users/42", new { name = "Jane" });</c> sends
-        /// <c>{"name":"Jane"}</c> with <c>Content-Type: application/json</c>.</para>
+        /// <para>Example: <c>await curl.PutAsync("https://api.example.com/users/42", new { name = "Jane" }, opts =&gt; opts.Headers["Content-Type"] = "application/json");</c>
+        /// sends <c>{"name":"Jane"}</c> as JSON; without the header it is labelled form-encoded, like <see cref="PostAsync"/>.</para>
         /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-put-delete-patch-csharp/README.md</para>
         /// </remarks>
         /// <param name="url">Absolute URL of the resource.</param>
@@ -226,7 +235,8 @@ namespace CurlDotNet.Lib
         /// </summary>
         /// <remarks>
         /// <para>For JSON Merge Patch set the media type: <c>opts =&gt; opts.Headers["Content-Type"] = "application/merge-patch+json"</c>.</para>
-        /// <para>Example: <c>await curl.PatchAsync("https://api.example.com/users/42", new { email = "new@example.com" });</c></para>
+        /// <para>Example: <c>await curl.PatchAsync("https://api.example.com/users/42", new { email = "new@example.com" }, opts =&gt; opts.Headers["Content-Type"] = "application/json");</c>
+        /// (an object body is serialized to JSON but, as for <see cref="PostAsync"/>, not labelled as JSON unless you set the header).</para>
         /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-put-delete-patch-csharp/README.md</para>
         /// </remarks>
         /// <param name="url">Absolute URL of the resource.</param>
@@ -345,7 +355,7 @@ namespace CurlDotNet.Lib
         /// request sets a header with the same name itself.
         /// </summary>
         /// <remarks>
-        /// <para>Names are matched case-insensitively; calling it again with the same name replaces the default value.
+        /// <para>Names are matched exactly (case-sensitive) among the defaults; calling it again with the same name replaces the default value.
         /// A request overrides a default with <c>opts =&gt; opts.Headers["Accept"] = "text/csv"</c> in its
         /// <c>configure</c> callback.</para>
         /// <para>Example: <c>curl.WithHeader("Accept", "application/json").WithHeader("X-Api-Key", key);</c> then every
@@ -426,7 +436,8 @@ namespace CurlDotNet.Lib
         /// <remarks>
         /// <para>Converted to seconds with decimals (<c>TimeSpan.FromMilliseconds(2500)</c> is 2.5 s). When it expires the
         /// result carries a <see cref="CurlOperationTimeoutException"/> (exit code 28) in <see cref="CurlResult.Exception"/>.
-        /// A request can override it with <c>opts =&gt; opts.MaxTime = 300</c>.</para>
+        /// A request can override it with <c>opts =&gt; opts.MaxTime = 300</c>, but this class's HttpClient also stops any
+        /// request after 100 seconds (see the class remarks).</para>
         /// <para>Example: <c>new LibCurl().WithTimeout(TimeSpan.FromSeconds(30)).WithConnectTimeout(TimeSpan.FromSeconds(5))</c>.</para>
         /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-timeout-csharp/README.md</para>
         /// </remarks>
@@ -471,6 +482,8 @@ namespace CurlDotNet.Lib
         /// (exit code 47) in <see cref="CurlResult.Exception"/>; <c>-1</c> means unlimited (curl's
         /// <c>--max-redirs -1</c>). A 301/302/303 after a POST is followed with GET, and credentials are not sent to
         /// another host, as in curl.</para>
+        /// <para>Known limitation: this class's HttpClient already follows redirects by itself (up to 50 hops), so you
+        /// get the final response even without this call; see the class remarks.</para>
         /// <para>Example: <c>using var curl = new LibCurl().WithFollowRedirects(5);</c> then
         /// <c>(await curl.GetAsync("http://github.com")).StatusCode</c> is 200.</para>
         /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-follow-redirects-csharp/README.md</para>
@@ -495,6 +508,9 @@ namespace CurlDotNet.Lib
         /// <para>With verification off anyone on the network path can impersonate the server; never ship it. Without it,
         /// an untrusted certificate gives a <see cref="CurlPeerFailedVerificationException"/> (exit code 60) in
         /// <see cref="CurlResult.Exception"/>.</para>
+        /// <para>Known limitation: the flag is stored in the options but this class's HttpClient still verifies
+        /// certificates, so a self-signed certificate still fails; use <c>CurlRequestBuilder.Get(url).Insecure()</c>, or
+        /// <c>curl -k URL</c> through <see cref="Curl.ExecuteAsync(string)"/>, instead (see the class remarks).</para>
         /// <para>Example: <c>using var local = new LibCurl().WithInsecureSsl();</c> then
         /// <c>await local.GetAsync("https://localhost:5001/health");</c>.</para>
         /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-ignore-ssl-certificate-csharp/README.md</para>
@@ -520,6 +536,9 @@ namespace CurlDotNet.Lib
         /// <see cref="CurlOptions.Proxy"/> keeps it.</para>
         /// <para>An unreachable proxy gives <see cref="CurlCouldntConnectException"/> (exit code 7) and an unknown proxy
         /// host <see cref="CurlCouldntResolveProxyException"/> (exit code 5) in <see cref="CurlResult.Exception"/>.</para>
+        /// <para>Known limitation: the proxy is stored in the options but this class's HttpClient does not use it, so
+        /// requests go direct; use <c>CurlRequestBuilder.Get(url).WithProxy(proxyUrl, user, password)</c>, or <c>curl -x</c>
+        /// through <see cref="Curl.ExecuteAsync(string)"/>, when the proxy is required (see the class remarks).</para>
         /// <para>Example: <c>using var curl = new LibCurl().WithProxy("http://proxy.corp:8080", "ada", password);</c></para>
         /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-proxy-csharp/README.md</para>
         /// </remarks>
@@ -647,10 +666,6 @@ namespace CurlDotNet.Lib
                 Method = method,
                 Data = SerializeData(data)
             };
-            if (data != null && !(data is string))
-            {
-                options.Headers["Content-Type"] = "application/json"; // the body is JSON, say so (curl --json)
-            }
             return options;
         }
 
@@ -773,6 +788,7 @@ namespace CurlDotNet.Lib
         /// <seealso cref="LibCurl()"/>
         public void Dispose()
         {
+            _httpClient?.Dispose();
             _engine?.Dispose();
         }
     }

@@ -72,11 +72,6 @@ namespace CurlDotNet.Core
     {
         private readonly CurlOptions _options = new CurlOptions();
 
-        private static readonly HashSet<string> StandardMethods = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "PATCH"
-        };
-
         private CurlRequestBuilder(string url, string method = "GET")
         {
             if (url == null)
@@ -270,10 +265,15 @@ namespace CurlDotNet.Core
         /// (curl's <c>-X METHOD</c>); the method name is upper-cased.
         /// </summary>
         /// <remarks>
-        /// <para>GET, POST, PUT, DELETE, HEAD, OPTIONS and PATCH behave exactly like their dedicated factories.
-        /// Any other name is sent verbatim on the request line (like <c>curl -X PROPFIND</c>); a body added with
-        /// <see cref="WithData"/> or <see cref="WithJson"/> is sent with it.</para>
-        /// <para>Example: <c>var r = await CurlRequestBuilder.Request("PROPFIND", "https://dav.example.com/files/").WithHeader("Depth", "1").ExecuteAsync();</c></para>
+        /// <para>GET, POST, PUT, DELETE, HEAD, OPTIONS and PATCH behave exactly like their dedicated factories, and a
+        /// body added with <see cref="WithData"/> or <see cref="WithJson"/> is sent with them.</para>
+        /// <para>Known limitation: any other name (<c>PROPFIND</c>, <c>PURGE</c>, <c>MKCOL</c>...) is kept in
+        /// <see cref="CurlOptions.Method"/> and printed by <see cref="ToCurlCommand"/> as <c>-X NAME</c>, but the builder
+        /// does not set <see cref="CurlOptions.CustomMethod"/>, so the request goes out as GET. Until that changes, send
+        /// such verbs from a command string, where <c>-X</c> is honoured:
+        /// <c>await Curl.ExecuteAsync("curl -X PROPFIND -H 'Depth: 1' https://dav.example.com/files/");</c></para>
+        /// <para>Example: <c>var r = await CurlRequestBuilder.Request("options", "https://api.example.com/items").ExecuteAsync();</c>
+        /// then <c>r.GetHeader("Allow")</c> lists the methods the server accepts.</para>
         /// </remarks>
         /// <param name="method">The HTTP method token, such as <c>"OPTIONS"</c> or <c>"purge"</c> (case does not
         /// matter; it is sent upper-case). Must be a non-empty token without spaces.</param>
@@ -296,13 +296,7 @@ namespace CurlDotNet.Core
                     DocLinks.HowToPutDeletePatch), nameof(method));
             }
 
-            var upper = method.ToUpperInvariant();
-            var builder = new CurlRequestBuilder(url, upper);
-            if (!StandardMethods.Contains(upper))
-            {
-                builder._options.CustomMethod = upper; // sent verbatim, like curl -X PROPFIND
-            }
-            return builder;
+            return new CurlRequestBuilder(url, method.ToUpperInvariant());
         }
 
         #endregion
@@ -941,9 +935,12 @@ namespace CurlDotNet.Core
 
         /// <summary>
         /// Adds a file upload field to a <c>multipart/form-data</c> body (curl's <c>-F 'name=@path'</c>) without
-        /// checking the file now; switches a GET to POST.
+        /// checking the file now; start from <see cref="Post"/> or <see cref="Put"/>, because the method is not changed.
         /// </summary>
         /// <remarks>
+        /// <para>Unlike <see cref="WithFile(string, string)"/> and the other body methods, this one does not switch a GET
+        /// to POST: on a builder created with <see cref="Get"/> the file is not sent (a GET carries no body). Use
+        /// <c>CurlRequestBuilder.Post(url).WithUploadFile(...)</c>.</para>
         /// <para>The file is read when the request runs; a missing file then fails with a <see cref="CurlException"/>
         /// (exit code 26) naming the path. Use <see cref="WithFile(string, string)"/> to check the path immediately.
         /// Calling it again with the same <paramref name="parameterName"/> replaces the earlier path.</para>
@@ -960,16 +957,16 @@ namespace CurlDotNet.Core
         public CurlRequestBuilder WithUploadFile(string parameterName, string filePath)
         {
             _options.Files[parameterName] = filePath;
-            if (string.IsNullOrEmpty(_options.Method) || _options.Method == "GET")
-                _options.Method = "POST";
             return this;
         }
 
         /// <summary>
         /// Uploads one file in a <c>multipart/form-data</c> body under the field name <c>file</c> (curl's
-        /// <c>-F 'file=@path'</c>); switches a GET to POST.
+        /// <c>-F 'file=@path'</c>); start from <see cref="Post"/> or <see cref="Put"/>, because the method is not changed.
         /// </summary>
         /// <remarks>
+        /// <para>Like <see cref="WithUploadFile"/>, this does not switch a GET to POST, so call it on a builder created with
+        /// <see cref="Post"/> or <see cref="Put"/>.</para>
         /// <para>Shorthand for <c>WithUploadFile("file", filePath)</c>; use <see cref="WithFile(string, string)"/> when the
         /// server expects another field name. The file is read when the request runs; a missing file fails with exit code 26.</para>
         /// <para>Example: <c>await CurlRequestBuilder.Post("https://httpbin.org/post").WithFile("report.pdf").ExecuteAsync();</c></para>
