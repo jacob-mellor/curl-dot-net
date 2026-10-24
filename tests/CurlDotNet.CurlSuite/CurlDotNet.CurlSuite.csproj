@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    CurlDotNet.CurlSuite - replays curl's own test suite (tests/data/testNNNN from
+    https://github.com/curl/curl) against CurlDotNet.
+
+    Each test file carries the canned server reply, the curl command line and the exact
+    request curl is expected to put on the wire. A raw TcpListener in StubHttpServer.cs
+    serves the reply, CurlDotNet runs the command, and CurlSuiteRunner.cs compares what
+    was sent and what was written out. No network access is ever needed.
+  -->
+
+  <PropertyGroup>
+    <IsGitHubActions Condition="'$(GITHUB_ACTIONS)' == 'true'">true</IsGitHubActions>
+    <IsGitHubActions Condition="'$(IsGitHubActions)' == ''">false</IsGitHubActions>
+
+    <TargetFrameworks Condition="'$(IsGitHubActions)' != 'true'">net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(IsGitHubActions)' == 'true'">net8.0;net9.0;net10.0</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);xUnit1026</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.6.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CurlDotNet\CurlDotNet.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="data\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="known-failures.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

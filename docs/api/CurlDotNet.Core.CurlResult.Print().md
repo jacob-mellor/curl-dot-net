@@ -3,21 +3,20 @@
 
 ## CurlResult\.Print\(\) Method
 
-
-<b>Print status code and body to console.</b>
-
-More detailed debug output:
-
-```csharp
-result.Print();
-// Output:
-// Status: 200
-// {"name":"John","age":30}
-```
+Writes `Status: {StatusCode}` and then [Body](CurlDotNet.Core.CurlResult.Body.md 'CurlDotNet\.Core\.CurlResult\.Body') to the console, and returns this result\.
 
 ```csharp
 public CurlDotNet.Core.CurlResult Print();
 ```
 
 #### Returns
-[CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')
+[CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')  
+This same result, for chaining\.
+
+### Remarks
+
+Example: `result.Print();` prints `Status: 200` followed by the body text.
+
+### See Also
+- [PrintBody\(\)](CurlDotNet.Core.CurlResult.PrintBody().md 'CurlDotNet\.Core\.CurlResult\.PrintBody\(\)')
+- [PrintVerbose\(\)](CurlDotNet.Core.CurlResult.PrintVerbose().md 'CurlDotNet\.Core\.CurlResult\.PrintVerbose\(\)')

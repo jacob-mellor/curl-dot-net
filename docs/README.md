@@ -1,170 +1,109 @@
-# 📚 CurlDotNet Documentation Hub
+---
+title: "CurlDotNet Documentation: Run curl Commands in C#"
+description: "CurlDotNet documentation hub: run curl commands in C# and .NET. Tutorials, cookbook recipes, API guide, exception reference, troubleshooting and FAQ."
+---
 
-Welcome to **CurlDotNet** - the pure .NET implementation of curl that allows C# developers to execute curl commands directly in their applications!
+# CurlDotNet documentation: run curl commands in C#
 
-**✅ Latest Version:** Fully supports .NET 10, .NET 9, and .NET 8 LTS
-
-## What is CurlDotNet?
-
-CurlDotNet eliminates the friction of translating curl commands to C# code. Simply paste any curl command from API documentation, Stack Overflow, or bash scripts directly into your .NET application, and it works immediately.
+CurlDotNet lets you run curl commands in C#: paste the command from an API's documentation into `Curl.ExecuteAsync` and read the result as a `CurlResult`. It is pure .NET with no native curl binary, and targets .NET Framework 4.7.2 and 4.8, .NET Standard 2.0 and .NET 8, 9 and 10. It reproduces curl 8.7.1's command-line behaviour, checked against 620 runnable tests from curl's own test suite (see [curl test suite results](reference/curl-test-suite.html)). This page is the map of the documentation.
 
 ## Installation
-
-Install CurlDotNet from NuGet: **[CurlDotNet on NuGet](https://www.nuget.org/packages/CurlDotNet/)**
 
 ```bash
 dotnet add package CurlDotNet
 ```
 
-Or via Package Manager:
-```powershell
-Install-Package CurlDotNet
+Package page: [CurlDotNet on NuGet](https://www.nuget.org/packages/CurlDotNet/).
+
+## Start here
+
+- **New to .NET or to curl?** [What is .NET and C#?](tutorials/01-what-is-dotnet.html), then [Your first request](tutorials/04-your-first-request.html).
+- **Know .NET, new to CurlDotNet?** [Installation](getting-started/installation.html), then [Your first request](getting-started/first-request.html), then the [cookbook](cookbook/).
+- **Coming from HttpClient or RestSharp?** [Migration guides](migration/).
+
+## The three ways to call it
+
+Run a curl command string:
+
+```csharp
+using CurlDotNet;
+
+var result = await Curl.ExecuteAsync("curl -H 'Accept: application/json' https://httpbin.org/get");
+Console.WriteLine(result.StatusCode);
+Console.WriteLine(result.Body);
 ```
 
-## 🚀 Quick Start Paths
+Build the request in code:
 
-### 🆕 Complete Beginner?
-**"I'm new to .NET and programming"**
-1. Start here → [What is .NET and C#?](tutorials/01-what-is-dotnet.html)
-2. Then → [Your First Request](tutorials/04-your-first-request.html)
-3. Next → [Explore Recipes](cookbook/)
-
-### 💼 Experienced Developer?
-**"I know .NET, just show me how to use CurlDotNet"**
-1. Jump to → [Installation](getting-started/installation.html)
-2. Check out → [API Guide](api-guide/)
-3. Browse → [Cookbook](cookbook/)
-
-### 🔄 Migrating from Another Library?
-**"I'm switching from HttpClient/RestSharp/etc."**
-- See the [API Guide](api-guide/) to understand CurlDotNet
-
-## 📖 Documentation Structure
-
-### [🎓 Tutorials](tutorials/)
-**Learn the basics in plain English**
-- No prior .NET knowledge required
-- Step-by-step explanations
-- Lots of analogies and examples
-- [Start Tutorial Series →](tutorials/)
-
-### [👨‍🍳 Cookbook](cookbook/)
-**"How do I..." recipes**
-- Task-focused solutions
-- Copy-paste ready code
-- Real-world scenarios
-- [Browse Recipes →](cookbook/)
-
-### [📘 API Guide](api-guide/)
-**Complete API reference with examples**
-- Every class and method documented
-- Multiple examples per feature
-- Best practices included
-- [Explore API →](api-guide/)
-
-### [👨‍💻 Advanced Features](api-guide/)
-**Advanced topics and techniques**
-- Working with middleware
-- Custom HTTP clients
-- Performance optimization
-- Testing strategies
-
-## 🎯 Common Tasks
-
-### Basic Operations
-- [Make a GET request](cookbook/beginner/simple-get.html)
-- [POST JSON data](cookbook/beginner/send-json.html)
-- [Download a file](cookbook/beginner/download-file.html)
-- [Upload a file](cookbook/beginner/upload-file.html)
-- [Handle errors](cookbook/beginner/handle-errors.html)
-
-### Authentication
-- [Bearer tokens](cookbook/beginner/call-api.html)
-- [API keys](cookbook/beginner/call-api.html)
-
-### Working with APIs
-- [Call a REST API](cookbook/beginner/call-api.html)
-- [Build API clients](api-guide/)
-- [Error handling](cookbook/beginner/handle-errors.html)
-
-### Advanced Features
-- [API Reference](api-guide/)
-- [Curl String API](api-guide/)
-- [Builder API](api-guide/)
-
-## 🔍 Quick Reference
-
-### The Three Ways to Use CurlDotNet
-
-#### 1. String API (Simplest)
 ```csharp
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
-```
+using CurlDotNet.Core;
 
-#### 2. Builder API (Type-Safe)
-```csharp
-var result = await new CurlRequestBuilder()
-    .WithUrl("https://api.example.com")
+var result = await CurlRequestBuilder.Get("https://httpbin.org/get")
     .WithHeader("Accept", "application/json")
     .ExecuteAsync();
 ```
 
-#### 3. LibCurl API (Reusable)
+Keep a reusable client with defaults:
+
 ```csharp
-var curl = new LibCurl()
+using CurlDotNet.Lib;
+
+using var client = new LibCurl()
     .WithBearerToken("token123")
     .WithTimeout(TimeSpan.FromSeconds(30));
 
-var result = await curl.GetAsync("https://api.example.com");
+var result = await client.GetAsync("https://httpbin.org/bearer");
 ```
 
-## 📚 Learning Paths
+## Documentation sections
 
-### Path 1: Absolute Beginner
-1. [What is .NET?](tutorials/01-what-is-dotnet.html)
-2. [What is curl?](tutorials/02-what-is-curl.html)
-3. [Understanding async/await](tutorials/03-what-is-async.html)
-4. [Your first request](tutorials/04-your-first-request.html)
-5. [API Guide](api-guide/)
-6. [Cookbook](cookbook/)
+### [Tutorials](tutorials/)
 
-### Path 2: Web Developer
-1. [Installation](getting-started/installation.html)
-2. [Cookbook](cookbook/)
-3. [API Guide](api-guide/)
-4. [Error handling](cookbook/beginner/handle-errors.html)
-5. [API client patterns](cookbook/beginner/call-api.html)
+Fourteen short lessons from "what is .NET" to debugging requests, written for readers with no prior HTTP experience.
 
-### Path 3: Enterprise Developer
-1. [API Reference](api-guide/)
-2. [Error handling](cookbook/beginner/handle-errors.html)
-3. [API Guide](api-guide/)
-4. [Troubleshooting](troubleshooting/)
-5. [Best practices](cookbook/)
+### [Cookbook](cookbook/)
 
-## 🆘 Getting Help
+One task per page: [GET](cookbook/beginner/simple-get.html), [POST JSON](cookbook/beginner/send-json.html), [forms](cookbook/beginner/post-form.html), [upload](cookbook/beginner/upload-file.html), [download](cookbook/beginner/download-file.html), [errors](cookbook/beginner/handle-errors.html), [REST APIs](cookbook/beginner/call-api.html), [redirects](cookbook/follow-redirects.html), [cookies](cookbook/cookies.html), [proxies](cookbook/proxy.html), [timeouts](cookbook/timeouts.html), [retries](cookbook/retry.html), [-w write-out](cookbook/write-out.html), [multiple URLs and globbing](cookbook/multiple-urls-and-globbing.html), [config files and variables](cookbook/config-files-and-variables.html), [HEAD](cookbook/head-request.html), [PUT/DELETE/PATCH](cookbook/http-methods.html), [auth schemes](cookbook/auth-schemes.html).
 
-### Can't Find Something?
-- Use the search feature in your browser (Ctrl+F / Cmd+F)
-- Check [Troubleshooting](troubleshooting/)
-- Browse [Common Issues](troubleshooting/common-issues.html)
+### [API guide](api-guide/README.html) and [API reference](api/)
 
-### Still Stuck?
-- [GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues)
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/curldotnet)
-- [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+The guide explains `Curl`, `CurlRequestBuilder`, `CurlResult`, `CurlSettings` and `LibCurl` with examples; the reference is generated from the source XML comments.
 
-## 📊 Quick Stats
+### [Guides](guides/)
 
-- **300+** curl options supported
-- **91** exception types for precise error handling
-- **100%** pure .NET - no native dependencies
-- **95%** test coverage
-- Works on **.NET Framework 4.7.2+**, **.NET Core 2.0+**, **.NET 5-10**
+[Usage guide](guides/usage-guide.html), [advanced topics](guides/advanced.html) and [logging and observability](guides/logging-observability.html).
 
-## 🎉 Welcome to CurlDotNet!
+### [Exceptions](exceptions/)
 
-Ready to start? Choose your path above and let's begin making HTTP requests the easy way!
+What each exception type means and when the library throws it: timeouts, connection failures, redirects, URLs, SSL, auth, cookies.
+
+### Troubleshooting
+
+[Common issues](troubleshooting/common-issues.html), the [error reference](troubleshooting/error-reference.html) and the [FAQ](troubleshooting/faq.html).
+
+### Reference
+
+[curl CLI compatibility](reference/curl-cli-compatibility.html) (which flags work today), [curl exit codes](reference/curl-exit-codes.html), [curl test suite results](reference/curl-test-suite.html), [libcurl mapping](reference/libcurl-mapping.html), [framework compatibility](framework-compatibility.html), [supported protocols](supported-protocols.html) and [articles](articles/) on CI/CD and implementation patterns.
+
+## Common tasks
+
+| Task | Page |
+|------|------|
+| Make a GET request | [curl GET request in C#](cookbook/beginner/simple-get.html) |
+| POST JSON | [curl -X POST JSON in C#](cookbook/beginner/send-json.html) |
+| Download or upload a file | [download](cookbook/beginner/download-file.html), [upload](cookbook/beginner/upload-file.html) |
+| Use a bearer token or basic auth | [auth schemes](cookbook/auth-schemes.html) |
+| Set a timeout | [curl timeout in C#](cookbook/timeouts.html) |
+| Retry transient failures | [curl --retry in C#](cookbook/retry.html) |
+| Handle a 404 or a timeout | [handle errors](cookbook/beginner/handle-errors.html) |
+| Check which curl flags work | [curl CLI compatibility](reference/curl-cli-compatibility.html) |
+
+## Getting help
+
+- [GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues) for bugs and feature requests
+- [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions) for questions
+- [Troubleshooting](troubleshooting/common-issues.html) for the problems people hit most often
 
 ---
-*Documentation version: 1.0.1 | Last updated: November 2024*
+
+*Documentation for CurlDotNet 9.8.x, updated October 2026.*

@@ -13,10 +13,10 @@
     <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' != 'true'">netstandard2.0;net48;net8.0;net9.0;net10.0</TargetFrameworks>
 
     <!-- GitHub Actions Windows (no .NET 10) -->
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">netstandard2.0;net472;net48;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">netstandard2.0;net472;net48;net8.0;net9.0;net10.0</TargetFrameworks>
 
     <!-- GitHub Actions Linux/Mac (no .NET 10, no net48 - Ubuntu doesn't have Mono) -->
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">netstandard2.0;net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -31,7 +31,7 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>9.7.0</Version>
+    <Version>9.8.0</Version>
     <AssemblyVersion>9.7.0.0</AssemblyVersion>
     <FileVersion>9.7.0.0</FileVersion>
 
@@ -80,19 +80,36 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 9.7.0 - Binary content sniffing + digest auth + curl-accurate cookies
-FIX: Binary files served under a wrong text Content-Type (e.g. .xlsx sent as text/plain) are no
-   longer corrupted. Payloads are sniffed for binary signatures (ZIP/Office, PDF, EXE, images,
-   archives, OLE2) and NUL bytes, matching curl's write-bytes-verbatim behavior. Reported by
-   Massimo Braga - thank you!
-FIX: FTP binary downloads are no longer corrupted (bytes are read raw, text decoding only for listings)
-FIX: (#41) -b/--cookie values and manual Cookie headers now always reach the wire, and session
-   cookies no longer leak between unrelated requests. Like curl, no automatic cookie engine.
-   Thanks linv2 for the precise diagnosis!
-NEW: (#40) --digest, --ntlm, --negotiate, --anyauth and --basic are now supported. -u with a
-   challenge scheme performs the proper 401 challenge-response flow instead of leaking
-   credentials as preemptive Basic. Thanks linv2!
-NEW: CurlOptions.AuthScheme property + parser support for the five auth-scheme flags
+    <PackageReleaseNotes>Version 9.8.0 - curl parity release: tested against curl's own test suite
+
+PARITY: tests/CurlDotNet.CurlSuite replays 1,092 HTTP tests from curl's own suite against a local stub
+   server and compares the exact bytes on the wire. 607 of 620 runnable tests pass (97.9%), 216 byte-exact;
+   the 13 remaining are documented in known-failures.txt (HttpClient CONNECT/NTLM, .NET URI rules, no ~/.curlrc).
+NEW: complete curl 8.7.1 option table; combined short flags (-sSL), attached values (-ofile, -m10), --long=value,
+   --url, --next, multiple URLs, {a,b}/[1-3] globbing with #1 in -o, -K config files, --variable, .netrc, -G, -T,
+   -z, -r multi-ranges, --oauth2-bearer, --http1.0/1.1/2, --request-target, --connect-to, --resolve, --path-as-is
+NEW: curl flavors - CurlFlavor.Auto/Posix/WindowsCmd/PowerShell/InvokeWebRequest. Commands pasted from bash,
+   Windows CMD, PowerShell or PowerShell's Invoke-WebRequest alias are detected and read with that shell's rules
+   (Curl.ExecuteAsync(cmd, CurlFlavor.PowerShell), Curl.DefaultFlavor, Curl.DetectFlavor)
+NEW: cookie engine (-b FILE, -c JAR, -j, Netscape jars), curl-exact multipart (-F ;type= ;filename= &lt;file --form-string),
+   -D/-J/--output-dir/--create-dirs/--no-clobber/-R/-C -, every -w variable incl. %{json}, --retry family with
+   Retry-After, --limit-rate/--speed-limit, --cacert/--capath/--cert/--key/--pinnedpubkey/--tlsv1.x (.NET 5+)
+NEW: pure-C# Digest and NTLM negotiation matching curl byte for byte; --anyauth; proxy auth; Proxy-Connection,
+   preemptive proxy Basic, --noproxy/NO_PROXY, http_proxy env vars, --socks4/4a/5/5-hostname, -p CONNECT tunnels
+NEW: curl exit codes as typed exceptions (2, 3, 5-8, 18, 22, 23, 26, 28, 33, 35, 43, 47, 49, 52, 56, 60, 61, 63, 77,
+   90, 94, 100); every exception says what happened, how to fix it and links the documentation
+NEW: Curl.ExecuteAsync(CurlOptions), Curl.DefaultUserAgent (curl/8.7.1 like curl), Accept: */* default,
+   -H "Name:" suppression, CurlException.StandardOutput, CurlOptions.UnknownOptions/UnsupportedOptions
+NEW: full XML documentation on every public member (parameters, formats, defaults, worked examples, cross-links)
+FIX: (#45) Post/PostJson/Download helpers no longer break on quotes or spaces
+FIX: --compressed only sends Accept-Encoding when asked; -o leaves Body empty like curl; -i -o writes headers to
+   the file; -L turns POST into GET on 301/302/303 and strips Authorization across hosts; --max-redirs exact
+FIX: no hidden 30 s / 100 s timeouts; --max-time covers the body; --connect-timeout enforced; decimals accepted
+FIX: cancellation is OperationCanceledException; LibCurl returns failed results instead of throwing and honours
+   proxy/-k/redirect settings; CurlSettings Proxy/UserAgent/Cookies/OnRedirect/Progress/Retries now apply
+FIX: ParseJson is case-insensitive; AsJsonDynamic returns a real dynamic object; credentials masked in logs
+PACKAGE: net10.0 added; unused Ninject and System.CommandLine dependencies removed
+TESTS: 1,788 unit tests run offline in seconds against an in-process server (no fixed ports, no internet)
 Frameworks: netstandard2.0, net472, net48, net8.0, net9.0, net10.0
 Sponsored by IronSoftware
 
@@ -113,9 +130,6 @@ Documentation: https://jacob-mellor.github.io/curl-dot-net/</PackageReleaseNotes
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
-    <PackageReference Include="Ninject" Version="3.3.6" />
-    <PackageReference Include="Ninject.Extensions.Factory" Version="3.3.3" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
@@ -155,8 +169,8 @@ Documentation: https://jacob-mellor.github.io/curl-dot-net/</PackageReleaseNotes
 
   <ItemGroup>
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
-    <None Include="README.md" Pack="true" PackagePath="\" />
-    <None Include="README.txt" Pack="true" PackagePath="\" />
+    <!-- The NuGet README is the short, absolute-link version kept at the repo root (nuget.org strips HTML and cannot resolve relative links) -->
+    <None Include="..\..\nuget-readme.md" Pack="true" PackagePath="\README.md" />
     <None Include="..\..\THANKS" Pack="true" PackagePath="docs\" Condition="Exists('..\..\THANKS')" />
     <None Include="icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>

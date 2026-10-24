@@ -1,116 +1,94 @@
-# CurlDotNet Documentation Articles
+---
+title: CurlDotNet Articles - CI/CD and Patterns for curl in C#
+description: CurlDotNet articles covering CI/CD integration, implementation patterns and tutorial projects for running curl commands in C# and .NET.
+---
 
-Welcome to **CurlDotNet** - the pure .NET implementation of curl that allows C# developers to execute curl commands directly in their applications!
+# CurlDotNet Articles: CI/CD Integration and Implementation Patterns for curl in C#
 
-## What is CurlDotNet?
-
-CurlDotNet brings the power of curl to .NET. Simply paste any curl command from API documentation, Stack Overflow, or bash scripts directly into your C# code, and it works immediately. No translation required, no shell execution, just pure .NET performance.
+CurlDotNet articles cover CI/CD integration and implementation patterns for running curl commands in C#. CurlDotNet is a pure .NET library: you paste a curl command string from API documentation into your code and `Curl.ExecuteAsync` runs it, with no shell and no native curl binary.
 
 ## Installation
 
-Install CurlDotNet from NuGet: **[CurlDotNet on NuGet](https://www.nuget.org/packages/CurlDotNet/)**
+Install from NuGet: [CurlDotNet on NuGet](https://www.nuget.org/packages/CurlDotNet/)
 
 ```bash
 dotnet add package CurlDotNet
 ```
 
-Or via Package Manager:
-```powershell
-Install-Package CurlDotNet
-```
+## Articles in This Section
 
-## 📚 Articles in This Section
+- [CI/CD Integration](ci-cd-integration.html) - Run curl-based smoke tests inside GitHub Actions, Azure DevOps and containers
+- [Implementation Patterns](userland-patterns.html) - Reusable C# patterns: observability, retries, environment matrices, replay harnesses
+- [Tutorial Projects](userland-tutorials.html) - Small end-to-end projects (minimal APIs, CLIs, mock servers) built on CurlDotNet
 
-### Available Articles
-- **[Getting Started](../getting-started/)** - Complete guide to getting started with CurlDotNet, from installation to your first request
-- **[Installation Guide](../getting-started/installation.html)** - Detailed installation instructions for all platforms and environments
-- **[CI/CD Integration](ci-cd-integration.html)** - Run CurlDotNet smoke tests inside GitHub Actions, Azure DevOps, or any pipeline
+## Other Documentation Sections
 
-## 📂 Documentation Sections
-
-### Getting Started Guide
-- **[Complete Getting Started Section](../getting-started/)** - Comprehensive getting started documentation
-  - [Installation Guide](../getting-started/installation.html) - Detailed setup instructions
-  - [Quick Start](../getting-started/quickstart.html) - Make your first request in 5 minutes
-  - [Full Guide](../getting-started/) - Complete getting started documentation
+### Getting Started
+- [Installation](../getting-started/installation.html) - Add the package and verify it works
+- [Quick Start](../getting-started/quickstart.html) - Your first request in a few minutes
+- [First Request](../getting-started/first-request.html) - Walkthrough of a complete request and response
 
 ### Tutorials
-- [Complete Tutorial Series](../tutorials/) - Step-by-step learning path
-- [What is .NET?](../tutorials/01-what-is-dotnet.html) - For beginners new to .NET
-- [What is curl?](../tutorials/02-what-is-curl.html) - Understanding curl fundamentals
+- [Tutorial Series](../tutorials/) - Step-by-step learning path
+- [What is .NET?](../tutorials/01-what-is-dotnet.html) - For developers new to .NET
+- [What is curl?](../tutorials/02-what-is-curl.html) - curl fundamentals
 - [Your First Request](../tutorials/04-your-first-request.html) - Make your first HTTP request
 
-### API Guide
-- [Complete API Reference](../api-guide/) - Detailed API documentation
-- String API - Simple curl command execution
-- Builder API - Fluent interface for request building
-- LibCurl API - Low-level curl implementation
+### API and Reference
+- [API Guide](../api-guide/README.html) - String API, builder API and LibCurl instance API
+- [Reference](../reference/) - libcurl mapping and curl CLI flag compatibility
+- [Framework Compatibility](../framework-compatibility.html) - .NET Framework 4.8, .NET 8/9/10
+- [Supported Protocols](../supported-protocols.html) - HTTP, HTTPS, FTP, FTPS, file
 
 ### Cookbook
-- [Cookbook](../cookbook/) - Practical recipes and examples
-- [Simple GET Request](../cookbook/beginner/simple-get.html) - Basic HTTP GET
-- [POST JSON Data](../cookbook/beginner/send-json.html) - Sending JSON payloads
-- [File Upload/Download](../cookbook/beginner/upload-file.html) - File operations
-- [Error Handling](../cookbook/beginner/handle-errors.html) - Handling errors gracefully
+- [Cookbook](../cookbook/) - Practical recipes
+- [Simple GET Request](../cookbook/beginner/simple-get.html)
+- [POST JSON Data](../cookbook/beginner/send-json.html)
+- [Upload a File](../cookbook/beginner/upload-file.html)
+- [Handle Errors](../cookbook/beginner/handle-errors.html)
 
 ### Troubleshooting
-- [Common Issues](../troubleshooting/common-issues.html) - Solutions to frequent problems
-- [FAQ](../troubleshooting/) - Frequently asked questions
+- [Common Issues](../troubleshooting/common-issues.html)
+- [FAQ](../troubleshooting/faq.html)
 
 ## Quick Examples
 
-### Simple GET Request
+### Run a curl command string
+
 ```csharp
 using CurlDotNet;
 
 var result = await Curl.ExecuteAsync("curl https://api.github.com");
+Console.WriteLine(result.StatusCode);
 Console.WriteLine(result.Body);
 ```
 
-### POST with JSON
+### POST JSON
+
 ```csharp
 using CurlDotNet;
 
-var result = await Curl.ExecuteAsync(@"
-    curl -X POST https://api.example.com/users
-    -H 'Content-Type: application/json'
-    -d '{""name"":""John Doe"",""email"":""john@example.com""}'
-");
+var result = await Curl.ExecuteAsync(@"curl -X POST https://httpbin.org/post \
+    -H 'Content-Type: application/json' \
+    -d '{""name"":""Ada"",""role"":""admin""}'");
+Console.WriteLine(result.IsSuccess);
 ```
 
-### Using Builder API
-```csharp
-using CurlDotNet;
+### Builder API
 
-var result = await new CurlRequestBuilder()
-    .WithUrl("https://api.github.com/user")
-    .WithMethod("GET")
-    .WithHeader("Authorization", "Bearer your-token")
+```csharp
+using CurlDotNet.Core;
+
+var result = await CurlRequestBuilder.Get("https://api.github.com/user")
+    .WithBearerToken("your-token")
+    .WithHeader("Accept", "application/vnd.github+json")
     .ExecuteAsync();
+Console.WriteLine(result.StatusCode);
 ```
-
-## Navigation
-
-- **Beginners**: Start with [Tutorials](../tutorials/)
-- **Quick Reference**: Check the [Cookbook](../cookbook/)
-- **API Details**: See the [API Guide](../api-guide/)
-- **Having Issues?**: Visit [Troubleshooting](../troubleshooting/)
-
-## Why CurlDotNet?
-
-- 🚀 **Pure .NET** - No WSL, no native dependencies
-- 📦 **NuGet Package** - Easy installation and updates
-- 🔧 **Familiar Syntax** - Use curl commands directly in C#
-- 🎯 **Modern .NET** - Full async/await support
-- 🛡️ **Type Safe** - Strongly typed responses and options
-
-## Contributing
-
-We welcome contributions! Please see our [GitHub repository](https://github.com/jacob-mellor/curl-dot-net) for more information.
 
 ## Support
 
-- 📖 [Documentation](https://jacob-mellor.github.io/curl-dot-net/)
-- 💬 [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
-- 🐛 [Report Issues](https://github.com/jacob-mellor/curl-dot-net/issues)
-- 📦 [NuGet Package](https://www.nuget.org/packages/CurlDotNet/)
+- [Documentation site](https://jacob-mellor.github.io/curl-dot-net/)
+- [GitHub repository](https://github.com/jacob-mellor/curl-dot-net)
+- [Report an issue](https://github.com/jacob-mellor/curl-dot-net/issues)
+- [NuGet package](https://www.nuget.org/packages/CurlDotNet/)

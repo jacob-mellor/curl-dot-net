@@ -113,7 +113,7 @@ namespace CurlDotNet.Tests
             var escapedPath = Uri.EscapeDataString(testFile).Replace("%2F", "/").Replace("%5C", "/");
             var options = new CurlOptions
             {
-                Url = $"file:///{escapedPath}"
+                Url = $"file://{escapedPath}" // escapedPath is already absolute, so this yields file:///...
             };
 
             // Act
@@ -353,9 +353,15 @@ namespace CurlDotNet.Tests
             cts.Cancel();
 
             // Assert
-            // The operation might complete before cancellation takes effect
-            var result = await task;
-            result.Should().NotBeNull();
+            // Either the read finished first, or the handler honoured the token.
+            try
+            {
+                var result = await task;
+                result.Should().NotBeNull();
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
 
         #endregion
@@ -430,7 +436,9 @@ namespace CurlDotNet.Tests
             result.Headers.Should().ContainKey("Last-Modified");
             result.Headers["Last-Modified"].Should().NotBeNullOrEmpty();
             // The format should be RFC1123 date format
-            DateTime.TryParse(result.Headers["Last-Modified"], out var parsedDate).Should().BeTrue();
+            DateTime.TryParseExact(result.Headers["Last-Modified"], "R", System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                out var parsedDate).Should().BeTrue();
             parsedDate.Kind.Should().Be(DateTimeKind.Utc);
         }
 

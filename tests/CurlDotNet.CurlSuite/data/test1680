@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP GET
+--clobber
+</keywords>
+</info>
+
+<reply>
+<data nocheck="yes">
+HTTP/1.0 200 OK
+Connection: close
+Content-Type: text/plain
+Content-Length: 4
+
+foo
+</data>
+</reply>
+
+<client>
+<name>
+HTTP GET with explicit clobber
+</name>
+<server>
+http
+</server>
+<features>
+http
+</features>
+<command option="no-output">
+http://%HOSTIP:%HTTPPORT/%TESTNUMBER -o %LOGDIR/exist%TESTNUMBER --clobber
+</command>
+<file name="%LOGDIR/exist%TESTNUMBER">
+to be overwritten
+</file>
+</client>
+
+<verify>
+<file name="%LOGDIR/exist%TESTNUMBER">
+HTTP/1.0 200 OK
+Connection: close
+Content-Type: text/plain
+Content-Length: 4
+
+foo
+</file>
+</verify>
+</testcase>

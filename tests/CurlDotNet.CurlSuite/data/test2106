@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP GET
+chunked Transfer-Encoding
+</keywords>
+</info>
+
+<reply>
+<data nocheck="yes">
+HTTP/1.1 200 OK%CR
+Server: test%CR
+Transfer-Encoding: chunked%CR
+Trailer: chunky-trailer%CR
+%CR
+6%CR
+-foo-%CR
+0%CR
+chunky-trailer: he%hex[%00]hex%llo%CR
+%CR
+</data>
+</reply>
+
+<client>
+<server>
+http
+</server>
+<name>
+HTTP chunked response with a NUL byte in the trailer
+</name>
+<command>
+http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+</command>
+</client>
+
+<verify>
+<protocol crlf="headers">
+GET /%TESTNUMBER HTTP/1.1
+Host: %HOSTIP:%HTTPPORT
+User-Agent: curl/%VERSION
+Accept: */*
+
+</protocol>
+<errorcode>
+8
+</errorcode>
+</verify>
+</testcase>

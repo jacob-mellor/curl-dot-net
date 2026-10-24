@@ -1,548 +1,176 @@
-# Recipe: Send JSON Data
+---
+title: "curl -X POST JSON in C# - CurlDotNet Recipe"
+description: "Send JSON with curl -X POST in C# using CurlDotNet: -d plus Content-Type header, --json, the WithJson builder, Curl.PostJsonAsync and ParseJson<T>."
+---
 
-## 🎯 What You'll Build
+# curl -X POST JSON in C#
 
-A program that sends JSON data to an API - one of the most common tasks in modern web development.
+To send JSON with `curl -X POST` in C#, give CurlDotNet the same command you would run in a terminal: `-H 'Content-Type: application/json'` plus `-d '{...}'`, or the shorter `--json '{...}'`. This recipe shows the curl-string form, the `WithJson` builder, the `Curl.PostJsonAsync` shortcut, and how to read the JSON reply with `ParseJson<T>()`.
 
-## 🥘 Ingredients
+## The problem
 
-- CurlDotNet package
-- An API endpoint that accepts JSON
-- 5 minutes
+You need to POST a JSON document to an API (create a record, call a webhook, submit an event) and read the JSON the server sends back.
 
-## 📖 The Recipe
-
-### Understanding JSON
-
-JSON (JavaScript Object Notation) is how APIs share data. It looks like this:
-
-```json
-{
-  "name": "Alice",
-  "age": 30,
-  "email": "alice@example.com"
-}
-```
-
-### Step 1: Simple JSON POST
+## Solution 1: run the curl command string
 
 ```csharp
 using System;
 using System.Threading.Tasks;
 using CurlDotNet;
 
-class Program
-{
-    static async Task Main()
-    {
-        // Send JSON to an API
-        var result = await Curl.ExecuteAsync(@"
-            curl -X POST https://httpbin.org/post \
-            -H 'Content-Type: application/json' \
-            -d '{""name"": ""Alice"", ""age"": 30}'
-        ");
+var result = await Curl.ExecuteAsync(@"
+    curl -X POST https://httpbin.org/post \
+      -H 'Content-Type: application/json' \
+      -d '{""name"": ""Alice"", ""age"": 30}'");
 
-        if (result.IsSuccess)
-        {
-            Console.WriteLine("JSON sent successfully!");
-            Console.WriteLine(result.Body);  // httpbin echoes back what you sent
-        }
-    }
-}
+Console.WriteLine(result.StatusCode);   // 200
+Console.WriteLine(result.Body);         // httpbin echoes the JSON it received
 ```
 
-### Step 2: Using C# Objects
+Inside a C# verbatim string (`@"..."`) a double quote is written as `""`. Wrapping the JSON in single quotes, exactly as in a shell, keeps the double quotes inside it intact.
 
-Instead of writing JSON strings, use C# objects:
+The `--json` option sets `Content-Type: application/json` and `Accept: application/json` for you, so the command gets shorter:
 
 ```csharp
-using System;
+var result = await Curl.ExecuteAsync(@"
+    curl --json '{""name"": ""Alice"", ""age"": 30}' https://httpbin.org/post");
+```
+
+`-X POST` is implied whenever `-d` or `--json` is present, so you can leave it out.
+
+### Serialize a C# object
+
+Build the JSON with `System.Text.Json` instead of typing it by hand.
+
+```csharp
 using System.Text.Json;
-using System.Threading.Tasks;
-using CurlDotNet;
 
-// Define your data structure
-public class User
-{
-    public string Name { get; set; }
-    public int Age { get; set; }
-    public string Email { get; set; }
-}
+var user = new { name = "Alice", age = 30, email = "alice@example.com" };
+string json = JsonSerializer.Serialize(user);
 
-class Program
-{
-    static async Task Main()
-    {
-        // Create a C# object
-        var user = new User
-        {
-            Name = "Alice",
-            Age = 30,
-            Email = "alice@example.com"
-        };
-
-        // Convert to JSON
-        var json = JsonSerializer.Serialize(user);
-
-        // Send it
-        var result = await Curl.ExecuteAsync($@"
-            curl -X POST https://httpbin.org/post \
-            -H 'Content-Type: application/json' \
-            -d '{json}'
-        ");
-
-        if (result.IsSuccess)
-        {
-            Console.WriteLine("User data sent!");
-        }
-    }
-}
+var result = await Curl.ExecuteAsync($"curl --json '{json}' https://httpbin.org/post");
 ```
 
-## 🍳 Complete Examples
-
-### Example 1: Create a User
+`Curl.PostJsonAsync(url, object)` does the serialization and the headers in one call. Nothing goes through a command string, so apostrophes and quotes in the values (`O'Brien`) need no escaping and stay readable in the payload:
 
 ```csharp
-using System;
-using System.Threading.Tasks;
-using CurlDotNet;
+var result = await Curl.PostJsonAsync("https://httpbin.org/post",
+    new { name = "Alice", age = 30 });
 
-public class CreateUserRequest
-{
-    public string Username { get; set; }
-    public string Password { get; set; }
-    public string Email { get; set; }
-    public string FullName { get; set; }
-}
-
-public class CreateUserResponse
-{
-    public int Id { get; set; }
-    public string Username { get; set; }
-    public string Message { get; set; }
-}
-
-class UserRegistration
-{
-    static async Task Main()
-    {
-        Console.WriteLine("=== User Registration ===");
-
-        Console.Write("Username: ");
-        var username = Console.ReadLine();
-
-        Console.Write("Email: ");
-        var email = Console.ReadLine();
-
-        Console.Write("Password: ");
-        var password = Console.ReadLine();
-
-        Console.Write("Full Name: ");
-        var fullName = Console.ReadLine();
-
-        // Create registration request
-        var registration = new CreateUserRequest
-        {
-            Username = username,
-            Password = password,
-            Email = email,
-            FullName = fullName
-        };
-
-        // Convert to JSON
-        var json = System.Text.Json.JsonSerializer.Serialize(registration);
-
-        // Send to API
-        var result = await Curl.ExecuteAsync($@"
-            curl -X POST https://reqres.in/api/users \
-            -H 'Content-Type: application/json' \
-            -d '{json}'
-        ");
-
-        if (result.IsSuccess)
-        {
-            var response = result.ParseJson<CreateUserResponse>();
-            Console.WriteLine($"✅ User created! ID: {response.Id}");
-        }
-        else
-        {
-            Console.WriteLine($"❌ Failed: {result.StatusCode}");
-        }
-    }
-}
+Console.WriteLine(result.IsSuccess);
 ```
 
-### Example 2: Update Settings
+## Solution 2: the fluent builder
 
 ```csharp
-using System;
-using System.Collections.Generic;
-using System.Text.Json;
-using System.Threading.Tasks;
-using CurlDotNet;
+using CurlDotNet.Core;
 
-public class Settings
-{
-    public bool Notifications { get; set; }
-    public string Theme { get; set; }
-    public string Language { get; set; }
-    public Dictionary<string, bool> Features { get; set; }
-}
+var result = await CurlRequestBuilder
+    .Post("https://httpbin.org/post")
+    .WithJson(new { name = "Alice", age = 30 })
+    .WithHeader("Accept", "application/json")
+    .ExecuteAsync();
 
-class UpdateSettings
-{
-    static async Task Main()
-    {
-        // Create settings object
-        var settings = new Settings
-        {
-            Notifications = true,
-            Theme = "dark",
-            Language = "en-US",
-            Features = new Dictionary<string, bool>
-            {
-                ["beta_features"] = true,
-                ["analytics"] = false,
-                ["recommendations"] = true
-            }
-        };
-
-        // Convert to JSON
-        var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions
-        {
-            WriteIndented = true  // Pretty print
-        });
-
-        Console.WriteLine("Sending settings:");
-        Console.WriteLine(json);
-
-        // Send to API
-        var result = await Curl.ExecuteAsync($@"
-            curl -X PUT https://httpbin.org/put \
-            -H 'Content-Type: application/json' \
-            -H 'Authorization: Bearer your-token-here' \
-            -d '{json}'
-        ");
-
-        if (result.IsSuccess)
-        {
-            Console.WriteLine("✅ Settings updated!");
-        }
-    }
-}
+Console.WriteLine(result.StatusCode);
 ```
 
-### Example 3: Complex Nested JSON
+`WithJson(object)` serializes the object and sets `Content-Type: application/json`. Call `.ToCurlCommand()` on the builder to see the equivalent curl string.
+
+## Read the JSON reply
 
 ```csharp
-using System;
-using System.Collections.Generic;
-using System.Text.Json;
-using System.Threading.Tasks;
-using CurlDotNet;
-
-public class Order
+public class HttpBinPost
 {
-    public string OrderId { get; set; }
-    public Customer Customer { get; set; }
-    public List<Item> Items { get; set; }
-    public Address ShippingAddress { get; set; }
-    public decimal Total { get; set; }
+    public EchoedUser Json { get; set; }   // binds to "json"
+    public string Url { get; set; }        // binds to "url"
+}
+public class EchoedUser
+{
+    public string Name { get; set; }       // binds to "name"
 }
 
-public class Customer
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public string Email { get; set; }
-}
-
-public class Item
-{
-    public string ProductId { get; set; }
-    public string Name { get; set; }
-    public int Quantity { get; set; }
-    public decimal Price { get; set; }
-}
-
-public class Address
-{
-    public string Street { get; set; }
-    public string City { get; set; }
-    public string State { get; set; }
-    public string ZipCode { get; set; }
-}
-
-class ComplexJsonExample
-{
-    static async Task Main()
-    {
-        // Create complex order object
-        var order = new Order
-        {
-            OrderId = "ORD-12345",
-            Customer = new Customer
-            {
-                Id = 1001,
-                Name = "John Smith",
-                Email = "john@example.com"
-            },
-            Items = new List<Item>
-            {
-                new Item
-                {
-                    ProductId = "PROD-001",
-                    Name = "Laptop",
-                    Quantity = 1,
-                    Price = 999.99m
-                },
-                new Item
-                {
-                    ProductId = "PROD-002",
-                    Name = "Mouse",
-                    Quantity = 2,
-                    Price = 25.99m
-                }
-            },
-            ShippingAddress = new Address
-            {
-                Street = "123 Main St",
-                City = "Springfield",
-                State = "IL",
-                ZipCode = "62701"
-            },
-            Total = 1051.97m
-        };
-
-        // Convert to JSON with formatting
-        var json = JsonSerializer.Serialize(order, new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
-
-        Console.WriteLine("Sending order:");
-        Console.WriteLine(json);
-
-        // Send to API
-        var result = await Curl.ExecuteAsync($@"
-            curl -X POST https://httpbin.org/post \
-            -H 'Content-Type: application/json' \
-            -H 'X-API-Key: your-api-key' \
-            -d '{json.Replace("\"", "\\\"")}'  // Escape quotes for shell
-        ");
-
-        if (result.IsSuccess)
-        {
-            Console.WriteLine("✅ Order submitted!");
-
-            // Parse response
-            dynamic response = result.AsJsonDynamic();
-            Console.WriteLine($"Server received: {response.json.orderId}");
-        }
-    }
-}
+var echo = result.ParseJson<HttpBinPost>();
+Console.WriteLine(echo.Json.Name);   // "Alice"
 ```
 
-## 🎨 Variations
+`ParseJson<T>()` matches property names case-insensitively (`System.Text.Json` with `PropertyNameCaseInsensitive`; Newtonsoft.Json on .NET Standard 2.0), so camelCase or lower-case JSON binds to ordinary PascalCase properties. snake_case names such as `created_at` still need `[JsonPropertyName("created_at")]` (from `System.Text.Json.Serialization`). An empty body or malformed JSON throws `InvalidOperationException` with the parser's error as the inner exception. `result.AsJsonDynamic()` gives you a `dynamic` when you do not want a class.
 
-### Using Different HTTP Methods
+## Variations
 
-```csharp
-// POST - Create new resource
-var result = await Curl.ExecuteAsync($@"
-    curl -X POST https://api.example.com/users \
-    -H 'Content-Type: application/json' \
-    -d '{json}'
-");
-
-// PUT - Update entire resource
-var result = await Curl.ExecuteAsync($@"
-    curl -X PUT https://api.example.com/users/123 \
-    -H 'Content-Type: application/json' \
-    -d '{json}'
-");
-
-// PATCH - Partial update
-var result = await Curl.ExecuteAsync($@"
-    curl -X PATCH https://api.example.com/users/123 \
-    -H 'Content-Type: application/json' \
-    -d '{json}'
-");
-```
-
-### With Authentication
+### PUT or PATCH instead of POST
 
 ```csharp
-// Bearer token
-var result = await Curl.ExecuteAsync($@"
-    curl -X POST https://api.example.com/data \
-    -H 'Content-Type: application/json' \
-    -H 'Authorization: Bearer {token}' \
-    -d '{json}'
-");
+var put = await Curl.ExecuteAsync(@"
+    curl -X PUT https://httpbin.org/put --json '{""name"": ""Alice""}'");
 
-// API key
-var result = await Curl.ExecuteAsync($@"
-    curl -X POST https://api.example.com/data \
-    -H 'Content-Type: application/json' \
-    -H 'X-API-Key: {apiKey}' \
-    -d '{json}'
-");
-
-// Basic auth
-var result = await Curl.ExecuteAsync($@"
-    curl -X POST https://api.example.com/data \
-    -H 'Content-Type: application/json' \
-    -u username:password \
-    -d '{json}'
-");
-```
-
-### JSON from File
-
-```csharp
-// Read JSON from file
-var json = await File.ReadAllTextAsync("data.json");
-
-var result = await Curl.ExecuteAsync($@"
-    curl -X POST https://api.example.com/import \
-    -H 'Content-Type: application/json' \
-    -d '{json}'
-");
-```
-
-## 🐛 Troubleshooting
-
-### Problem: "400 Bad Request"
-**Solution**: Your JSON might be invalid
-
-```csharp
-// Validate JSON first
-try
-{
-    var doc = JsonDocument.Parse(json);
-    // JSON is valid
-}
-catch (JsonException ex)
-{
-    Console.WriteLine($"Invalid JSON: {ex.Message}");
-}
-```
-
-### Problem: Quotes Breaking the Command
-**Solution**: Escape quotes properly
-
-```csharp
-// Method 1: Escape quotes
-var escapedJson = json.Replace("\"", "\\\"");
-
-// Method 2: Use single quotes outside
-var result = await Curl.ExecuteAsync($@"
-    curl -X POST https://api.example.com \
-    -H 'Content-Type: application/json' \
-    -d '{escapedJson}'
-");
-
-// Method 3: Use CurlRequestBuilder instead
-var result = await new CurlRequestBuilder()
-    .WithUrl("https://api.example.com")
-    .WithMethod(HttpMethod.Post)
-    .WithJson(yourObject)
+var patch = await CurlRequestBuilder
+    .Patch("https://httpbin.org/patch")
+    .WithJson(new { age = 31 })
     .ExecuteAsync();
 ```
 
-### Problem: "415 Unsupported Media Type"
-**Solution**: Add Content-Type header
+See [HTTP methods](../http-methods.html) for the full set.
+
+### Add a bearer token
 
 ```csharp
-var result = await Curl.ExecuteAsync($@"
-    curl -X POST https://api.example.com \
-    -H 'Content-Type: application/json' \  {/* Always include this! */}
-    -d '{json}'
-");
+var result = await Curl.ExecuteAsync(@"
+    curl https://httpbin.org/post \
+      -H 'Authorization: Bearer YOUR_TOKEN' \
+      --json '{""event"": ""signup""}'");
+
+// builder equivalent
+var r2 = await CurlRequestBuilder.Post("https://httpbin.org/post")
+    .WithBearerToken("YOUR_TOKEN")
+    .WithJson(new { @event = "signup" })
+    .ExecuteAsync();
 ```
 
-### Problem: Special Characters in JSON
-**Solution**: Properly escape special characters
+### JSON from a file (-d @file)
 
 ```csharp
-// Use JsonSerializer to handle escaping
-var safeJson = JsonSerializer.Serialize(new
-{
-    message = "Hello \"World\"",  // Quotes
-    path = @"C:\Users\file.txt",  // Backslashes
-    unicode = "Hello 世界 🌍"      // Unicode
-});
+var result = await Curl.ExecuteAsync(@"
+    curl https://httpbin.org/post \
+      -H 'Content-Type: application/json' \
+      -d @payload.json");
 ```
 
-## 📊 Common JSON Patterns
+The path is relative to the process working directory. Like curl, `-d @file` removes carriage returns and newlines from the file, which is harmless for JSON; use `--data-binary @payload.json` to send it byte-for-byte. A missing file throws `CurlReadErrorException` (exit code 26).
 
-### Single Object
-```json
-{
-  "name": "Alice",
-  "age": 30
-}
+### Check the status before parsing
+
+```csharp
+using CurlDotNet.Exceptions;
+
+var result = await Curl.PostJsonAsync("https://httpbin.org/status/422", new { x = 1 });
+
+if (!result.IsSuccess)
+    Console.WriteLine($"HTTP {result.StatusCode}: {result.Body}");
+
+// or throw CurlDotNet.Core.CurlHttpException on non-2xx:
+var ok = result.EnsureSuccess().ParseJson<HttpBinPost>();
 ```
 
-### Array of Objects
-```json
-[
-  {"id": 1, "name": "Alice"},
-  {"id": 2, "name": "Bob"}
-]
-```
+Without `-f`, HTTP 4xx/5xx replies never throw on their own; `EnsureSuccess()` turns them into a `CurlDotNet.Core.CurlHttpException` carrying `StatusCode` and `ResponseBody`. In a command string, `--fail-with-body` throws `CurlHttpReturnedErrorException` (exit code 22) with the error body instead. See [Handle Errors](handle-errors.html).
 
-### Nested Objects
-```json
-{
-  "user": {
-    "name": "Alice",
-    "address": {
-      "city": "New York",
-      "country": "USA"
-    }
-  }
-}
-```
+## Troubleshooting
 
-### Mixed Types
-```json
-{
-  "string": "text",
-  "number": 123,
-  "boolean": true,
-  "null": null,
-  "array": [1, 2, 3],
-  "object": {"key": "value"}
-}
-```
+**400 Bad Request.** The body is usually malformed JSON. Serialize with `JsonSerializer.Serialize` rather than concatenating strings, and print `result.Body` for the server's explanation.
 
-## 🚀 Next Steps
+**415 Unsupported Media Type.** The `Content-Type` header is missing. With `-d` you must add `-H 'Content-Type: application/json'` yourself; `--json`, `WithJson` and `PostJsonAsync` set it for you.
 
-Now that you can send JSON:
+**Quotes break the command.** In a verbatim string write `""` for each `"`. If the JSON itself contains a single quote (`O'Brien`), prefer `--json` with a serialized object, the builder, or `-d @file`.
 
-1. Learn to [Handle API Responses](handle-errors.html)
-2. Try [Uploading Files](upload-file.html)
-3. Check the [API Guide](../../api-guide/) for bearer tokens and authentication
+**Special characters or non-ASCII text.** The body is sent as UTF-8. If the server mangles it, make sure your `Content-Type` includes `charset=utf-8` (`--json` already implies UTF-8 JSON).
 
-## 📚 Related Recipes
+**`ParseJson<T>()` returns nulls.** Property names do not match. Case does not matter, but underscores do: add `[JsonPropertyName("...")]` for snake_case names, or inspect `result.Body` with `AsJsonDynamic()`.
 
-- [Call an API](call-api.html)
-- [Simple GET Request](simple-get.html)
-- [POST Form Data](post-form.html)
-- [Handle Errors](handle-errors.html)
+## Related
 
-## 🎓 Key Takeaways
-
-- Always set `Content-Type: application/json`
-- Use C# objects and serialize to JSON
-- Escape quotes in JSON strings
-- Check response status before using data
-- Use proper HTTP method (POST, PUT, PATCH)
-
----
-
-**Need help?** Check [Troubleshooting](../../troubleshooting/) | **Have questions?** Ask in [Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
+- [Call a REST API](call-api.html) - GET/POST/PUT/DELETE with authentication
+- [POST Form Data](post-form.html) - `application/x-www-form-urlencoded` instead of JSON
+- [Upload a File](upload-file.html) - multipart `-F` uploads
+- [Handle Errors](handle-errors.html) - status codes versus exceptions
+- [Authentication schemes](../auth-schemes.html) - basic, bearer, digest
+- [Tutorial: JSON for Beginners](../../tutorials/07-json-for-beginners.html)
+- [Cookbook index](../index.html)

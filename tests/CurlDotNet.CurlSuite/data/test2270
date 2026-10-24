@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP POST
+HTTP MIME
+Resume
+libtest
+</keywords>
+</info>
+
+<reply>
+<data nocheck="yes">
+HTTP/1.1 200 OK swsclose
+
+</data>
+</reply>
+
+<client>
+<features>
+Mime
+form-api
+</features>
+<server>
+http
+</server>
+<name>
+reject HTTP form and MIME upload resume
+</name>
+<command>
+http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+</command>
+</client>
+
+<verify>
+<protocol nonewline="yes">
+
+</protocol>
+</verify>
+</testcase>

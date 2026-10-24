@@ -3,7 +3,8 @@
 
 ## CurlConnectionException\.Port Property
 
-Gets the port number that was attempted\.
+The TCP port that was tried, or null when the URL used the scheme's default \(80 for http, 443 for https,
+21 for ftp\)\.
 
 ```csharp
 public System.Nullable<int> Port { get; }
@@ -11,10 +12,11 @@ public System.Nullable<int> Port { get; }
 
 #### Property Value
 [System\.Nullable&lt;](https://learn.microsoft.com/en-us/dotnet/api/system.nullable-1 'System\.Nullable\`1')[System\.Int32](https://learn.microsoft.com/en-us/dotnet/api/system.int32 'System\.Int32')[&gt;](https://learn.microsoft.com/en-us/dotnet/api/system.nullable-1 'System\.Nullable\`1')  
-The TCP port number, or null if using the default port for the protocol\.
+A port number from 1 to 65535, or null for the default port\.
 
 ### Remarks
 
-Default ports: HTTP=80, HTTPS=443, FTP=21, FTPS=990.
+Non-standard ports such as 8443 are often blocked by corporate firewalls; try the service on 443 first.
 
-AI-Usage: Check if non-standard ports might be blocked by firewalls.
+### See Also
+- [Host](CurlDotNet.Exceptions.CurlConnectionException.Host.md 'CurlDotNet\.Exceptions\.CurlConnectionException\.Host')

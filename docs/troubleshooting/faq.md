@@ -1,201 +1,183 @@
-# Frequently Asked Questions
+---
+title: "CurlDotNet FAQ - curl in C# questions answered"
+description: "CurlDotNet FAQ: curl in C# questions answered - supported .NET versions, authentication, JSON, downloads, timeouts, retries, errors and code generation."
+---
 
-Answers to common questions about CurlDotNet.
+# CurlDotNet FAQ: curl in C# questions answered
+
+CurlDotNet FAQ: curl in C# questions answered - what the library is, which .NET versions it supports, and how to do the common things (authentication, JSON, downloads, timeouts, retries, error handling) with a curl command string in .NET.
 
 ## General Questions
 
 ### What is CurlDotNet?
 
-CurlDotNet is a pure .NET implementation of curl that allows you to execute curl commands directly in your C# applications. Instead of translating curl commands to HttpClient code, you can paste curl commands as strings and execute them directly.
+CurlDotNet is a pure C# implementation of the curl command line. You pass a curl command as a string and get back a `CurlResult` with the status code, headers and body. There is no need to translate curl commands from API documentation into `HttpClient` code.
 
 ### Why use CurlDotNet instead of HttpClient?
 
 | Feature | CurlDotNet | HttpClient |
 |---------|------------|------------|
-| Copy/paste curl commands | Yes | No |
-| Learning curve | None (if you know curl) | Moderate |
-| Migration from bash | Easy | Manual translation |
-| All curl options | 300+ supported | Limited |
-| Code generation | Built-in | External tools |
+| Paste curl commands from API docs | Yes | No |
+| Learning curve if you know curl | Minimal | Moderate |
+| Moving bash scripts to .NET | Paste the command | Manual translation |
+| Code generation to other languages | `Curl.ToHttpClient`, `ToFetch`, `ToPythonRequests` | External tools |
 
-CurlDotNet is ideal when:
-- You have curl commands from API documentation
-- You're migrating from bash scripts
-- You want quick prototyping
-- You need curl-specific features
-
-HttpClient is better when:
-- You want maximum performance
-- You need fine-grained control
-- You're building a library
+CurlDotNet fits when you have curl commands from documentation or scripts, or want to prototype quickly. `HttpClient` is the better choice when you need fine-grained control over connections or are building a low-level library. Internally CurlDotNet uses `HttpClient`, so you can mix both.
 
 ### Does CurlDotNet use the native curl library?
 
-No. CurlDotNet is a **pure .NET implementation**. It doesn't use P/Invoke or native binaries. This means:
-- No native dependencies to install
-- Works everywhere .NET runs
-- Single NuGet package deployment
+No. CurlDotNet is pure C# with no P/Invoke and no native binaries, so it is a single NuGet package with no platform-specific installation.
 
 ### What platforms are supported?
 
-CurlDotNet supports:
-- .NET 10.0 (Preview)
-- .NET 9.0
-- .NET 8.0 (LTS - Recommended)
-- .NET 6.0 (LTS)
-- .NET Framework 4.7.2+
-- .NET Standard 2.0
-- Xamarin, Unity, Blazor, MAUI
-
----
+The package targets .NET 10, .NET 9, .NET 8, .NET Framework 4.7.2 and 4.8, and .NET Standard 2.0. Any runtime that consumes .NET Standard 2.0 (for example .NET 6, Mono, Unity, Xamarin) can use the .NET Standard build. See [Framework Compatibility](../framework-compatibility.html).
 
 ## Technical Questions
 
 ### Do I need to include "curl" in the command string?
 
-No, the "curl" prefix is optional:
+No. The `curl` prefix is optional:
 
 ```csharp
-// Both work identically:
-await Curl.ExecuteAsync("curl https://api.example.com");
-await Curl.ExecuteAsync("https://api.example.com");
+using CurlDotNet;
+
+await Curl.ExecuteAsync("curl https://httpbin.org/get");
+await Curl.ExecuteAsync("https://httpbin.org/get");
 ```
 
 ### How do I handle authentication?
 
-CurlDotNet supports various authentication methods:
-
 ```csharp
 // Basic auth
-await Curl.ExecuteAsync("curl -u username:password https://api.example.com");
+await Curl.ExecuteAsync("curl -u username:password https://httpbin.org/basic-auth/username/password");
 
 // Bearer token
-await Curl.ExecuteAsync("curl -H 'Authorization: Bearer token123' https://api.example.com");
+await Curl.ExecuteAsync("curl -H 'Authorization: Bearer token123' https://httpbin.org/bearer");
 
-// API key
-await Curl.ExecuteAsync("curl -H 'X-API-Key: mykey' https://api.example.com");
+// API key header
+await Curl.ExecuteAsync("curl -H 'X-API-Key: mykey' https://httpbin.org/headers");
 ```
+
+`--digest`, `--ntlm`, `--negotiate` and `--anyauth` are negotiated in-library like curl, and `--oauth2-bearer TOKEN` sends a bearer token. See [Authentication Basics](../tutorials/09-authentication-basics.html).
 
 ### How do I send JSON data?
 
 ```csharp
-// Using PostJson (easiest)
-var result = await Curl.PostJsonAsync("https://api.example.com", new { name = "John" });
+// Convenience method
+var result = await Curl.PostJsonAsync("https://httpbin.org/post", new { name = "John" });
 
-// Using curl command
-var result = await Curl.ExecuteAsync(@"
-    curl -X POST https://api.example.com \
-      -H 'Content-Type: application/json' \
-      -d '{""name"": ""John""}'
-");
+// Equivalent curl command
+var result2 = await Curl.ExecuteAsync(@"curl -X POST https://httpbin.org/post \
+    -H 'Content-Type: application/json' \
+    -d '{""name"": ""John""}'");
 ```
 
 ### How do I download files?
 
 ```csharp
-// Using Download method
-await Curl.DownloadAsync("https://example.com/file.pdf", "output.pdf");
+// Convenience method
+await Curl.DownloadAsync("https://httpbin.org/image/png", "output.png");
 
-// Using curl command
-await Curl.ExecuteAsync("curl -o output.pdf https://example.com/file.pdf");
+// Equivalent curl command
+await Curl.ExecuteAsync("curl -o output.png https://httpbin.org/image/png");
 ```
+
+Binary responses are available as `result.BinaryData`, and `result.SaveToFile(path)` writes any response to disk.
 
 ### Is CurlDotNet thread-safe?
 
-Yes, all methods are thread-safe. You can call them from multiple threads simultaneously.
+The static `Curl` methods can be called from multiple threads at once; each call builds its own request. The `Curl.Default*` settings (`DefaultMaxTimeSeconds`, `DefaultConnectTimeoutSeconds`, `DefaultFollowRedirects`, `DefaultInsecure`) are process-wide, so set them once at startup rather than per request.
 
 ### How do I handle errors?
 
-Check `IsSuccess` or catch specific exceptions:
+HTTP 4xx and 5xx responses do not throw unless the command has `-f`/`--fail`; check `IsSuccess` and `StatusCode`. Transport failures (DNS, connection, TLS, timeout, unwritable output file) throw a `CurlException` subclass whose `CurlErrorCode` is curl's exit code. A cancelled token throws `OperationCanceledException`.
 
 ```csharp
-// Method 1: Check IsSuccess
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
-if (result.IsSuccess)
-{
-    Console.WriteLine(result.Body);
-}
-else
-{
-    Console.WriteLine($"Error: {result.StatusCode}");
-}
+using CurlDotNet;
+using CurlDotNet.Exceptions;
 
-// Method 2: Catch exceptions
 try
 {
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
+    var result = await Curl.ExecuteAsync("curl -m 10 https://httpbin.org/status/404");
+    if (!result.IsSuccess)
+        Console.WriteLine($"HTTP {result.StatusCode}: {result.Body}");
 }
-catch (CurlTimeoutException ex)
-{
-    Console.WriteLine($"Timed out after {ex.Timeout}s");
-}
-catch (CurlHttpException ex)
-{
-    Console.WriteLine($"HTTP {ex.StatusCode}: {ex.ResponseBody}");
-}
+catch (CurlTimeoutException ex) { Console.WriteLine($"Timed out after {ex.Timeout}"); }
+catch (CurlCouldntConnectException ex) { Console.WriteLine($"Cannot reach {ex.Host}:{ex.Port}"); }
 ```
+
+If you prefer exceptions for HTTP errors, add `-f` (throws `CurlHttpReturnedErrorException`, exit code 22) or call `result.EnsureSuccess()`, which throws `CurlDotNet.Core.CurlHttpException`. See the [Error Reference](error-reference.html) for every exception type and code.
 
 ### How do I set a timeout?
 
 ```csharp
-// Global timeout for all requests
+// Process-wide default for commands without -m (0, the default, means no limit at all)
 Curl.DefaultMaxTimeSeconds = 30;
 
-// Per-request timeout
-await Curl.ExecuteAsync("curl --max-time 10 https://api.example.com");
+// Per request: whole transfer, body included; decimals work
+await Curl.ExecuteAsync("curl --max-time 10 https://httpbin.org/get");
 
-// Using CancellationToken
+// Connection phase only
+await Curl.ExecuteAsync("curl --connect-timeout 2.5 --max-time 10 https://httpbin.org/get");
+
+// Caller-side cancellation (throws OperationCanceledException)
 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-await Curl.ExecuteAsync("curl https://api.example.com", cts.Token);
+await Curl.ExecuteAsync("curl https://httpbin.org/get", cts.Token);
 ```
 
----
+There is no hidden default timeout: a command without `-m` waits as long as the server keeps the connection open. An expired limit throws `CurlOperationTimeoutException` (exit code 28).
+
+### Does curl's --retry flag work?
+
+Yes. `--retry N` retries timeouts and HTTP 408, 429, 500, 502, 503 and 504, starting with a 1-second pause that doubles each time (or a fixed `--retry-delay`, decimals allowed) and honouring `Retry-After`. `--retry-max-time` caps the total time, `--retry-connrefused` also retries refused connections and `--retry-all-errors` retries any failure:
+
+```csharp
+var result = await Curl.ExecuteAsync("curl --retry 3 --retry-delay 2 -m 10 https://httpbin.org/status/503");
+```
+
+From code, `new CurlSettings().WithRetries(3, 1000)` (namespace `CurlDotNet.Core`) retries any failure with a fixed delay. See [curl --retry in C#](../cookbook/retry.html).
+
+### Do cookies work?
+
+Yes. Cookie strings work (`curl -b 'session=abc; theme=dark' https://httpbin.org/cookies`), `-b FILE` loads a Netscape cookie file, `-c JAR` writes the cookies the server set, and `-j` drops session cookies when loading. Within one command, cookies set on a redirect hop are sent on the next one. See [Cookie errors](../exceptions/cookie-errors.html).
 
 ## Performance Questions
 
 ### Is CurlDotNet fast?
 
-CurlDotNet is designed for developer productivity, not raw performance. Under the hood, it uses HttpClient, so performance is comparable. For high-throughput scenarios, consider:
-- Reusing the same command pattern
-- Using `ExecuteManyAsync` for parallel requests
-- Using HttpClient directly for maximum performance
+CurlDotNet is built for developer productivity. Under the hood it uses `HttpClient`, so request throughput is similar; the extra cost is parsing the command string, which is small. For very high-throughput paths, use `HttpClient` directly or generate the equivalent code with `Curl.ToHttpClient(command)`.
 
 ### Can I make parallel requests?
 
-Yes, use `ExecuteManyAsync`:
+Yes, `ExecuteManyAsync` runs the commands concurrently:
 
 ```csharp
 var results = await Curl.ExecuteManyAsync(
-    "curl https://api.example.com/users/1",
-    "curl https://api.example.com/users/2",
-    "curl https://api.example.com/users/3"
+    "curl https://api.github.com/users/octocat",
+    "curl https://api.github.com/users/torvalds",
+    "curl https://api.github.com/users/dotnet"
 );
-// All three requests run in parallel!
+Console.WriteLine(results.Length); // 3
 ```
 
-### Does it support streaming?
+See [Parallel Requests](../tutorials/13-parallel-requests.html).
 
-Yes, responses are streamed internally. For large file downloads:
+### How do I handle large downloads?
 
-```csharp
-// Downloads are streamed, not loaded fully into memory
-await Curl.DownloadAsync("https://example.com/large-file.zip", "output.zip");
-```
-
----
+Write directly to a file with `-o` or `Curl.DownloadAsync(url, path)` rather than reading `result.Body`. For a stream over a response you already have, use `result.ToStream()`.
 
 ## Compatibility Questions
 
 ### Does CurlDotNet support all curl options?
 
-CurlDotNet supports 300+ curl options. Most common options work exactly as expected. Some rarely-used options may not be implemented. If you find an unsupported option, please [open an issue](https://github.com/jacob-mellor/curl-dot-net/issues).
+CurlDotNet parses curl 8.7.1's complete option table, and the HTTP, FTP and file options are implemented: methods, headers, every `-d`/`--data-*` form, `-F`, `-G`, `-T`, `--json`, auth (Basic, Digest, NTLM, Negotiate, `--anyauth`, `--oauth2-bearer`, `.netrc`), cookies and jars, redirects, proxies (HTTP and SOCKS), `--retry`, `--max-time`, `--connect-timeout`, `--limit-rate` and `--speed-limit`, TLS options (`--cacert`, `--cert`, `--key`, `--pinnedpubkey`, `--tlsv1.x`; .NET 5 and later), output options (`-o`, `-O`, `-D`, `-J`, `--create-dirs`, `-C`), `-w`, URL globbing, several URLs and `-K` config files. Options the library does not implement are still parsed (their values are consumed) and listed in `CurlOptions.UnsupportedOptions`. On .NET Standard 2.0 and .NET Framework the TLS trust and client-certificate options are listed there too, and `--parallel` runs the transfers one after another. See [curl CLI Compatibility](../reference/curl-cli-compatibility.html), and [open an issue](https://github.com/jacob-mellor/curl-dot-net/issues) if you need one that is missing.
 
 ### Can I use CurlDotNet with ASP.NET Core?
 
-Yes! Configure it in your startup:
+Yes. Set defaults at startup and call `Curl` from controllers or services:
 
 ```csharp
-// In Program.cs
+// Program.cs
 Curl.DefaultMaxTimeSeconds = 30;
 Curl.DefaultFollowRedirects = true;
 
@@ -203,115 +185,89 @@ Curl.DefaultFollowRedirects = true;
 [HttpGet]
 public async Task<IActionResult> GetData()
 {
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
-    return Ok(result.Body);
+    var result = await Curl.ExecuteAsync("curl https://api.github.com/zen");
+    return result.IsSuccess ? Ok(result.Body) : StatusCode(result.StatusCode);
 }
 ```
 
 ### Does it work with .NET Framework?
 
-Yes, CurlDotNet supports .NET Framework 4.7.2 and later via .NET Standard 2.0.
+Yes. The package has `net472` and `net48` builds as well as `netstandard2.0`.
 
 ### Can I use CurlDotNet in a Blazor app?
 
-Yes, CurlDotNet works in Blazor Server. For Blazor WebAssembly, note that browser security restrictions apply to HTTP requests.
-
----
+Blazor Server works like any other ASP.NET Core app. In Blazor WebAssembly the browser's networking rules (CORS, no raw sockets) apply to every HTTP library, including this one.
 
 ## Troubleshooting Questions
 
 ### Why am I getting SSL errors?
 
-SSL errors typically occur with:
-- Self-signed certificates
-- Expired certificates
-- Mismatched domains
+A rejected certificate (self-signed, expired or mismatched) throws `CurlPeerFailedVerificationException` (exit code 60), and other handshake failures `CurlSslConnectErrorException` (35); catch `CurlSslException` for both. For development only, skip verification:
 
-**Development solution** (NOT for production):
 ```csharp
-await Curl.ExecuteAsync("curl -k https://localhost:5001");
+await Curl.ExecuteAsync("curl -k https://localhost:5001/");
 ```
 
-**Production solution:**
-- Install proper SSL certificates
-- Use `--cacert` to specify custom CA bundle
+For production, trust the server's CA: pass it with `--cacert ca.pem` (.NET 5 and later), or install it in the operating system trust store (required on .NET Standard 2.0 and .NET Framework, where `--cacert` is listed in `UnsupportedOptions`). See [SSL Certificate Errors](common-issues.html#ssl-certificate-errors).
 
-### Why does my curl command work in terminal but not in CurlDotNet?
+### Why does my curl command work in the terminal but not in CurlDotNet?
 
 Common reasons:
-1. **Environment variables** - CurlDotNet doesn't read shell variables like `$TOKEN`
-2. **Shell expansion** - Backticks and `$(...)` aren't supported
-3. **File paths** - Ensure paths are absolute or correct relative paths
 
-### Why am I getting a 401 Unauthorized error?
+1. **Shell expansion** - backticks and `$(...)` are shell features; compute the value in C# and interpolate it.
+2. **File paths** - `@file` paths are relative to the process working directory, not your source file.
+3. **Quoting** - inside a C# string, `"` must be escaped (`\"`, or `""` in a verbatim `@"..."` string).
+4. **Unsupported or mistyped option** - check [curl CLI Compatibility](../reference/curl-cli-compatibility.html); `Curl.Validate(command)` reports typos.
+5. **`~/.curlrc`** - the curl tool reads it automatically; CurlDotNet never does. Pass its options explicitly, or load it with `-K` and the file's full path.
 
-Common causes:
-1. Missing or incorrect authentication
-2. Token expired
-3. Wrong authentication method
+### Why am I getting a 401 Unauthorized response?
 
-Check your headers:
+The credentials are missing, expired, or sent in the wrong form. Check `result.GetHeader("WWW-Authenticate")` to see which scheme the server expects, then send it:
+
 ```csharp
-// Ensure correct authorization header
-await Curl.ExecuteAsync("curl -H 'Authorization: Bearer YOUR_ACTUAL_TOKEN' https://api.example.com");
+var result = await Curl.ExecuteAsync("curl -H 'Authorization: Bearer YOUR_TOKEN' https://httpbin.org/bearer");
+Console.WriteLine(result.StatusCode);
+Console.WriteLine(result.GetHeader("WWW-Authenticate"));
 ```
 
 ### How do I debug requests?
 
-Use verbose mode to see what's happening:
+Use `-v` for request and response headers, and validate the command before running it:
 
 ```csharp
-var result = await Curl.ExecuteAsync("curl -v https://api.example.com");
-// Verbose output shows headers sent and received
-```
+var result = await Curl.ExecuteAsync("curl -v https://httpbin.org/get");
 
-Or validate your command first:
-
-```csharp
-var validation = Curl.Validate("curl -X POST https://api.example.com");
+var validation = Curl.Validate("curl -X POST https://httpbin.org/post");
 if (!validation.IsValid)
-{
-    Console.WriteLine($"Invalid: {validation.ErrorMessage}");
-}
+    Console.WriteLine($"Invalid: {validation.Error}");
 ```
 
----
+See [Debugging Requests](../tutorials/14-debugging-requests.html).
 
 ## Migration Questions
 
 ### How do I migrate from HttpClient to CurlDotNet?
 
-Use the code conversion tools:
+Paste the curl command from the API documentation. To see the equivalent `HttpClient` code for any command, use the generator:
 
 ```csharp
-// If you have curl commands, just paste them
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
-
-// If you want to see equivalent HttpClient code
-string httpClientCode = Curl.ToHttpClient("curl -X POST -d 'data' https://api.example.com");
+string httpClientCode = Curl.ToHttpClient("curl -X POST -d 'data' https://httpbin.org/post");
 Console.WriteLine(httpClientCode);
 ```
 
-### Can I convert CurlDotNet code to other languages?
+See the [HttpClient migration guide](../migration/httpclient.html).
 
-Yes! CurlDotNet can generate equivalent code:
+### Can I convert curl commands to other languages?
 
 ```csharp
-// To JavaScript fetch()
-string jsCode = Curl.ToFetch("curl https://api.example.com");
-
-// To Python requests
-string pythonCode = Curl.ToPythonRequests("curl https://api.example.com");
-
-// To PowerShell
-string psCode = Curl.ToPowershellCode("curl https://api.example.com");
+string js = Curl.ToFetch("curl https://httpbin.org/get");
+string python = Curl.ToPythonRequests("curl https://httpbin.org/get");
+string powershell = Curl.ToPowershellCode("curl https://httpbin.org/get");
 ```
-
----
 
 ## Still Have Questions?
 
-- [Common Issues](common-issues.html) - Solutions to frequent problems
-- [Error Reference](error-reference.html) - All exception types explained
-- [GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues) - Ask questions or report bugs
-- [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions) - Community help
+- [Common Issues](common-issues.html) - solutions to frequent problems
+- [Error Reference](error-reference.html) - exit codes and exception types
+- [GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues) - report bugs
+- [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions) - ask questions

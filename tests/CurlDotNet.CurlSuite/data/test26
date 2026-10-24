@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP GET
+</keywords>
+</info>
+<reply>
+<data>
+HTTP/1.0 200 Mooo swsclose
+Server: test-server/fake
+Connection: close
+
+*flopp*
+</data>
+</reply>
+
+<client>
+<server>
+http
+</server>
+<name>
+specify more -o than URLs
+</name>
+<command>
+http://%HOSTIP:%HTTPPORT/want/%TESTNUMBER -o - -o -
+</command>
+</client>
+
+<verify>
+<protocol crlf="headers">
+GET /want/%TESTNUMBER HTTP/1.1
+Host: %HOSTIP:%HTTPPORT
+User-Agent: curl/%VERSION
+Accept: */*
+
+</protocol>
+</verify>
+</testcase>

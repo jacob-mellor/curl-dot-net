@@ -59,7 +59,9 @@ namespace CurlDotNet.Tests
             };
 
             // Act & Assert
-            Assert.Throws<JsonException>(() => result.ParseJson<TestData>());
+            // malformed JSON is reported as CurlParsingException with the JsonException as InnerException
+            var ex = Assert.Throws<CurlDotNet.Exceptions.CurlParsingException>(() => result.ParseJson<TestData>());
+            ex.InnerException.Should().BeOfType<JsonException>();
         }
 
         [Fact]
@@ -73,7 +75,7 @@ namespace CurlDotNet.Tests
             };
 
             // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => result.ParseJson<TestData>());
+            Assert.Throws<CurlDotNet.Exceptions.CurlParsingException>(() => result.ParseJson<TestData>());
         }
 
         [Fact]
@@ -168,7 +170,7 @@ namespace CurlDotNet.Tests
             try
             {
                 // Act
-                var bytesWritten = result.SaveToFile(tempFile);
+                var bytesWritten = ErgonomicExtensions.SaveToFile(result, tempFile);
 
                 // Assert
                 bytesWritten.Should().Be(5);
@@ -197,7 +199,7 @@ namespace CurlDotNet.Tests
             try
             {
                 // Act
-                var bytesWritten = result.SaveToFile(tempFile);
+                var bytesWritten = ErgonomicExtensions.SaveToFile(result, tempFile);
 
                 // Assert
                 bytesWritten.Should().Be(12); // "test content" length
@@ -225,7 +227,7 @@ namespace CurlDotNet.Tests
             try
             {
                 // Act & Assert
-                Assert.Throws<InvalidOperationException>(() => result.SaveToFile(tempFile));
+                Assert.Throws<InvalidOperationException>(() => ErgonomicExtensions.SaveToFile(result, tempFile));
             }
             finally
             {
@@ -249,7 +251,7 @@ namespace CurlDotNet.Tests
             try
             {
                 // Act & Assert
-                Assert.Throws<InvalidOperationException>(() => result.SaveToFile(tempFile));
+                Assert.Throws<InvalidOperationException>(() => ErgonomicExtensions.SaveToFile(result, tempFile));
             }
             finally
             {

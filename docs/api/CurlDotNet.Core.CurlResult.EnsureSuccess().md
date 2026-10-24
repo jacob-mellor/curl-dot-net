@@ -3,10 +3,8 @@
 
 ## CurlResult\.EnsureSuccess\(\) Method
 
-
-<b>Throw an exception if the request wasn't successful (not 200-299).</b>
-
-Use this when you expect success and want to fail fast. This matches curl's `-f` (fail) flag behavior.
+Throws [CurlHttpException](CurlDotNet.Core.CurlHttpException.md 'CurlDotNet\.Core\.CurlHttpException') unless [StatusCode](CurlDotNet.Core.CurlResult.StatusCode.md 'CurlDotNet\.Core\.CurlResult\.StatusCode') is 200\-299, otherwise returns this result \-
+the CurlDotNet version of `HttpResponseMessage.EnsureSuccessStatusCode()`\.
 
 ```csharp
 public CurlDotNet.Core.CurlResult EnsureSuccess();
@@ -14,58 +12,44 @@ public CurlDotNet.Core.CurlResult EnsureSuccess();
 
 #### Returns
 [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')  
-This result if successful \(for chaining\)
+This same result when the status is 2xx, for chaining\.
 
 #### Exceptions
 
 [CurlHttpException](CurlDotNet.Core.CurlHttpException.md 'CurlDotNet\.Core\.CurlHttpException')  
-Thrown if status is not 200\-299\. The exception contains [StatusCode](CurlDotNet.Core.CurlHttpException.StatusCode.md 'CurlDotNet\.Core\.CurlHttpException\.StatusCode') and [ResponseBody](CurlDotNet.Core.CurlHttpException.ResponseBody.md 'CurlDotNet\.Core\.CurlHttpException\.ResponseBody')\.
+\(status not 200\-299\) The message names the URL, the status and a fix for that status \(credentials
+            for 401, permissions for 403, the path for 404, waiting for 429, retrying for 5xx, `-L` for 3xx\);
+            [ResponseBody](CurlDotNet.Core.CurlHttpException.ResponseBody.md 'CurlDotNet\.Core\.CurlHttpException\.ResponseBody') and [ResponseHeaders](CurlDotNet.Core.CurlHttpException.ResponseHeaders.md 'CurlDotNet\.Core\.CurlHttpException\.ResponseHeaders') carry the response\.
+            See https://github\.com/jacob\-mellor/curl\-dot\-net/blob/master/docs/how\-to/curl\-error\-handling\-csharp/README\.md
 
 ### Example
 
 ```csharp
-// Fail fast pattern
 try
 {
-    var data = result
-        .EnsureSuccess()      // Throws if not 200-299
-        .ParseJson<Data>();  // Only runs if successful
-}
-catch (CurlHttpException ex)
-{
-    Console.WriteLine($"HTTP {ex.StatusCode}: {ex.Message}");
-    Console.WriteLine($"Response body: {ex.ResponseBody}");
-}
-
-// Common API pattern - get user data
-var user = (await Curl.ExecuteAsync("curl https://api.example.com/user/123"))
-    .EnsureSuccess()        // Throws on 404, 500, etc.
-    .ParseJson<User>();    // Safe to parse, we know it's 200
-
-// Chain multiple operations
-var response = await Curl.ExecuteAsync("curl https://api.example.com/data");
-var processed = response
-    .EnsureSuccess()           // Ensure 200-299
-    .SaveToFile("backup.json") // Save backup
-    .ParseJson<DataModel>(); // Then parse
-
-// Different handling for different status codes
-try
-{
-    result.EnsureSuccess();
-    ProcessData(result.Body);
-}
-catch (CurlHttpException ex) when (ex.StatusCode == 404)
-{
-    Console.WriteLine("Resource not found");
+    var data = result.EnsureSuccess().ParseJson<Data>();
 }
 catch (CurlHttpException ex) when (ex.StatusCode >= 500)
 {
-    Console.WriteLine("Server error - retry later");
+    Console.WriteLine($"Server error {ex.StatusCode} - retry later");
 }
 ```
 
+### Remarks
+
+Use it to fail fast before parsing: `var user = (await Curl.ExecuteAsync("curl https://api.example.com/users/42")).EnsureSuccess().ParseJson<User>();`
+
+It is the after-the-fact equivalent of curl's `-f`/`--fail`. With `-f` in the command the
+            transfer itself throws [CurlHttpReturnedErrorException](CurlDotNet.Exceptions.CurlHttpReturnedErrorException.md 'CurlDotNet\.Exceptions\.CurlHttpReturnedErrorException') (exit code 22) and you never get a result; with
+            EnsureSuccess you get the result first and decide. The thrown exception is [CurlHttpException](CurlDotNet.Core.CurlHttpException.md 'CurlDotNet\.Core\.CurlHttpException')
+            (namespace `CurlDotNet.Core`), which carries the body and headers.
+
+Example: `try { result.EnsureSuccess(); } catch (CurlHttpException ex) when (ex.StatusCode == 404) { return null; }`
+
+Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-error-handling-csharp/README.md
+
 ### See Also
-- [Ensure specific status code](CurlDotNet.Core.CurlResult.EnsureStatus(int).md 'CurlDotNet\.Core\.CurlResult\.EnsureStatus\(int\)')
-- [Ensure response contains text](CurlDotNet.Core.CurlResult.EnsureContains(string).md 'CurlDotNet\.Core\.CurlResult\.EnsureContains\(string\)')
-- [Check success without throwing](CurlDotNet.Core.CurlResult.IsSuccess.md 'CurlDotNet\.Core\.CurlResult\.IsSuccess')
+- [IsSuccess](CurlDotNet.Core.CurlResult.IsSuccess.md 'CurlDotNet\.Core\.CurlResult\.IsSuccess')
+- [EnsureStatus\(int\)](CurlDotNet.Core.CurlResult.EnsureStatus(int).md 'CurlDotNet\.Core\.CurlResult\.EnsureStatus\(int\)')
+- [EnsureContains\(string\)](CurlDotNet.Core.CurlResult.EnsureContains(string).md 'CurlDotNet\.Core\.CurlResult\.EnsureContains\(string\)')
+- [EnsureSuccessStatusCode\(this CurlResult\)](CurlDotNet.ErgonomicExtensions.EnsureSuccessStatusCode(thisCurlDotNet.Core.CurlResult).md 'CurlDotNet\.ErgonomicExtensions\.EnsureSuccessStatusCode\(this CurlDotNet\.Core\.CurlResult\)')

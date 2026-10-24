@@ -1,165 +1,112 @@
-# CurlDotNet Cookbook
+---
+title: "CurlDotNet Cookbook: curl Recipes in C#"
+description: "Copy-paste curl recipes in C# with CurlDotNet: GET, POST JSON, forms, file upload and download, redirects, cookies, proxies, timeouts, retries, write-out, globbing, config files, HEAD and auth."
+---
 
-Welcome to the CurlDotNet Cookbook! This collection of practical recipes shows you how to accomplish common tasks using CurlDotNet.
+# CurlDotNet Cookbook: curl recipes in C#
 
-## What is CurlDotNet?
-
-**CurlDotNet** is the pure .NET implementation of curl that allows you to execute curl commands directly in C# applications. Simply paste any curl command from documentation, Stack Overflow, or bash scripts, and it works immediately!
+These curl recipes in C# show how to do one common HTTP task each with CurlDotNet, the pure .NET library that runs curl command strings. Every recipe gives the curl command first, the `Curl.ExecuteAsync` call that runs it, and the `CurlRequestBuilder` equivalent where one exists.
 
 ## Installation
-
-Install CurlDotNet from NuGet: **[CurlDotNet on NuGet](https://www.nuget.org/packages/CurlDotNet/)**
 
 ```bash
 dotnet add package CurlDotNet
 ```
 
-Or via Package Manager:
-```powershell
-Install-Package CurlDotNet
-```
+Package page: [CurlDotNet on NuGet](https://www.nuget.org/packages/CurlDotNet/).
 
-## Recipe Categories
+## Beginner recipes
 
-### 🍳 [Beginner Recipes](beginner/)
-Perfect for getting started with CurlDotNet:
-- **[Simple GET Request](beginner/simple-get.html)** - Fetch data from an API
-- **[Send JSON Data](beginner/send-json.html)** - POST JSON to an endpoint
-- **[Handle Errors](beginner/handle-errors.html)** - Robust error handling
-- **[Upload Files](beginner/upload-file.html)** - Upload files to servers
-- **[Download Files](beginner/download-file.html)** - Download and save files
-- **[POST Forms](beginner/post-form.html)** - Submit form data
-- **[Call APIs](beginner/call-api.html)** - Build API client applications
+Start here if you are new to CurlDotNet. See also the [beginner overview](beginner/README.html).
 
-### 🥘 Intermediate Recipes (Coming Soon)
-Take your skills to the next level:
-- API Client Class - Build reusable API clients
-- Retry Logic - Handle transient failures
-- Progress Tracking - Monitor upload/download progress
-- Session Cookies - Maintain session state
-- Rate Limiting - Respect API limits
-- File Management - Advanced file operations
+- [curl GET request in C#](beginner/simple-get.html) - fetch a URL, check the status, read headers
+- [curl -X POST JSON in C#](beginner/send-json.html) - `-d`, `--json`, `WithJson`, `ParseJson<T>()`
+- [curl -d form data POST in C#](beginner/post-form.html) - URL-encoded forms and `--data-urlencode`
+- [curl -F file upload in C#](beginner/upload-file.html) - multipart/form-data, `-T` uploads and `--data-binary`
+- [curl download file in C# (curl -o)](beginner/download-file.html) - `-o`, `-O`, `-J`, `-C -` resume, `Curl.DownloadAsync`
+- [Handle curl errors and exceptions in C#](beginner/handle-errors.html) - status codes, `-f`, `EnsureSuccess()`, typed exceptions and exit codes
+- [Call a REST API with curl in C#](beginner/call-api.html) - bearer tokens, verbs, a reusable client
 
-### 🍱 Advanced Patterns (Coming Soon)
-Master complex scenarios:
-- Pagination - Handle paginated API responses
-- Polling - Implement efficient polling
-- Webhooks - Build webhook handlers
-- Batch Processing - Process multiple requests efficiently
+## One flag at a time
 
-### 🌍 Real World Examples (Coming Soon)
-Complete implementations for popular services:
-- GitHub Integration
-- Slack Notifications
-- Weather API Client
-- OAuth Flow Implementation
-- Stripe Payments Integration
+- [curl follow redirects in C# (curl -L)](follow-redirects.html) - `-L`, `--max-redirs`, `CurlTooManyRedirectsException`
+- [curl with cookies in C# (curl -b and -c)](cookies.html) - cookie strings, cookie files and `-c` cookie jars
+- [curl proxy in C# (curl -x and SOCKS5)](proxy.html) - `-x`, `--proxy-user`, `--noproxy`, proxy environment variables, `--socks5`
+- [curl timeout in C# (--max-time and --connect-timeout)](timeouts.html) - `-m`, `--connect-timeout`, no hidden default, `CurlOperationTimeoutException`
+- [curl -I HEAD request in C#](head-request.html) - headers without the body
+- [curl PUT, DELETE and PATCH requests in C#](http-methods.html) - `-X` with and without a body
+- [curl digest, NTLM and basic auth in C#](auth-schemes.html) - `-u`, `--digest`, `--ntlm`, `--anyauth`, `.netrc`, bearer tokens
+- [curl --retry in C#](retry.html) - `--retry`, `--retry-delay`, `--retry-max-time`, `WithRetries`
+- [curl -w write-out in C#](write-out.html) - `%{http_code}`, `%{time_total}`, `%{json}`, output on failure
+- [curl multiple URLs and URL globbing in C#](multiple-urls-and-globbing.html) - several URLs, `{a,b}`, `[1-10]`, `#1`, `--next`
+- [curl config files, --variable and .netrc in C#](config-files-and-variables.html) - `-K`, `--variable`, `{{name:json}}`, `-n`
 
-## Quick Examples
+## Quick examples
 
-### Simple GET Request
+### GET
+
 ```csharp
 using CurlDotNet;
 
-var result = await Curl.ExecuteAsync("curl https://api.github.com");
+var result = await Curl.ExecuteAsync("curl https://api.github.com/zen");   // sends User-Agent: curl/8.7.1, like curl
 Console.WriteLine(result.Body);
 ```
 
-### POST with JSON
-```csharp
-using CurlDotNet;
+### POST JSON
 
-var json = "{\"name\":\"John\",\"email\":\"john@example.com\"}";
-var result = await Curl.ExecuteAsync($@"
-    curl -X POST https://api.example.com/users \
-      -H 'Content-Type: application/json' \
-      -d '{json}'
-");
-
-if (result.IsSuccess)
-{
-    Console.WriteLine("User created successfully!");
-}
-```
-
-### Download a File
 ```csharp
 using CurlDotNet;
 
 var result = await Curl.ExecuteAsync(@"
-    curl -o downloaded.pdf https://example.com/file.pdf
-");
+    curl -X POST https://httpbin.org/post \
+         -H 'Content-Type: application/json' \
+         -d '{""name"":""Ada""}'");
 
-if (result.IsSuccess)
-{
-    Console.WriteLine("File downloaded successfully!");
-}
+Console.WriteLine(result.IsSuccess ? "created" : $"HTTP {result.StatusCode}");
 ```
 
-## How to Use These Recipes
+### Download a file
 
-Each recipe in this cookbook:
-1. **Explains the problem** it solves
-2. **Shows complete, working code** you can copy and paste
-3. **Includes error handling** and best practices
-4. **Provides variations** for different scenarios
-5. **Links to related recipes** for deeper learning
+```csharp
+using CurlDotNet;
 
-## Recipe Structure
+var result = await Curl.ExecuteAsync("curl -L -o image.png https://httpbin.org/image/png");
+Console.WriteLine(result.OutputFiles[0]);
+```
 
-Every recipe follows this format:
-- **🎯 What You'll Build** - Clear goal description
-- **🥘 Ingredients** - What you need (packages, time, prerequisites)
-- **📖 Explanation** - Understanding the concepts
-- **🍳 The Recipe** - Step-by-step implementation
-- **🎨 Complete Examples** - Full working programs
-- **🐛 Troubleshooting** - Common issues and solutions
-- **🎓 Best Practices** - Professional tips
-- **🚀 Next Steps** - Where to go from here
+## Find a recipe by task
 
-## Finding the Right Recipe
+| I want to... | Recipe |
+|--------------|--------|
+| Fetch data from a URL | [curl GET request](beginner/simple-get.html) |
+| Send JSON to an API | [curl -X POST JSON](beginner/send-json.html) |
+| Submit an HTML-style form | [curl -d form data](beginner/post-form.html) |
+| Upload a file | [curl -F file upload](beginner/upload-file.html) |
+| Save a response to disk | [curl download file](beginner/download-file.html) |
+| Update or delete a resource | [PUT, DELETE and PATCH](http-methods.html) |
+| Log in with a username and password | [digest, NTLM and basic auth](auth-schemes.html) |
+| Send a session cookie | [cookies](cookies.html) |
+| Go through a corporate proxy | [proxy](proxy.html) |
+| Stop a slow request | [timeout](timeouts.html) |
+| Check headers without downloading | [HEAD request](head-request.html) |
+| Follow a 301/302 | [follow redirects](follow-redirects.html) |
+| Deal with failures | [handle errors](beginner/handle-errors.html) |
+| Retry a flaky endpoint | [retry](retry.html) |
+| Print the status code or timing | [write-out](write-out.html) |
+| Fetch a numbered series of URLs | [multiple URLs and globbing](multiple-urls-and-globbing.html) |
+| Keep options or credentials in a file | [config files, variables and .netrc](config-files-and-variables.html) |
 
-### By Task
-- **Fetching data?** → [Simple GET Request](beginner/simple-get.html)
-- **Sending data?** → [Send JSON Data](beginner/send-json.html)
-- **Uploading files?** → [Upload Files](beginner/upload-file.html)
-- **Downloading files?** → [Download Files](beginner/download-file.html)
-- **Submitting forms?** → [POST Forms](beginner/post-form.html)
-- **Building an API client?** → [Call APIs](beginner/call-api.html)
-- **Handling errors?** → [Handle Errors](beginner/handle-errors.html)
+## How the recipes are written
 
-### By HTTP Method
-- **GET** → [Simple GET Request](beginner/simple-get.html)
-- **POST** → [Send JSON Data](beginner/send-json.html), [POST Forms](beginner/post-form.html)
-- **PUT/PATCH** → [Send JSON Data](beginner/send-json.html) (includes PUT examples)
-- **DELETE** → [Call APIs](beginner/call-api.html) (includes DELETE examples)
+Each page states the problem, shows the curl command and the C# that runs it, then the builder version, a few variations, the things that commonly go wrong, and links onward. Every snippet is short enough to paste into a console app with `using CurlDotNet;` (and `using CurlDotNet.Core;` for the builder and `CurlResult`).
 
-### By Feature
-- **Authentication** → [Call APIs](beginner/call-api.html)
-- **Headers** → Most recipes include header examples
-- **Error Handling** → [Handle Errors](beginner/handle-errors.html)
-- **File Operations** → [Upload Files](beginner/upload-file.html), [Download Files](beginner/download-file.html)
+## More documentation
 
-## Contributing Recipes
+- [Tutorials](../tutorials/) - a step-by-step learning path
+- [Getting started](../getting-started/first-request.html) - installation and your first request
+- [API reference](../api/) - generated from the source
+- [Troubleshooting](../troubleshooting/common-issues.html) - common issues and fixes
+- [Exceptions](../exceptions/) - every exception type and when it is thrown
+- [curl exit codes](../reference/curl-exit-codes.html) - every exit code and the exception it maps to
 
-We welcome recipe contributions! If you have a useful pattern or example:
-1. Fork the repository
-2. Add your recipe following our format
-3. Submit a pull request
-
-## Additional Resources
-
-- **[Tutorials](../tutorials/)** - Step-by-step learning path
-- **[API Reference](../api/)** - Complete API documentation
-- **[Getting Started Guide](../getting-started/)** - Installation and setup
-- **[Troubleshooting](../troubleshooting/)** - Common issues and solutions
-
-## Support
-
-- **Questions?** Ask in [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
-- **Found a bug?** Report it on [GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues)
-- **Need help?** Check our [Troubleshooting Guide](../troubleshooting/)
-
----
-
-Ready to cook? Start with a **[Simple GET Request](beginner/simple-get.html)** →
+Questions and bug reports: [GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues).

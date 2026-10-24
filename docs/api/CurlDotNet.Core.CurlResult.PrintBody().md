@@ -3,20 +3,8 @@
 
 ## CurlResult\.PrintBody\(\) Method
 
-
-<b>Print the response body to console.</b>
-
-Quick debugging output:
-
-```csharp
-result.PrintBody();  // Just prints the body
-
-// Chain with other operations
-result
-    .PrintBody()           // Debug output
-    .SaveToFile("out.txt") // Also save it
-    .ParseJson<Data>();   // Then parse
-```
+Writes [Body](CurlDotNet.Core.CurlResult.Body.md 'CurlDotNet\.Core\.CurlResult\.Body') to the console \(standard output\) followed by a newline, and returns this result \-
+handy in scripts and quick experiments\.
 
 ```csharp
 public CurlDotNet.Core.CurlResult PrintBody();
@@ -24,4 +12,15 @@ public CurlDotNet.Core.CurlResult PrintBody();
 
 #### Returns
 [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')  
-This result \(for chaining\)
+This same result, for chaining\.
+
+### Remarks
+
+Prints exactly [Body](CurlDotNet.Core.CurlResult.Body.md 'CurlDotNet\.Core\.CurlResult\.Body'), so binary responses print an empty line. Not for production logging; use
+            your logger with [Body](CurlDotNet.Core.CurlResult.Body.md 'CurlDotNet\.Core\.CurlResult\.Body') instead.
+
+Example: `(await Curl.ExecuteAsync("curl https://api.github.com/zen")).PrintBody();`
+
+### See Also
+- [Print\(\)](CurlDotNet.Core.CurlResult.Print().md 'CurlDotNet\.Core\.CurlResult\.Print\(\)')
+- [PrintVerbose\(\)](CurlDotNet.Core.CurlResult.PrintVerbose().md 'CurlDotNet\.Core\.CurlResult\.PrintVerbose\(\)')

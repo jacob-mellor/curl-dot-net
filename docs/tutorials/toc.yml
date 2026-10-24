@@ -8,3 +8,23 @@
   href: 03-what-is-async.md
 - name: Your First Request
   href: 04-your-first-request.md
+- name: Understanding Results
+  href: 05-understanding-results.md
+- name: Handling Errors
+  href: 06-handling-errors.md
+- name: JSON for Beginners
+  href: 07-json-for-beginners.md
+- name: Headers Explained
+  href: 08-headers-explained.md
+- name: Authentication Basics
+  href: 09-authentication-basics.md
+- name: Files and Downloads
+  href: 10-files-and-downloads.md
+- name: Forms and Data
+  href: 11-forms-and-data.md
+- name: Cancellation Tokens
+  href: 12-cancellation-tokens.md
+- name: Parallel Requests
+  href: 13-parallel-requests.md
+- name: Debugging Requests
+  href: 14-debugging-requests.md

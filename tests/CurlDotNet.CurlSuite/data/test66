@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP GET
+HTTP/0.9
+</keywords>
+</info>
+<reply>
+<data>
+no headers swsclose
+</data>
+</reply>
+
+<client>
+<server>
+http
+</server>
+<name>
+HTTP GET without headers in the response
+</name>
+<command>
+http://%HOSTIP:%HTTPPORT/%TESTNUMBER --http0.9
+</command>
+</client>
+
+<verify>
+<protocol crlf="headers">
+GET /%TESTNUMBER HTTP/1.1
+Host: %HOSTIP:%HTTPPORT
+User-Agent: curl/%VERSION
+Accept: */*
+
+</protocol>
+</verify>
+</testcase>

@@ -360,15 +360,12 @@ namespace CurlDotNet.Tests
         public async Task ExecuteAsync_InvalidUrl_ReturnsError()
         {
             // Arrange
-            var command = "curl http://invalid.domain.that.does.not.exist.xyz";
-
-            // Act
-            var result = await Curl.ExecuteAsync(command);
-
-            // Assert
-            result.Should().NotBeNull();
-            result.IsSuccess.Should().BeFalse();
-            result.Exception.Should().NotBeNull();
+            // nothing listens on port 1; avoids DNS so the test never touches the network
+            var command = "curl http://127.0.0.1:1/";
+            // Act & Assert - the static API reports transfer failures as CurlException (curl exit code 7)
+            var ex = await Assert.ThrowsAsync<CurlDotNet.Exceptions.CurlCouldntConnectException>(
+                () => Curl.ExecuteAsync(command));
+            ex.CurlErrorCode.Should().Be(7);
         }
 
         [Fact]
@@ -394,12 +391,13 @@ namespace CurlDotNet.Tests
             var url = _serverAdapter.StatusEndpoint(404);
             var command = $"curl -f {url}";
 
-            // Act
-            var result = await Curl.ExecuteAsync(command);
+            // Act: like curl, -f turns an HTTP error into exit code 22 instead of a result
+            Func<Task> act = () => Curl.ExecuteAsync(command);
 
             // Assert
-            result.Should().NotBeNull();
-            result.IsSuccess.Should().BeFalse();
+            var thrown = await act.Should().ThrowAsync<CurlDotNet.Exceptions.CurlHttpReturnedErrorException>();
+            thrown.Which.CurlErrorCode.Should().Be(22);
+            thrown.Which.StatusCode.Should().Be(404);
         }
 
         #endregion
@@ -504,12 +502,9 @@ namespace CurlDotNet.Tests
 
             try
             {
-                // Act
-                var result = await Curl.ExecuteAsync(command);
-
-                // Assert
-                result.Should().NotBeNull();
-                result.IsSuccess.Should().BeFalse();
+                // Act & Assert - like curl's exit code 28, the default timeout surfaces as an error
+                await Assert.ThrowsAsync<CurlDotNet.Exceptions.CurlOperationTimeoutException>(
+                    () => Curl.ExecuteAsync(command));
             }
             finally
             {

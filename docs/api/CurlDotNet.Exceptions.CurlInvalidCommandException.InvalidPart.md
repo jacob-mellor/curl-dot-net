@@ -3,7 +3,8 @@
 
 ## CurlInvalidCommandException\.InvalidPart Property
 
-Gets the part of the command that is invalid\.
+The piece of the command that could not be read: an option name such as `--frobnicate`, an option
+whose value is missing, or the unclosed quoted text\.
 
 ```csharp
 public string InvalidPart { get; }
@@ -11,10 +12,12 @@ public string InvalidPart { get; }
 
 #### Property Value
 [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')  
-The specific option, argument, or syntax element that caused the parsing error\.
+The offending token exactly as it appeared in the command, or null when the problem is the
+            command as a whole \(for example "no URL specified"\)\.
 
 ### Remarks
 
-This helps identify exactly what part of the command is wrong.
+Use it to highlight the error in an editor or form: `commandBox.Select(cmd.IndexOf(ex.InvalidPart), ex.InvalidPart.Length);`
 
-AI-Usage: Use this to provide specific feedback about what needs to be corrected.
+### See Also
+- [Command](CurlDotNet.Exceptions.CurlException.Command.md 'CurlDotNet\.Exceptions\.CurlException\.Command')

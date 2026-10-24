@@ -1,481 +1,284 @@
-# Tutorial 10: Files and Downloads
+---
+title: "Download and Upload Files with curl in C# (-o, -O, -F)"
+description: "curl download file in C# (curl -o) and upload with -F using CurlDotNet: Curl.DownloadAsync, SaveToFile, BinaryData, -O, ranges and multipart uploads."
+---
 
-Learn how to download files, upload documents, and handle binary data with CurlDotNet.
+# Tutorial 10: curl download file in C# (curl -o) and upload with -F
+
+This tutorial shows how to curl download file in C# (curl -o) and upload with -F using CurlDotNet. You will save responses to disk, keep the remote file name with `-O`, work with binary data in memory, resume partial downloads with `-C -` or `-r`, upload a raw file with `-T`, and upload files as multipart forms.
+
+If you have not read [Tutorial 5: Understanding Results](05-understanding-results.html) yet, do that first; this page builds on `CurlResult`.
 
 ## Downloading Files
 
-### Simple File Download
+### Simple file download (-o)
+
+In curl you write `curl -o image.png https://httpbin.org/image/png`. CurlDotNet runs exactly that string and records where the file went:
+
 ```csharp
-var curl = new Curl();
+using CurlDotNet;
 
-// Download to file
-await curl.DownloadFileAsync(
-    "https://example.com/document.pdf",
-    "/path/to/save/document.pdf"
-);
+// Same as: curl -o image.png https://httpbin.org/image/png
+var result = await Curl.ExecuteAsync("curl -o image.png https://httpbin.org/image/png");
 
-Console.WriteLine("File downloaded successfully!");
+Console.WriteLine(result.StatusCode);                     // 200
+Console.WriteLine($"Saved: {result.OutputFiles[0]}");     // Saved: image.png
+Console.WriteLine(result.Body.Length);                    // 0: the body went to the file, as with curl
+
+// Convenience helper with the same effect
+await Curl.DownloadAsync("https://httpbin.org/image/png", "image.png");
 ```
 
-### Download with Progress
+As with curl, `-o` and `-O` send the body to the file and leave `result.Body` empty (curl prints nothing to stdout then). Read the file, or `result.OutputFiles`, to get at the content. A few related curl options work the same way:
+
+| Option | Effect |
+|--------|--------|
+| `-i -o file` | The response header block is written into the file before the body |
+| `-D file` / `-D -` | Response headers go to a separate file / to `result.Body` |
+| `--output-dir dir`, `--create-dirs` | Put the file in a directory, creating missing directories |
+| `--no-clobber`, `--skip-existing` | Never overwrite / skip the download when the file already exists |
+| `-J` | With `-O`, use the server's `Content-Disposition` filename (never overwrites) |
+| `-R` | Set the file's modification time from `Last-Modified` |
+| `--remove-on-error` | Delete the output file when the transfer fails |
+| `--max-filesize N` | Refuse bodies larger than N bytes (`CurlFileSizeExceededException`, exit 63) |
+
+A missing output directory (without `--create-dirs`) throws `CurlWriteErrorException` (exit 23), not a raw `IOException`.
+
+The builder version uses `WithOutput`:
+
 ```csharp
-public async Task DownloadWithProgress(string url, string filePath)
+using CurlDotNet.Core;
+
+var result = await CurlRequestBuilder
+    .Get("https://httpbin.org/image/png")
+    .WithOutput("image.png")
+    .ExecuteAsync();
+```
+
+### Keep the remote file name (-O)
+
+`-O` (capital O) names the local file after the last segment of the URL, just like curl:
+
+```csharp
+// Same as: curl -O https://httpbin.org/robots.txt   -> writes ./robots.txt
+var result = await Curl.ExecuteAsync("curl -O https://httpbin.org/robots.txt");
+
+Console.WriteLine(string.Join(", ", result.OutputFiles));   // robots.txt
+```
+
+### Download to memory
+
+When you leave out `-o`, the response stays in the result. Text lands in `Body`; anything binary lands in `BinaryData`:
+
+```csharp
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/image/png");
+
+if (result.IsBinary)
 {
-    var curl = new Curl();
+    byte[] bytes = result.BinaryData;
+    Console.WriteLine($"{bytes.Length} bytes of {result.GetHeader("Content-Type")}");
 
-    // Set up progress tracking
-    curl.OnProgress = (downloaded, total) =>
-    {
-        if (total > 0)
-        {
-            var percentage = (downloaded * 100.0) / total;
-            Console.Write($"\rDownloading: {percentage:F1}% ({downloaded}/{total} bytes)");
-        }
-    };
-
-    await curl.DownloadFileAsync(url, filePath);
-    Console.WriteLine("\nDownload complete!");
+    result.SaveToFile("image.png");            // or: await result.SaveToFileAsync("image.png")
 }
 ```
 
-### Download to Memory
+For a text file the same pattern works through `Body`:
+
 ```csharp
-// For small files - load into memory
-var curl = new Curl();
-var bytes = await curl.GetBytesAsync("https://example.com/image.jpg");
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/robots.txt");
 
-// Process in memory
-using var stream = new MemoryStream(bytes);
-using var image = Image.FromStream(stream);
-Console.WriteLine($"Image size: {image.Width}x{image.Height}");
-
-// Save if needed
-File.WriteAllBytes("image.jpg", bytes);
+Console.WriteLine(result.Body);                // the file contents as text
+await result.SaveToFileAsync("robots.txt");
 ```
+
+Binary detection looks at the Content-Type header and, when that is missing or misleading, at the bytes themselves. If you need a stream instead of an array, call `result.ToStream()`.
 
 ## Uploading Files
 
-### Simple File Upload
+### Simple file upload (-F)
+
+curl's `-F field=@path` sends a `multipart/form-data` POST with the file in the named field. httpbin echoes back what it received, which makes it a handy test target:
+
 ```csharp
-var curl = new Curl();
+// Same as: curl -F 'file=@report.pdf' https://httpbin.org/post
+var result = await Curl.ExecuteAsync(
+    "curl -F 'file=@report.pdf' https://httpbin.org/post");
 
-// Upload a single file
-var result = await curl.UploadFileAsync(
-    "https://api.example.com/upload",
-    "/path/to/file.pdf",
-    "file"  // Form field name
-);
-
-if (result.IsSuccess)
-{
-    Console.WriteLine("Upload successful!");
-    var response = JsonSerializer.Deserialize<UploadResponse>(result.Data);
-    Console.WriteLine($"File ID: {response.FileId}");
-}
+Console.WriteLine(result.StatusCode);   // 200
+Console.WriteLine(result.Body);         // JSON containing a "files" section
 ```
 
-### Multi-Part Form Upload
+### File plus form fields
+
+Add one `-F` per field. Quote values that contain spaces:
+
 ```csharp
-// Upload file with additional form data
-var additionalData = new Dictionary<string, string>
+var result = await Curl.ExecuteAsync(@"curl \
+  -F 'document=@report.pdf' \
+  -F 'description=Monthly report' \
+  -F 'category=reports' \
+  https://httpbin.org/post");
+```
+
+The builder has two ways to express the same request. `WithFile` adds one file; `WithMultipartForm` takes fields and files as dictionaries:
+
+```csharp
+var fields = new Dictionary<string, string>
 {
     ["description"] = "Monthly report",
-    ["category"] = "reports",
-    ["tags"] = "finance,2024"
+    ["category"] = "reports"
 };
+var files = new Dictionary<string, string> { ["document"] = "report.pdf" };
 
-var result = await curl.UploadFileAsync(
-    "https://api.example.com/documents",
-    "/path/to/report.pdf",
-    "document",
-    additionalData
-);
+var result = await CurlRequestBuilder
+    .Post("https://httpbin.org/post")
+    .WithMultipartForm(fields, files)      // or: .WithFile("document", "report.pdf")
+    .ExecuteAsync();
 ```
 
-### Multiple File Upload
+### Multiple files
+
+Repeat `-F` for each file. Building the command from a list keeps it readable:
+
 ```csharp
-public async Task UploadMultipleFiles(List<string> filePaths)
-{
-    var curl = new Curl();
-    var formData = new MultipartFormDataContent();
+var paths = new[] { "a.jpg", "b.jpg", "c.jpg" };
+var parts = string.Join(" ", paths.Select(p => $"-F 'photos=@{p}'"));
 
-    foreach (var filePath in filePaths)
-    {
-        var fileBytes = File.ReadAllBytes(filePath);
-        var fileName = Path.GetFileName(filePath);
-
-        var byteContent = new ByteArrayContent(fileBytes);
-        byteContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
-
-        formData.Add(byteContent, "files", fileName);
-    }
-
-    // Add other form fields
-    formData.Add(new StringContent("batch-upload"), "upload-type");
-
-    var result = await curl.PostAsync("https://api.example.com/batch-upload", formData);
-}
+var result = await Curl.ExecuteAsync($"curl {parts} https://httpbin.org/post");
+Console.WriteLine(result.IsSuccess ? "Uploaded" : $"HTTP {result.StatusCode}");
 ```
 
-## Working with Streams
+### Upload a raw file (-T)
 
-### Streaming Download
+`-T`/`--upload-file` sends the file's bytes as the request body of a `PUT`. If the URL ends in `/`, the file name is appended, as curl does:
+
 ```csharp
-public async Task StreamDownload(string url, string outputPath)
-{
-    var curl = new Curl();
-
-    using var response = await curl.GetStreamAsync(url);
-    using var fileStream = File.Create(outputPath);
-
-    // Copy in chunks to avoid loading entire file in memory
-    var buffer = new byte[8192];
-    int bytesRead;
-    long totalBytes = 0;
-
-    while ((bytesRead = await response.ReadAsync(buffer, 0, buffer.Length)) > 0)
-    {
-        await fileStream.WriteAsync(buffer, 0, bytesRead);
-        totalBytes += bytesRead;
-
-        Console.Write($"\rDownloaded: {totalBytes:N0} bytes");
-    }
-
-    Console.WriteLine("\nDownload complete!");
-}
+// Same as: curl -T report.pdf https://httpbin.org/put
+var result = await Curl.ExecuteAsync("curl -T report.pdf https://httpbin.org/put");
 ```
 
-### Streaming Upload
+A missing `-T` or `-F` file throws `CurlReadErrorException` (exit 26) before anything is sent.
+
+## Partial and Resumed Downloads (-C, -r)
+
+The curl way to resume an interrupted download is `-C -` (`--continue-at -`): CurlDotNet looks at the size of the existing output file, asks the server for the rest with a `Range` header, and appends what arrives:
+
 ```csharp
-public async Task StreamUpload(string filePath, string url)
-{
-    using var fileStream = File.OpenRead(filePath);
-    var fileInfo = new FileInfo(filePath);
-
-    var curl = new Curl();
-    curl.Headers.Add("Content-Length", fileInfo.Length.ToString());
-    curl.Headers.Add("Content-Type", "application/octet-stream");
-
-    var streamContent = new StreamContent(fileStream);
-    var result = await curl.PostAsync(url, streamContent);
-
-    if (result.IsSuccess)
-    {
-        Console.WriteLine("Stream upload successful!");
-    }
-}
+// Same as: curl -C - -o big.bin https://example.com/big.bin
+var result = await Curl.ExecuteAsync("curl -C - -o big.bin https://example.com/big.bin");
 ```
 
-## File Type Detection
+`-C N` resumes from a fixed byte offset. If the server ignores the range and sends the whole file again, the transfer fails with `CurlRangeErrorException` (exit 33), exactly like curl, so a complete file is never appended to a partial one. A `416 Range Not Satisfiable` reply to `-C -` means the file is already complete and leaves it untouched. Resuming an upload (`-C` with `-d` or `-T`) throws `CurlBadFunctionArgumentException` (exit 43).
 
-### Content-Type Detection
+`-r` asks for an explicit byte range. The server answers `206 Partial Content` when it honours the range:
+
 ```csharp
-public string GetContentType(string fileName)
-{
-    var extension = Path.GetExtension(fileName).ToLowerInvariant();
+// Same as: curl -r 0-1023 -o first-kb.bin https://httpbin.org/range/4096
+var result = await Curl.ExecuteAsync(
+    "curl -r 0-1023 -o first-kb.bin https://httpbin.org/range/4096");
 
-    return extension switch
-    {
-        ".pdf" => "application/pdf",
-        ".jpg" or ".jpeg" => "image/jpeg",
-        ".png" => "image/png",
-        ".gif" => "image/gif",
-        ".txt" => "text/plain",
-        ".html" => "text/html",
-        ".json" => "application/json",
-        ".xml" => "application/xml",
-        ".zip" => "application/zip",
-        ".doc" => "application/msword",
-        ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ".xls" => "application/vnd.ms-excel",
-        ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        _ => "application/octet-stream"
-    };
-}
-
-// Use in upload
-var contentType = GetContentType(filePath);
-curl.Headers.Add("Content-Type", contentType);
+Console.WriteLine(result.StatusCode);   // 206
 ```
 
-## Resume Downloads
+You can also resume by hand: ask for everything from the bytes you already have and append:
 
-### Partial Content / Range Requests
 ```csharp
-public async Task ResumeDownload(string url, string filePath)
+const string path = "big.bin";
+long have = File.Exists(path) ? new FileInfo(path).Length : 0;
+
+var result = await Curl.ExecuteAsync($"curl -r {have}- https://httpbin.org/range/4096");
+
+if (result.StatusCode == 206)
 {
-    var curl = new Curl();
-    long existingLength = 0;
-
-    // Check if partial file exists
-    if (File.Exists(filePath))
-    {
-        var fileInfo = new FileInfo(filePath);
-        existingLength = fileInfo.Length;
-
-        // Request remaining bytes
-        curl.Headers.Add("Range", $"bytes={existingLength}-");
-    }
-
-    var result = await curl.GetAsync(url);
-
-    if (result.StatusCode == HttpStatusCode.PartialContent ||
-        result.StatusCode == HttpStatusCode.OK)
-    {
-        // Append to existing file or create new
-        using var fileStream = new FileStream(
-            filePath,
-            existingLength > 0 ? FileMode.Append : FileMode.Create
-        );
-
-        var bytes = Encoding.UTF8.GetBytes(result.Data);
-        await fileStream.WriteAsync(bytes, 0, bytes.Length);
-
-        Console.WriteLine("Download completed!");
-    }
-    else if (result.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
-    {
-        Console.WriteLine("File already complete!");
-    }
+    using var fs = new FileStream(path, FileMode.Append);
+    fs.Write(result.BinaryData, 0, result.BinaryData.Length);
 }
+else if (result.StatusCode == 200)
+    result.SaveToFile(path);   // server ignored the range: start over
 ```
 
-## Binary Data Handling
+## Verifying a Download
 
-### Working with Images
+Hash the bytes before you keep them. SHA-256 is the usual choice today:
+
 ```csharp
-public async Task<byte[]> ResizeImage(string imageUrl, int maxWidth, int maxHeight)
-{
-    var curl = new Curl();
-    var imageBytes = await curl.GetBytesAsync(imageUrl);
+using System.Security.Cryptography;
 
-    using var inputStream = new MemoryStream(imageBytes);
-    using var image = Image.FromStream(inputStream);
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/image/png");
+var hash = Convert.ToHexString(SHA256.HashData(result.BinaryData));
 
-    // Calculate new dimensions
-    var ratioX = (double)maxWidth / image.Width;
-    var ratioY = (double)maxHeight / image.Height;
-    var ratio = Math.Min(ratioX, ratioY);
-
-    var newWidth = (int)(image.Width * ratio);
-    var newHeight = (int)(image.Height * ratio);
-
-    // Resize image
-    using var resized = new Bitmap(newWidth, newHeight);
-    using var graphics = Graphics.FromImage(resized);
-    graphics.DrawImage(image, 0, 0, newWidth, newHeight);
-
-    // Convert back to bytes
-    using var outputStream = new MemoryStream();
-    resized.Save(outputStream, ImageFormat.Jpeg);
-    return outputStream.ToArray();
-}
-```
-
-### Working with ZIP Files
-```csharp
-public async Task DownloadAndExtractZip(string zipUrl, string extractPath)
-{
-    var curl = new Curl();
-
-    // Download ZIP to memory
-    var zipBytes = await curl.GetBytesAsync(zipUrl);
-
-    // Extract from memory stream
-    using var zipStream = new MemoryStream(zipBytes);
-    using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
-
-    Directory.CreateDirectory(extractPath);
-
-    foreach (var entry in archive.Entries)
-    {
-        var destinationPath = Path.Combine(extractPath, entry.FullName);
-
-        // Create directory if needed
-        var directory = Path.GetDirectoryName(destinationPath);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
-        // Extract file
-        if (!string.IsNullOrEmpty(entry.Name))
-        {
-            entry.ExtractToFile(destinationPath, overwrite: true);
-            Console.WriteLine($"Extracted: {entry.FullName}");
-        }
-    }
-}
-```
-
-## Large File Handling
-
-### Chunked Upload
-```csharp
-public async Task UploadLargeFile(string filePath, string uploadUrl)
-{
-    const int chunkSize = 1024 * 1024 * 5; // 5MB chunks
-    var fileInfo = new FileInfo(filePath);
-    var totalChunks = (int)Math.Ceiling((double)fileInfo.Length / chunkSize);
-
-    using var fileStream = File.OpenRead(filePath);
-    var buffer = new byte[chunkSize];
-
-    for (int i = 0; i < totalChunks; i++)
-    {
-        var bytesRead = await fileStream.ReadAsync(buffer, 0, chunkSize);
-        var chunk = new byte[bytesRead];
-        Array.Copy(buffer, chunk, bytesRead);
-
-        var curl = new Curl();
-        curl.Headers.Add("X-Chunk-Number", i.ToString());
-        curl.Headers.Add("X-Total-Chunks", totalChunks.ToString());
-        curl.Headers.Add("X-File-Name", Path.GetFileName(filePath));
-
-        var result = await curl.PostAsync(
-            $"{uploadUrl}/chunk",
-            chunk,
-            "application/octet-stream"
-        );
-
-        if (!result.IsSuccess)
-        {
-            throw new Exception($"Failed to upload chunk {i}: {result.Error}");
-        }
-
-        var progress = ((i + 1) * 100.0) / totalChunks;
-        Console.Write($"\rUploading: {progress:F1}%");
-    }
-
-    Console.WriteLine("\nUpload complete!");
-}
-```
-
-## File Validation
-
-### Checksum Verification
-```csharp
-public async Task<bool> DownloadWithVerification(string url, string filePath, string expectedMd5)
-{
-    var curl = new Curl();
-
-    // Download file
-    var fileBytes = await curl.GetBytesAsync(url);
-
-    // Calculate MD5
-    using var md5 = MD5.Create();
-    var hashBytes = md5.ComputeHash(fileBytes);
-    var actualMd5 = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-
-    if (actualMd5 == expectedMd5.ToLowerInvariant())
-    {
-        File.WriteAllBytes(filePath, fileBytes);
-        Console.WriteLine("File verified and saved!");
-        return true;
-    }
-    else
-    {
-        Console.WriteLine($"Checksum mismatch! Expected: {expectedMd5}, Got: {actualMd5}");
-        return false;
-    }
-}
+if (hash.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase))
+    result.SaveToFile("image.png");
+else
+    Console.WriteLine($"Checksum mismatch: {hash}");
 ```
 
 ## Temporary Files
 
-### Safe Temporary File Handling
+Download to a temp path, process it, and always delete it:
+
 ```csharp
-public async Task ProcessTemporaryDownload(string url)
+var tempFile = Path.GetTempFileName();
+try
 {
-    string tempFile = null;
-
-    try
-    {
-        // Create unique temp file
-        tempFile = Path.GetTempFileName();
-
-        var curl = new Curl();
-        await curl.DownloadFileAsync(url, tempFile);
-
-        // Process the file
-        var content = File.ReadAllText(tempFile);
-        Console.WriteLine($"File contains {content.Length} characters");
-
-        // Do something with the content...
-    }
-    finally
-    {
-        // Always clean up temp file
-        if (tempFile != null && File.Exists(tempFile))
-        {
-            File.Delete(tempFile);
-        }
-    }
+    await Curl.DownloadAsync("https://httpbin.org/robots.txt", tempFile);
+    Console.WriteLine(File.ReadAllText(tempFile));
+}
+finally
+{
+    File.Delete(tempFile);
 }
 ```
 
 ## Error Handling for File Operations
 
-### Robust Download with Retry
+A missing upload file is detected before anything is sent and throws `CurlReadErrorException` (curl exit code 26):
+
 ```csharp
-public async Task<bool> RobustDownload(string url, string filePath, int maxRetries = 3)
+using CurlDotNet.Exceptions;
+
+try
 {
-    var curl = new Curl();
-
-    for (int attempt = 0; attempt < maxRetries; attempt++)
-    {
-        try
-        {
-            Console.WriteLine($"Download attempt {attempt + 1}...");
-
-            var result = await curl.GetBytesAsync(url);
-
-            // Verify download succeeded
-            if (result != null && result.Length > 0)
-            {
-                File.WriteAllBytes(filePath, result);
-                Console.WriteLine("Download successful!");
-                return true;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Attempt {attempt + 1} failed: {ex.Message}");
-
-            if (attempt < maxRetries - 1)
-            {
-                // Wait before retry with exponential backoff
-                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
-            }
-        }
-    }
-
-    Console.WriteLine("Download failed after all retries");
-    return false;
+    await Curl.ExecuteAsync("curl -F 'file=@missing.pdf' https://httpbin.org/post");
+}
+catch (CurlReadErrorException ex)
+{
+    Console.WriteLine($"Upload file not found: {ex.Message}");
 }
 ```
 
+Like curl, CurlDotNet has no timeout unless you set one, so a large download is never cut off by a hidden default. When you do want a deadline, set it with `-m` in the command or with `CurlSettings.WithTimeout` (seconds); `-m` covers the whole transfer, body included:
+
+```csharp
+var settings = new CurlSettings().WithTimeout(300);
+
+var result = await Curl.ExecuteAsync(
+    "curl -o big.bin https://httpbin.org/bytes/1048576", settings);
+
+Console.WriteLine(result.IsSuccess ? "Downloaded" : $"HTTP {result.StatusCode}");
+```
+
+Remember that HTTP 4xx and 5xx responses do not throw; check `result.IsSuccess` or call `result.EnsureSuccess()`. Timeouts surface as `CurlOperationTimeoutException` (see [Tutorial 12](12-cancellation-tokens.html)).
+
 ## Best Practices
 
-1. **Use streams for large files** - Avoid loading entire file in memory
-2. **Implement progress tracking** - Show download/upload progress
-3. **Verify file integrity** - Use checksums when available
-4. **Handle partial downloads** - Support resume for large files
-5. **Clean up temp files** - Always delete temporary files
-6. **Set appropriate timeouts** - Large files need longer timeouts
-7. **Validate file types** - Check extensions and content types
-8. **Use chunking for huge files** - Split uploads/downloads
-9. **Handle errors gracefully** - Retry on network failures
-10. **Respect rate limits** - Don't overwhelm servers
+1. **Use `-o` or `DownloadAsync` for anything large** - it writes straight to disk instead of holding the body in memory.
+2. **Check `IsBinary` before treating a response as text** - `Body` is for text, `BinaryData` is for everything else.
+3. **Verify checksums when the publisher provides them.**
+4. **Use `-C -` to resume** - it appends to the existing file and fails with exit 33 if the server ignores the range.
+5. **Delete temporary files in a `finally` block.**
+6. **If you set `-m` on big transfers, make it generous** - it bounds the whole download, not just the wait for headers.
+7. **Quote `-F` values that contain spaces** and use `@` only for file paths.
+8. **Catch `CurlReadErrorException`** to give a clear message when an upload path is wrong.
 
 ## Summary
 
-File operations with CurlDotNet:
-- Simple methods for common download/upload scenarios
-- Stream support for large files
-- Progress tracking capabilities
-- Resume support for interrupted transfers
-- Binary data handling for various file types
+- `curl -o file url` and `Curl.DownloadAsync(url, path)` save a download to disk and leave `result.Body` empty; `-O` keeps the remote name.
+- `result.BinaryData`, `result.IsBinary` and `result.SaveToFile(path)` handle downloads kept in memory.
+- `-F 'field=@path'` uploads files as a form; `-T file` PUTs the raw bytes; the builder offers `WithFile` and `WithMultipartForm`.
+- `-C -` resumes a download; `-r` requests explicit byte ranges.
+
+See also the cookbook recipes [Download a File](../cookbook/beginner/download-file.html) and [Upload a File](../cookbook/beginner/upload-file.html).
 
 ## What's Next?
 
@@ -483,4 +286,4 @@ Learn about [working with forms and data](11-forms-and-data.html) in the next tu
 
 ---
 
-[← Previous: Authentication Basics](09-authentication-basics.html) | [Next: Forms and Data →](11-forms-and-data.html)
+[Previous: Authentication Basics](09-authentication-basics.html) | [Next: Forms and Data](11-forms-and-data.html)

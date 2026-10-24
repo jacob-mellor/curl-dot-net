@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP GET
+Content-Range
+Resume
+Range
+libtest
+</keywords>
+</info>
+
+<reply>
+<data crlf="headers" nocheck="yes">
+HTTP/1.1 200 OK
+Content-Type: text/html
+Content-Length: 5
+
+body
+</data>
+
+<data1 crlf="headers" nocheck="yes">
+HTTP/1.1 200 OK
+Content-Type: text/html
+Content-Length: 5
+Content-Range: bytes 3/7
+
+body
+</data1>
+
+<data2 crlf="headers" nocheck="yes">
+HTTP/1.1 416 Requested Range Not Satisfiable
+Content-Type: text/html
+Content-Length: 5
+
+body
+</data2>
+
+<data3 crlf="headers" nocheck="yes">
+HTTP/1.1 416 Requested Range Not Satisfiable
+Content-Type: text/html
+Content-Length: 5
+Content-Range: bytes */2
+
+body
+</data3>
+</reply>
+
+<client>
+<server>
+http
+</server>
+<name>
+HTTP resume/range fail range-error content-range combinations
+</name>
+<command>
+http://%HOSTIP:%HTTPPORT/want/%TESTNUMBER
+</command>
+</client>
+
+<verify>
+<stdout>
+0
+</stdout>
+<limits>
+Allocations: 1300
+</limits>
+</verify>
+</testcase>

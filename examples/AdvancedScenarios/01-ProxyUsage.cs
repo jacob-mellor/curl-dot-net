@@ -1,11 +1,15 @@
 using System;
 using System.Threading.Tasks;
 using CurlDotNet;
+using CurlDotNet.Core;
+using CurlDotNet.Exceptions;
 
 namespace CurlDotNet.Examples.AdvancedScenarios
 {
     /// <summary>
-    /// Example: Using proxies with CurlDotNet
+    /// Example: Using proxies with CurlDotNet.
+    /// The proxy hosts below are placeholders - replace them with your own. Each request is
+    /// wrapped in TryAsync so an unreachable proxy prints an error instead of ending the sample.
     /// </summary>
     public class ProxyUsageExample
     {
@@ -13,31 +17,31 @@ namespace CurlDotNet.Examples.AdvancedScenarios
         {
             Console.WriteLine("=== Proxy Usage Example ===\n");
 
-            // Example 1: Basic HTTP proxy
+            // Example 1: Basic HTTP proxy with -x
             Console.WriteLine("Example 1: HTTP Proxy");
-            var result1 = await Curl.ExecuteAsync(@"
-                curl -x http://proxy.company.com:8080 https://api.example.com/data
-            ");
-            Console.WriteLine($"Status via HTTP proxy: {result1.StatusCode}\n");
+            await TryAsync("HTTP proxy", () =>
+                Curl.ExecuteAsync("curl -x http://proxy.company.com:8080 https://httpbin.org/ip"));
 
-            // Example 2: Proxy with authentication
-            Console.WriteLine("Example 2: Proxy with authentication");
-            var result2 = await Curl.GetAsync("https://api.example.com/secure")
-                .WithProxy("http://proxy.company.com:8080")
-                .WithProxyAuth("proxyuser", "proxypass")
-                .ExecuteAsync();
-            Console.WriteLine($"Status via authenticated proxy: {result2.StatusCode}\n");
+            // Example 2: Proxy with authentication (fluent builder)
+            Console.WriteLine("\nExample 2: Proxy with authentication");
+            await TryAsync("Authenticated proxy", () =>
+                CurlRequestBuilder.Get("https://httpbin.org/ip")
+                    .WithProxy("http://proxy.company.com:8080", "proxyuser", "proxypass")
+                    .ExecuteAsync());
 
-            // Example 3: SOCKS5 proxy (Tor)
-            Console.WriteLine("Example 3: SOCKS5 Proxy (Tor)");
-            var result3 = await Curl.GetAsync("https://check.torproject.org")
-                .WithSocks5Proxy("socks5://127.0.0.1:9050")
-                .ExecuteAsync();
-            Console.WriteLine($"Tor connection: {(result3.Body.Contains("Congratulations") ? "Success" : "Not using Tor")}\n");
+            // Example 3: SOCKS5 proxy (Tor) - available through the --socks5 flag
+            Console.WriteLine("\nExample 3: SOCKS5 Proxy (Tor)");
+            await TryAsync("Tor", async () =>
+            {
+                var result = await Curl.ExecuteAsync("curl --socks5 127.0.0.1:9050 https://check.torproject.org");
+                Console.WriteLine($"  Using Tor: {result.Body.Contains("Congratulations")}");
+                return result;
+            });
 
-            // Example 4: Rotating proxy / Backconnect
-            Console.WriteLine("Example 4: Rotating proxy for web scraping");
-            string[] proxies = {
+            // Example 4: Rotating proxies for web scraping
+            Console.WriteLine("\nExample 4: Rotating proxy for web scraping");
+            string[] proxies =
+            {
                 "http://proxy1.provider.com:8000",
                 "http://proxy2.provider.com:8000",
                 "http://proxy3.provider.com:8000"
@@ -46,45 +50,50 @@ namespace CurlDotNet.Examples.AdvancedScenarios
             for (int i = 0; i < 3; i++)
             {
                 var proxy = proxies[i % proxies.Length];
-                var result = await Curl.GetAsync($"https://httpbin.org/ip")
-                    .WithProxy(proxy)
-                    .WithProxyAuth("user-session-" + Guid.NewGuid(), "password")
-                    .ExecuteAsync();
-
-                if (result.IsSuccess)
-                {
-                    Console.WriteLine($"Request {i + 1} via {proxy}: Success");
-                }
+                await TryAsync($"Request {i + 1} via {proxy}", () =>
+                    CurlRequestBuilder.Get("https://httpbin.org/ip")
+                        .WithProxy(proxy)
+                        .WithTimeout(TimeSpan.FromSeconds(10))
+                        .ExecuteAsync());
             }
 
-            // Example 5: Proxy with custom headers (residential proxies)
+            // Example 5: Sticky sessions - many residential providers encode the session in the username
             Console.WriteLine("\nExample 5: Residential proxy with session");
-            var sessionId = Guid.NewGuid().ToString();
-            var result5 = await Curl.GetAsync("https://api.example.com/data")
-                .WithProxy("http://gate.smartproxy.com:10000")
-                .WithProxyAuth($"user-country-us-session-{sessionId}", "password")
-                .WithProxyHeader("X-Session-ID", sessionId)
-                .WithProxyHeader("X-Country", "US")
-                .ExecuteAsync();
-            Console.WriteLine($"Residential proxy status: {result5.StatusCode}");
+            var sessionId = Guid.NewGuid().ToString("N");
+            await TryAsync("Residential proxy", () =>
+                CurlRequestBuilder.Get("https://httpbin.org/ip")
+                    .WithProxy("http://gate.provider.com:10000", $"user-country-us-session-{sessionId}", "password")
+                    .ExecuteAsync());
 
-            // Example 6: No proxy for internal domains
-            Console.WriteLine("\nExample 6: Bypass proxy for internal");
-            var result6 = await Curl.ExecuteAsync(@"
-                curl --noproxy '*.internal.company.com,192.168.*,localhost' \
-                     -x http://proxy.company.com:8080 \
-                     https://api.internal.company.com/data
-            ");
-            Console.WriteLine($"Internal request (no proxy): {result6.StatusCode}");
+            // Example 6: Proxy credentials in a pasted command with --proxy-user
+            Console.WriteLine("\nExample 6: Proxy credentials in a command");
+            await TryAsync("--proxy-user", () => Curl.ExecuteAsync(@"
+                curl -x http://proxy.company.com:8080 \
+                     --proxy-user proxyuser:proxypass \
+                     https://httpbin.org/ip
+            "));
 
-            // Example 7: Proxy chains
-            Console.WriteLine("\nExample 7: Chained proxies");
-            var result7 = await Curl.ExecuteAsync(@"
-                curl --proxy1.0 http://first-proxy:8080 \
-                     --proxy http://second-proxy:8888 \
-                     https://api.example.com
-            ");
-            Console.WriteLine($"Via proxy chain: {result7.StatusCode}");
+            // Example 7: See the equivalent curl command - handy for debugging proxy setups
+            Console.WriteLine("\nExample 7: Builder to curl command");
+            var command = CurlRequestBuilder.Get("https://httpbin.org/ip")
+                .WithProxy("http://proxy.company.com:8080")
+                .WithTimeout(TimeSpan.FromSeconds(10))
+                .ToCurlCommand();
+            Console.WriteLine($"  {command}");
+        }
+
+        // Runs one request and reports the outcome; proxy failures surface as CurlException subclasses
+        private static async Task TryAsync(string label, Func<Task<CurlResult>> request)
+        {
+            try
+            {
+                var result = await request();
+                Console.WriteLine($"  {label}: HTTP {result.StatusCode}");
+            }
+            catch (CurlException ex)
+            {
+                Console.WriteLine($"  {label}: failed ({ex.GetType().Name}, curl exit code {ex.CurlErrorCode})");
+            }
         }
     }
 }

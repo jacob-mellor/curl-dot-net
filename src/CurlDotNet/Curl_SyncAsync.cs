@@ -18,62 +18,66 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using CurlDotNet.Core;
+using CurlDotNet.Exceptions;
 
 namespace CurlDotNet
 {
     public static partial class Curl
     {
-        // Note: Async methods are defined in Curl.cs
-        // This file only contains synchronous wrapper methods
+        // Async methods are defined in Curl.cs; this file only contains the blocking wrappers.
+        //
+        // How the two families differ:
+        // - ...Async methods return Task<CurlResult> and free the calling thread while waiting; use them in UI,
+        //   ASP.NET Core and any async code, and to run requests in parallel.
+        // - The methods without the suffix block the calling thread until the response has arrived. They exist for
+        //   console tools, scripts, tests and legacy code that cannot be async. Exceptions are the same (not wrapped
+        //   in AggregateException). The library's own awaits use ConfigureAwait(false), so blocking on them does not
+        //   deadlock on a UI or classic ASP.NET SynchronizationContext; they still tie up the calling thread, and
+        //   user callbacks that wait for that context can still deadlock (see each method's remarks).
+        // - A CancellationToken does not make a call asynchronous: Execute(command, token) still blocks.
 
         #region SYNCHRONOUS Methods (Compatibility) - Blocks the thread
 
         /// <summary>
-        /// <para><b>⚠️ SYNCHRONOUS - Execute curl command and WAIT for it to complete (BLOCKS thread).</b></para>
-        ///
-        /// <para>This method BLOCKS your thread until the HTTP request completes. Your application
-        /// will FREEZE during this time. Only use when async is not possible.</para>
-        ///
-        /// <para><b>When to use SYNC (this method):</b></para>
-        /// <list type="bullet">
-        /// <item>⚠️ Console applications with simple flow</item>
-        /// <item>⚠️ Legacy code that can't use async</item>
-        /// <item>⚠️ Unit tests (sometimes)</item>
-        /// <item>⚠️ Quick scripts or tools</item>
-        /// <item>❌ NEVER in UI applications (will freeze)</item>
-        /// <item>❌ NEVER in web applications (reduces throughput)</item>
-        /// </list>
-        ///
-        /// <para><b>Example - When sync is OK:</b></para>
+        /// Runs a curl command and blocks the calling thread until the response arrives; the synchronous twin of
+        /// <see cref="ExecuteAsync(string)"/> for console tools, scripts and code that cannot be async.
+        /// </summary>
+        /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
+        /// <para>Behaves exactly like <see cref="ExecuteAsync(string)"/> (same command format, same result, same
+        /// exceptions - thrown directly, not wrapped in <see cref="AggregateException"/>) but waits for the result. The
+        /// thread does nothing else meanwhile, so on a UI thread the window freezes and in ASP.NET request code it reduces
+        /// throughput; use the async method there.</para>
+        /// <para>Example: <c>var result = Curl.Execute("curl -s https://api.example.com/status");</c> then
+        /// <c>Console.WriteLine(result.Body);</c> in a <c>static void Main()</c>.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-synchronously-in-csharp/README.md</para>
+        /// </remarks>
+        /// <example>
         /// <code>
-        /// // ✅ OK - Simple console app
         /// static void Main()
         /// {
         ///     var result = Curl.Execute("curl https://api.example.com");
         ///     Console.WriteLine(result.Body);
         /// }
-        ///
-        /// // ✅ OK - Unit test
-        /// [Test]
-        /// public void TestApi()
-        /// {
-        ///     var result = Curl.Execute("curl https://api.example.com");
-        ///     Assert.AreEqual(200, result.StatusCode);
-        /// }
-        ///
-        /// // ❌ BAD - Will freeze UI!
-        /// private void Button_Click(object sender, EventArgs e)
-        /// {
-        ///     var result = Curl.Execute("curl https://api.example.com"); // FREEZES UI!
-        ///     textBox.Text = result.Body;
-        /// }
         /// </code>
-        ///
-        /// <para><b>⚠️ WARNING:</b> This blocks your thread. The application cannot do anything else
-        /// while waiting for the HTTP response. Use ExecuteAsync instead whenever possible!</para>
-        /// </summary>
-        /// <param name="command">The curl command to execute</param>
-        /// <returns>The result (blocks until complete)</returns>
+        /// </example>
+        /// <param name="command">The curl command line as text, for example <c>curl -H 'Accept: application/json' https://api.example.com</c>;
+        /// the leading <c>curl</c> is optional. Read with <see cref="DefaultFlavor"/>.</param>
+        /// <returns>The <see cref="CurlResult"/>: status code, body (standard output text), headers, binary data and
+        /// written files, as described on <see cref="ExecuteAsync(string)"/>.</returns>
+        /// <exception cref="ArgumentException"><paramref name="command"/> is null, empty or whitespace. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/run-curl-command-in-csharp/README.md</exception>
+        /// <exception cref="CurlException">The command could not be read or the transfer failed; the subtypes (DNS 6,
+        /// connect 7, timeout 28, TLS 35/60, <c>-f</c> HTTP error 22...) are listed on <see cref="ExecuteAsync(string)"/>.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <seealso cref="ExecuteAsync(string)">Async version (preferred)</seealso>
+        /// <seealso cref="Execute(string, CancellationToken)"/>
+        /// <seealso cref="CurlRequestBuilder.Execute"/>
+        /// <seealso cref="DotNetCurl.Curl(string)"/>
         public static CurlResult Execute(string command)
         {
             // This BLOCKS the thread until complete
@@ -81,16 +85,33 @@ namespace CurlDotNet
         }
 
         /// <summary>
-        /// <para><b>⚠️ SYNCHRONOUS with cancellation - Blocks thread but can be cancelled.</b></para>
-        ///
-        /// <para>Still BLOCKS your thread, but can be cancelled. Prefer ExecuteAsync with cancellation.</para>
-        ///
-        /// <code>
-        /// // Blocks thread but can timeout
-        /// using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        /// var result = Curl.Execute("curl https://api.example.com", cts.Token);
-        /// </code>
+        /// Runs a curl command, blocking the calling thread until the response arrives or
+        /// <paramref name="cancellationToken"/> is cancelled; the synchronous twin of
+        /// <see cref="ExecuteAsync(string, CancellationToken)"/>.
         /// </summary>
+        /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
+        /// <para>The token lets another thread (or a timer) stop the request; the call still blocks until then. Cancelling
+        /// throws <see cref="OperationCanceledException"/>. Prefer the async overload whenever the caller can await.</para>
+        /// <para>Example: <c>using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));</c> then
+        /// <c>var result = Curl.Execute("curl https://api.example.com", cts.Token);</c> gives up after 30 seconds.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorials/12-cancellation-tokens.md</para>
+        /// </remarks>
+        /// <param name="command">The curl command line as text, as for <see cref="ExecuteAsync(string)"/>.</param>
+        /// <param name="cancellationToken">Cancels the request when signalled, for example from a
+        /// <c>CancellationTokenSource</c> with a timeout; <c>CancellationToken.None</c> for no cancellation.</param>
+        /// <returns>The <see cref="CurlResult"/>, as described on <see cref="ExecuteAsync(string)"/>.</returns>
+        /// <exception cref="OperationCanceledException">The token was cancelled before the transfer finished.</exception>
+        /// <exception cref="ArgumentException"><paramref name="command"/> is null, empty or whitespace.</exception>
+        /// <exception cref="CurlException">The transfer failed; see <see cref="ExecuteAsync(string)"/>. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <seealso cref="ExecuteAsync(string, CancellationToken)">Async version (preferred)</seealso>
+        /// <seealso cref="Execute(string)"/>
+        /// <seealso cref="DotNetCurl.Curl(string, int)"/>
         public static CurlResult Execute(string command, CancellationToken cancellationToken)
         {
             // This BLOCKS the thread until complete or cancelled
@@ -98,12 +119,107 @@ namespace CurlDotNet
         }
 
         /// <summary>
-        /// <para><b>⚠️ SYNCHRONOUS with settings - Blocks thread with advanced options.</b></para>
+        /// Executes a curl command copied from a specific shell and blocks the calling thread until the response
+        /// arrives.
         /// </summary>
+        /// <param name="command">The command exactly as it was pasted, with or without the leading <c>curl</c> /
+        /// <c>curl.exe</c> / <c>Invoke-WebRequest</c>.</param>
+        /// <param name="flavor">Where it came from: <see cref="CurlFlavor.Posix"/> (bash/zsh),
+        /// <see cref="CurlFlavor.WindowsCmd"/> (curl.exe in cmd.exe), <see cref="CurlFlavor.PowerShell"/> (curl.exe in
+        /// PowerShell), <see cref="CurlFlavor.InvokeWebRequest"/> (Invoke-WebRequest / Invoke-RestMethod syntax) or
+        /// <see cref="CurlFlavor.Auto"/> to detect it. Overrides <see cref="DefaultFlavor"/> for this call.</param>
+        /// <returns>The <see cref="CurlResult"/>, as described on <see cref="ExecuteAsync(string)"/>.</returns>
+        /// <exception cref="ArgumentException"><paramref name="command"/> is null, empty or whitespace.</exception>
+        /// <exception cref="CurlInvalidCommandException">The text breaks the flavor's rules or uses an
+        /// untranslatable <c>Invoke-WebRequest</c> parameter; the message says how to fix it. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</exception>
+        /// <exception cref="CurlException">The request fails; see <see cref="ExecuteAsync(string)"/>.</exception>
+        /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
+        /// <para>Blocks the thread; prefer <see cref="ExecuteAsync(string, CurlFlavor)"/> in async code. See that method
+        /// for what changes between flavors.</para>
+        /// <para>Example: <c>var result = Curl.Execute("curl -H \"Accept: application/json\" -d \"{\\\"a\\\":1}\" https://api.example.com", CurlFlavor.WindowsCmd);</c>
+        /// sends the body <c>{"a":1}</c>.</para>
+        /// <para>Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</para>
+        /// </remarks>
+        /// <seealso cref="ExecuteAsync(string, CurlFlavor)"/>
+        /// <seealso cref="DefaultFlavor"/>
+        public static CurlResult Execute(string command, CurlFlavor flavor)
+        {
+            // This BLOCKS the thread until complete
+            return ExecuteAsync(command, flavor).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Runs a curl command with timeouts, retries, extra headers or a progress callback from a
+        /// <see cref="CurlSettings"/> object, blocking the calling thread until the response arrives.
+        /// </summary>
+        /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
+        /// <para>Applies the same settings as <see cref="ExecuteAsync(string, CurlSettings)"/>: <c>MaxTimeSeconds</c>
+        /// (<c>-m</c>), <c>ConnectTimeoutSeconds</c> (<c>--connect-timeout</c>), <c>FollowRedirects</c> (<c>-L</c>),
+        /// <c>Insecure</c> (<c>-k</c>), <c>Headers</c> (<c>-H</c>), <c>OnProgress</c>, <c>RetryCount</c>/<c>RetryDelayMs</c>,
+        /// <c>Flavor</c> and <c>CancellationToken</c>. The progress callback runs on a thread-pool thread, not the
+        /// blocked caller.</para>
+        /// <para>Example: <c>var result = Curl.Execute("curl https://flaky.example.com/api", new CurlSettings().WithRetries(3, 1000).WithTimeout(20));</c></para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-synchronously-in-csharp/README.md</para>
+        /// </remarks>
+        /// <param name="command">The curl command line as text, as for <see cref="ExecuteAsync(string)"/>.</param>
+        /// <param name="settings">Settings applied on top of the command, built with <c>new CurlSettings().With...()</c>;
+        /// null runs the command unchanged.</param>
+        /// <returns>The <see cref="CurlResult"/>, as described on <see cref="ExecuteAsync(string)"/>.</returns>
+        /// <exception cref="ArgumentException"><paramref name="command"/> is null, empty or whitespace.</exception>
+        /// <exception cref="OperationCanceledException">The settings' cancellation token was cancelled.</exception>
+        /// <exception cref="CurlAbortedByCallbackException">The progress callback threw (exit code 42).</exception>
+        /// <exception cref="CurlException">The transfer failed after all retries; see <see cref="ExecuteAsync(string)"/>.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <seealso cref="ExecuteAsync(string, CurlSettings)">Async version (preferred)</seealso>
+        /// <seealso cref="CurlSettings"/>
         public static CurlResult Execute(string command, CurlSettings settings)
         {
             // This BLOCKS the thread until complete
             return ExecuteAsync(command, settings).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Sends a request described by a <see cref="CurlOptions"/> object and blocks the calling thread until the
+        /// response arrives; nothing is parsed, so data with quotes or spaces needs no escaping.
+        /// </summary>
+        /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
+        /// <para>The synchronous twin of <see cref="ExecuteAsync(CurlOptions)"/>; see it for how options map to curl flags.</para>
+        /// <para>Example: <c>var result = Curl.Execute(new CurlOptions { Url = "https://api.example.com/items/7", Method = "DELETE" });</c>
+        /// then <c>Console.WriteLine(result.StatusCode);</c>.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-put-delete-patch-csharp/README.md</para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// var result = Curl.Execute(new CurlOptions { Url = "https://api.example.com", Method = "DELETE" });
+        /// </code>
+        /// </example>
+        /// <param name="options">The request to send; <see cref="CurlOptions.Url"/> must be set to an absolute URL.</param>
+        /// <returns>The <see cref="CurlResult"/>, as described on <see cref="ExecuteAsync(string)"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="options"/> is null.</exception>
+        /// <exception cref="CurlException">No URL (exit code 2, like curl's "no URL specified") or the transfer failed; see <see cref="ExecuteAsync(string)"/>.
+        /// See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <seealso cref="ExecuteAsync(CurlOptions)">Async version (preferred)</seealso>
+        /// <seealso cref="Lib.LibCurl.PerformAsync(CurlOptions, CancellationToken)"/>
+        public static CurlResult Execute(CurlOptions options)
+        {
+            // This BLOCKS the thread until complete
+            return ExecuteAsync(options).GetAwaiter().GetResult();
         }
 
         #endregion
@@ -111,108 +227,129 @@ namespace CurlDotNet
         #region Quick Helper Methods - Synchronous versions only
 
         /// <summary>
-        /// <para><b>⚠️ SYNCHRONOUS GET request (blocks thread).</b></para>
-        /// <code>
-        /// var result = Curl.Get("https://api.example.com"); // Blocks!
-        /// </code>
+        /// Sends a plain GET request to <paramref name="url"/> and blocks until the response arrives; the synchronous
+        /// twin of <see cref="GetAsync(string)"/> (like <c>curl URL</c>).
         /// </summary>
+        /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
+        /// <para>No headers or options; the <c>Default*</c> properties apply. HTTP errors are returned, not thrown.
+        /// Do not call it on a UI thread.</para>
+        /// <para>Example: <c>var result = Curl.Get("https://api.example.com/health");</c> then
+        /// <c>Console.WriteLine(result.IsSuccess ? "up" : $"down ({result.StatusCode})");</c>.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-synchronously-in-csharp/README.md</para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// var result = Curl.Get("https://api.example.com"); // blocks until the response arrives
+        /// </code>
+        /// </example>
+        /// <param name="url">An absolute URL including the scheme, for example <c>https://api.example.com/users?page=1</c>.</param>
+        /// <returns>The <see cref="CurlResult"/> with the status code, body and headers.</returns>
+        /// <exception cref="ArgumentException"><paramref name="url"/> is null, empty or whitespace. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/url-errors.md</exception>
+        /// <exception cref="CurlException">The transfer failed; see <see cref="ExecuteAsync(string)"/>.</exception>
+        /// <seealso cref="GetAsync(string)">Async version (preferred)</seealso>
+        /// <seealso cref="CurlRequestBuilder.Get(string)"/>
+        /// <seealso cref="DotNetCurl.Get(string)"/>
         public static CurlResult Get(string url)
         {
-            return Execute($"curl {url}");
+            return GetAsync(url).GetAwaiter().GetResult();
         }
 
         /// <summary>
-        /// <para><b>⚠️ SYNCHRONOUS POST request (blocks thread).</b></para>
+        /// Sends a POST request with <paramref name="data"/> as the body and blocks until the response arrives; the
+        /// synchronous twin of <see cref="PostAsync(string, string)"/> (like <c>curl -d DATA URL</c>).
         /// </summary>
+        /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
+        /// <para>The data is sent exactly as given (no escaping needed, no URL-encoding done for you), with curl's default
+        /// <c>Content-Type: application/x-www-form-urlencoded</c>; use <see cref="PostJson(string, object)"/> for JSON.</para>
+        /// <para>Example: <c>var result = Curl.Post("https://api.example.com/login", "user=john&amp;pass=" + Uri.EscapeDataString(pw));</c></para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md</para>
+        /// </remarks>
+        /// <param name="url">An absolute URL to post to, for example <c>https://api.example.com/users</c>.</param>
+        /// <param name="data">The request body as text (form fields, JSON, XML...); null sends an empty body.</param>
+        /// <returns>The <see cref="CurlResult"/> with the server's status, headers and body.</returns>
+        /// <exception cref="ArgumentException"><paramref name="url"/> is null, empty or whitespace. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/url-errors.md</exception>
+        /// <exception cref="CurlException">The transfer failed; see <see cref="ExecuteAsync(string)"/>.</exception>
+        /// <seealso cref="PostAsync(string, string)">Async version (preferred)</seealso>
+        /// <seealso cref="PostJson(string, object)"/>
+        /// <seealso cref="DotNetCurl.Post(string, string)"/>
         public static CurlResult Post(string url, string data)
         {
-            return Execute($"curl -X POST -d '{data}' {url}");
+            return PostAsync(url, data).GetAwaiter().GetResult();
         }
 
         /// <summary>
-        /// <para><b>⚠️ SYNCHRONOUS POST with JSON (blocks thread).</b></para>
+        /// Serializes <paramref name="data"/> to JSON and POSTs it with <c>Content-Type: application/json</c>, blocking
+        /// until the response arrives; the synchronous twin of <see cref="PostJsonAsync(string, object)"/>.
         /// </summary>
+        /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
+        /// <para>Serialization uses System.Text.Json (Newtonsoft.Json on the .NET Standard 2.0 build); apostrophes and
+        /// non-ASCII characters are sent literally.</para>
+        /// <para>Example: <c>var result = Curl.PostJson("https://api.example.com/users", new { name = "John", age = 30 });</c>
+        /// then <c>var user = result.ParseJson&lt;User&gt;();</c>.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md</para>
+        /// </remarks>
+        /// <param name="url">An absolute URL to post to, for example <c>https://api.example.com/users</c>.</param>
+        /// <param name="data">The object to send as JSON: anonymous object, your class, array/list or dictionary.</param>
+        /// <returns>The <see cref="CurlResult"/> with the server's status, headers and body.</returns>
+        /// <exception cref="ArgumentException"><paramref name="url"/> is null, empty or whitespace.</exception>
+        /// <exception cref="CurlParsingException"><paramref name="data"/> cannot be serialized to JSON. See
+        /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md</exception>
+        /// <exception cref="CurlException">The transfer failed; see <see cref="ExecuteAsync(string)"/>.</exception>
+        /// <seealso cref="PostJsonAsync(string, object)">Async version (preferred)</seealso>
+        /// <seealso cref="CurlRequestBuilder.WithJson(object)"/>
+        /// <seealso cref="DotNetCurl.PostJson(string, object)"/>
         public static CurlResult PostJson(string url, object data)
         {
-            var json = SerializeJson(data);
-            return Execute($"curl -X POST -H 'Content-Type: application/json' -d '{json}' {url}");
+            return PostJsonAsync(url, data).GetAwaiter().GetResult();
         }
 
         /// <summary>
-        /// <para><b>⚠️ SYNCHRONOUS file download (blocks thread).</b></para>
+        /// Downloads <paramref name="url"/> to <paramref name="outputPath"/> and blocks until the file is written; the
+        /// synchronous twin of <see cref="DownloadAsync(string, string)"/> (like <c>curl -o PATH URL</c>).
         /// </summary>
+        /// <remarks>
+        /// <para>Blocking: CurlDotNet awaits with <c>ConfigureAwait(false)</c> throughout, so this call does not deadlock on a UI
+        /// or classic ASP.NET <see cref="System.Threading.SynchronizationContext"/> by itself. It still occupies the calling
+        /// thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+        /// progress or redirect handler, middleware, or your own <c>HttpMessageHandler</c> - that waits for that same context
+        /// can still deadlock. Prefer the async method wherever the caller can await.</para>
+        /// <para>The folder must exist; an existing file is overwritten; the file is written even for an HTTP error
+        /// status, so check <see cref="CurlResult.IsSuccess"/>. Redirects are followed only with
+        /// <see cref="DefaultFollowRedirects"/>.</para>
+        /// <para>Example: <c>var result = Curl.Download("https://example.com/setup.exe", @"C:\Temp\setup.exe");</c> then
+        /// <c>if (!result.IsSuccess) File.Delete(@"C:\Temp\setup.exe");</c>.</para>
+        /// <para>Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-download-file-csharp/README.md</para>
+        /// </remarks>
+        /// <param name="url">An absolute URL of the file, for example <c>https://example.com/files/report.pdf</c>.</param>
+        /// <param name="outputPath">Where to save it: absolute, relative to the current directory, or a file name. Its
+        /// folder must exist.</param>
+        /// <returns>The <see cref="CurlResult"/>; <see cref="CurlResult.OutputFiles"/> contains <paramref name="outputPath"/>.</returns>
+        /// <exception cref="ArgumentException"><paramref name="url"/> or <paramref name="outputPath"/> is null, empty or whitespace.</exception>
+        /// <exception cref="CurlWriteErrorException">The file could not be written (missing folder, read-only disk;
+        /// exit code 23). See https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/troubleshooting/error-reference.md</exception>
+        /// <exception cref="CurlException">The transfer failed; see <see cref="ExecuteAsync(string)"/>.</exception>
+        /// <seealso cref="DownloadAsync(string, string)">Async version (preferred)</seealso>
+        /// <seealso cref="DotNetCurl.Download(string, string)"/>
         public static CurlResult Download(string url, string outputPath)
         {
-            // Quote both values so paths and URLs containing spaces survive parsing
-            return Execute($"curl -o \"{outputPath}\" \"{url}\"");
-        }
-
-        #endregion
-
-        #region Clear Documentation About Threading
-
-        /// <summary>
-        /// <para><b>📚 UNDERSTANDING SYNC vs ASYNC in CurlDotNet</b></para>
-        ///
-        /// <para><b>ASYNC Methods (end with "Async"):</b></para>
-        /// <list type="bullet">
-        /// <item>✅ Return Task&lt;CurlResult&gt;</item>
-        /// <item>✅ Don't block your thread</item>
-        /// <item>✅ UI stays responsive</item>
-        /// <item>✅ Server can handle more requests</item>
-        /// <item>✅ Can run multiple in parallel</item>
-        /// <item>✅ THIS IS WHAT YOU SHOULD USE</item>
-        /// </list>
-        ///
-        /// <para><b>SYNC Methods (no "Async" suffix):</b></para>
-        /// <list type="bullet">
-        /// <item>⚠️ Return CurlResult directly</item>
-        /// <item>⚠️ BLOCK your thread completely</item>
-        /// <item>⚠️ UI will FREEZE</item>
-        /// <item>⚠️ Server throughput reduced</item>
-        /// <item>⚠️ Run one at a time only</item>
-        /// <item>⚠️ Only for legacy/simple scenarios</item>
-        /// </list>
-        ///
-        /// <para><b>Examples showing the difference:</b></para>
-        /// <code>
-        /// // ASYNC - Doesn't block ✅
-        /// public async Task MyMethodAsync()
-        /// {
-        ///     // Thread is FREE to do other work while waiting
-        ///     var result = await Curl.ExecuteAsync("curl https://api.example.com");
-        ///
-        ///     // Can run multiple in parallel (very fast!)
-        ///     var task1 = Curl.ExecuteAsync("curl https://api1.example.com");
-        ///     var task2 = Curl.ExecuteAsync("curl https://api2.example.com");
-        ///     await Task.WhenAll(task1, task2); // Both run at same time
-        /// }
-        ///
-        /// // SYNC - Blocks thread ⚠️
-        /// public void MyMethod()
-        /// {
-        ///     // Thread is BLOCKED here, can't do anything else
-        ///     var result = Curl.Execute("curl https://api.example.com");
-        ///
-        ///     // These run one after another (slow!)
-        ///     var result1 = Curl.Execute("curl https://api1.example.com");
-        ///     var result2 = Curl.Execute("curl https://api2.example.com");
-        /// }
-        /// </code>
-        ///
-        /// <para><b>CancellationToken doesn't determine sync/async!</b></para>
-        /// <code>
-        /// // ASYNC with cancellation - Still async! ✅
-        /// await Curl.ExecuteAsync(command, cancellationToken);
-        ///
-        /// // SYNC with cancellation - Still blocks! ⚠️
-        /// Curl.Execute(command, cancellationToken);
-        /// </code>
-        /// </summary>
-        private static void SyncVsAsyncDocumentation()
-        {
-            // This method exists only for documentation
-            throw new NotImplementedException("This method is for documentation only");
+            return DownloadAsync(url, outputPath).GetAwaiter().GetResult();
         }
 
         #endregion

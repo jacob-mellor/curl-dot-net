@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP/0.9
+</keywords>
+</info>
+
+<reply>
+<data>
+-foo- swsclose
+</data>
+<datacheck>
+</datacheck>
+</reply>
+
+<client>
+<server>
+http
+</server>
+<name>
+HTTP/0.9 GET response denied
+</name>
+<command>
+http://%HOSTIP:%HTTPPORT/%TESTNUMBER --no-http0.9
+</command>
+</client>
+
+<verify>
+<protocol crlf="headers">
+GET /%TESTNUMBER HTTP/1.1
+Host: %HOSTIP:%HTTPPORT
+User-Agent: curl/%VERSION
+Accept: */*
+
+</protocol>
+# unsupported protocol
+<errorcode>
+1
+</errorcode>
+</verify>
+</testcase>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+#based off  19
+<info>
+<keywords>
+HTTP
+SOCKS5
+connect to non-listen
+</keywords>
+</info>
+<reply>
+<data>
+</data>
+</reply>
+
+<client>
+<server>
+http
+</server>
+<name>
+Attempt connect to non-listening SOCKS5 proxy
+</name>
+<command>
+--socks5 %HOSTIP:%NOLISTENPORT http://%HOSTIP:%HTTPPORT/%TESTNUMBER
+</command>
+<features>
+proxy
+</features>
+</client>
+
+<verify>
+<errorcode>
+7
+</errorcode>
+</verify>
+</testcase>

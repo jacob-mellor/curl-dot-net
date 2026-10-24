@@ -1,3 +1,8 @@
+---
+title: "Logging and Observability for curl in C# - CurlDotNet"
+description: "Log and observe curl requests in C# with CurlDotNet: verbose output, traces, -w write-out metrics, timings and middleware."
+---
+
 # Logging & Observability with CurlDotNet
 
 Reliable HTTP automation depends on rich diagnostics. This guide shows how to capture verbose traces, integrate with your logging framework, and emit metrics for production observability.
@@ -12,13 +17,15 @@ var response = await Curl.ExecuteAsync(@"
       -H 'Accept: application/json'
 ");
 
-Console.WriteLine(response.Body);      // response payload
+Console.WriteLine(response.Body);      // the -v log (> request, < response lines), then the payload
 Console.WriteLine(response.Headers);   // header dictionary
 ```
 
-The `-v` flag mirrors the CLI, showing DNS, TLS, and header exchanges. Use it sparingly in production because it may reveal secrets.
+The `-v` flag mirrors the CLI, showing connection, TLS, and header exchanges. curl prints that log to stderr; CurlDotNet puts it at the start of `result.Body`. Use it sparingly in production because it may reveal secrets (`Authorization` headers appear in the log). `--trace-ascii FILE` writes a fuller dump to a file instead.
 
 ## 2. Structured Logging with Middleware
+
+The built-in `LoggingMiddleware` (`CurlMiddlewarePipeline.CreateBuilder().UseLogging(line => logger.LogInformation(line))`) logs each command with its credentials masked: the values of `-u`/`-U`, `--oauth2-bearer`, `--pass`, `-b` cookie strings, the password in `--cert FILE:PASSWORD`, `Authorization`, `Proxy-Authorization` and `Cookie` headers, and passwords in URLs and proxy URLs appear as `***`. Other values, such as a password inside `-d` form data, are logged as written.
 
 Wrap requests in a custom middleware to push structured logs to Serilog, Microsoft.Extensions.Logging, etc.
 
@@ -74,6 +81,8 @@ metrics.Record("curl.request.duration", result.Timings.Total, new TagList
 });
 ```
 
+curl's own timing variables are available too: `-w '%{json}'` appends a JSON object with `time_namelookup`, `time_connect`, `time_starttransfer`, `time_total`, `http_code`, `size_download` and the rest to `result.Body`, which is handy to forward as-is. See [curl -w in C#](../cookbook/write-out.html).
+
 For Prometheus-style scrapers, emit stats to stdout:
 
 ```
@@ -82,7 +91,7 @@ curl_request_duration_milliseconds{endpoint="/health",status="200"} 142
 
 ## 4. Capturing Request/Response Bodies Safely
 
-Never log secrets. Use redaction helpers before writing payloads:
+Never log secrets. The library masks credentials in what it writes itself (`LoggingMiddleware`, the `Command:` line of a `--trace` file, and `CurlException.ToDetailedString()`, `ToJson()` and `GetDiagnosticInfo()`), but `ex.Command`, `result.Body` and the `--trace` wire dump hold the raw values. Use redaction helpers before writing payloads:
 
 ```csharp
 string Redact(string body) =>

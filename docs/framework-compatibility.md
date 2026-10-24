@@ -1,162 +1,163 @@
-# .NET Framework Compatibility Guide
+---
+title: "CurlDotNet .NET Framework Compatibility (4.8, .NET 8/9/10)"
+description: "CurlDotNet .NET framework compatibility: .NET Framework 4.8 via net48 and netstandard2.0, plus .NET 8, 9 and 10. Targets, install notes and TLS tips."
+---
 
-CurlDotNet fully supports .NET Framework 4.7.2 and later through our .NET Standard 2.0 build.
+# CurlDotNet .NET Framework Compatibility (.NET Framework 4.8, .NET 8/9/10)
 
-## Supported Frameworks
+CurlDotNet .NET framework compatibility covers .NET Framework 4.7.2 and 4.8 (through the `net472`, `net48` and `netstandard2.0` targets) and modern .NET 8, 9 and 10. The package is pure C# with no native dependencies, so the same curl command string runs on every target.
 
-| Framework | Status | Build Target |
-|-----------|--------|--------------|
-| .NET Framework 4.7.2 | ✅ Supported | netstandard2.0 / net472 |
-| .NET Framework 4.8 | ✅ Supported | netstandard2.0 / net48 |
-| .NET Standard 2.0 | ✅ Supported | netstandard2.0 |
-| .NET Core 3.1+ | ✅ Supported | netstandard2.0 |
-| .NET 5.0+ | ✅ Supported | net8.0+ |
+## Package Targets
 
-## Installation for Framework Projects
+The NuGet package is built from `src/CurlDotNet/CurlDotNet.csproj` with these target frameworks:
 
-```xml
-<PackageReference Include="CurlDotNet" Version="1.2.35" />
+| Target | Runs on |
+|--------|---------|
+| `netstandard2.0` | .NET Framework 4.6.1+, .NET Core 2.0+, Mono, Xamarin, Unity |
+| `net472` | .NET Framework 4.7.2 |
+| `net48` | .NET Framework 4.8 |
+| `net8.0` | .NET 8 |
+| `net9.0` | .NET 9 |
+| `net10.0` | .NET 10 |
+
+NuGet picks the closest target automatically. A .NET Framework 4.8 project gets `net48`; a .NET Framework 4.7.2 project gets `net472`; .NET 8/9/10 projects get their exact target; .NET 6/7, Mono and Unity get `netstandard2.0`. The published package is built on Windows, so it contains all six targets.
+
+Dependencies are deliberately small: `System.Text.Json` and `Newtonsoft.Json` on every target, plus `Microsoft.CSharp` on `netstandard2.0` and `System.Net.Http` on `net472`/`net48`. There is no Ninject, System.CommandLine or other framework dependency.
+
+## What Differs on .NET Standard 2.0 and .NET Framework
+
+The same commands parse and run everywhere, but on .NET 8 and later CurlDotNet opens the connections itself (through `SocketsHttpHandler`'s connect callback) and sees the exact bytes on the wire, while the `netstandard2.0`, `net472` and `net48` builds rely on `HttpClient`'s parsed headers. That costs a few wire-level curl features on the older targets:
+
+| Feature | .NET 8/9/10 | .NET Standard 2.0 / .NET Framework |
+|---------|-------------|-------------------------------------|
+| `--connect-timeout` | Enforced separately (connect callback) | Best-effort; the overall `--max-time` still applies |
+| `-p` / `--proxytunnel` (CONNECT) | Yes | No |
+| `--http2`, `--http3` | Version and fallback policy applied | Version requested; the runtime's `HttpClient` decides (the .NET Framework one speaks HTTP/1.1) |
+| `--request-target`, removing `Host`, blank headers | Yes | No |
+| `--raw`, lower-case chunk sizes | Yes | No |
+| `--cacert`, `--capath` (private CA) | Applied | Listed in `UnsupportedOptions`; the system trust store is used |
+| `--cert`, `--key`, `--cert-type`, `--pass` (client certificates) | Applied | Listed in `UnsupportedOptions`; no certificate is sent |
+| `--pinnedpubkey` | Applied (exit 90 on mismatch) | https transfers fail with exit code 4 rather than skip the check |
+| `--ciphers`, `--tls13-ciphers` | Applied on Linux (`CipherSuitesPolicy`); listed in `UnsupportedOptions` elsewhere | Listed in `UnsupportedOptions` |
+| Response headers in `result.Headers` / `-i` | Exactly as sent | As `HttpClient` parsed them |
+| `ParseJson<T>()` | `System.Text.Json`, case-insensitive | `System.Text.Json` on `net472`/`net48`, Newtonsoft.Json on `netstandard2.0`; both case-insensitive |
+
+Everything else on this page (timeouts, retries, cookies, redirects, Digest/NTLM, `-w`, `-o`) behaves the same on every target.
+
+## Installation
+
+```bash
+dotnet add package CurlDotNet
 ```
 
-## Usage in .NET Framework
+Or in the project file (any version; the package resolves the right target):
+
+```xml
+<PackageReference Include="CurlDotNet" Version="*" />
+```
+
+## Usage on .NET Framework
+
+Synchronous and asynchronous APIs both work on .NET Framework. Many Framework apps use the synchronous `Curl.Execute`, which blocks the calling thread until the transfer ends; keep it out of WinForms/WPF event handlers and classic ASP.NET request code, where `await Curl.ExecuteAsync` is the right call (the library uses `ConfigureAwait(false)` internally, so awaiting it from those contexts is safe):
 
 ```csharp
-using CurlDotNet;
 using System;
+using CurlDotNet;
 
 class Program
 {
     static void Main()
     {
-        // Synchronous execution (common in Framework apps)
-        var result = Curl.Execute("curl https://api.example.com/data");
+        var result = Curl.Execute("curl https://httpbin.org/get");
         Console.WriteLine($"Status: {result.StatusCode}");
-        Console.WriteLine($"Body: {result.Body}");
-    }
-
-    static async Task AsyncExample()
-    {
-        // Async execution also supported
-        var result = await Curl.ExecuteAsync("curl -X POST -d 'data' https://api.example.com/submit");
-        Console.WriteLine($"Success: {result.IsSuccess}");
+        Console.WriteLine(result.Body);
     }
 }
 ```
 
+The async form is identical to modern .NET:
+
+```csharp
+using CurlDotNet;
+
+var result = await Curl.ExecuteAsync(
+    "curl -X POST -d 'name=Ada' https://httpbin.org/post");
+Console.WriteLine(result.IsSuccess);
+```
+
 ## Framework-Specific Considerations
 
-### 1. TLS/SSL Configuration
+### TLS configuration
 
-.NET Framework apps often need explicit TLS configuration:
-
-```csharp
-// Add this at application startup
-ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
-```
-
-### 2. JSON Serialization
-
-System.Text.Json is included via NuGet for Framework projects. No additional packages needed.
+Older .NET Framework applications may default to TLS 1.0/1.1, which most HTTPS servers now reject. Enable TLS 1.2 once at startup:
 
 ```csharp
-// This works in Framework 4.7.2+
-var result = await Curl.ExecuteAsync("curl https://api.example.com/json");
-var data = result.ParseJson<MyDataClass>();
+using System.Net;
+
+ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 ```
 
-### 3. HttpClient Differences
+On .NET 8/9/10 the operating system negotiates TLS and no setting is required.
 
-The library handles HttpClient lifecycle management appropriately for Framework:
+### JSON
+
+The package references `System.Text.Json` and `Newtonsoft.Json`, so `result.ParseJson<T>()` works on every target without extra packages. Property matching is case-insensitive everywhere, so `name` and `html_url` bind to `Name` and `Html_Url` below:
 
 ```csharp
-// No need to manage HttpClient instances
-// CurlDotNet handles this internally
-var result = Curl.Execute("curl https://api.example.com");
+using CurlDotNet;
+
+public record Repo(string Name, string Html_Url);
+
+var result = await Curl.ExecuteAsync("curl https://api.github.com/repos/curl/curl");
+var repo = result.ParseJson<Repo>();
+Console.WriteLine(repo.Name);
 ```
 
-### 4. WebRequest Compatibility
+### HttpClient lifetime
 
-CurlDotNet works alongside legacy WebRequest code:
+CurlDotNet manages its internal `HttpClient` for you. You do not create or dispose one, and the library can run alongside legacy `WebRequest` code in the same application.
 
-```csharp
-// Legacy code
-var webRequest = WebRequest.Create("https://old-api.example.com");
+### FTP
 
-// Modern CurlDotNet code in the same app
-var result = Curl.Execute("curl https://new-api.example.com");
-```
+FTP and FTPS use `FtpWebRequest`, which is marked obsolete in modern .NET but still ships in the runtime. See [Supported Protocols](supported-protocols.html).
 
 ## Testing Framework Compatibility
 
-### On Windows
-
-Run the Framework-specific tests:
-
-```bash
-dotnet test tests/CurlDotNet.FrameworkCompat/CurlDotNet.FrameworkCompat.csproj
-```
-
-### On macOS/Linux
-
-Use the compatibility script (tests .NET Standard 2.0 build):
+Locally on macOS or Linux, the .NET Standard 2.0 surface is checked with:
 
 ```bash
 dotnet script scripts/test-framework-compat.csx
 ```
 
-### CI/CD
+A dedicated test project also exists:
 
-GitHub Actions automatically test Framework compatibility on Windows:
-
-```yaml
-- name: Test Framework 4.7.2
-  run: dotnet build -f net472 && dotnet test
+```bash
+dotnet test tests/CurlDotNet.FrameworkCompat/CurlDotNet.FrameworkCompat.csproj
 ```
 
-## Known Limitations
+On Windows build agents the `net472` and `net48` targets are compiled directly, which is the authoritative check for .NET Framework.
 
-1. **FTP Protocol**: .NET Core/5+ removed FTP support. Use HTTP(S) alternatives where possible.
+## Migration from .NET Framework
 
-2. **Async Patterns**: Framework uses older async patterns. We provide both sync and async methods.
-
-3. **Performance**: Framework's HttpClient is less optimized than .NET Core's. Consider upgrading if performance is critical.
-
-## Migration from Framework
-
-If migrating from Framework to .NET 6+:
-
-1. No code changes needed for basic usage
-2. Consider switching to async methods for better performance
-3. Remove ServicePointManager configurations (handled automatically in .NET Core+)
+Moving an application from .NET Framework to .NET 8 or later needs no CurlDotNet code changes. You can remove the `ServicePointManager` TLS line, and switching from `Curl.Execute` to `await Curl.ExecuteAsync` is optional.
 
 ## Troubleshooting
 
 ### "Could not load file or assembly"
 
-Ensure all dependencies are restored:
-```bash
-nuget restore
-```
+Restore packages and rebuild: `dotnet restore` (or `nuget restore` for packages.config projects). On .NET Framework, make sure the project uses `PackageReference` or that binding redirects were generated.
 
-### SSL/TLS Errors
+### SSL/TLS errors on .NET Framework
 
-Add to application startup:
-```csharp
-ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-```
+Add `ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;` at startup, then retry. If a self-signed certificate is involved, `curl -k` skips certificate validation (development only).
 
-### JSON Serialization Issues
+### JSON version conflicts
 
-The package includes System.Text.Json. If conflicts occur, use:
-```xml
-<PackageReference Include="System.Text.Json" Version="8.0.0" />
-```
+If another dependency pins a different `System.Text.Json`, add an explicit reference to the version you want in your project and let NuGet unify it.
 
-## Support
+## Related Pages
 
-Framework support is tested via:
-- Windows CI builds with actual Framework runtimes
-- .NET Standard 2.0 compatibility tests
-- Integration tests with Framework-specific patterns
-
-Report Framework-specific issues: https://github.com/jacob-mellor/curl-dot-net/issues
+- [Installation](getting-started/installation.html)
+- [Supported Protocols](supported-protocols.html)
+- [Common Issues](troubleshooting/common-issues.html)
+- Report framework-specific issues: https://github.com/jacob-mellor/curl-dot-net/issues

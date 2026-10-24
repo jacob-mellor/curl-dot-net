@@ -1,541 +1,276 @@
-# Troubleshooting Guide
+---
+title: "Troubleshooting CurlDotNet - fix curl errors in C#"
+description: "Troubleshooting CurlDotNet: fix common curl errors in C# - timeouts, DNS and TLS failures, HTTP 4xx/5xx, JSON parsing and build errors, with diagnostics."
+---
 
-Welcome to the CurlDotNet troubleshooting guide. This page will help you diagnose and fix common issues.
+# Troubleshooting CurlDotNet: fix common curl errors in C#
 
-## 🎯 Quick Links
+Troubleshooting CurlDotNet: fix common curl errors in C# by matching the symptom you see (timeout, DNS or connection failure, TLS certificate error, HTTP 401/404/429/500, invalid JSON, compile error) to the page that solves it. This hub explains which exceptions CurlDotNet throws, how to inspect a `CurlResult`, and which diagnostics to run before asking for help.
 
-- **[Common Issues](common-issues.html)** - Most frequent problems and solutions
-- **[Error Code Reference](#error-code-reference)** - Understanding error codes
-- **[Diagnostic Tools](#diagnostic-tools)** - Tools for debugging
-- **[Getting Help](#getting-help)** - Where to ask for help
+## Quick Links
 
-## 🔍 How to Use This Guide
+- [Common Issues](common-issues.html) - the most frequent problems, each with a fix
+- [Error Reference](error-reference.html) - curl exit codes and the exception each one maps to
+- [FAQ](faq.html) - short answers to common questions
+- [Diagnostic Tools](#diagnostic-tools) - verbose mode, result inspection, network checks
+- [Getting Help](#getting-help) - where to ask
 
-### 1. Identify Your Problem
+## Find Your Problem
 
-First, determine what type of issue you're experiencing:
+| Symptom | Category | Fix |
+|---------|----------|-----|
+| Cannot install or set up | Installation | [Installation Issues](common-issues.html#installation-issues) |
+| Could not resolve host / connection refused | Network | [DNS and Connection Errors](common-issues.html#dns-and-connection-errors) |
+| Request times out | Network | [Timeout Errors](common-issues.html#timeout-errors) |
+| SSL certificate problem | Security | [SSL Certificate Errors](common-issues.html#ssl-certificate-errors) |
+| 401 or 403 responses | Security | [Authentication Errors](common-issues.html#authentication-errors) |
+| 404, 429, 500 responses | HTTP | [HTTP Errors](common-issues.html#http-errors) |
+| JSON will not parse | Data | [JSON Parsing Errors](common-issues.html#json-parsing-errors) |
+| Code will not compile | Development | [Compilation Errors](common-issues.html#compilation-errors) |
+| NullReferenceException at runtime | Development | [Runtime Errors](common-issues.html#runtime-errors) |
+| Cannot write `-o` file / read `-d @file` | Files | [Transfer and file errors](../exceptions/transfer-errors.html) |
+| Any other curl exit code | Reference | [Error Reference](error-reference.html#exit-code-table) |
 
-| Symptom | Category | Guide Link |
-|---------|----------|------------|
-| Can't install or setup | Installation | [Installation Issues](common-issues.md#installation-issues) |
-| DNS/hostname errors | Network | [DNS Errors](common-issues.md#dns-errors) |
-| Timeout errors | Network | [Timeout Errors](common-issues.md#timeout-errors) |
-| SSL/certificate errors | Security | [SSL Errors](common-issues.md#ssl-errors) |
-| Authentication failures | Security | [Authentication Errors](common-issues.md#authentication-errors) |
-| HTTP 4xx errors | Client | [HTTP Client Errors](common-issues.md#http-errors) |
-| HTTP 5xx errors | Server | [HTTP Server Errors](common-issues.md#http-errors) |
-| JSON parsing issues | Data | [JSON Errors](common-issues.md#json-parsing-errors) |
-| Code won't compile | Development | [Compilation Errors](common-issues.md#compilation-errors) |
+Each section states the problem, the cause, the fix (code or commands) and how to prevent it.
 
-### 2. Follow the Solution Steps
+## Two Kinds of Failure
 
-Each issue page provides:
-- Clear explanation of the problem
-- Step-by-step solutions
-- Code examples
-- Prevention tips
-- Links to additional resources
+CurlDotNet separates transport failures from HTTP status codes, exactly as the curl command-line tool does:
 
-### 3. Still Stuck?
-
-If the guides don't solve your problem:
-1. Check [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
-2. Search [GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues)
-3. Create a new issue with details
-
-## 🚨 Common Issues at a Glance
-
-### Installation and Setup
-
-**Problem:** `dotnet: command not found`
-**Solution:** [Install .NET SDK](common-issues.md#dotnet-not-found) and restart terminal
-
-**Problem:** `Package 'CurlDotNet' not found`
-**Solution:** [Check NuGet configuration](common-issues.md#package-not-found)
-
-**Problem:** Target framework not supported
-**Solution:** [Update .csproj](common-issues.md#target-framework-issues)
-
-### Network and Connectivity
-
-**Problem:** `Could not resolve host`
-**Solution:** [Fix DNS issues](common-issues.md#dns-errors)
-
-**Problem:** `Operation timeout`
-**Solution:** [Increase timeout or check network](common-issues.md#timeout-errors)
-
-**Problem:** `Connection refused`
-**Solution:** [Check URL and firewall](common-issues.md#connection-refused)
-
-### Security and Authentication
-
-**Problem:** SSL certificate error
-**Solution:** [Update certificates or use -k for testing](common-issues.md#ssl-errors)
-
-**Problem:** `401 Unauthorized`
-**Solution:** [Fix authentication](common-issues.md#authentication-errors)
-
-**Problem:** `403 Forbidden`
-**Solution:** [Check permissions](common-issues.md#permission-errors)
-
-### HTTP and API Issues
-
-**Problem:** `404 Not Found`
-**Solution:** [Verify URL](common-issues.md#http-errors)
-
-**Problem:** `429 Too Many Requests`
-**Solution:** [Implement rate limiting](common-issues.md#rate-limiting)
-
-**Problem:** `500 Internal Server Error`
-**Solution:** [Check server logs or try later](common-issues.md#server-errors)
-
-### Data Handling
-
-**Problem:** Invalid JSON
-**Solution:** [Validate and parse JSON correctly](common-issues.md#json-parsing-errors)
-
-**Problem:** Empty response
-**Solution:** [Check status code and headers](common-issues.md#empty-response)
-
-**Problem:** Encoding issues
-**Solution:** [Specify correct encoding](common-issues.md#encoding-issues)
-
-## 🔧 Error Code Reference
-
-CurlDotNet provides specific exception types for different error scenarios. Each exception links to detailed documentation.
-
-### Network Errors (CurlDnsException)
+- **Transport failures throw, with curl's exit code.** A host that does not resolve throws `CurlCouldntResolveHostException` (6), a refused connection `CurlCouldntConnectException` (7), a TLS failure `CurlSslConnectErrorException` (35) or `CurlPeerFailedVerificationException` (60), an expired `--max-time` or `--connect-timeout` `CurlOperationTimeoutException` (28; catch its base `CurlTimeoutException`), an unwritable `-o` file `CurlWriteErrorException` (23). All derive from `CurlException` in `CurlDotNet.Exceptions`, and `CurlErrorCode` holds the number.
+- **HTTP 4xx and 5xx do not throw** unless the command has `-f`/`--fail`. `ExecuteAsync` returns a `CurlResult` with `IsSuccess == false` and the `StatusCode`. With `-f` it throws `CurlHttpReturnedErrorException` (22), like curl; or call `result.EnsureSuccess()` (`CurlDotNet.Core.CurlHttpException`).
+- **Cancellation is standard .NET.** A cancelled `CancellationToken` throws `OperationCanceledException`.
 
 ```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
+
 try
 {
-    var result = await Curl.ExecuteAsync("curl https://invalid-domain.example");
+    var result = await Curl.ExecuteAsync("curl -m 10 https://httpbin.org/status/503");
+    if (!result.IsSuccess)
+        Console.WriteLine($"HTTP {result.StatusCode}: {result.Body}");
 }
-catch (CurlDnsException ex)
-{
-    // Error code 6: Could not resolve host
-    Console.WriteLine($"DNS Error: {ex.Message}");
-    Console.WriteLine($"Hostname: {ex.Hostname}");
-    // Documentation: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/common-issues.md#dns-errors
-}
+catch (CurlTimeoutException ex) { Console.WriteLine($"Timed out: {ex.Timeout}"); }
+catch (CurlCouldntConnectException ex) { Console.WriteLine($"No connection to {ex.Host}:{ex.Port}"); }
+catch (CurlException ex) { Console.WriteLine($"curl error {ex.CurlErrorCode}: {ex.Message}"); }
 ```
 
-### Timeout Errors (CurlTimeoutException)
+Every `CurlException` carries `Command`, `CurlErrorCode` (the curl exit code, when known), `StandardOutput` (what curl would have printed before failing), `Suggestions` (a list of fix hints) and `DiagnosticInfo`. Its message says how to fix the problem. See the [Error Reference](error-reference.html) for every exception type and code, and [curl exit codes](../reference/curl-exit-codes.html) for the curl tool's numbered list.
+
+## Diagnostic Tools
+
+### Enable verbose mode
+
+The `-v` flag adds the request and response headers to the start of `result.Body`, the same information curl prints on the command line; `--trace-ascii FILE` writes a full trace:
 
 ```csharp
-try
-{
-    var result = await Curl.ExecuteAsync("curl https://slow-server.example");
-}
-catch (CurlTimeoutException ex)
-{
-    // Error code 28: Operation timeout
-    Console.WriteLine($"Timeout: {ex.Message}");
-    Console.WriteLine($"Timeout Duration: {ex.Timeout}");
-    // Documentation: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/common-issues.md#timeout-errors
-}
+var result = await Curl.ExecuteAsync("curl -v https://httpbin.org/get");
 ```
 
-### SSL/TLS Errors (CurlSslException)
+### Inspect the result
 
 ```csharp
-try
-{
-    var result = await Curl.ExecuteAsync("curl https://self-signed.example");
-}
-catch (CurlSslException ex)
-{
-    // Error codes 35, 51, 53, 54, 58, 59, 60, 64, 66, 77, 80, 82, 83, 90, 91, 98
-    Console.WriteLine($"SSL Error: {ex.Message}");
-    Console.WriteLine($"Certificate Issue: {ex.CertificateError}");
-    // Documentation: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/common-issues.md#ssl-errors
-}
-```
+using CurlDotNet;
 
-### HTTP Errors (CurlHttpReturnedErrorException)
-
-```csharp
-try
-{
-    var result = await Curl.ExecuteAsync("curl https://api.example.com/not-found");
-}
-catch (CurlHttpReturnedErrorException ex)
-{
-    // Error code 22: HTTP returned error
-    Console.WriteLine($"HTTP Error: {ex.StatusCode}");
-    Console.WriteLine($"Response: {ex.ResponseBody}");
-    // Documentation: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/common-issues.md#http-errors
-}
-```
-
-### General Curl Errors (CurlException)
-
-```csharp
-try
-{
-    var result = await Curl.ExecuteAsync("curl ftp://example.com");
-}
-catch (CurlException ex)
-{
-    // Catches all curl errors
-    Console.WriteLine($"Curl Error {ex.ErrorCode}: {ex.Message}");
-    // Documentation: https://github.com/jacob-mellor/curl-dot-net/docs/troubleshooting/
-}
-```
-
-### Complete Error Code List
-
-| Code | Exception Type | Description | Guide |
-|------|----------------|-------------|-------|
-| 6 | CurlDnsException | Could not resolve host | [DNS Errors](common-issues.md#dns-errors) |
-| 7 | CurlException | Failed to connect to host | [Connection Issues](common-issues.md#connection-errors) |
-| 22 | CurlHttpReturnedErrorException | HTTP error (4xx/5xx) | [HTTP Errors](common-issues.md#http-errors) |
-| 28 | CurlTimeoutException | Operation timeout | [Timeout Errors](common-issues.md#timeout-errors) |
-| 35 | CurlSslException | SSL connect error | [SSL Errors](common-issues.md#ssl-errors) |
-| 51 | CurlSslException | Peer certificate invalid | [SSL Errors](common-issues.md#ssl-errors) |
-| 52 | CurlException | Server returned nothing | [Server Errors](common-issues.md#server-errors) |
-| 53 | CurlSslException | Crypto engine not found | [SSL Errors](common-issues.md#ssl-errors) |
-| 60 | CurlSslException | Peer certificate cannot be authenticated | [SSL Errors](common-issues.md#ssl-errors) |
-
-For a complete list, see [common-issues.md](common-issues.html).
-
-## 🛠 Diagnostic Tools
-
-### Enable Verbose Mode
-
-See exactly what's happening with your request:
-
-```csharp
-var result = await Curl.ExecuteAsync("curl -v https://api.example.com");
-```
-
-This shows:
-- Connection details
-- DNS resolution
-- TLS handshake
-- Headers sent and received
-- Timing information
-
-### Check Request Details
-
-```csharp
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
 
 Console.WriteLine($"Status: {result.StatusCode}");
 Console.WriteLine($"Success: {result.IsSuccess}");
-Console.WriteLine($"Content-Type: {result.ContentType}");
-Console.WriteLine($"Body Length: {result.Body.Length}");
-Console.WriteLine($"Time: {result.TotalTime}");
+Console.WriteLine($"Content-Type: {result.GetHeader("Content-Type")}");
+Console.WriteLine($"Body length: {result.Body.Length}");
+Console.WriteLine($"Total time (ms): {result.Timings?.Total}");
 
-// Check all headers
 foreach (var header in result.Headers)
-{
     Console.WriteLine($"{header.Key}: {header.Value}");
-}
 ```
 
-### Test with curl Command Line
+`result.Headers` is case-insensitive; `GetHeader` returns `null` when the header is missing, so check `HasHeader` or test for `null` before using the value.
 
-Compare CurlDotNet behavior with native curl:
+### Validate the command before running it
 
-```bash
-# Test the same URL with native curl
-curl -v https://api.example.com
-
-# Save response to file
-curl -v https://api.example.com -o response.txt
-
-# Check just headers
-curl -I https://api.example.com
+```csharp
+var validation = Curl.Validate("curl -X POST -H 'Content-Type: application/json' https://httpbin.org/post");
+if (!validation.IsValid)
+    Console.WriteLine($"Invalid command: {validation.Error}");
 ```
 
-If native curl works but CurlDotNet doesn't, please [file an issue](https://github.com/jacob-mellor/curl-dot-net/issues).
+### Compare with the curl command line
 
-### Network Diagnostics
+If the same command works in a terminal but not in CurlDotNet, that is a bug worth [reporting](https://github.com/jacob-mellor/curl-dot-net/issues).
 
 ```bash
-# Check DNS resolution
-nslookup api.example.com
+# Same request with native curl
+curl -v https://httpbin.org/get
 
-# Check connectivity
-ping api.example.com
+# Save the response to a file
+curl -v https://httpbin.org/get -o response.txt
 
-# Check route
-traceroute api.example.com  # macOS/Linux
-tracert api.example.com     # Windows
-
-# Check open ports
-telnet api.example.com 443
-
-# Check SSL certificate
-openssl s_client -connect api.example.com:443
+# Headers only
+curl -I https://httpbin.org/get
 ```
 
-### .NET Diagnostics
+### Network diagnostics
 
 ```bash
-# Check .NET version
+# DNS resolution
+nslookup api.github.com
+
+# Reachability
+ping api.github.com
+
+# Is the port open?
+nc -vz api.github.com 443
+
+# TLS certificate details
+openssl s_client -connect api.github.com:443 -servername api.github.com
+```
+
+### .NET diagnostics
+
+```bash
 dotnet --version
-
-# Check installed SDKs
 dotnet --list-sdks
-
-# Check installed runtimes
 dotnet --list-runtimes
-
-# Restore packages
 dotnet restore
-
-# Clean and rebuild
-dotnet clean
-dotnet build
+dotnet clean && dotnet build
 ```
 
-## 📊 Debugging Checklist
+## Debugging Checklist
 
-When encountering an issue, go through this checklist:
+### Basic checks
 
-### Basic Checks
-
-- [ ] Is your internet connection working?
-- [ ] Can you access the URL in a web browser?
-- [ ] Is the URL spelled correctly?
-- [ ] Are you using the correct HTTP method?
-- [ ] Is the server actually running?
+- Does the URL open in a browser?
+- Is the URL spelled correctly, including the scheme (`https://`)?
+- Are you using the right HTTP method (`-X POST` and so on)?
+- Is the server running and reachable from this machine?
 
 ### Authentication
 
-- [ ] Do you need authentication?
-- [ ] Is your token/credentials correct?
-- [ ] Is your token expired?
-- [ ] Are you sending the right authentication headers?
+- Does the endpoint need credentials?
+- Is the token current, and sent in the header the API expects?
+- Does the response include a `WWW-Authenticate` header that names the expected scheme?
 
-### Request Configuration
+### Request configuration
 
-- [ ] Are headers formatted correctly?
-- [ ] Is your data properly formatted (JSON, form data, etc.)?
-- [ ] Are you escaping special characters?
-- [ ] Is the timeout sufficient?
+- Are headers in `-H 'Name: value'` form?
+- Is the body valid JSON or form data for the `Content-Type` you send?
+- Are quotes inside the command string escaped (`\"` or `""` in verbatim strings)?
+- Is `--max-time` long enough for the slowest expected response?
 
-### Response Handling
+### Response handling
 
-- [ ] Are you checking result.IsSuccess?
-- [ ] Are you catching exceptions?
-- [ ] Are you parsing the response correctly?
-- [ ] Is the response type what you expected?
+- Are you checking `result.IsSuccess` before reading `result.Body`?
+- Are you catching `CurlException` (or specific subclasses)?
+- Does `result.GetHeader("Content-Type")` match what you parse?
 
 ### Environment
 
-- [ ] Is .NET installed correctly?
-- [ ] Is CurlDotNet up to date?
-- [ ] Are all dependencies restored?
-- [ ] Is your firewall blocking requests?
+- Is the .NET SDK installed and on `PATH`?
+- Is the CurlDotNet package the latest version?
+- Does a proxy or firewall block outbound HTTPS from this environment?
 
-## 🎓 Best Practices for Troubleshooting
+## Troubleshooting Approach
 
-### 1. Read the Error Message
+### Read the exception
 
-CurlDotNet exceptions include detailed messages and link to documentation:
+`CurlException.Message` describes what went wrong; `Suggestions` lists likely fixes.
 
 ```csharp
-catch (CurlDnsException ex)
+catch (CurlException ex)
 {
-    // Exception message includes:
-    // - What went wrong
-    // - Why it happened
-    // - How to fix it
-    // - Link to detailed documentation
     Console.WriteLine(ex.Message);
+    foreach (var tip in ex.Suggestions)
+        Console.WriteLine($"  - {tip}");
 }
 ```
 
-### 2. Use Try-Catch
-
-Always wrap requests in try-catch for better error handling:
+### Catch specific exceptions first
 
 ```csharp
 try
 {
-    var result = await Curl.ExecuteAsync("curl https://api.example.com");
-    // Handle success
+    var result = await Curl.ExecuteAsync("curl https://api.github.com");
+    result.EnsureSuccess();
 }
-catch (CurlDnsException ex)
-{
-    Console.WriteLine($"DNS error: {ex.Message}");
-}
-catch (CurlTimeoutException ex)
-{
-    Console.WriteLine($"Timeout: {ex.Message}");
-}
-catch (CurlException ex)
-{
-    Console.WriteLine($"Curl error: {ex.Message}");
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"Unexpected error: {ex.Message}");
-}
+catch (CurlCouldntConnectException ex) { Console.WriteLine($"Connection: {ex.Message}"); }
+catch (CurlTimeoutException ex) { Console.WriteLine($"Timeout: {ex.Message}"); }
+catch (CurlDotNet.Core.CurlHttpException ex) { Console.WriteLine($"HTTP {ex.StatusCode}"); }
+catch (CurlException ex) { Console.WriteLine($"curl: {ex.Message}"); }
 ```
 
-### 3. Test in Isolation
+### Simplify, then add back
 
-Simplify your request to identify the problem:
+Start with a request that should always work, then add headers, data and authentication one step at a time:
 
 ```csharp
-// Start simple
-var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/200");
-
-// Add complexity gradually
-var result = await Curl.ExecuteAsync(@"
-    curl https://httpbin.org/get \
-      -H 'Accept: application/json'
-");
-
-// Then add authentication
-var result = await Curl.ExecuteAsync(@"
-    curl https://httpbin.org/get \
-      -H 'Accept: application/json' \
-      -H 'Authorization: Bearer token'
-");
+var r1 = await Curl.ExecuteAsync("curl https://httpbin.org/status/200");
+var r2 = await Curl.ExecuteAsync("curl https://httpbin.org/get -H 'Accept: application/json'");
+var r3 = await Curl.ExecuteAsync(@"curl https://httpbin.org/bearer \
+    -H 'Accept: application/json' \
+    -H 'Authorization: Bearer token'");
 ```
 
-### 4. Compare with Working Example
+If `https://httpbin.org/get` and `https://api.github.com` work but your endpoint does not, the problem is specific to that endpoint or your configuration.
 
-Test with a known working endpoint:
+## Getting Help
 
-```csharp
-// These should always work
-await Curl.ExecuteAsync("curl https://httpbin.org/status/200");
-await Curl.ExecuteAsync("curl https://api.github.com");
-await Curl.ExecuteAsync("curl https://jsonplaceholder.typicode.com/posts/1");
-```
+### Before asking
 
-If these work but your endpoint doesn't, the issue is likely with your specific endpoint or configuration.
+1. Search [existing issues](https://github.com/jacob-mellor/curl-dot-net/issues) - the problem may already be solved.
+2. Read the relevant section of [Common Issues](common-issues.html).
+3. Run the same command with native curl in a terminal.
+4. Reduce your code to the smallest example that still fails.
 
-### 5. Check the Documentation
+### Where to ask
 
-Every exception message in CurlDotNet includes a link to detailed documentation. Follow these links for:
-- Detailed explanation of the error
-- Common causes
-- Step-by-step solutions
-- Code examples
-- Prevention tips
+- [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions) - questions and how-to
+- [GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues) - bugs and feature requests
 
-## 🆘 Getting Help
+### What to include in a bug report
 
-### Before Asking for Help
+1. A clear title, for example "CurlCouldntConnectException for host that native curl reaches".
+2. CurlDotNet version (`dotnet list package`).
+3. .NET version (`dotnet --version`) and operating system.
+4. The smallest code sample that reproduces the problem.
+5. The full exception message and stack trace.
+6. What you expected, what happened, and whether native curl behaves differently.
 
-1. **Search existing issues** - Your problem might be already solved
-2. **Check the documentation** - Most issues have dedicated guides
-3. **Test with native curl** - Does the command work in terminal?
-4. **Simplify your code** - Reduce to minimal reproducible example
-
-### Where to Get Help
-
-#### GitHub Discussions (Recommended for Questions)
-- [https://github.com/jacob-mellor/curl-dot-net/discussions](https://github.com/jacob-mellor/curl-dot-net/discussions)
-- Best for: General questions, how-to questions, discussions
-
-#### GitHub Issues (For Bugs)
-- [https://github.com/jacob-mellor/curl-dot-net/issues](https://github.com/jacob-mellor/curl-dot-net/issues)
-- Best for: Bug reports, feature requests, actual problems with the library
-
-#### Stack Overflow
-- Tag: `curldotnet`
-- Best for: Code-specific questions, getting community input
-
-### Creating a Good Issue Report
-
-Include:
-
-1. **Clear title** - "SSL error when connecting to example.com"
-2. **CurlDotNet version** - Check with `dotnet list package`
-3. **.NET version** - Run `dotnet --version`
-4. **Operating system** - Windows, macOS, Linux version
-5. **Minimal code example** - Simplest code that reproduces the issue
-6. **Error message** - Full exception message and stack trace
-7. **Expected behavior** - What should happen
-8. **Actual behavior** - What actually happens
-9. **Steps to reproduce** - How to recreate the issue
-
-**Example:**
-
-```markdown
-## SSL Error Connecting to api.example.com
-
-**Environment:**
-- CurlDotNet: 1.0.0
-- .NET: 8.0.100
-- OS: macOS 14.0
-
-**Code:**
-```csharp
-var result = await Curl.ExecuteAsync("curl https://api.example.com");
-```
-
-**Error:**
-```
-CurlSslException: SSL certificate problem: unable to get local issuer certificate
-```
-
-**Expected:** Request should succeed
-**Actual:** SSL error thrown
-
-**Additional Info:**
-- Works in browser
-- Works with `curl -k`
-- Started happening after OS update
-```
-
-## 📚 Additional Resources
-
-- **[Common Issues Guide](common-issues.html)** - Detailed solutions
-- **[Installation Guide](../getting-started/installation.html)** - Setup help
-- **[API Guide](../api-guide/)** - Complete API reference
-- **[Tutorials](../tutorials/)** - Step-by-step learning
-- **[Cookbook](../cookbook/)** - Ready-to-use recipes
-
-## 🎯 Quick Reference
-
-### Most Common Solutions
+## Quick Reference
 
 ```bash
-# Restart terminal after .NET installation
-# Close and reopen your terminal/IDE
-
-# Clear NuGet cache
+# Clear the NuGet cache
 dotnet nuget locals all --clear
 
 # Restore packages
 dotnet restore
 
-# Update CurlDotNet
+# Add or update CurlDotNet
 dotnet add package CurlDotNet
 
-# Build with diagnostics
-dotnet build /v:diag
-
-# Run with verbose output
-dotnet run --verbosity detailed
+# Build with detailed output
+dotnet build -v detailed
 ```
-
-### Test Connection
 
 ```csharp
-// Quick connection test
+// Quick connectivity test
 try
 {
-    var result = await Curl.ExecuteAsync("curl https://httpbin.org/status/200");
-    Console.WriteLine(result.IsSuccess ? "✓ Connection OK" : "✗ Connection Failed");
+    var result = await Curl.ExecuteAsync("curl -m 10 https://httpbin.org/status/200");
+    Console.WriteLine(result.IsSuccess ? "Connection OK" : $"HTTP {result.StatusCode}");
 }
-catch (Exception ex)
+catch (CurlException ex)
 {
-    Console.WriteLine($"✗ Error: {ex.Message}");
+    Console.WriteLine($"Error: {ex.Message}");
 }
 ```
 
----
+## Related Pages
 
-**Need immediate help?** Start with [Common Issues](common-issues.html) for the most frequent problems and solutions.
-
-**Still stuck?** Ask in [GitHub Discussions](https://github.com/jacob-mellor/curl-dot-net/discussions) - the community is here to help!
+- [Common Issues](common-issues.html) - detailed solutions
+- [Error Reference](error-reference.html) - exit codes and exceptions
+- [FAQ](faq.html) - frequently asked questions
+- [Installation](../getting-started/installation.html) - setup help
+- [Handling Errors tutorial](../tutorials/06-handling-errors.html) - step-by-step error handling
+- [Exception documentation](../exceptions/index.html) - one page per exception family
+- [Cookbook](../cookbook/index.html) - ready-to-use recipes

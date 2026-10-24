@@ -1,29 +1,64 @@
 title: CurlDotNet Documentation
-description: Pure .NET implementation of curl - Paste any curl command directly into your C# application
+description: curl for C# and .NET - run any curl command in-process, no curl.exe, no Process.Start
 baseurl: "/curl-dot-net"
 url: "https://jacob-mellor.github.io"
+lang: en
+author: Jacob Mellor
+github_username: jacob-mellor
+repository: jacob-mellor/curl-dot-net
 
 # Build settings
 markdown: kramdown
 highlighter: rouge
+kramdown:
+  input: GFM
+  hard_wrap: false
+  syntax_highlighter: rouge
 
 # Theme
 remote_theme: pages-themes/cayman@v0.2.0
+
+# All plugins below are on the GitHub Pages allow-list, so the site builds on push with no CI step.
 plugins:
   - jekyll-remote-theme
-  - jekyll-seo-tag
+  - jekyll-seo-tag            # <title>, <meta name="description">, Open Graph, canonical URL from front matter
+  - jekyll-sitemap            # /sitemap.xml
+  - jekyll-relative-links     # rewrites ../page.md links to ../page.html so GitHub-style links work on the site
+  - jekyll-optional-front-matter  # renders Markdown files that have no front matter (e.g. docs/api/*.md)
+  - jekyll-readme-index       # folder/README.md becomes folder/index.html (how-to/ and powershell/ trees)
+  - jekyll-titles-from-headings   # pages without a title get it from their first H1
 
-# Exclude files
+relative_links:
+  enabled: true
+  collections: false
+
+optional_front_matter:
+  remove_originals: true
+
+readme_index:
+  enabled: true
+  remove_originals: true
+
+titles_from_headings:
+  enabled: true
+  strip_title: false
+  collections: false
+
+# Exclude DocFX-only files and build scaffolding
 exclude:
-  - README.md
-  - LICENSE
   - Gemfile
   - Gemfile.lock
+  - toc.yml
+  - "**/toc.yml"
+  - docfx.json
 
-# Default layout for markdown files
+# Default layout for every page; the API dump is kept out of the sitemap (559 one-member pages)
 defaults:
   - scope:
       path: ""
-      type: "pages"
     values:
       layout: "default"
+  - scope:
+      path: "api"
+    values:
+      sitemap: false

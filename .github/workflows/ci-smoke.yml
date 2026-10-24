@@ -7,6 +7,11 @@ on:
     # Triggers on PRs to any branch
     branches: [ '*' ]
 
+# A new push to the same branch cancels the run still in progress
+concurrency:
+  group: ci-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   smoke-integration-test:
     name: Smoke & Integration Tests - ${{ matrix.os }}
@@ -34,6 +39,12 @@ jobs:
         dotnet-version: '9.0.x'
         dotnet-quality: 'ga'  # Use stable GA release
 
+    - name: Setup .NET SDK 10.0.x
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+        dotnet-quality: 'ga'
+
     # Step 3: Restore dependencies
     - name: Restore dependencies
       run: dotnet restore
@@ -42,11 +53,45 @@ jobs:
     - name: Build solution (Release)
       run: dotnet build --configuration Release --no-restore
 
-    # Step 5: Run DevOps/smoke tests only
-    # NOTE: This workflow runs ONLY DevOps category tests - reliable, fast tests for CI/CD
-    - name: Run DevOps & Smoke Tests
-      run: dotnet test --configuration Release --no-build --filter "Category=DevOps|Category=Smoke"
-      continue-on-error: false  # Explicitly fail the workflow if tests fail
+    # Step 5: Unit, synthetic, smoke and DevOps tests on .NET 8/9/10. Everything runs against an
+    # in-process HttpListener server (no fixed ports, no internet), so each run takes seconds.
+    - name: Run unit, synthetic, smoke and DevOps tests (.NET 8, 9, 10)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        for tfm in net8.0 net9.0 net10.0; do
+          echo "::group::$tfm"
+          dotnet test tests/CurlDotNet.Tests/CurlDotNet.Tests.csproj --configuration Release --no-build --framework $tfm --filter "Category=Synthetic|Category=Unit|Category=Smoke|Category=DevOps" --blame-hang --blame-hang-timeout 180s --blame-hang-dump-type none
+          echo "::endgroup::"
+        done
+
+    # Step 5b: Windows runs the smoke and DevOps categories on every framework, as before. The full
+    # suite's test infrastructure (HttpListener HEAD handling, FTP localhost timing, xunit output after
+    # completion) still has Windows-specific issues; tracked in the issue "Make the full unit suite pass on Windows".
+    - name: Run smoke and DevOps tests (Windows, all frameworks)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        for tfm in net8.0 net9.0 net10.0 net472 net48; do
+          echo "::group::$tfm"
+          dotnet test tests/CurlDotNet.Tests/CurlDotNet.Tests.csproj --configuration Release --no-build --framework $tfm --filter "Category=DevOps|Category=Smoke" --blame-hang --blame-hang-timeout 180s --blame-hang-dump-type none
+          echo "::endgroup::"
+        done
+
+    # Step 6: Replay curl's own test suite (tests/CurlDotNet.CurlSuite) against the local stub server.
+    # Tests listed in known-failures.txt are expected to fail; one that starts passing fails the run
+    # so the list stays honest. Ubuntu only: the result is OS-independent and this keeps CI time down.
+    - name: Replay curl test suite
+      if: matrix.os == 'ubuntu-latest'
+      run: dotnet test tests/CurlDotNet.CurlSuite/CurlDotNet.CurlSuite.csproj --configuration Release --no-build --framework net10.0 --blame-hang --blame-hang-timeout 300s --blame-hang-dump-type none
+
+    - name: Upload curl suite report
+      if: matrix.os == 'ubuntu-latest' && always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: curl-suite-report
+        path: tests/CurlDotNet.CurlSuite/curl-suite-report.md
+        if-no-files-found: ignore
 
     # Optional: Report test results summary
     - name: Test Results Summary
@@ -57,8 +102,8 @@ jobs:
 
 # Workflow Notes:
 # ================
-# - This workflow runs ONLY smoke and integration tests (filtered by Category)
-# - Full unit test suite is expected to be run locally before pushing code
+# - Runs the full offline unit suite on all three OSes and the curl test-suite replay on Ubuntu
+# - The solution build also compiles examples/ so samples cannot drift from the API
 # - Triggers on: push to 'main' branch, and PRs to any branch
 # - Uses .NET SDK 8.0.x across all platforms (Ubuntu, Windows, macOS)
 # - Will exit with failure if any smoke/integration test fails

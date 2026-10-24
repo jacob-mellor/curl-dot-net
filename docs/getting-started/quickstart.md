@@ -1,297 +1,209 @@
-# Quick Start Guide
+---
+title: "CurlDotNet Quick Start - Run curl in C# in 2 Minutes"
+description: "CurlDotNet quick start: install the NuGet package and run your first curl command in C# in 2 minutes, then POST JSON and add a bearer token."
+---
 
-Get up and running with CurlDotNet in under 5 minutes!
+# CurlDotNet quick start: run your first curl command in C# in 2 minutes
 
-## Installation
+This CurlDotNet quick start takes you from an empty folder to running your first curl command in C# in about 2 minutes. You need the .NET SDK (8, 9 or 10) installed; see [installation](installation.html) if you do not.
 
-### Using Package Manager Console
-```powershell
-Install-Package CurlDotNet
-```
+## 1. Create a project and add the package
 
-### Using .NET CLI
 ```bash
+dotnet new console -n CurlQuickStart
+cd CurlQuickStart
 dotnet add package CurlDotNet
 ```
 
-### Using PackageReference
-```xml
-<PackageReference Include="CurlDotNet" Version="1.*" />
-```
-
-## Your First Request
-
-### 1. Create a Console Application
-```bash
-dotnet new console -n MyCurlApp
-cd MyCurlApp
-dotnet add package CurlDotNet
-```
-
-### 2. Write Your Code
-
-Replace the contents of `Program.cs`:
+## 2. Replace Program.cs
 
 ```csharp
 using CurlDotNet;
 
-// Create a Curl instance
-var curl = new Curl();
+var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
 
-// Make a GET request
-var result = await curl.GetAsync("https://api.github.com/users/github");
-
-// Check if successful and display the result
-if (result.IsSuccess)
-{
-    Console.WriteLine("Success! Response:");
-    Console.WriteLine(result.Data);
-}
-else
-{
-    Console.WriteLine($"Error: {result.Error}");
-}
+Console.WriteLine($"HTTP {result.StatusCode}");
+Console.WriteLine(result.Body);
 ```
 
-### 3. Run Your Application
+Like curl, CurlDotNet sends `User-Agent: curl/8.7.1` and `Accept: */*` by default, which is why GitHub's API answers without any extra headers. Add `-A 'MyApp/1.0'` when you want to identify your own app.
+
+## 3. Run it
+
 ```bash
 dotnet run
 ```
 
-That's it! You've made your first HTTP request with CurlDotNet.
+You should see `HTTP 200` followed by the JSON for the GitHub user `octocat`. That is the whole workflow: paste a curl command, `await` it, read `result.Body`.
 
-## Common Operations
+## Common operations
 
-### GET Request
-```csharp
-var curl = new Curl();
-var result = await curl.GetAsync("https://api.example.com/data");
-Console.WriteLine(result.Data);
-```
+Each example shows the curl-string form first and the fluent `CurlRequestBuilder` form second. Both return the same `CurlResult`.
 
-### POST JSON
-```csharp
-var curl = new Curl();
-var data = new { name = "John", age = 30 };
-var result = await curl.PostJsonAsync("https://api.example.com/users", data);
-```
-
-### With Headers
-```csharp
-var curl = new Curl();
-curl.Headers.Add("Authorization", "Bearer your-token");
-curl.Headers.Add("X-API-Key", "your-api-key");
-
-var result = await curl.GetAsync("https://api.example.com/protected");
-```
-
-### Download File
-```csharp
-var curl = new Curl();
-await curl.DownloadFileAsync(
-    "https://example.com/file.pdf",
-    "downloaded-file.pdf"
-);
-```
-
-### Handle Errors
-```csharp
-var result = await curl.GetAsync("https://api.example.com/data");
-
-if (result.IsSuccess)
-{
-    // Process successful response
-    ProcessData(result.Data);
-}
-else
-{
-    // Handle error
-    Console.WriteLine($"Request failed: {result.Error}");
-    Console.WriteLine($"Status code: {result.StatusCode}");
-}
-```
-
-## Complete Example: GitHub User Info
-
-Here's a complete example that fetches and displays GitHub user information:
+### curl GET with headers in C#
 
 ```csharp
 using CurlDotNet;
-using System.Text.Json;
 
-public class Program
-{
-    public static async Task Main(string[] args)
-    {
-        // Create Curl instance
-        var curl = new Curl();
-
-        // GitHub requires a User-Agent header
-        curl.Headers.Add("User-Agent", "CurlDotNet-QuickStart");
-
-        // Get user info
-        Console.Write("Enter a GitHub username: ");
-        var username = Console.ReadLine();
-
-        var result = await curl.GetAsync($"https://api.github.com/users/{username}");
-
-        if (result.IsSuccess)
-        {
-            // Parse JSON response
-            var options = new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            };
-
-            var user = JsonSerializer.Deserialize<GitHubUser>(result.Data, options);
-
-            // Display user info
-            Console.WriteLine($"\n=== GitHub User: {user.Login} ===");
-            Console.WriteLine($"Name: {user.Name ?? "N/A"}");
-            Console.WriteLine($"Company: {user.Company ?? "N/A"}");
-            Console.WriteLine($"Location: {user.Location ?? "N/A"}");
-            Console.WriteLine($"Bio: {user.Bio ?? "N/A"}");
-            Console.WriteLine($"Public Repos: {user.PublicRepos}");
-            Console.WriteLine($"Followers: {user.Followers}");
-            Console.WriteLine($"Following: {user.Following}");
-            Console.WriteLine($"Created: {user.CreatedAt:yyyy-MM-dd}");
-        }
-        else
-        {
-            Console.WriteLine($"Error: {result.Error}");
-
-            if (result.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                Console.WriteLine("User not found. Please check the username.");
-            }
-        }
-    }
-}
-
-public class GitHubUser
-{
-    public string Login { get; set; }
-    public string Name { get; set; }
-    public string Company { get; set; }
-    public string Location { get; set; }
-    public string Bio { get; set; }
-    public int PublicRepos { get; set; }
-    public int Followers { get; set; }
-    public int Following { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
+var result = await Curl.ExecuteAsync(
+    "curl -H 'Accept: application/json' -H 'X-Request-Id: 42' https://httpbin.org/headers");
 ```
 
-## What Makes CurlDotNet Special?
-
-### 1. Simplicity
 ```csharp
-// HttpClient way (complex)
-using var client = new HttpClient();
-var response = await client.GetAsync(url);
-response.EnsureSuccessStatusCode();
-var content = await response.Content.ReadAsStringAsync();
+using CurlDotNet.Core;
 
-// CurlDotNet way (simple)
-var curl = new Curl();
-var result = await curl.GetAsync(url);
-var content = result.Data;
+var result = await CurlRequestBuilder.Get("https://httpbin.org/headers")
+    .WithHeader("Accept", "application/json")
+    .WithHeader("X-Request-Id", "42")
+    .ExecuteAsync();
 ```
 
-### 2. Better Error Handling
+### curl -X POST JSON in C#
+
 ```csharp
-// No try-catch needed
-var result = await curl.GetAsync(url);
-if (!result.IsSuccess)
-{
-    Console.WriteLine($"Error: {result.Error}");
-}
+var result = await Curl.ExecuteAsync(@"curl -X POST https://httpbin.org/post
+    -H 'Content-Type: application/json'
+    -d '{""name"":""Ada"",""age"":36}'");
 ```
 
-### 3. curl Compatibility
-```bash
-# curl command
-curl -H "Authorization: Bearer token" https://api.example.com/data
-
-# Equivalent CurlDotNet code
-var curl = new Curl();
-curl.Headers.Add("Authorization", "Bearer token");
-var result = await curl.GetAsync("https://api.example.com/data");
-```
-
-## Common Patterns
-
-### API Client
 ```csharp
-public class ApiClient
-{
-    private readonly Curl _curl;
-
-    public ApiClient(string apiKey)
-    {
-        _curl = new Curl();
-        _curl.Headers.Add("X-API-Key", apiKey);
-        _curl.Headers.Add("Accept", "application/json");
-    }
-
-    public async Task<T> GetAsync<T>(string endpoint)
-    {
-        var result = await _curl.GetAsync($"https://api.example.com{endpoint}");
-
-        if (result.IsSuccess)
-        {
-            return JsonSerializer.Deserialize<T>(result.Data);
-        }
-
-        throw new Exception($"API request failed: {result.Error}");
-    }
-}
+var result = await CurlRequestBuilder.Post("https://httpbin.org/post")
+    .WithJson(new { name = "Ada", age = 36 })
+    .ExecuteAsync();
 ```
 
-### Retry Logic
+Shortest form, when you already have an object:
+
 ```csharp
-public async Task<CurlResult> GetWithRetry(string url, int maxAttempts = 3)
-{
-    var curl = new Curl();
-
-    for (int i = 0; i < maxAttempts; i++)
-    {
-        var result = await curl.GetAsync(url);
-
-        if (result.IsSuccess)
-            return result;
-
-        if (i < maxAttempts - 1)
-            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, i)));
-    }
-
-    throw new Exception($"Failed after {maxAttempts} attempts");
-}
+var result = await Curl.PostJsonAsync("https://httpbin.org/post", new { name = "Ada", age = 36 });
 ```
 
-## Next Steps
+### curl bearer token in C#
 
-Now that you're up and running:
+```csharp
+var result = await Curl.ExecuteAsync(
+    "curl -H 'Authorization: Bearer token123' https://httpbin.org/bearer");
+```
 
-1. **[Read the Tutorials](../tutorials/01-what-is-dotnet.html)** - Step-by-step learning path
-2. **[Explore the Cookbook](../cookbook/index.html)** - Ready-to-use recipes
-3. **[Check the Examples](https://github.com/jacob-mellor/curl-dot-net/tree/master/examples)** - Complete applications
-4. **[API Reference](../api/index.html)** - Detailed documentation
+```csharp
+var result = await CurlRequestBuilder.Get("https://httpbin.org/bearer")
+    .WithBearerToken("token123")
+    .ExecuteAsync();
+```
 
-## Need Help?
+### curl basic auth in C#
 
-- **[GitHub Issues](https://github.com/jacob-mellor/curl-dot-net/issues)** - Report bugs or ask questions
-- **[Documentation](../index.html)** - Complete documentation
-- **[Migration Guides](../migration/index.html)** - Moving from other HTTP clients
+```csharp
+var result = await Curl.ExecuteAsync("curl -u user:passwd https://httpbin.org/basic-auth/user/passwd");
+```
 
-## Tips for Success
+```csharp
+var result = await CurlRequestBuilder.Get("https://httpbin.org/basic-auth/user/passwd")
+    .WithBasicAuth("user", "passwd")
+    .ExecuteAsync();
+```
 
-1. **Reuse Curl instances** - Create once, use many times
-2. **Always check IsSuccess** - Before accessing response data
-3. **Use async/await** - All methods are async
-4. **Set appropriate timeouts** - Don't wait forever
-5. **Log errors** - Track what goes wrong
+### curl download file in C#
 
----
+```csharp
+var result = await Curl.ExecuteAsync("curl -o image.png https://httpbin.org/image/png");
+```
 
-Welcome to the CurlDotNet community! Happy coding! 🚀
+```csharp
+var result = await Curl.DownloadAsync("https://httpbin.org/image/png", "image.png");
+```
+
+Binary responses are also available in memory as `result.BinaryData` (a `byte[]`) when `result.IsBinary` is true.
+
+### curl timeout in C#
+
+```csharp
+var result = await Curl.ExecuteAsync("curl -m 10 https://httpbin.org/delay/2");
+```
+
+There is no timeout unless you set one, exactly as with curl. `-m` covers the whole transfer, body included, and an expired limit throws `CurlOperationTimeoutException`.
+
+```csharp
+var result = await CurlRequestBuilder.Get("https://httpbin.org/delay/2")
+    .WithTimeout(TimeSpan.FromSeconds(10))
+    .ExecuteAsync();
+```
+
+### curl follow redirects in C#
+
+```csharp
+var result = await Curl.ExecuteAsync("curl -L https://httpbin.org/redirect/2");
+Console.WriteLine(result.StatusCode);   // 200, not 302
+```
+
+Without `-L` (or `Curl.DefaultFollowRedirects = true`) redirects are not followed and you get the 302 itself, as with curl.
+
+### curl retry in C#
+
+```csharp
+// Retries timeouts and HTTP 408/429/500/502/503/504 with doubling back-off
+var result = await Curl.ExecuteAsync("curl --retry 3 https://httpbin.org/status/503");
+```
+
+See [retries](../cookbook/retry.html) for `--retry-delay`, `--retry-max-time`, `--retry-all-errors` and `CurlSettings.WithRetries`.
+
+## Parse the JSON response
+
+`ParseJson<T>()` deserializes `result.Body` with `System.Text.Json` (Newtonsoft.Json on .NET Standard 2.0). Property matching is case-insensitive, so camelCase keys such as `login` bind to `Login` without attributes; map snake_case fields such as `public_repos` with `JsonPropertyName`.
+
+```csharp
+using System.Text.Json.Serialization;
+using CurlDotNet;
+
+public record GitHubUser(
+    string Login,
+    [property: JsonPropertyName("public_repos")] int PublicRepos);
+
+var result = await Curl.ExecuteAsync("curl https://api.github.com/users/octocat");
+var user = result.ParseJson<GitHubUser>();
+Console.WriteLine($"{user.Login} has {user.PublicRepos} public repos");
+```
+
+For one-off access without a class, parse `result.Body` with `System.Text.Json.JsonDocument`. (`result.AsJsonDynamic()` returns a `JsonDocument` on .NET 8+ and .NET Framework, so `obj.property` style dynamic access does not work there.)
+
+## Handle errors
+
+HTTP errors (4xx, 5xx) do not throw; check `IsSuccess`. Network failures throw a `CurlException` subclass whose `CurlErrorCode` is curl's exit code. Add `-f` to make HTTP errors throw `CurlHttpReturnedErrorException` (exit code 22), and expect the standard `OperationCanceledException` when you cancel a `CancellationToken`.
+
+```csharp
+using CurlDotNet;
+using CurlDotNet.Exceptions;
+
+try
+{
+    var result = await Curl.ExecuteAsync("curl -m 5 https://httpbin.org/status/404");
+
+    if (!result.IsSuccess)
+        Console.WriteLine($"Server answered HTTP {result.StatusCode}");
+}
+catch (CurlTimeoutException)       { Console.WriteLine("Timed out"); }
+catch (CurlConnectionException ex) { Console.WriteLine($"Could not connect: {ex.Message}"); }
+catch (CurlException ex)           { Console.WriteLine($"curl error {ex.CurlErrorCode}: {ex.Message}"); }
+```
+
+If you prefer exceptions for HTTP errors, call `result.EnsureSuccess()`; it throws `CurlDotNet.Core.CurlHttpException` with the status code and response body.
+
+## Run several commands at once
+
+```csharp
+var results = await Curl.ExecuteManyAsync(
+    "curl https://api.github.com/users/octocat",
+    "curl https://api.github.com/users/torvalds");
+
+foreach (var r in results)
+    Console.WriteLine(r.StatusCode);
+```
+
+## Next steps
+
+- [First request, explained line by line](first-request.html)
+- [Configuration: defaults, timeouts, redirects, SSL](configuration.html)
+- [API guide: string API, builder API and LibCurl](../api-guide/README.html)
+- [Advanced guide: proxies, cookies, binary downloads, timings](../guides/advanced.html)
+- [Cookbook recipes](../cookbook/index.html)
+- [Migrating from HttpClient](../migration/httpclient.html) or [RestSharp](../migration/restsharp.html)

@@ -145,7 +145,7 @@ namespace CurlDotNet.Tests
             {
                 "",
                 "   ",
-                "not-a-curl-command",
+                "curl \"http://\"", // scheme but no host: unparseable even after curl's http:// guessing
                 "curl", // No URL
                 "curl -X GET" // No URL
             };

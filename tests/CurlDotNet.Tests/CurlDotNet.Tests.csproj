@@ -8,13 +8,13 @@
     <!-- Multi-framework testing support -->
     <!-- Windows: Full framework support including .NET Framework -->
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' != 'true'">net10.0;net48;net472</TargetFrameworks>
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">net8.0;net9.0;net472;net48</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">net8.0;net9.0;net10.0;net472;net48</TargetFrameworks>
 
     <!-- Mac/Linux Local: .NET 10 and .NET 4.8 (with Mono) -->
     <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' != 'true'">net10.0;net48</TargetFrameworks>
 
     <!-- Mac/Linux CI: No .NET 4.8 (Ubuntu doesn't have Mono), No .NET 10 (not in CI yet) -->
-    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('Windows')) AND '$(IsGitHubActions)' == 'true'">net8.0;net9.0;net10.0</TargetFrameworks>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <LangVersion>8.0</LangVersion>
@@ -63,6 +63,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CurlDotNet\CurlDotNet.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Test classes are not run in parallel: several tests legitimately change process-wide defaults
+         (Curl.DefaultFollowRedirects, DefaultMaxTimeSeconds, DefaultFlavor...) and would race otherwise. -->
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

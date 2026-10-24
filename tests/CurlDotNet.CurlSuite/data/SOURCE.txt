@@ -1,0 +1,1 @@
+curl/curl commit 178e5077b60be91a8dfcbaa22a6bf79e179009ff (Sat Oct 24 00:47:32 2026 +0200)

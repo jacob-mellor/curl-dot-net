@@ -75,7 +75,7 @@ namespace CurlDotNet.Tests
             // Act
             using var stream = result.ToStream();
             var buffer = new byte[8];
-            await stream.ReadAsync(buffer, 0, 8);
+            (await stream.ReadAsync(buffer, 0, 8)).Should().Be(8);
 
             // Assert
             buffer.Should().BeEquivalentTo(binaryData);
@@ -224,8 +224,8 @@ namespace CurlDotNet.Tests
             // Cancel after a short delay
             cts.CancelAfter(100);
 
-            // Should throw CurlAbortedByCallbackException when cancelled
-            await Assert.ThrowsAsync<CurlAbortedByCallbackException>(async () => await task);
+            // Caller cancellation follows the standard .NET contract: OperationCanceledException
+            await Assert.ThrowsAsync<OperationCanceledException>(async () => await task);
         }
 
         [Fact]

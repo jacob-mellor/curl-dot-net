@@ -1,515 +1,271 @@
-# Tutorial 11: Forms and Data
+---
+title: "curl -d Form Data and POST in C# with CurlDotNet"
+description: "curl -d form data and POST in C#: URL-encoded forms, --data-urlencode, multipart -F, JSON with --json, XML and query strings using CurlDotNet."
+---
 
-Learn how to submit HTML forms, work with different content types, and send structured data with CurlDotNet.
+# Tutorial 11: curl -d form data and POST in C#
+
+This tutorial covers curl -d form data and POST in C# with CurlDotNet: URL-encoded form submissions with `-d` and `--data-urlencode`, multipart forms with `-F`, JSON with `--json`, XML and plain text bodies, and query strings. Every example targets https://httpbin.org/post, which echoes back whatever it receives.
 
 ## HTML Form Submission
 
-### Simple Form POST
-```csharp
-var curl = new Curl();
+### Simple form POST (-d)
 
-// Create form data
-var formData = new Dictionary<string, string>
+`-d` switches curl to POST and sets `Content-Type: application/x-www-form-urlencoded`. The value is the form body, already encoded (`%40` is `@`):
+
+```csharp
+using CurlDotNet;
+
+// Same as: curl -d 'username=john_doe&email=john%40example.com' https://httpbin.org/post
+var result = await Curl.ExecuteAsync(
+    "curl -d 'username=john_doe&email=john%40example.com' https://httpbin.org/post");
+
+Console.WriteLine(result.StatusCode);   // 200
+Console.WriteLine(result.Body);         // JSON with a "form": { "username": ..., "email": ... }
+```
+
+You can repeat `-d` once per field; curl joins them with `&`. `-d ''` sends an empty body, and `--data-ascii` is an alias for `-d`:
+
+```csharp
+var result = await Curl.ExecuteAsync(@"curl \
+  -d 'username=john_doe' \
+  -d 'subscribe=true' \
+  https://httpbin.org/post");
+```
+
+### Let curl encode the values (--data-urlencode)
+
+When a value contains spaces, `&`, `@` or other special characters, use `--data-urlencode` and curl encodes it for you:
+
+```csharp
+var result = await Curl.ExecuteAsync(@"curl \
+  --data-urlencode 'comment=Hello world & friends' \
+  --data-urlencode 'email=john@example.com' \
+  https://httpbin.org/post");
+// body: comment=Hello+world+%26+friends&email=john%40example.com
+```
+
+The encoding is curl's: spaces become `+` (not `%20`) and only the part after the first `=` is encoded. All five curl forms work:
+
+| Form | Sends |
+|------|-------|
+| `--data-urlencode 'content'` | `content` encoded |
+| `--data-urlencode '=content'` | `content` encoded (use this when the content itself contains `=`) |
+| `--data-urlencode 'name=content'` | `name=` followed by `content` encoded |
+| `--data-urlencode '@file'` | the file's contents encoded |
+| `--data-urlencode 'name@file'` | `name=` followed by the file's contents encoded |
+
+### Convenience helper and builder
+
+`Curl.PostAsync` takes an already-encoded body. The builder's `WithFormData` encodes a dictionary for you:
+
+```csharp
+using CurlDotNet.Core;
+
+// Helper: POST a form-encoded body
+var quick = await Curl.PostAsync("https://httpbin.org/post", "username=john_doe&age=25");
+
+// Builder: each key and value is URL-encoded automatically
+var form = new Dictionary<string, string>
 {
     ["username"] = "john_doe",
-    ["email"] = "john@example.com",
-    ["age"] = "25",
-    ["subscribe"] = "true"
+    ["email"] = "john@example.com"
 };
-
-// Submit form
-var result = await curl.PostFormAsync("https://example.com/register", formData);
-
-if (result.IsSuccess)
-{
-    Console.WriteLine("Form submitted successfully!");
-}
+var result = await CurlRequestBuilder
+    .Post("https://httpbin.org/post")
+    .WithFormData(form)
+    .ExecuteAsync();
 ```
 
-### URL-Encoded Forms
+## Multipart Forms (-F)
+
+Use `-F` when the form includes a file, or when the server expects `multipart/form-data`. Text fields and files mix freely:
+
 ```csharp
-// Method 1: Using PostFormAsync
-var loginData = new Dictionary<string, string>
+var result = await Curl.ExecuteAsync(@"curl \
+  -F 'name=Jane Smith' \
+  -F 'position=Software Developer' \
+  -F 'resume=@resume.pdf' \
+  https://httpbin.org/post");
+
+Console.WriteLine(result.Body);   // "form": {...} and "files": { "resume": ... }
+```
+
+The builder equivalent is `WithMultipartForm(fields, files)`:
+
+```csharp
+var fields = new Dictionary<string, string>
 {
-    ["username"] = "user@example.com",
-    ["password"] = "secure123",
-    ["remember_me"] = "1"
+    ["name"] = "Jane Smith",
+    ["position"] = "Software Developer"
 };
+var files = new Dictionary<string, string> { ["resume"] = "resume.pdf" };
 
-var result = await curl.PostFormAsync("https://example.com/login", loginData);
-
-// Method 2: Manual encoding
-var encodedData = string.Join("&",
-    loginData.Select(kvp => $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}")
-);
-
-curl.Headers.Add("Content-Type", "application/x-www-form-urlencoded");
-var result = await curl.PostAsync("https://example.com/login", encodedData);
+var result = await CurlRequestBuilder
+    .Post("https://httpbin.org/post")
+    .WithMultipartForm(fields, files)
+    .ExecuteAsync();
 ```
 
-## Multipart Forms
-
-### Text Fields with File Upload
-```csharp
-public async Task SubmitApplicationForm(
-    string name,
-    string email,
-    string resumePath,
-    string coverLetterPath)
-{
-    var curl = new Curl();
-    using var form = new MultipartFormDataContent();
-
-    // Add text fields
-    form.Add(new StringContent(name), "name");
-    form.Add(new StringContent(email), "email");
-    form.Add(new StringContent("Software Developer"), "position");
-
-    // Add files
-    var resumeBytes = File.ReadAllBytes(resumePath);
-    var resumeContent = new ByteArrayContent(resumeBytes);
-    resumeContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/pdf");
-    form.Add(resumeContent, "resume", Path.GetFileName(resumePath));
-
-    var coverLetterBytes = File.ReadAllBytes(coverLetterPath);
-    var coverContent = new ByteArrayContent(coverLetterBytes);
-    coverContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/pdf");
-    form.Add(coverContent, "cover_letter", Path.GetFileName(coverLetterPath));
-
-    var result = await curl.PostAsync("https://careers.example.com/apply", form);
-}
-```
-
-### Complex Multipart Data
-```csharp
-public async Task SubmitComplexForm()
-{
-    var boundary = "----WebKitFormBoundary" + Guid.NewGuid().ToString("N");
-    var content = new MultipartFormDataContent(boundary);
-
-    // Text field
-    content.Add(new StringContent("John Doe"), "name");
-
-    // JSON field
-    var metadata = new { category = "photos", tags = new[] { "vacation", "2024" } };
-    var jsonContent = new StringContent(
-        JsonSerializer.Serialize(metadata),
-        Encoding.UTF8,
-        "application/json"
-    );
-    content.Add(jsonContent, "metadata");
-
-    // Multiple files
-    var photos = Directory.GetFiles("/path/to/photos", "*.jpg");
-    foreach (var photo in photos.Take(5))
-    {
-        var photoBytes = File.ReadAllBytes(photo);
-        var photoContent = new ByteArrayContent(photoBytes);
-        photoContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
-        content.Add(photoContent, "photos[]", Path.GetFileName(photo));
-    }
-
-    var curl = new Curl();
-    var result = await curl.PostAsync("https://api.example.com/upload-batch", content);
-}
-```
+File uploads are covered in more depth in [Tutorial 10](10-files-and-downloads.html).
 
 ## Working with Different Content Types
 
-### JSON Data
-```csharp
-// Send JSON
-var userData = new
-{
-    name = "Jane Smith",
-    email = "jane@example.com",
-    preferences = new
-    {
-        newsletter = true,
-        notifications = false
-    }
-};
+### JSON data
 
-var result = await curl.PostJsonAsync("https://api.example.com/users", userData);
+`--json` sets both `Content-Type` and `Accept` to `application/json` in one flag:
+
+```csharp
+// Same as: curl --json '{"name":"Jane","newsletter":true}' https://httpbin.org/post
+var result = await Curl.ExecuteAsync(
+    @"curl --json '{""name"":""Jane"",""newsletter"":true}' https://httpbin.org/post");
 ```
 
-### XML Data
-```csharp
-// Send XML
-var xmlData = @"<?xml version=""1.0"" encoding=""UTF-8""?>
-<user>
-    <name>John Doe</name>
-    <email>john@example.com</email>
-    <age>30</age>
-</user>";
+When you have a C# object, let the library serialize it:
 
-curl.Headers.Add("Content-Type", "application/xml");
-var result = await curl.PostAsync("https://api.example.com/users", xmlData);
+```csharp
+var user = new { name = "Jane Smith", email = "jane@example.com" };
+
+// Helper
+var result = await Curl.PostJsonAsync("https://httpbin.org/post", user);
+
+// Builder
+var result2 = await CurlRequestBuilder
+    .Post("https://httpbin.org/post")
+    .WithJson(user)
+    .ExecuteAsync();
 ```
 
-### Plain Text
-```csharp
-// Send plain text
-var textData = "This is a plain text message.";
+JSON is covered in detail in [Tutorial 7](07-json-for-beginners.html) and the [Send JSON](../cookbook/beginner/send-json.html) recipe.
 
-curl.Headers.Add("Content-Type", "text/plain");
-var result = await curl.PostAsync("https://api.example.com/message", textData);
+### XML data
+
+Set the `Content-Type` yourself and pass the document with `-d`:
+
+```csharp
+var result = await Curl.ExecuteAsync(@"curl \
+  -H 'Content-Type: application/xml' \
+  -d '<user><name>John Doe</name><age>30</age></user>' \
+  https://httpbin.org/post");
+```
+
+For a document stored on disk use `--data-binary @body.xml`. Plain `-d @file` strips newlines, exactly as curl does; `--data-binary` sends the file byte for byte.
+
+### Plain text
+
+```csharp
+var result = await Curl.ExecuteAsync(@"curl \
+  -H 'Content-Type: text/plain' \
+  -d 'This is a plain text message.' \
+  https://httpbin.org/post");
 ```
 
 ## Query Parameters
 
-### Building URLs with Parameters
+### Let curl build the query (-G)
+
+`-G` (`--get`) turns every `-d` and `--data-urlencode` value into the query string of a GET request instead of a POST body, exactly as in curl:
+
 ```csharp
-public class QueryBuilder
-{
-    public static string BuildUrl(string baseUrl, Dictionary<string, string> parameters)
-    {
-        if (parameters == null || parameters.Count == 0)
-            return baseUrl;
+// Same as: curl -G --data-urlencode 'q=curl tutorial' -d page=1 https://httpbin.org/get
+var result = await Curl.ExecuteAsync(
+    "curl -G --data-urlencode 'q=curl tutorial' -d page=1 https://httpbin.org/get");
+// requests https://httpbin.org/get?q=curl+tutorial&page=1
+```
 
-        var queryString = string.Join("&",
-            parameters.Select(kvp => $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}")
-        );
+`-G -I` does the same for a HEAD request, and `--url-query` appends query parameters without touching the body. If you really want a GET with a body, write `-X GET -d '...'`.
 
-        return baseUrl.Contains("?")
-            ? $"{baseUrl}&{queryString}"
-            : $"{baseUrl}?{queryString}";
-    }
-}
+### Build the URL yourself
 
-// Usage
+Query strings belong in the URL. Encode each key and value with `Uri.EscapeDataString`, then quote the URL so `&` is not misread:
+
+```csharp
 var parameters = new Dictionary<string, string>
 {
-    ["search"] = "curl tutorial",
-    ["page"] = "1",
-    ["limit"] = "20",
-    ["sort"] = "relevance"
+    ["q"] = "curl tutorial",
+    ["page"] = "1"
 };
+var query = string.Join("&", parameters.Select(kv =>
+    $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value)}"));
 
-var url = QueryBuilder.BuildUrl("https://api.example.com/search", parameters);
-// Result: https://api.example.com/search?search=curl%20tutorial&page=1&limit=20&sort=relevance
-
-var result = await curl.GetAsync(url);
+var result = await Curl.ExecuteAsync($"curl 'https://httpbin.org/get?{query}'");
+Console.WriteLine(result.Body);   // "args": { "page": "1", "q": "curl tutorial" }
 ```
 
-### Complex Query Parameters
+## Checking the Server's Answer
+
+A 4xx or 5xx response does not throw; the result simply reports `IsSuccess == false`:
+
 ```csharp
-public class AdvancedQueryBuilder
+var result = await Curl.ExecuteAsync("curl -d 'username=' https://httpbin.org/status/422");
+
+if (!result.IsSuccess)
 {
-    public static string BuildUrl(string baseUrl, object parameters)
-    {
-        var properties = parameters.GetType().GetProperties();
-        var queryParts = new List<string>();
-
-        foreach (var prop in properties)
-        {
-            var value = prop.GetValue(parameters);
-
-            if (value == null) continue;
-
-            if (value is IEnumerable<string> list)
-            {
-                // Handle arrays: key[]=value1&key[]=value2
-                foreach (var item in list)
-                {
-                    queryParts.Add($"{prop.Name}[]={Uri.EscapeDataString(item)}");
-                }
-            }
-            else if (value is DateTime date)
-            {
-                // Handle dates
-                queryParts.Add($"{prop.Name}={Uri.EscapeDataString(date.ToString("yyyy-MM-dd"))}");
-            }
-            else
-            {
-                // Handle simple values
-                queryParts.Add($"{prop.Name}={Uri.EscapeDataString(value.ToString())}");
-            }
-        }
-
-        var queryString = string.Join("&", queryParts);
-        return string.IsNullOrEmpty(queryString)
-            ? baseUrl
-            : $"{baseUrl}?{queryString}";
-    }
+    Console.WriteLine($"Server rejected the form: HTTP {result.StatusCode}");
+    Console.WriteLine(result.Body);   // often contains validation messages
 }
-
-// Usage
-var searchParams = new
-{
-    query = "CurlDotNet",
-    categories = new[] { "tutorials", "documentation" },
-    dateFrom = DateTime.Now.AddDays(-30),
-    dateTo = DateTime.Now,
-    includeArchived = false
-};
-
-var url = AdvancedQueryBuilder.BuildUrl("https://api.example.com/search", searchParams);
 ```
 
-## Form Validation and Error Handling
+If you prefer exceptions, `EnsureSuccess()` throws `CurlHttpException` with the status and body attached:
 
-### Client-Side Validation
 ```csharp
-public class FormValidator
+try
 {
-    public static List<string> ValidateRegistrationForm(Dictionary<string, string> formData)
-    {
-        var errors = new List<string>();
-
-        // Required fields
-        if (!formData.ContainsKey("email") || string.IsNullOrWhiteSpace(formData["email"]))
-            errors.Add("Email is required");
-
-        if (!formData.ContainsKey("password") || string.IsNullOrWhiteSpace(formData["password"]))
-            errors.Add("Password is required");
-
-        // Email format
-        if (formData.TryGetValue("email", out var email))
-        {
-            if (!email.Contains("@") || !email.Contains("."))
-                errors.Add("Invalid email format");
-        }
-
-        // Password strength
-        if (formData.TryGetValue("password", out var password))
-        {
-            if (password.Length < 8)
-                errors.Add("Password must be at least 8 characters");
-        }
-
-        return errors;
-    }
+    var result = await Curl.ExecuteAsync("curl -d 'username=' https://httpbin.org/status/422");
+    result.EnsureSuccess();
 }
-
-// Usage
-var formData = new Dictionary<string, string>
+catch (CurlHttpException ex)
 {
-    ["email"] = "user@example.com",
-    ["password"] = "short"
-};
-
-var errors = FormValidator.ValidateRegistrationForm(formData);
-if (errors.Any())
-{
-    Console.WriteLine("Form validation failed:");
-    errors.ForEach(e => Console.WriteLine($"- {e}"));
-}
-else
-{
-    var result = await curl.PostFormAsync("https://example.com/register", formData);
+    Console.WriteLine($"HTTP {ex.StatusCode}: {ex.ResponseBody}");
 }
 ```
 
-### Handling Form Submission Errors
+Error handling in general is the subject of [Tutorial 6](06-handling-errors.html).
+
+## Forms That Need a Session Token
+
+Some sites put a CSRF token in the form page and expect it back with the submission. Fetch the page, pull the token out, then post it along with the cookie string the server set:
+
 ```csharp
-public async Task<bool> SubmitFormWithErrorHandling(string url, Dictionary<string, string> formData)
-{
-    var curl = new Curl();
-    var result = await curl.PostFormAsync(url, formData);
+var page = await Curl.ExecuteAsync("curl https://example.com/login");
 
-    if (result.IsSuccess)
-    {
-        // Check for application-level errors in response
-        try
-        {
-            var response = JsonSerializer.Deserialize<FormResponse>(result.Data);
+var token = System.Text.RegularExpressions.Regex
+    .Match(page.Body, @"name=""csrf_token"" value=""([^""]+)""").Groups[1].Value;
+var session = page.GetHeader("Set-Cookie")?.Split(';')[0];   // e.g. session=abc123
 
-            if (response.Success)
-            {
-                Console.WriteLine("Form submitted successfully!");
-                return true;
-            }
-            else
-            {
-                Console.WriteLine("Form submission failed:");
-                foreach (var error in response.Errors ?? new List<string>())
-                {
-                    Console.WriteLine($"- {error}");
-                }
-                return false;
-            }
-        }
-        catch (JsonException)
-        {
-            // Non-JSON response might indicate success
-            return true;
-        }
-    }
-    else
-    {
-        // HTTP-level error
-        Console.WriteLine($"HTTP Error {result.StatusCode}: {result.Error}");
-        return false;
-    }
-}
-
-class FormResponse
-{
-    public bool Success { get; set; }
-    public List<string> Errors { get; set; }
-    public string Message { get; set; }
-}
+var result = await Curl.ExecuteAsync(
+    $"curl -b '{session}' --data-urlencode 'csrf_token={token}' " +
+    "-d 'username=john_doe' https://example.com/login");
 ```
 
-## CSRF Protection
+curl's cookie jar works too: `-c cookies.txt` on the first request saves the cookies in Netscape format, and `-b cookies.txt` on the second sends them back, following curl's domain, path and expiry rules. See the [cookies recipe](../cookbook/cookies.html).
 
-### Handling CSRF Tokens
-```csharp
-public class CsrfProtectedForm
-{
-    private readonly Curl _curl = new Curl();
-    private string _csrfToken;
-
-    public async Task<string> GetCsrfToken(string formUrl)
-    {
-        // GET the form page to extract CSRF token
-        var result = await _curl.GetAsync(formUrl);
-
-        if (result.IsSuccess)
-        {
-            // Parse HTML to find CSRF token
-            // Simplified - use proper HTML parser in production
-            var match = Regex.Match(result.Data,
-                @"<input.*?name=""csrf_token"".*?value=""([^""]+)""");
-
-            if (match.Success)
-            {
-                _csrfToken = match.Groups[1].Value;
-                return _csrfToken;
-            }
-        }
-
-        throw new Exception("Could not retrieve CSRF token");
-    }
-
-    public async Task<bool> SubmitProtectedForm(string url, Dictionary<string, string> formData)
-    {
-        // Add CSRF token to form data
-        formData["csrf_token"] = _csrfToken;
-
-        var result = await _curl.PostFormAsync(url, formData);
-        return result.IsSuccess;
-    }
-}
-```
-
-## Form Data Serialization
-
-### Custom Form Serializer
-```csharp
-public static class FormSerializer
-{
-    public static Dictionary<string, string> Serialize<T>(T obj)
-    {
-        var formData = new Dictionary<string, string>();
-        var properties = typeof(T).GetProperties();
-
-        foreach (var prop in properties)
-        {
-            var value = prop.GetValue(obj);
-
-            if (value == null) continue;
-
-            // Handle different types
-            if (value is bool boolValue)
-            {
-                formData[prop.Name] = boolValue ? "1" : "0";
-            }
-            else if (value is DateTime dateValue)
-            {
-                formData[prop.Name] = dateValue.ToString("yyyy-MM-dd");
-            }
-            else if (value is IEnumerable<string> list && !(value is string))
-            {
-                var items = list.ToList();
-                for (int i = 0; i < items.Count; i++)
-                {
-                    formData[$"{prop.Name}[{i}]"] = items[i];
-                }
-            }
-            else
-            {
-                formData[prop.Name] = value.ToString();
-            }
-        }
-
-        return formData;
-    }
-}
-
-// Usage
-public class UserProfile
-{
-    public string Name { get; set; }
-    public string Email { get; set; }
-    public DateTime BirthDate { get; set; }
-    public bool Newsletter { get; set; }
-    public List<string> Interests { get; set; }
-}
-
-var profile = new UserProfile
-{
-    Name = "Jane Doe",
-    Email = "jane@example.com",
-    BirthDate = new DateTime(1990, 5, 15),
-    Newsletter = true,
-    Interests = new List<string> { "tech", "music", "travel" }
-};
-
-var formData = FormSerializer.Serialize(profile);
-var result = await curl.PostFormAsync("https://example.com/profile", formData);
-```
-
-## Streaming Form Data
-
-### Large Form Submission
-```csharp
-public async Task SubmitLargeForm(string url, Stream dataStream)
-{
-    var curl = new Curl();
-
-    // Set content type and length
-    curl.Headers.Add("Content-Type", "application/x-www-form-urlencoded");
-    curl.Headers.Add("Content-Length", dataStream.Length.ToString());
-
-    // Stream the content
-    using var streamContent = new StreamContent(dataStream);
-    var result = await curl.PostAsync(url, streamContent);
-
-    if (result.IsSuccess)
-    {
-        Console.WriteLine("Large form submitted successfully");
-    }
-}
-```
+Use a real HTML parser in production code; the regex is only there to keep the example short.
 
 ## Best Practices
 
-1. **Validate before submission** - Check required fields client-side
-2. **Encode special characters** - Use URL encoding for form data
-3. **Handle CSRF tokens** - Include security tokens when required
-4. **Set correct Content-Type** - Match the server's expectations
-5. **Limit file sizes** - Check before uploading large files
-6. **Use HTTPS** - Never send sensitive form data over HTTP
-7. **Handle errors gracefully** - Provide user-friendly error messages
-8. **Implement retry logic** - Handle temporary network failures
-9. **Clean user input** - Sanitize data before submission
-10. **Log submissions** - Track form submission attempts
+1. **Prefer `--data-urlencode` or `WithFormData`** - hand-encoding form values is a common source of bugs.
+2. **Use `-F` only when you need multipart** - plain `-d` is smaller and what most HTML forms send.
+3. **Set `Content-Type` explicitly for XML and text** - `-d` defaults to form encoding.
+4. **Use `--data-binary @file` for files** - `-d @file` strips newlines.
+5. **Quote URLs containing `&`** so the shell-style parser does not split them.
+6. **Check `IsSuccess` or call `EnsureSuccess()`** - HTTP errors do not throw on their own.
+7. **Send credentials and personal data over HTTPS only.**
 
 ## Summary
 
-Working with forms and data in CurlDotNet:
-- Simple methods for common form submissions
-- Support for various content types
-- Multipart forms for file uploads
-- Query parameter building
-- Form validation and error handling
+- `-d 'a=1&b=2'` posts a URL-encoded form; `--data-urlencode` encodes values for you (spaces as `+`).
+- `-G` moves the data into the query string of a GET.
+- `-F` builds multipart forms with text fields and files.
+- `--json`, `Curl.PostJsonAsync` and `WithJson` send JSON; `-H 'Content-Type: ...' -d` handles XML and text.
+- Query strings are built with `Uri.EscapeDataString` and placed in the URL.
+
+See also the [POST a Form](../cookbook/beginner/post-form.html) recipe.
 
 ## What's Next?
 
-Learn about [cancellation tokens](12-cancellation-tokens.html) for managing long-running requests.
+Learn about [cancellation tokens](12-cancellation-tokens.html) for stopping long-running requests.
 
 ---
 
-[← Previous: Files and Downloads](10-files-and-downloads.html) | [Next: Cancellation Tokens →](12-cancellation-tokens.html)
+[Previous: Files and Downloads](10-files-and-downloads.html) | [Next: Cancellation Tokens](12-cancellation-tokens.html)

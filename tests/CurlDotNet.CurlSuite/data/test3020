@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<testcase>
+<info>
+<keywords>
+HTTP
+HTTP GET
+--connect-to
+</keywords>
+</info>
+
+<reply>
+</reply>
+
+<client>
+<server>
+http
+</server>
+<name>
+HTTP with invalid --connect-to syntax
+</name>
+<command>
+--connect-to ::example.com:example.com http://example.com:%HTTPPORT/%TESTNUMBER
+</command>
+</client>
+
+<verify>
+<errorcode>
+49
+</errorcode>
+</verify>
+</testcase>

@@ -1,6 +1,7 @@
 // NuGet Package: https://www.nuget.org/packages/CurlDotNet/
 // Install: dotnet add package CurlDotNet
 using System;
+using System.Text.Json;
 using System.Threading.Tasks;
 using CurlDotNet;
 
@@ -17,18 +18,19 @@ namespace SimpleGet
         {
             Console.WriteLine("=== CurlDotNet: Simple GET Request Example ===\n");
 
-            // Example 1: Simplest possible GET request
+            // Example 1: Simplest possible GET request - the leading "curl" is optional
             Console.WriteLine("1. Fetching GitHub API root endpoint...");
             var result = await Curl.ExecuteAsync("https://api.github.com");
 
             if (result.IsSuccess)
             {
-                Console.WriteLine($"✅ Success! Status: {result.StatusCode}");
+                Console.WriteLine($"Success! Status: {result.StatusCode}");
+                Console.WriteLine($"Content-Type: {result.GetHeader("Content-Type")}");
                 Console.WriteLine($"Response preview (first 200 chars):\n{result.Body.Substring(0, Math.Min(200, result.Body.Length))}...\n");
             }
             else
             {
-                Console.WriteLine($"❌ Request failed with status: {result.StatusCode}");
+                Console.WriteLine($"Request failed with status: {result.StatusCode}");
             }
 
             // Example 2: GET with explicit curl command
@@ -37,7 +39,7 @@ namespace SimpleGet
 
             if (curlResult.IsSuccess)
             {
-                Console.WriteLine($"✅ GitHub Zen: {curlResult.Body}\n");
+                Console.WriteLine($"GitHub Zen: {curlResult.Body}\n");
             }
 
             // Example 3: Using convenience method
@@ -46,24 +48,24 @@ namespace SimpleGet
 
             if (getResult.IsSuccess)
             {
-                Console.WriteLine($"✅ httpbin.org response received");
-                Console.WriteLine($"Response size: {getResult.Body.Length} bytes\n");
+                Console.WriteLine("httpbin.org response received");
+                Console.WriteLine($"Response size: {getResult.Body.Length} characters");
+                Console.WriteLine($"Response headers: {getResult.Headers.Count}\n");
             }
 
-            // Example 4: GET with query parameters
+            // Example 4: GET with query parameters - they are simply part of the URL
             Console.WriteLine("4. GET request with query parameters...");
-            var queryResult = await Curl.GetAsync("https://httpbin.org/get?name=CurlDotNet&version=1.0");
+            var name = Uri.EscapeDataString("CurlDotNet");
+            var queryResult = await Curl.GetAsync($"https://httpbin.org/get?name={name}&version=1.0");
 
             if (queryResult.IsSuccess)
             {
-                Console.WriteLine($"✅ Query parameters sent successfully");
-                // The response will echo back our query parameters
-                Console.WriteLine("Response includes our query params in 'args' field\n");
+                // httpbin echoes our query parameters back in its 'args' field
+                using var json = JsonDocument.Parse(queryResult.Body);
+                Console.WriteLine($"Server saw args: {json.RootElement.GetProperty("args")}\n");
             }
 
             Console.WriteLine("=== Example Complete ===");
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
         }
     }
 }

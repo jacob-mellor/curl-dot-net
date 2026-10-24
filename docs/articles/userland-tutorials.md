@@ -1,160 +1,102 @@
-# CurlDotNet Tutorial Implementations
+---
+title: "CurlDotNet Tutorial Projects - curl in C# Applications"
+description: "Ten small C# projects built on CurlDotNet: minimal APIs, CLIs, mock servers, evidence generators and workers that run curl commands in .NET."
+---
 
-Every tutorial below is a direct lift from the dev.to skyscraper article and now includes runnable C# code. Install CurlDotNet before trying them:
+# CurlDotNet Tutorial Projects: Running curl Commands in Real C# Applications
+
+These CurlDotNet tutorial projects show curl commands running inside real C# applications: an ASP.NET Core minimal API, a `System.CommandLine` tool, a mock server, a message-bus publisher and more. Each snippet is a starting point you can paste into a .NET 8 or later project.
+
+Install the package first:
 
 ```bash
 dotnet add package CurlDotNet
 ```
 
-All projects target .NET 8/10.
+Every snippet assumes `using CurlDotNet;` (and `using CurlDotNet.Core;` where `CurlResult` is named). Results come back as `CurlResult` with `StatusCode`, `Headers`, `Body` and `IsSuccess`.
 
 ## Tutorial 1: Self-Service API Explorer
 
-**Why it matters:** Build an ASP.NET Core explorer so C# developers can store and execute CurlDotNet commands without leaving .NET tooling.
-
-
-Create an ASP.NET Core Minimal API that lets engineers run curated CurlDotNet templates.
+**Why it matters:** Store curated curl commands and let engineers run them from an ASP.NET Core endpoint without leaving .NET tooling.
 
 ```csharp
-// NuGet: https://www.nuget.org/packages/CurlDotNet/
 using CurlDotNet;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
-var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddSingleton<ApiExplorerStore>();
-var app = builder.Build();
-
-app.MapPost("/requests", async (ApiExplorerStore store, RequestTemplate template) =>
+var app = WebApplication.CreateBuilder(args).Build();
+var templates = new Dictionary<Guid, string>();
+app.MapPost("/requests", (string command) =>
 {
-    store.Add(template);
-    return Results.Created($"/requests/{template.Id}", template);
+    var id = Guid.NewGuid(); templates[id] = command;
+    return Results.Created($"/requests/{id}", new { id, command });
 });
-
-app.MapGet("/requests/{id}", (ApiExplorerStore store, Guid id)
-    => store.TryGet(id, out var template) ? Results.Ok(template) : Results.NotFound());
-
-app.MapPost("/requests/{id}/execute", async (ApiExplorerStore store, Guid id) =>
+app.MapPost("/requests/{id}/execute", async (Guid id) =>
 {
-    if (!store.TryGet(id, out var template))
-    {
-        return Results.NotFound();
-    }
-
-    var result = await Curl.ExecuteAsync(template.Command);
-    store.LogExecution(id, result);
-    return Results.Json(new { result.StatusCode, result.Body });
+    var r = await Curl.ExecuteAsync(templates[id]);
+    return Results.Json(new { r.StatusCode, r.Body });
 });
-
 app.Run();
-
-public sealed record RequestTemplate(Guid Id, string Name, string Command, string Description);
-
-public sealed class ApiExplorerStore
-{
-    private readonly Dictionary<Guid, RequestTemplate> _templates = new();
-    private readonly List<string> _logs = new();
-
-    public void Add(RequestTemplate template) => _templates[template.Id] = template;
-    public bool TryGet(Guid id, out RequestTemplate template) => _templates.TryGetValue(id, out template!);
-    public void LogExecution(Guid id, CurlResult result)
-        => _logs.Add($"{DateTimeOffset.UtcNow:o}|{id}|{result.StatusCode}");
-}
 ```
+
+Validate submitted commands with `Curl.Validate(command).IsValid` before storing them.
 
 ## Tutorial 2: Disaster Recovery Runbook CLI
 
-**Why it matters:** Wrap disaster-recovery curl workflows in a System.CommandLine CLI so operations teams run them from managed C# code.
+**Why it matters:** Wrap recovery curl calls in a `System.CommandLine` app so operators run them from reviewed C# code, with a dry-run switch.
 
-
-Package critical workflows inside a `System.CommandLine` app so operators can execute recovery steps safely.
+`System.CommandLine` is a package your own tool adds (`dotnet add package System.CommandLine --prerelease`); CurlDotNet itself does not depend on it. The snippet uses the 2.0 beta 4 API (`SetHandler`, `InvokeAsync`); later 2.0 releases renamed these.
 
 ```csharp
-// NuGet: https://www.nuget.org/packages/CurlDotNet/
 using System.CommandLine;
 using CurlDotNet;
 
-var environmentOption = new Option<string>("--environment", () => "production");
-var dryRunOption = new Option<bool>("--dry-run", () => false);
-var runbook = new RootCommand("DR runbook powered by CurlDotNet");
-
-runbook.SetHandler(async (string environment, bool dryRun) =>
+var envOption = new Option<string>("--environment", () => "staging");
+var dryRun = new Option<bool>("--dry-run", () => false);
+var runbook = new RootCommand("DR runbook") { envOption, dryRun };
+runbook.SetHandler(async (string env, bool dry) =>
 {
-    var command = $"curl https://{environment}.example.com/api/restore -X POST";
-    if (dryRun)
-    {
-        Console.WriteLine($"Would execute: {command}");
-        return;
-    }
-
+    var command = $"curl -X POST https://{env}.example.com/api/restore";
+    if (dry) { Console.WriteLine($"Would execute: {command}"); return; }
     var result = await Curl.ExecuteAsync(command);
     Console.WriteLine($"Restore status {result.StatusCode}");
-}, environmentOption, dryRunOption);
+}, envOption, dryRun);
 
 await runbook.InvokeAsync(args);
 ```
 
 ## Tutorial 3: Compliance Evidence Generator
 
-**Why it matters:** Generate evidence bundles inside .NET by executing CurlDotNet commands and persisting their responses for auditors.
-
-
-Generate immutable bundles proving regulated workflows were run through CurlDotNet.
+**Why it matters:** Persist each command and its response as JSON so auditors can see exactly which workflows ran.
 
 ```csharp
-// NuGet: https://www.nuget.org/packages/CurlDotNet/
 using System.Text.Json;
 using CurlDotNet;
 
-var evidence = new EvidenceGenerator("evidence");
-await evidence.RunAsync("delete-user", "curl -X DELETE https://api.example.com/users/42");
-
-public sealed class EvidenceGenerator
+async Task CaptureAsync(string workflow, string command, string directory)
 {
-    private readonly string _directory;
-
-    public EvidenceGenerator(string directory)
-    {
-        Directory.CreateDirectory(directory);
-        _directory = directory;
-    }
-
-    public async Task RunAsync(string workflow, string command)
-    {
-        var result = await Curl.ExecuteAsync(command);
-        var bundle = new
-        {
-            Workflow = workflow,
-            Timestamp = DateTimeOffset.UtcNow,
-            result.StatusCode,
-            result.Headers,
-            result.Body
-        };
-
-        var path = Path.Combine(_directory, $"{workflow}-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}.json");
-        await File.WriteAllTextAsync(path, JsonSerializer.Serialize(bundle, new JsonSerializerOptions { WriteIndented = true }));
-    }
+    Directory.CreateDirectory(directory);
+    var result = await Curl.ExecuteAsync(command);
+    var bundle = new { workflow, command, result.StatusCode, result.Headers, result.Body,
+                       timestamp = DateTimeOffset.UtcNow };
+    var path = Path.Combine(directory, $"{workflow}-{DateTime.UtcNow:yyyyMMddHHmmss}.json");
+    await File.WriteAllTextAsync(path, JsonSerializer.Serialize(bundle,
+        new JsonSerializerOptions { WriteIndented = true }));
 }
+
+await CaptureAsync("delete-user", "curl -X DELETE https://httpbin.org/delete", "evidence");
 ```
 
-## Tutorial 4: Migrating Bash Scripts to CurlDotNet
+## Tutorial 4: Migrating Bash Scripts to C#
 
-**Why it matters:** Port legacy bash scripts to a modern C# console app that calls CurlDotNet instead of shelling out to curl.
-
-
-Wrap legacy curl calls in a single C# console application.
+**Why it matters:** Port a legacy bash script that shells out to curl into a console app; the curl strings stay exactly as they were.
 
 ```csharp
-// NuGet: https://www.nuget.org/packages/CurlDotNet/
 using CurlDotNet;
 
 string[] commands =
 [
-    "curl https://api.legacy.com/login -d 'user=svc&password=secret'",
-    "curl https://api.legacy.com/data -H 'Accept: application/json'",
-    "curl https://api.legacy.com/logout"
+    "curl https://httpbin.org/post -d 'user=svc&password=$SVC_PASSWORD'",
+    "curl https://httpbin.org/get -H 'Accept: application/json'",
+    "curl https://httpbin.org/status/204"
 ];
 
 foreach (var command in commands)
@@ -164,80 +106,58 @@ foreach (var command in commands)
 }
 ```
 
+`$SVC_PASSWORD` is expanded from the environment by the parser, as it would be in bash.
+
 ## Tutorial 5: Full-Fidelity Mock Server
 
-**Why it matters:** Host a realistic mock API in ASP.NET Core and exercise it with CurlDotNet to keep integration tests all within .NET.
-
-
-Use ASP.NET Core to emulate partner APIs while verifying behavior with CurlDotNet.
+**Why it matters:** Host a mock partner API in ASP.NET Core and exercise it with the same curl commands your integration uses.
 
 ```csharp
-// NuGet: https://www.nuget.org/packages/CurlDotNet/
 using CurlDotNet;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Hosting;
 
-var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
-
+var app = WebApplication.CreateBuilder(args).Build();
 app.MapGet("/orders", () => Results.Json(new { items = new[] { new { id = 1, total = 99 } } }));
-app.MapPost("/orders", (Order payload) => Results.Created($"/orders/{payload.Id}", payload));
+app.MapPost("/orders", (Order o) => Results.Created($"/orders/{o.Id}", o));
 
 await app.StartAsync();
-var listResult = await Curl.ExecuteAsync("curl http://localhost:5000/orders");
-Console.WriteLine(listResult.Body);
+var list = await Curl.ExecuteAsync("curl http://localhost:5000/orders");
+Console.WriteLine(list.Body);
 await app.StopAsync();
 
 public sealed record Order(int Id, decimal Total);
 ```
 
-## Tutorial 6: CurlDotNet + Message Buses
+## Tutorial 6: Publishing Results to a Message Bus
 
-**Why it matters:** Publish CurlDotNet outcomes to Service Bus so distributed .NET systems can react to curl-like activity.
-
-
-Publish events whenever CurlDotNet completes a request.
+**Why it matters:** Emit an event after each request so other services can react to API outcomes.
 
 ```csharp
-// NuGet: https://www.nuget.org/packages/CurlDotNet/
 using System.Text.Json;
-using CurlDotNet;
 using Azure.Messaging.ServiceBus;
+using CurlDotNet;
 
-var connectionString = Environment.GetEnvironmentVariable("SERVICEBUS")
-    ?? throw new InvalidOperationException("SERVICEBUS connection string missing");
-var client = new ServiceBusClient(connectionString);
+var client = new ServiceBusClient(Environment.GetEnvironmentVariable("SERVICEBUS")!);
 var sender = client.CreateSender("curl-events");
 
-var result = await Curl.ExecuteAsync("curl https://api.example.com/payments");
-var message = new ServiceBusMessage(JsonSerializer.Serialize(new
-{
-    Command = "payments",
-    result.StatusCode,
-    Timestamp = DateTimeOffset.UtcNow
-}));
-await sender.SendMessageAsync(message);
+var result = await Curl.ExecuteAsync("curl https://httpbin.org/get");
+var payload = JsonSerializer.Serialize(new { Command = "payments", result.StatusCode,
+                                             Timestamp = DateTimeOffset.UtcNow });
+await sender.SendMessageAsync(new ServiceBusMessage(payload));
 ```
 
-## Tutorial 7: Observability-First Mobile Backend
+## Tutorial 7: Mobile Backend Proxy
 
-**Why it matters:** Expose a mobile-friendly backend endpoint that enriches CurlDotNet calls with device metadata, keeping the entire flow in C#.
-
-
-Backend service that enriches CurlDotNet calls with mobile metadata.
+**Why it matters:** Expose one endpoint that forwards a mobile client's request upstream with device metadata added as headers.
 
 ```csharp
-// NuGet: https://www.nuget.org/packages/CurlDotNet/
 using CurlDotNet;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Hosting;
 
-var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
+var app = WebApplication.CreateBuilder(args).Build();
 
 app.MapPost("/mobile/proxy", async (MobileRequest request) =>
 {
-    var command = $"curl {request.UpstreamUrl} -H 'X-App-Version: {request.AppVersion}' -H 'X-Platform: {request.Platform}'";
+    var command = $"curl {request.UpstreamUrl} -H 'X-App-Version: {request.AppVersion}'" +
+                  $" -H 'X-Platform: {request.Platform}'";
     var result = await Curl.ExecuteAsync(command);
     return Results.Json(new { result.StatusCode, result.Body });
 });
@@ -247,82 +167,68 @@ app.Run();
 public sealed record MobileRequest(string UpstreamUrl, string AppVersion, string Platform);
 ```
 
-## Tutorial 8: Multi-Cloud Disaster Recovery Bridge
+Validate `UpstreamUrl` against an allow-list before interpolating it into a command.
 
-**Why it matters:** Deploy CurlDotNet bridges across clouds using lightweight C# workers so failover scripts never rely on ad-hoc curl binaries.
+## Tutorial 8: Multi-Cloud Health Bridge
 
-
-Deploy the same bridge in multiple clouds; configuration shown here for a console worker.
+**Why it matters:** Run the same health probes against several regions from one worker and fail over on the result.
 
 ```csharp
-// NuGet: https://www.nuget.org/packages/CurlDotNet/
 using CurlDotNet;
 
-var targets = new[]
-{
-    "curl https://azure-region.example.com/bridge",
-    "curl https://aws-region.example.com/bridge"
-};
+var results = await Curl.ExecuteManyAsync(
+    "curl --max-time 5 https://azure-region.example.com/bridge",
+    "curl --max-time 5 https://aws-region.example.com/bridge");
 
-foreach (var target in targets)
-{
-    var response = await Curl.ExecuteAsync(target);
-    Console.WriteLine($"{target} => {response.StatusCode}");
-}
+foreach (var r in results)
+    Console.WriteLine($"{r.Command} => {r.StatusCode}");
 ```
 
-## Tutorial 9: Streaming Analytics Pipeline
+## Tutorial 9: Line-Oriented Analytics Pipeline
 
-**Why it matters:** Ingest streaming responses through CurlDotNet and channel them via modern C# concurrency primitives for analytics.
-
-
-Read server-sent events and push them into `System.Threading.Channels`.
+**Why it matters:** Push each line of a response through `System.Threading.Channels` for downstream processing.
 
 ```csharp
-// NuGet: https://www.nuget.org/packages/CurlDotNet/
 using System.Threading.Channels;
 using CurlDotNet;
 
 var channel = Channel.CreateUnbounded<string>();
-var streamingTask = Task.Run(async () =>
+var producer = Task.Run(async () =>
 {
-    var result = await Curl.ExecuteAsync("curl https://stream.example.com/logs");
+    var result = await Curl.ExecuteAsync("curl https://httpbin.org/stream/5");
     foreach (var line in result.Body.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-    {
         await channel.Writer.WriteAsync(line);
-    }
     channel.Writer.Complete();
 });
 
 await foreach (var line in channel.Reader.ReadAllAsync())
-{
     Console.WriteLine(line);
-}
-
-await streamingTask;
+await producer;
 ```
 
-## Tutorial 10: Customer Support Troubleshooting Toolkit
+The whole response is read before lines are emitted; CurlDotNet does not stream partial bodies.
 
-**Why it matters:** Give support agents a safe C# console that runs approved CurlDotNet commands rather than raw curl on their laptops.
+## Tutorial 10: Support Troubleshooting Console
 
-
-Build a trimmed-down desktop console that executes pre-approved CurlDotNet commands.
+**Why it matters:** Give support agents a console that runs pre-approved commands instead of raw curl on their laptops.
 
 ```csharp
-// NuGet: https://www.nuget.org/packages/CurlDotNet/
-using System.Text.Json;
 using CurlDotNet;
 
 var recipes = new Dictionary<int, string>
 {
-    [1] = "curl https://api.example.com/accounts/lookup?email=support@example.com",
-    [2] = "curl https://api.example.com/orders/latest"
+    [1] = "curl https://httpbin.org/get?lookup=account",
+    [2] = "curl https://httpbin.org/uuid"
 };
 
 Console.WriteLine("Select action: 1) Lookup account 2) Latest order");
 var choice = int.Parse(Console.ReadLine() ?? "1");
-var command = recipes[choice];
-var result = await Curl.ExecuteAsync(command);
-Console.WriteLine(JsonSerializer.Serialize(new { result.StatusCode, result.Body }, new JsonSerializerOptions { WriteIndented = true }));
+var result = await Curl.ExecuteAsync(recipes[choice]);
+Console.WriteLine($"{result.StatusCode}\n{result.Body}");
 ```
+
+## Related Pages
+
+- [Implementation Patterns](userland-patterns.html)
+- [CI/CD Integration](ci-cd-integration.html)
+- [Cookbook](../cookbook/)

@@ -3,11 +3,20 @@
 
 ## CurlHttpException\.IsForbidden Property
 
-Check if this is forbidden \(403\)\.
+True for 403 Forbidden: the server knows who you are but this account or token may not do this \(missing
+scope, role or IP allow\-list\)\.
 
 ```csharp
 public bool IsForbidden { get; }
 ```
 
 #### Property Value
-[System\.Boolean](https://learn.microsoft.com/en-us/dotnet/api/system.boolean 'System\.Boolean')
+[System\.Boolean](https://learn.microsoft.com/en-us/dotnet/api/system.boolean 'System\.Boolean')  
+True when [StatusCode](CurlDotNet.Exceptions.CurlHttpException.StatusCode.md 'CurlDotNet\.Exceptions\.CurlHttpException\.StatusCode') is 403\.
+
+### Remarks
+
+Re-sending the same credentials will not help; request the permission or use another account.
+
+### See Also
+- [IsUnauthorized](CurlDotNet.Exceptions.CurlHttpException.IsUnauthorized.md 'CurlDotNet\.Exceptions\.CurlHttpException\.IsUnauthorized')

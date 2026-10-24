@@ -3,7 +3,8 @@
 
 ## DotNetCurl\.ToPython\(string\) Method
 
-Convert curl command to Python requests code\.
+Translates a curl command into Python `requests` code without sending it; same as
+[ToPythonRequests\(string\)](CurlDotNet.Curl.ToPythonRequests(string).md 'CurlDotNet\.Curl\.ToPythonRequests\(string\)')\.
 
 ```csharp
 public static string ToPython(string command);
@@ -14,8 +15,28 @@ public static string ToPython(string command);
 
 `command` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
-Curl command to convert
+The curl command line to translate\.
 
 #### Returns
 [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')  
-Python requests code
+Python source text using `requests`\.
+
+#### Exceptions
+
+[System\.ArgumentNullException](https://learn.microsoft.com/en-us/dotnet/api/system.argumentnullexception 'System\.ArgumentNullException')  
+[command](CurlDotNet.DotNetCurl.ToPython(string).md#CurlDotNet.DotNetCurl.ToPython(string).command 'CurlDotNet\.DotNetCurl\.ToPython\(string\)\.command') is null, empty or whitespace\.
+
+[CurlInvalidCommandException](CurlDotNet.Exceptions.CurlInvalidCommandException.md 'CurlDotNet\.Exceptions\.CurlInvalidCommandException')  
+The command text cannot be read\.
+
+### Remarks
+
+Covers method, URL, headers, body and `-u` credentials. Credentials appear in the output.
+
+Example: `string py = DotNetCurl.ToPython("curl -u user:pass https://api.example.com/data");`
+
+Guide: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/convert-curl-to-csharp/README.md
+
+### See Also
+- [ToPythonRequests\(string\)](CurlDotNet.Curl.ToPythonRequests(string).md 'CurlDotNet\.Curl\.ToPythonRequests\(string\)')
+- [ToHttpClient\(string\)](CurlDotNet.DotNetCurl.ToHttpClient(string).md 'CurlDotNet\.DotNetCurl\.ToHttpClient\(string\)')

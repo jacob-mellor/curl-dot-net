@@ -3,20 +3,22 @@
 
 ## CurlResult\.Timings Property
 
-
-<b>Detailed timing information (like curl -w).</b>
-
-See how long each phase took:
-
-```csharp
-Console.WriteLine($"DNS lookup: {result.Timings.NameLookup}ms");
-Console.WriteLine($"Connect: {result.Timings.Connect}ms");
-Console.WriteLine($"Total: {result.Timings.Total}ms");
-```
+How long each phase of the transfer took \(DNS, connect, TLS, first byte, total\) in milliseconds, like curl's
+`-w '%{time_total}'` family\.
 
 ```csharp
 public CurlDotNet.Core.CurlTimings Timings { get; set; }
 ```
 
 #### Property Value
-[CurlTimings](CurlDotNet.Core.CurlTimings.md 'CurlDotNet\.Core\.CurlTimings')
+[CurlTimings](CurlDotNet.Core.CurlTimings.md 'CurlDotNet\.Core\.CurlTimings')  
+Filled for HTTP\(S\) transfers; null or all zeros for other protocols and results you created yourself\.
+            See [CurlTimings](CurlDotNet.Core.CurlTimings.md 'CurlDotNet\.Core\.CurlTimings') for what each value means and when it is 0\.
+
+### Remarks
+
+Example: `if (result.Timings.Total > 2000) Console.WriteLine($"slow: DNS {result.Timings.NameLookup:F0} ms, connect {result.Timings.Connect:F0} ms, first byte {result.Timings.StartTransfer:F0} ms");`
+
+### See Also
+- [CurlTimings](CurlDotNet.Core.CurlTimings.md 'CurlDotNet\.Core\.CurlTimings')
+- [PrintVerbose\(\)](CurlDotNet.Core.CurlResult.PrintVerbose().md 'CurlDotNet\.Core\.CurlResult\.PrintVerbose\(\)')

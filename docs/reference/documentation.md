@@ -1,148 +1,120 @@
-# 📚 CurlDotNet Documentation Overview
+---
+title: "CurlDotNet Documentation Overview - curl in C# and .NET"
+description: "Map of the CurlDotNet documentation: getting started, tutorials, API guide, cookbook, migration guides and troubleshooting for running curl in C#."
+---
 
-Welcome to CurlDotNet! This file provides quick access to all documentation, whether you're browsing on GitHub or our documentation site.
+# CurlDotNet Documentation Overview: Every Section for curl in C#
 
-## 🌐 Online Documentation
-**Full documentation with search**: https://jacob-mellor.github.io/curl-dot-net/
+This page is the map of the CurlDotNet documentation for running curl commands in C#: where to start, where the API is described, and where to look when something fails. The full site with search is at https://jacob-mellor.github.io/curl-dot-net/ and every page is also readable as Markdown on GitHub.
 
-## 📖 Browse Documentation on GitHub
+## Getting Started
 
-All documentation is available directly in this repository. You can read it on GitHub without leaving this page:
+- [Installation](../getting-started/installation.html) - Add the NuGet package and verify it
+- [Quick Start](../getting-started/quickstart.html) - First request in a few minutes
+- [First Request](../getting-started/first-request.html) - A complete request and response, explained
+- [Configuration](../getting-started/configuration.html) - Opt-in default timeouts, redirects, User-Agent and TLS settings
 
-### 🚀 Getting Started
-- [**Installation Guide**](../getting-started/installation.html) - Get CurlDotNet installed and configured
-- [**Quick Start Tutorial**](../tutorials/04-your-first-request.html) - Make your first request in 5 minutes
-- [**README**](../getting-started/) - Overview of getting started
+## Core Concepts
 
-### 📘 User Manual
-Complete user manual with all documentation:
+- [What is .NET?](../tutorials/01-what-is-dotnet.html) - For developers new to .NET
+- [What is curl?](../tutorials/02-what-is-curl.html) - curl basics
+- [Async Programming](../tutorials/03-what-is-async.html) - async/await as used by CurlDotNet
+- [Understanding Results](../tutorials/05-understanding-results.html) - `CurlResult`: status code, headers, body
 
-#### Core Concepts
-- [**What is .NET?**](../tutorials/01-what-is-dotnet.html) - For developers new to .NET
-- [**What is curl?**](../tutorials/02-what-is-curl.html) - Understanding curl basics
-- [**Async Programming**](../tutorials/03-what-is-async.html) - Understanding async/await
+## API Documentation
 
-#### API Documentation
-- [**API Guide**](../api-guide/) - Complete API reference
-- [**API Reference**](../api/index.html) - Generated API documentation
+- [API Guide](../api-guide/README.html) - String API (`Curl.ExecuteAsync`), builder API (`CurlRequestBuilder`), instance API (`LibCurl`)
+- [Generated API Reference](../api/index.html) - Types and members generated from the XML comments
+- [libcurl Mapping](libcurl-mapping.html) - libcurl options and return codes mapped to C#
+- [curl CLI Compatibility](curl-cli-compatibility.html) - Which curl flags are supported
+- [curl Exit Codes](curl-exit-codes.html) - Every curl exit code and the exception CurlDotNet throws for it
+- [curl Test Suite](curl-test-suite.html) - How CurlDotNet is checked against curl's own test files
 
-#### Practical Examples
-- [**Cookbook**](../cookbook/) - Ready-to-use code recipes
-- [**Simple GET Request**](../cookbook/beginner/simple-get.html) - Basic HTTP GET
-- [**POST JSON Data**](../cookbook/beginner/send-json.html) - Sending JSON
-- [**File Upload**](../cookbook/beginner/upload-file.html) - Uploading files
-- [**Error Handling**](../cookbook/beginner/handle-errors.html) - Handle errors properly
+## Practical Examples
 
-#### Authentication
-- [**Authentication Tutorial**](../tutorials/09-authentication-basics.html) - All auth methods explained
-- [**Call API with Auth**](../cookbook/beginner/call-api.html) - Bearer tokens and API keys
+- [Cookbook](../cookbook/) - Ready-to-use recipes
+- [Simple GET Request](../cookbook/beginner/simple-get.html)
+- [POST JSON Data](../cookbook/beginner/send-json.html)
+- [Upload a File](../cookbook/beginner/upload-file.html)
+- [Download a File](../cookbook/beginner/download-file.html)
+- [Handle Errors](../cookbook/beginner/handle-errors.html)
+- [Retries](../cookbook/retry.html) - curl `--retry` in C#
+- [Write-out](../cookbook/write-out.html) - curl `-w` variables
+- [Multiple URLs and Globbing](../cookbook/multiple-urls-and-globbing.html)
+- [Config Files and Variables](../cookbook/config-files-and-variables.html) - `-K`, `--variable` and `.netrc`
 
-#### Migration Guides
-- [**From HttpClient**](../migration/httpclient.html) - Migrate from HttpClient
-- [**From RestSharp**](../migration/restsharp.html) - Migrate from RestSharp
+## Authentication
 
-#### Troubleshooting
-- [**Common Issues**](../troubleshooting/common-issues.html) - Solutions to common problems
-- [**Error Reference**](../troubleshooting/error-reference.html) - All exception types
-- [**FAQ**](../troubleshooting/faq.html) - Frequently asked questions
+- [Authentication Basics](../tutorials/09-authentication-basics.html) - Basic, bearer, Digest and NTLM auth, and `.netrc`
+- [Call an API with Auth](../cookbook/beginner/call-api.html) - Bearer tokens and API keys
 
-## 🔍 Quick Code Examples
+## Migration Guides
 
-### Simple GET Request
+- [From HttpClient](../migration/httpclient.html)
+- [From RestSharp](../migration/restsharp.html)
+
+## Troubleshooting
+
+- [Common Issues](../troubleshooting/common-issues.html)
+- [Error Reference](../troubleshooting/error-reference.html) - Exception types and what causes them
+- [FAQ](../troubleshooting/faq.html)
+- [Exception Pages](../exceptions/) - One page per exception family
+
+## Quick Code Examples
+
+### Run a curl command string
+
 ```csharp
 using CurlDotNet;
 
 var result = await Curl.ExecuteAsync("curl https://api.github.com");
+Console.WriteLine(result.StatusCode);
 Console.WriteLine(result.Body);
 ```
 
-### POST with JSON
+### POST JSON
+
 ```csharp
-var json = @"{""name"":""John Doe"",""email"":""john@example.com""}";
-var result = await Curl.ExecuteAsync($@"
-    curl -X POST https://api.example.com/users
-    -H 'Content-Type: application/json'
-    -d '{json}'
-");
+using CurlDotNet;
+
+var result = await Curl.ExecuteAsync(@"curl -X POST https://httpbin.org/post \
+    -H 'Content-Type: application/json' \
+    -d '{""name"":""Ada"",""email"":""ada@example.com""}'");
+Console.WriteLine(result.IsSuccess);
 ```
 
-### Using Builder API
+### Builder API
+
 ```csharp
-var result = await new CurlRequestBuilder()
-    .WithUrl("https://api.github.com/user")
-    .WithHeader("Authorization", "Bearer your-token")
-    .WithMethod("GET")
+using CurlDotNet.Core;
+
+var result = await CurlRequestBuilder.Get("https://api.github.com/user")
+    .WithBearerToken("your-token")
     .ExecuteAsync();
+Console.WriteLine(result.StatusCode);
 ```
 
-## 📁 Documentation Structure
-
-```
-docs/
-├── index.md                    # Main documentation index
-├── getting-started/            # Installation and setup
-│   ├── README.md
-│   ├── installation.md
-│   ├── quickstart.md
-│   ├── first-request.md
-│   └── configuration.md
-├── tutorials/                  # Step-by-step tutorials (14 tutorials)
-│   ├── README.md
-│   ├── 01-what-is-dotnet.md
-│   ├── 02-what-is-curl.md
-│   └── ...
-├── api-guide/                  # API overview
-│   └── README.md
-├── api/                        # Generated API reference
-│   └── index.md
-├── cookbook/                   # Code recipes
-│   ├── README.md
-│   └── beginner/
-├── migration/                  # Migration guides
-│   ├── httpclient.md
-│   └── restsharp.md
-├── troubleshooting/            # Problem solving
-│   ├── README.md
-│   ├── common-issues.md
-│   ├── error-reference.md
-│   └── faq.md
-└── ...
-```
-
-## 🎯 Quick Navigation
+## Quick Navigation
 
 | I want to... | Go to... |
 |-------------|----------|
-| Install CurlDotNet | [Installation Guide](../getting-started/installation.html) |
+| Install CurlDotNet | [Installation](../getting-started/installation.html) |
 | Learn the basics | [Tutorials](../tutorials/) |
 | See code examples | [Cookbook](../cookbook/) |
-| Read API docs | [API Guide](../api-guide/) |
-| Solve a problem | [Troubleshooting](../troubleshooting/) |
+| Read API docs | [API Guide](../api-guide/README.html) |
+| Solve a problem | [Common Issues](../troubleshooting/common-issues.html) |
 | Migrate from HttpClient | [Migration Guide](../migration/httpclient.html) |
+| Check runtime support | [Framework Compatibility](../framework-compatibility.html) |
 
-## 💡 Why Read Docs on GitHub?
+## Contributing
 
-- **No build needed** - Read markdown directly
-- **Always up-to-date** - See the latest changes
-- **Easy navigation** - Use GitHub's file browser
-- **Search support** - Use GitHub's search
-- **Direct links** - Share specific sections easily
+Found an issue in the documentation or want to add an example?
 
-## 🤝 Contributing
-
-Found an issue in the documentation? Want to add an example?
 - [Edit on GitHub](https://github.com/jacob-mellor/curl-dot-net/tree/master/docs)
 - [Open an issue](https://github.com/jacob-mellor/curl-dot-net/issues)
-- [Start a discussion](https://github.com/jacob-mellor/curl-dot-net/discussions)
 
-## 📦 Installation
+## Links
 
-```bash
-dotnet add package CurlDotNet
-```
-
----
-
-**Full Documentation Site**: https://jacob-mellor.github.io/curl-dot-net/
-**NuGet Package**: https://www.nuget.org/packages/CurlDotNet/
-**GitHub Repository**: https://github.com/jacob-mellor/curl-dot-net
+- Documentation site: https://jacob-mellor.github.io/curl-dot-net/
+- NuGet package: https://www.nuget.org/packages/CurlDotNet/
+- GitHub repository: https://github.com/jacob-mellor/curl-dot-net

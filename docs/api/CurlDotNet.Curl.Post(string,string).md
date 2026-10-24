@@ -3,8 +3,8 @@
 
 ## Curl\.Post\(string, string\) Method
 
-
-<b>⚠️ SYNCHRONOUS POST request (blocks thread).</b>
+Sends a POST request with [data](CurlDotNet.Curl.Post(string,string).md#CurlDotNet.Curl.Post(string,string).data 'CurlDotNet\.Curl\.Post\(string, string\)\.data') as the body and blocks until the response arrives; the
+synchronous twin of [PostAsync\(string, string\)](CurlDotNet.Curl.PostAsync(string,string).md 'CurlDotNet\.Curl\.PostAsync\(string, string\)') \(like `curl -d DATA URL`\)\.
 
 ```csharp
 public static CurlDotNet.Core.CurlResult Post(string url, string data);
@@ -15,9 +15,43 @@ public static CurlDotNet.Core.CurlResult Post(string url, string data);
 
 `url` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
+An absolute URL to post to, for example `https://api.example.com/users`\.
+
 <a name='CurlDotNet.Curl.Post(string,string).data'></a>
 
 `data` [System\.String](https://learn.microsoft.com/en-us/dotnet/api/system.string 'System\.String')
 
+The request body as text \(form fields, JSON, XML\.\.\.\); null sends an empty body\.
+
 #### Returns
-[CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')
+[CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult')  
+The [CurlResult](CurlDotNet.Core.CurlResult.md 'CurlDotNet\.Core\.CurlResult') with the server's status, headers and body\.
+
+#### Exceptions
+
+[System\.ArgumentException](https://learn.microsoft.com/en-us/dotnet/api/system.argumentexception 'System\.ArgumentException')  
+[url](CurlDotNet.Curl.Post(string,string).md#CurlDotNet.Curl.Post(string,string).url 'CurlDotNet\.Curl\.Post\(string, string\)\.url') is null, empty or whitespace\. See
+            https://github\.com/jacob\-mellor/curl\-dot\-net/blob/master/docs/exceptions/url\-errors\.md
+
+[CurlException](CurlDotNet.Exceptions.CurlException.md 'CurlDotNet\.Exceptions\.CurlException')  
+The transfer failed; see [ExecuteAsync\(string\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string) 'CurlDotNet\.Curl\.ExecuteAsync\(string\)')\.
+
+### Remarks
+
+Blocking: CurlDotNet awaits with `ConfigureAwait(false)` throughout, so this call does not deadlock on a UI
+            or classic ASP.NET [System\.Threading\.SynchronizationContext](https://learn.microsoft.com/en-us/dotnet/api/system.threading.synchronizationcontext 'System\.Threading\.SynchronizationContext') by itself. It still occupies the calling
+            thread until the transfer ends (a frozen window, fewer free threads under load), and a callback you supply - a
+            progress or redirect handler, middleware, or your own `HttpMessageHandler` - that waits for that same context
+            can still deadlock. Prefer the async method wherever the caller can await.
+
+The data is sent exactly as given (no escaping needed, no URL-encoding done for you), with curl's default
+            `Content-Type: application/x-www-form-urlencoded`; use [PostJson\(string, object\)](CurlDotNet.Curl.PostJson(string,object).md 'CurlDotNet\.Curl\.PostJson\(string, object\)') for JSON.
+
+Example: `var result = Curl.Post("https://api.example.com/login", "user=john&pass=" + Uri.EscapeDataString(pw));`
+
+Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-post-json-csharp/README.md
+
+### See Also
+- [Async version \(preferred\)](CurlDotNet.Curl.PostAsync(string,string).md 'CurlDotNet\.Curl\.PostAsync\(string, string\)')
+- [PostJson\(string, object\)](CurlDotNet.Curl.PostJson(string,object).md 'CurlDotNet\.Curl\.PostJson\(string, object\)')
+- [Post\(string, string\)](CurlDotNet.DotNetCurl.Post(string,string).md 'CurlDotNet\.DotNetCurl\.Post\(string, string\)')

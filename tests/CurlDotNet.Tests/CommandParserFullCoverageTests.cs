@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using CurlDotNet.Core;
 using CurlDotNet.Exceptions;
@@ -105,7 +106,7 @@ namespace CurlDotNet.Tests
 
         [Theory]
         [InlineData("curl %API_URL%", "API_URL", "https://api.example.com")]
-        [InlineData("curl -H 'Authorization: Bearer %TOKEN%'", "TOKEN", "secret123")]
+        [InlineData("curl -H \"Authorization: Bearer %TOKEN%\"", "TOKEN", "secret123")]
         public void Parse_ExpandsWindowsCmdEnvironmentVariables(string command, string varName, string varValue)
         {
             // Arrange
@@ -162,7 +163,7 @@ namespace CurlDotNet.Tests
         [Theory]
         [InlineData("curl ${API_URL}", "API_URL", "https://api.example.com")]
         [InlineData("curl $API_URL", "API_URL", "https://api.example.com")]
-        [InlineData("curl -H 'Authorization: Bearer ${TOKEN}'", "TOKEN", "secret123")]
+        [InlineData("curl -H \"Authorization: Bearer ${TOKEN}\"", "TOKEN", "secret123")]
         public void Parse_ExpandsBashEnvironmentVariables(string command, string varName, string varValue)
         {
             // Arrange
@@ -232,16 +233,17 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
-        public void Parse_HandlesEscapeSequences()
+        public void Parse_DoubleQuotedBackslashSequences_ArePreservedLikeCurl()
         {
-            // Arrange
-            var command = @"curl -d ""line1\nline2\ttab"" https://api.example.com";
+            // Arrange - neither a POSIX shell nor curl turns \n or \t into control characters.
+            // Interpreting them would turn valid JSON ("line1\nline2") into invalid JSON with a raw newline.
+            var command = @"curl -d ""{\""text\"":\""line1\nline2\ttab\""}"" https://api.example.com";
 
             // Act
             var options = _parser.Parse(command);
 
             // Assert
-            options.Data.Should().Be("line1\nline2\ttab"); // With actual newline and tab characters
+            options.Data.Should().Be("{\"text\":\"line1\\nline2\\ttab\"}");
         }
 
         #endregion
@@ -258,7 +260,46 @@ namespace CurlDotNet.Tests
             var options = _parser.Parse(command);
 
             // Assert
-            options.Data.Should().Be("name=John%20Doe");
+            options.Data.Should().Be("name=John+Doe"); // curl 8 encodes spaces as +
+        }
+
+        [Theory]
+        [InlineData("hello world & more", "hello+world+%26+more")]          // content
+        [InlineData("=a b=c", "a+b%3Dc")]                                       // =content keeps the '=' in content encoded
+        [InlineData("comment=café/ümlaut", "comment=caf%C3%A9%2F%C3%BCmlaut")]   // name=content, UTF-8
+        [InlineData("keep-._~=keep-._~", "keep-._~=keep-._~")]                   // unreserved chars untouched
+        public void Parse_DataUrlEncode_MatchesCurlEscaping(string argument, string expected)
+        {
+            var options = _parser.Parse($"curl --data-urlencode {CommandParser.ShellQuote(argument)} https://api.example.com");
+
+            options.Data.Should().Be(expected);
+            options.Method.Should().Be("POST");
+        }
+
+        [Fact]
+        public void Parse_DataUrlEncode_NameAtFile_EncodesFileContents()
+        {
+            var path = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(path, "line one\nline two");
+
+                var options = _parser.Parse($"curl --data-urlencode body@{CommandParser.ShellQuote(path)} https://api.example.com");
+
+                options.Data.Should().Be("body=line+one%0Aline+two");
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void Parse_DataUrlEncode_MultipleArguments_AreJoinedWithAmpersand()
+        {
+            var options = _parser.Parse("curl --data-urlencode 'a=1 2' --data-urlencode 'b=3&4' -d plain=5 https://api.example.com");
+
+            options.Data.Should().Be("a=1+2&b=3%264&plain=5");
         }
 
         [Fact]
@@ -336,19 +377,19 @@ namespace CurlDotNet.Tests
         {
             // Test with kilobytes
             var options = _parser.Parse("curl --limit-rate 100k https://api.example.com");
-            options.SpeedLimit.Should().Be(100 * 1024);
+            options.LimitRate.Should().Be(100 * 1024);
 
             // Test with megabytes
             options = _parser.Parse("curl --limit-rate 5m https://api.example.com");
-            options.SpeedLimit.Should().Be(5 * 1024 * 1024);
+            options.LimitRate.Should().Be(5 * 1024 * 1024);
 
             // Test with gigabytes
             options = _parser.Parse("curl --limit-rate 1g https://api.example.com");
-            options.SpeedLimit.Should().Be(1024L * 1024 * 1024);
+            options.LimitRate.Should().Be(1024L * 1024 * 1024);
 
             // Test with no suffix (bytes)
             options = _parser.Parse("curl --limit-rate 1000 https://api.example.com");
-            options.SpeedLimit.Should().Be(1000);
+            options.LimitRate.Should().Be(1000);
         }
 
         [Fact]
@@ -600,11 +641,10 @@ namespace CurlDotNet.Tests
             var command = "curl -H @/path/to/headers.txt https://api.example.com";
 
             // Act
-            var options = _parser.Parse(command);
+            Action act = () => _parser.Parse(command);
 
-            // Assert
-            // Header from file notation stored as header value
-            options.Headers.Should().ContainKey("@/path/to/headers.txt");
+            // Assert: like curl, a header file that cannot be read is a read error (exit code 26)
+            act.Should().Throw<CurlDotNet.Exceptions.CurlReadErrorException>().Which.CurlErrorCode.Should().Be(26);
         }
 
         [Fact]

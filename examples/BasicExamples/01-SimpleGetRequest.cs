@@ -1,11 +1,12 @@
 using System;
 using System.Threading.Tasks;
 using CurlDotNet;
+using CurlDotNet.Core;
 
 namespace CurlDotNet.Examples.BasicExamples
 {
     /// <summary>
-    /// Example: Simple GET request to fetch data from an API
+    /// Example: Simple GET request to fetch data from an API, three ways.
     /// </summary>
     public class SimpleGetRequestExample
     {
@@ -19,23 +20,24 @@ namespace CurlDotNet.Examples.BasicExamples
             Console.WriteLine($"Status: {result1.StatusCode}");
             Console.WriteLine($"Response length: {result1.Body.Length} characters\n");
 
-            // Method 2: Using the fluent API
-            Console.WriteLine("Method 2: Using fluent API");
-            var result2 = await Curl.GetAsync("https://api.github.com/users/octocat")
-                .WithHeader("Accept", "application/vnd.github.v3+json")
+            // Method 2: Using the fluent builder when you need headers or options
+            Console.WriteLine("Method 2: Using the fluent CurlRequestBuilder");
+            var result2 = await CurlRequestBuilder
+                .Get("https://api.github.com/users/octocat")
+                .WithHeader("Accept", "application/vnd.github+json")
                 .ExecuteAsync();
             Console.WriteLine($"Status: {result2.StatusCode}");
             Console.WriteLine($"Response contains: {(result2.Body.Contains("octocat") ? "octocat user" : "unknown")}\n");
 
-            // Method 3: Using static convenience method
-            Console.WriteLine("Method 3: Using static convenience method");
-            var json = await Curl.GetStringAsync("https://api.github.com/users/octocat");
-            Console.WriteLine($"Retrieved JSON with {json.Length} characters");
+            // Method 3: Using the static convenience method - just a URL, no command syntax
+            Console.WriteLine("Method 3: Using the Curl.GetAsync convenience method");
+            var result3 = await Curl.GetAsync("https://api.github.com/users/octocat");
+            Console.WriteLine($"Retrieved JSON with {result3.Body.Length} characters");
 
-            // Check if request was successful
-            if (result1.IsSuccess)
+            // Every method returns the same CurlResult, so success checks look the same
+            if (result1.IsSuccess && result2.IsSuccess && result3.IsSuccess)
             {
-                Console.WriteLine("\n✅ All requests completed successfully!");
+                Console.WriteLine("\nAll requests completed successfully.");
             }
         }
     }

@@ -29,6 +29,11 @@ jobs:
       with:
         dotnet-version: '9.0.x'
 
+    - name: Setup .NET 10.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
     - name: Setup MSBuild (for .NET Framework)
       uses: microsoft/setup-msbuild@v2
 
@@ -69,7 +74,8 @@ jobs:
             "lib/net472/CurlDotNet.dll",
             "lib/net48/CurlDotNet.dll",
             "lib/net8.0/CurlDotNet.dll",
-            "lib/net9.0/CurlDotNet.dll"
+            "lib/net9.0/CurlDotNet.dll",
+            "lib/net10.0/CurlDotNet.dll"
         )
 
         foreach ($framework in $requiredFrameworks) {
