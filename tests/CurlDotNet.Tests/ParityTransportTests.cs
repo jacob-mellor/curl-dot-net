@@ -146,7 +146,28 @@ namespace CurlDotNet.Tests
                         {
                             await Task.Delay(StallMilliseconds);
                         }
-                        if (!KeepAlive)
+                        // A reply that announces its own length (or says Connection: close) lets the
+                        // client decide whether to reuse the connection; keep serving it so a fast
+                        // follow-up request on the same socket never sees an empty reply. Only an
+                        // EOF-delimited reply (no framing) requires us to close.
+                        var parts = reply.Split(new[] { "\r\n\r\n" }, 2, StringSplitOptions.None);
+                        var head = parts[0];
+                        var body = parts.Length > 1 ? parts[1] : string.Empty;
+                        long declared = -1;
+                        foreach (var line in head.Split(new[] { "\r\n" }, StringSplitOptions.None))
+                        {
+                            if (line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))
+                            {
+                                long.TryParse(line.Substring(15).Trim(), out declared);
+                            }
+                        }
+                        var chunked = declared < 0 && head.IndexOf("chunked", StringComparison.OrdinalIgnoreCase) >= 0;
+                        var chunkedComplete = chunked && System.Text.RegularExpressions.Regex.IsMatch(body, "(^|\r\n)0\r\n(.*\r\n)?\r\n$", System.Text.RegularExpressions.RegexOptions.Singleline);
+                        var complete = (declared >= 0 && Latin1.GetByteCount(body) >= declared) || chunkedComplete;
+                        var saysClose = head.IndexOf("Connection: close", StringComparison.OrdinalIgnoreCase) >= 0;
+                        // Deliberately truncated replies (Content-Length larger than the body) and stall tests must still
+                        // close so the client sees the cut-off; everything else stays open for keep-alive reuse.
+                        if (!KeepAlive && (!complete || saysClose || StallMilliseconds > 0))
                         {
                             client.Client.Shutdown(SocketShutdown.Send);
                             await Task.Delay(50);
