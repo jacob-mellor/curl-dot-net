@@ -687,6 +687,104 @@ namespace CurlDotNet.Tests
             doc.RootElement.GetProperty("set-cookie").GetArrayLength().Should().Be(2);
         }
 
+        // ------------------------------------------------------------------ F. secrets never reach logs or messages
+
+        private static readonly string[] Secrets = { "s3cretPw", "tok-123-secret", "pr0xyPw", "urlPw99", "cook1eVal", "p12Pw" };
+
+        private static void ShouldHoldNoSecret(string? text, string what)
+        {
+            foreach (var secret in Secrets)
+            {
+                (text ?? string.Empty).Should().NotContain(secret, $"{what} must not print credentials");
+            }
+        }
+
+        [Theory]
+        [InlineData("curl -u alice:s3cretPw https://example.com/", "-u ***")]
+        [InlineData("curl -ualice:s3cretPw https://example.com/", "-u***")]
+        [InlineData("curl --user 'alice:s3cretPw' https://example.com/", "--user ***")]
+        [InlineData("curl -H 'Authorization: Bearer tok-123-secret' https://example.com/", "Authorization: ***")]
+        [InlineData("curl -H \"Proxy-Authorization: Basic pr0xyPw\" https://example.com/", "Proxy-Authorization: ***")]
+        [InlineData("curl --oauth2-bearer tok-123-secret https://example.com/", "--oauth2-bearer ***")]
+        [InlineData("curl -x http://proxy:3128 -U bob:pr0xyPw https://example.com/", "-U ***")]
+        [InlineData("curl https://alice:urlPw99@example.com/", "https://alice:***@example.com/")]
+        [InlineData("curl -b 'session=cook1eVal' -H 'Cookie: a=cook1eVal' https://example.com/", "Cookie: ***")]
+        [InlineData("curl --cert id.p12:p12Pw --cert-type P12 https://example.com/", "--cert id.p12:***")]
+        public void RedactCommand_MasksEveryCredential(string command, string expected)
+        {
+            var redacted = ErrorText.RedactCommand(command);
+
+            redacted.Should().Contain(expected);
+            ShouldHoldNoSecret(redacted, "RedactCommand");
+        }
+
+        [Fact]
+        public async Task LoggingMiddleware_NeverLogsTheBearerTokenAddedByAuthenticationMiddleware()
+        {
+            using var server = new RawReplyServer(Ok);
+            var lines = new System.Collections.Generic.List<string>();
+            var pipeline = CurlDotNet.Middleware.CurlMiddlewarePipeline.CreateBuilder()
+                .Use(new CurlDotNet.Middleware.AuthenticationMiddleware(ctx => Task.FromResult("tok-123-secret")))
+                .Use(new CurlDotNet.Middleware.LoggingMiddleware(lines.Add))
+                .WithHandler(ctx => Curl.ExecuteAsync(ctx.Command, ctx.CancellationToken))
+                .Build();
+
+            var result = await pipeline.ExecuteAsync(new CurlDotNet.Middleware.CurlContext { Command = $"curl -u alice:s3cretPw {server.Url("/me")}" });
+
+            result.StatusCode.Should().Be(200);
+            Header(server.Requests.Single(), "Authorization").Should().Be("Authorization: Bearer tok-123-secret", "the token is still sent");
+            lines.Should().NotBeEmpty();
+            lines.Should().Contain(l => l.Contains("Authorization: ***"));
+            foreach (var line in lines)
+            {
+                ShouldHoldNoSecret(line, "LoggingMiddleware");
+            }
+        }
+
+        [Theory]
+        [InlineData("curl -f -u alice:s3cretPw -H 'Authorization: Bearer tok-123-secret' -b 'id=cook1eVal' URL")]
+        [InlineData("curl -f -H 'Proxy-Authorization: Basic pr0xyPw' --oauth2-bearer tok-123-secret URL")]
+        public async Task FailedTransfer_MessagesAndLogHelpers_HoldNoSecret(string template)
+        {
+            using var server = new RawReplyServer("HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n");
+
+            Func<Task> act = () => Curl.ExecuteAsync(template.Replace("URL", server.Url("/private")));
+
+            var ex = (await act.Should().ThrowAsync<CurlException>()).Which;
+            ShouldHoldNoSecret(ex.Message, "the message");
+            ShouldHoldNoSecret(ex.ToString(), "ToString()");
+            ShouldHoldNoSecret(ex.ToDetailedString(), "ToDetailedString()");
+            ShouldHoldNoSecret(ex.ToJson(), "ToJson()");
+            ShouldHoldNoSecret(string.Join(" ", ex.GetDiagnosticInfo().Values), "GetDiagnosticInfo()");
+            ShouldHoldNoSecret(ex.ToUserFriendlyMessage(), "ToUserFriendlyMessage()");
+        }
+
+        [Fact]
+        public async Task ConnectionFailure_WithUrlAndProxyPasswords_HoldsNoSecret()
+        {
+            Func<Task> direct = () => Curl.ExecuteAsync("curl https://alice:urlPw99@127.0.0.1:9/x --connect-timeout 5");
+            var ex = (await direct.Should().ThrowAsync<CurlException>()).Which;
+            ShouldHoldNoSecret(ex.Message, "a connect failure");
+            ShouldHoldNoSecret(ex.ToDetailedString(), "ToDetailedString()");
+
+            Func<Task> proxied = () => Curl.ExecuteAsync("curl -x http://bob:pr0xyPw@127.0.0.1:9 http://example.com/ --connect-timeout 5");
+            var proxyEx = (await proxied.Should().ThrowAsync<CurlException>()).Which;
+            ShouldHoldNoSecret(proxyEx.Message, "a proxy connect failure");
+            ShouldHoldNoSecret(proxyEx.ToJson(), "ToJson()");
+        }
+
+        [Fact]
+        public async Task TraceInfoLines_HoldNoUrlPassword()
+        {
+            var trace = P("trace.txt");
+            File.WriteAllText(P("exists.txt"), "x");
+            using var server = new RawReplyServer(Ok);
+
+            await Curl.ExecuteAsync($"curl --trace-ascii {Q(trace)} --skip-existing -o {Q(P("exists.txt"))} http://alice:urlPw99@127.0.0.1:{server.Port}/f");
+
+            ShouldHoldNoSecret(File.Exists(trace) ? File.ReadAllText(trace) : string.Empty, "the trace's own lines");
+        }
+
         // ------------------------------------------------------------------ D. options that are parsed
 
         [Theory]

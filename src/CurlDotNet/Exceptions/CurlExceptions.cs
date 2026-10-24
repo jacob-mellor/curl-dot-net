@@ -740,8 +740,10 @@ namespace CurlDotNet.Exceptions
         /// </summary>
         /// <remarks>
         /// <para>Use it where a human will read the log later; use <see cref="ToJson"/> for structured logging and
-        /// <see cref="ToUserFriendlyMessage"/> for end users. The command is printed as-is, so mask secrets first if the log
-        /// is shared. <see cref="CurlHttpException"/> adds the status, headers and body.</para>
+        /// <see cref="ToUserFriendlyMessage"/> for end users. Credentials in the command (<c>-u</c>/<c>-U</c> values, bearer
+        /// tokens, <c>Authorization</c>/<c>Cookie</c> header values, URL passwords) are printed as <c>***</c>; the
+        /// <see cref="Command"/> property itself keeps the original text. <see cref="CurlHttpException"/> adds the status,
+        /// headers and body.</para>
         /// <para>Example: <c>catch (CurlException ex) { logger.LogError(ex.ToDetailedString()); }</c></para>
         /// </remarks>
         /// <returns>A string that starts with <c>=== CURL EXCEPTION DETAILS ===</c> and has one labelled line per fact.</returns>
@@ -758,7 +760,7 @@ namespace CurlDotNet.Exceptions
                 sb.AppendLine($"Documentation: {DocumentationUrl}");
 
             if (!string.IsNullOrEmpty(Command))
-                sb.AppendLine($"Command: {Command}");
+                sb.AppendLine($"Command: {ErrorText.RedactCommand(Command)}");
 
             if (CurlErrorCode.HasValue)
             {
@@ -818,7 +820,7 @@ namespace CurlDotNet.Exceptions
                 ["message"] = Message,
                 ["whatHappened"] = WhatHappened,
                 ["documentationUrl"] = DocumentationUrl,
-                ["command"] = Command,
+                ["command"] = Command == null ? null : ErrorText.RedactCommand(Command),
                 ["curlErrorCode"] = CurlErrorCode,
                 ["curlErrorName"] = GetCurlErrorName(),
                 ["context"] = Context,
@@ -854,7 +856,7 @@ namespace CurlDotNet.Exceptions
             {
                 ["ExceptionType"] = GetType().FullName,
                 ["Message"] = Message,
-                ["Command"] = Command ?? "N/A",
+                ["Command"] = Command == null ? "N/A" : ErrorText.RedactCommand(Command),
                 ["CurlErrorCode"] = CurlErrorCode?.ToString() ?? "N/A",
                 ["CurlErrorName"] = GetCurlErrorName(),
                 ["Timestamp"] = DateTime.UtcNow.ToString("O"),
@@ -918,6 +920,8 @@ namespace CurlDotNet.Exceptions
                 61 => "CURLE_BAD_CONTENT_ENCODING",
                 63 => "CURLE_FILESIZE_EXCEEDED",
                 67 => "CURLE_LOGIN_DENIED",
+                77 => "CURLE_SSL_CACERT_BADFILE",
+                90 => "CURLE_SSL_PINNEDPUBKEYNOTMATCH",
                 94 => "CURLE_AUTH_ERROR",
                 100 => "CURLE_TOO_LARGE",
                 _ => $"CURLE_UNKNOWN_{CurlErrorCode}"

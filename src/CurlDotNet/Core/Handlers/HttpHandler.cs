@@ -313,7 +313,7 @@ namespace CurlDotNet.Core
                     if (target != null && File.Exists(target))
                     {
                         // --skip-existing: curl does not even connect when the file is already there
-                        trace?.Info($"Skipping {options.Url}: '{target}' already exists (--skip-existing)");
+                        trace?.Info($"Skipping {ErrorText.SafeUrl(options.Url)}: '{target}' already exists (--skip-existing)");
                         return new CurlResult { StatusCode = 0, Body = string.Empty, Command = options.OriginalCommand, Timings = timings };
                     }
                 }
@@ -324,7 +324,7 @@ namespace CurlDotNet.Core
                     if (!string.IsNullOrEmpty(etagDir) && !Directory.Exists(etagDir))
                     {
                         // curl: "Failed creating file for saving etags ... Skip this transfer" (no request, no error)
-                        trace?.Info($"Skipping {options.Url}: --etag-save directory '{etagDir}' does not exist");
+                        trace?.Info($"Skipping {ErrorText.SafeUrl(options.Url)}: --etag-save directory '{etagDir}' does not exist");
                         if (!options.Silent)
                         {
                             WriteStderr(options, $"Warning: Failed creating file for saving etags: \"{options.EtagSave}\". Skip this transfer\n");

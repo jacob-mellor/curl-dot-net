@@ -33,10 +33,12 @@ namespace CurlDotNet.Core
     /// <para>Thread safety: an instance is not thread-safe. Executing it normalises <see cref="Url"/> and applies
     /// the process-wide <c>Curl.Default*</c> settings to it, so use one instance per request (or call
     /// <see cref="Clone"/>) instead of sharing one object between concurrent calls.</para>
-    /// <para>Several properties are recorded for compatibility but not acted on yet (their remarks say so):
-    /// <see cref="SpeedLimit"/>, <see cref="SpeedTime"/>, <see cref="ProgressBar"/>, <see cref="DnsServers"/>,
-    /// <see cref="Interface"/>, <see cref="Quote"/>, <see cref="CertFile"/>, <see cref="KeyFile"/>,
-    /// <see cref="CaCertFile"/>, <see cref="ShowError"/>, <see cref="DisableEpsv"/> and <see cref="DisableEprt"/>.</para>
+    /// <para>A few properties are recorded for compatibility but cannot be acted on (their remarks say so):
+    /// <see cref="DnsServers"/>, <see cref="Interface"/>, <see cref="Quote"/>, <see cref="DisableEpsv"/> and
+    /// <see cref="DisableEprt"/>, which the parser also lists in <see cref="UnsupportedOptions"/>, and the terminal-only
+    /// <see cref="ProgressBar"/> and <see cref="ShowError"/>. The TLS options (<see cref="CaCertFile"/>, <see cref="CaPath"/>,
+    /// <see cref="CertFile"/>, <see cref="KeyFile"/>, <see cref="PinnedPublicKey"/>, <see cref="Ciphers"/>) need .NET 5 or
+    /// later; on .NET Standard 2.0 and .NET Framework they are listed in <see cref="UnsupportedOptions"/> as well.</para>
     /// <para>How a command becomes a request: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/how-curldotnet-works/README.md
     /// and turning curl commands into C#: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/convert-curl-to-csharp/README.md</para>
     /// </remarks>
@@ -1565,8 +1567,11 @@ namespace CurlDotNet.Core
         /// <c>curl --ciphers ALL https://example.com</c> requests <c>https://example.com</c>. Such options land here instead of
         /// in <see cref="UnknownOptions"/>, which only holds names that curl itself would reject with exit code 2.</para>
         /// <para>Each entry is the long form as typed, for example <c>--tcp-nodelay</c> or <c>--no-sessionid</c>; short forms are
-        /// recorded by their long name (<c>-q</c> becomes <c>--disable</c>). Some options that are parsed into properties are
-        /// nevertheless not applied (see the class remarks); they do not appear here.</para>
+        /// recorded by their long name (<c>-q</c> becomes <c>--disable</c>). Options that are parsed into a property which
+        /// cannot be applied are listed here too: <c>--interface</c>, <c>--dns-servers</c>, <c>--quote</c>,
+        /// <c>--disable-epsv</c>, <c>--disable-eprt</c>, <c>--key-type</c> other than PEM, <c>--ciphers</c>/<c>--tls13-ciphers</c>
+        /// where the platform cannot choose cipher suites, and on .NET Standard 2.0/.NET Framework <c>--cacert</c>,
+        /// <c>--capath</c>, <c>--cert</c>, <c>--key</c> and <c>--pinnedpubkey</c>.</para>
         /// <para>Example: after <c>var o = Curl.Validate(cmd).ParsedOptions;</c> check <c>o.UnsupportedOptions.Count == 0</c>
         /// to know the request will be sent exactly as curl would send it.</para>
         /// </remarks>
