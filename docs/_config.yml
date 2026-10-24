@@ -27,6 +27,7 @@ plugins:
   - jekyll-optional-front-matter  # renders Markdown files that have no front matter (e.g. docs/api/*.md)
   - jekyll-readme-index       # folder/README.md becomes folder/index.html (how-to/ and powershell/ trees)
   - jekyll-titles-from-headings   # pages without a title get it from their first H1
+  - jekyll-redirect-from          # folder URLs (how-to/, powershell/...) redirect to their README.html
 
 relative_links:
   enabled: true
