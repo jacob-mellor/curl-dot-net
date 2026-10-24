@@ -890,6 +890,17 @@ namespace CurlDotNet.Core
                 body = DecodeOrFail(body, response.Content!.Headers.ContentEncoding, "Content-Encoding", command);
             }
 
+            // -z: a document whose Last-Modified does not meet the time condition is not downloaded;
+            // curl keeps the headers, drops the body and reports a simulated 304
+            var timeConditionUnmet = failure == null && !isHead && status < 300 && !MeetsTimeCondition(options, finalHead?.GetHeader("Last-Modified")
+                ?? (response.Content?.Headers.LastModified?.ToString("r", System.Globalization.CultureInfo.InvariantCulture)));
+            if (timeConditionUnmet)
+            {
+                body = Array.Empty<byte>();
+                rawBody = Array.Empty<byte>();
+                trace?.Info("The requested document is not new enough (-z); simulating an HTTP 304 response.");
+            }
+
             // -C/--continue-at: 416 means "already complete" (curl ignores the body); a reply without
             // Content-Range would corrupt the partial file (exit 33)
             var resuming = transfer.ResumeOffset > 0;
@@ -943,7 +954,7 @@ namespace CurlDotNet.Core
             string? writtenPath = null;
             // A 304 with nothing to write (no -i headers, no body) leaves an existing file alone: curl
             // only creates the output file when the first byte arrives (--etag-compare relies on it)
-            var notModified = status == 304 && !includeHeaders && body.Length == 0;
+            var notModified = (status == 304 || timeConditionUnmet) && !includeHeaders && body.Length == 0;
             // -f writes the -i header blocks but never the error body; --fail-with-body keeps it
             var outputBody = failOnHttp && !options.FailWithBody ? Array.Empty<byte>() : (failure == null ? body : rawBody);
             var nothingToWrite = failOnHttp && !options.FailWithBody && !includeHeaders;
@@ -990,8 +1001,8 @@ namespace CurlDotNet.Core
 
             // Standard output: -v log, -D - headers, -i/-I headers, body, -w text. A failed transfer has
             // written all but the -w text by now (-f never writes the error body; --fail-with-body does).
-            var stdoutText = BuildStdoutText(options, verboseLog, headerText, etag, includeHeaders, outputPath,
-                failOnHttp && !options.FailWithBody ? null : responseText, finalHead?.Trailers);
+            var stdoutText = BuildStdoutText(options, verboseLog, headerText, etag, includeHeaders && !options.DiscardOutput, outputPath,
+                (failOnHttp && !options.FailWithBody) || options.DiscardOutput ? null : responseText, finalHead?.Trailers);
 
             if (failure != null)
             {
@@ -1003,12 +1014,20 @@ namespace CurlDotNet.Core
             }
 
             result.BinaryData = responseBinary;
+            if (timeConditionUnmet)
+            {
+                result.StatusCode = 304; // curl's %{response_code} for an unmet -z condition
+            }
 
             var builder = new StringBuilder(stdoutText);
 
             if (!string.IsNullOrEmpty(options.WriteOut))
             {
                 var context = BuildWriteOutContext(transfer, request, response, finalHead, result, rawBody.Length, writtenPath);
+                if (timeConditionUnmet)
+                {
+                    context.ResponseCode = 304;
+                }
                 var expanded = WriteOutFormatter.Format(options.WriteOut!, context);
                 builder.Append(expanded.Stdout);
                 WriteStderr(options, expanded.Stderr);
@@ -1021,6 +1040,36 @@ namespace CurlDotNet.Core
 
             result.Body = builder.ToString();
             return result;
+        }
+
+        /// <summary>
+        /// curl's Curl_meets_timecondition(): with <c>-z</c>, a document is only wanted when its
+        /// Last-Modified is newer (<c>-z DATE</c>), not newer (<c>-z -DATE</c>) or equal (<c>-z =DATE</c>).
+        /// A reply without a usable Last-Modified always meets the condition.
+        /// </summary>
+        private static bool MeetsTimeCondition(CurlOptions options, string? lastModified)
+        {
+            if (!options.TimeCondition.HasValue || string.IsNullOrWhiteSpace(lastModified))
+            {
+                return true;
+            }
+
+            var document = CurlDate.Parse(lastModified!);
+            if (!document.HasValue)
+            {
+                return true;
+            }
+
+            var condition = options.TimeCondition.Value.ToUnixTimeSeconds();
+            switch (options.TimeConditionType)
+            {
+                case CurlTimeCondition.IfUnmodifiedSince:
+                    return document.Value <= condition;
+                case CurlTimeCondition.LastModified:
+                    return document.Value == condition;
+                default:
+                    return document.Value > condition;
+            }
         }
 
         /// <summary>What a failed transfer printed before its -w text.</summary>

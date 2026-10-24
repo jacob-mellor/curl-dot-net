@@ -9,6 +9,7 @@
  ***************************************************************************/
 
 using System;
+using System.Collections.Generic;
 using CurlDotNet.Exceptions;
 
 namespace CurlDotNet.Core
@@ -18,6 +19,9 @@ namespace CurlDotNet.Core
     {
         /// <summary>The cookie store, created by the first transfer that enables the cookie engine.</summary>
         public CookieEngine? Cookies { get; set; }
+
+        /// <summary>The <c>-b</c> files already read into <see cref="Cookies"/>.</summary>
+        public HashSet<string> LoadedCookieFiles { get; } = new HashSet<string>(StringComparer.Ordinal);
     }
 
     /// <summary>Reads and writes the standard-output text that travels on a failed transfer's exception.</summary>

@@ -154,6 +154,87 @@ namespace CurlDotNet.Tests
             Line(server.Requests[1], "Cookie").Should().BeNull();
         }
 
+        [Fact]
+        public async Task CookieDeletedByServer_IsNotReloadedFromTheFileForTheNextUrl()
+        {
+            var jar = P("jar.txt");
+            var jar2 = P("jar2.txt");
+            File.WriteAllText(jar, ".host.foo.com\tTRUE\t/we/want/\tFALSE\t22147483647\ttest\tno\n");
+            File.WriteAllText(jar2, ".host.foo.com\tTRUE\t/we/want/\tFALSE\t22147483647\ttester\tyes\n");
+            using var server = new RawReplyServer(
+                "HTTP/1.1 200 OK\r\nSet-Cookie: test=yes; path=/we/want/; domain=.host.foo.com; Max-Age=0;\r\nContent-Length: 0\r\n\r\n",
+                World);
+
+            await Curl.ExecuteAsync($"curl {server.Url("/we/want/1")} -b {Q(jar)} -b {Q(jar2)} -H \"Host: host.foo.com\" {server.Url("/we/want/2")}");
+
+            Line(server.Requests[0], "Cookie").Should().Be("Cookie: tester=yes; test=no");
+            Line(server.Requests[1], "Cookie").Should().Be("Cookie: tester=yes");
+        }
+
+        [Fact]
+        public async Task OutNull_DiscardsThatUrlsResponse()
+        {
+            using var server = new RawReplyServer(Hello, World);
+
+            var result = await Curl.ExecuteAsync($"curl {server.Url("/1")} {server.Url("/2")} --out-null -o -");
+
+            server.Requests.Should().HaveCount(2);
+            result.Body.Should().Be("world\n");
+        }
+
+        [Fact]
+        public async Task NoRemoteName_SendsThatUrlToStandardOutput_DespiteRemoteNameAll()
+        {
+            using var server = new RawReplyServer(Hello);
+
+            var result = await Curl.ExecuteAsync($"curl --remote-name-all --no-remote-name --output-dir {Q(_dir)} {server.Url("/file.txt")}");
+
+            result.Body.Should().Be("hello\n");
+            File.Exists(P("file.txt")).Should().BeFalse();
+        }
+
+        // ------------------------------------------------------------------ -z time condition
+
+        [Fact]
+        public async Task TimeCondition_OlderDocument_IsNotDownloaded_AndReportsA304()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 200 OK\r\nLast-Modified: Tue, 13 Jun 1990 12:10:00 GMT\r\nContent-Length: 6\r\n\r\n-foo-\n");
+            var output = P("out.txt");
+            File.WriteAllText(output, "original contents\n");
+
+            var result = await Curl.ExecuteAsync($"curl -z \"dec 12 11:00:00 1999 GMT\" -w \"%{{response_code}}\" -o {Q(output)} {server.Url("/")}");
+
+            Line(server.Requests.Single(), "If-Modified-Since").Should().Be("If-Modified-Since: Sun, 12 Dec 1999 11:00:00 GMT");
+            File.ReadAllText(output).Should().Be("original contents\n", "nothing was downloaded, so the file is untouched");
+            result.Body.Should().Be("304");
+            result.StatusCode.Should().Be(304);
+        }
+
+        [Fact]
+        public async Task TimeCondition_Include_KeepsTheHeaders_DropsTheBody()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 200 OK\r\nLast-Modified: Tue, 13 Jun 2010 12:10:00 GMT\r\nContent-Length: 6\r\n\r\n-foo-\n");
+
+            var result = await Curl.ExecuteAsync($"curl -i -z \"-dec 12 12:00:00 1999 GMT\" {server.Url("/")}");
+
+            Line(server.Requests.Single(), "If-Unmodified-Since").Should().NotBeNull();
+            result.Body.Should().Be("HTTP/1.1 200 OK\r\nLast-Modified: Tue, 13 Jun 2010 12:10:00 GMT\r\nContent-Length: 6\r\n\r\n");
+        }
+
+        [Fact]
+        public async Task TimeCondition_NewerDocument_IsDownloaded()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 200 OK\r\nLast-Modified: Tue, 13 Jun 2002 12:10:00 GMT\r\nContent-Length: 6\r\n\r\nfresh\n");
+
+            var result = await Curl.ExecuteAsync($"curl -z \"dec 12 12:00:00 1999 GMT\" {server.Url("/")}");
+
+            result.Body.Should().Be("fresh\n");
+            result.StatusCode.Should().Be(200);
+        }
+
         // ------------------------------------------------------------------ -b repeated
 
         [Fact]

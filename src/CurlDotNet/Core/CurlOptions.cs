@@ -803,6 +803,9 @@ namespace CurlDotNet.Core
         /// </summary>
         internal TransferSession? Session { get; set; }
 
+        /// <summary><c>--out-null</c>: the response headers (<c>-i</c>) and body are read and discarded.</summary>
+        internal bool DiscardOutput { get; set; }
+
         /// <summary><c>--url-query</c> arguments, applied to <see cref="Url"/> when the transfer is finished.</summary>
         internal List<string> UrlQueryParts { get; } = new List<string>();
 
@@ -858,6 +861,7 @@ namespace CurlDotNet.Core
             clone.UrlQueryParts.AddRange(UrlQueryParts);
             clone.DefaultProtocol = DefaultProtocol;
             clone.CookieFiles = new List<string>(CookieFiles);
+            clone.DiscardOutput = DiscardOutput;
             clone.ProxyTunnelRequested = ProxyTunnelRequested;
             clone.NoProxyHosts = NoProxyHosts;
             clone.ProxyHeaderLines.AddRange(ProxyHeaderLines);

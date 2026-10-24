@@ -86,7 +86,8 @@ namespace CurlDotNet.Core
             }
 
             // Every transfer of one command line shares one cookie store (curl's share handle), so a
-            // cookie set by the first URL is sent to the second; each transfer reads its -b files again.
+            // cookie set by the first URL is sent to the second; a -b file is read once per command line, so a
+            // cookie the server deleted is not brought back by the next transfer.
             var session = options.Session;
             var engine = session?.Cookies ?? new CookieEngine(options.CookieJar);
             if (session != null)
@@ -100,7 +101,7 @@ namespace CurlDotNet.Core
 
             foreach (var file in files)
             {
-                if (file.Length > 0)
+                if (file.Length > 0 && (session == null || session.LoadedCookieFiles.Add(file)))
                 {
                     engine.Load(file, options.JunkSessionCookies);
                 }
@@ -333,7 +334,7 @@ namespace CurlDotNet.Core
         }
 
         private static bool Same(StoredCookie a, StoredCookie b) =>
-            a.Name == b.Name && a.Domain == b.Domain && a.Path == b.Path;
+            a.Name == b.Name && a.Domain == b.Domain && SanitizePath(a.Path) == SanitizePath(b.Path); // curl compares the sanitized paths ("/a/" == "/a")
 
         /// <summary>Writes the jar (-c FILE, or -c - for standard output text returned to the caller).</summary>
         /// <returns>The jar text when the target is <c>-</c>, otherwise null.</returns>

@@ -1214,6 +1214,15 @@ namespace CurlDotNet.Core
                     group.OutputSlots.Add(null);
                     break;
 
+                case "--out-null":
+                    group.OutputSlots.Add(OutNullSlot);
+                    break;
+
+                case "--no-remote-name":
+                    // curl: takes the next URL's output slot and sends it to stdout, even with --remote-name-all
+                    group.OutputSlots.Add("-");
+                    break;
+
                 case "--remote-name-all":
                     group.RemoteNameAll = true;
                     break;
@@ -1368,6 +1377,12 @@ namespace CurlDotNet.Core
 
                 case "--remote-name":
                     options.UseRemoteFileName = true;
+                    options.OutputFile = null;
+                    return true;
+
+                case "--out-null":
+                    options.DiscardOutput = true;
+                    options.UseRemoteFileName = false;
                     options.OutputFile = null;
                     return true;
 

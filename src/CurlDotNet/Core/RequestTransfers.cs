@@ -20,6 +20,9 @@ namespace CurlDotNet.Core
 {
     internal partial class CommandParser
     {
+        /// <summary>The output slot <c>--out-null</c> adds: the paired URL's response is discarded.</summary>
+        private static readonly string OutNullSlot = new string('\0', 1);
+
         /// <summary>State shared by one <see cref="Parse(string)"/> call.</summary>
         private sealed class ParseContext
         {
@@ -229,11 +232,19 @@ namespace CurlDotNet.Core
             options.GlobMatches.AddRange(matches);
 
             // The nth -o / -O belongs to the nth URL, exactly like curl (extra ones are ignored)
+            options.DiscardOutput = false;
             if (hasOutputSlot)
             {
                 if (outputSlot == null)
                 {
                     options.UseRemoteFileName = true;
+                    options.OutputFile = null;
+                }
+                else if (ReferenceEquals(outputSlot, OutNullSlot))
+                {
+                    // --out-null: this URL's response is read and thrown away
+                    options.DiscardOutput = true;
+                    options.UseRemoteFileName = false;
                     options.OutputFile = null;
                 }
                 else
