@@ -7,6 +7,11 @@ on:
     # Triggers on PRs to any branch
     branches: [ '*' ]
 
+# A new push to the same branch cancels the run still in progress
+concurrency:
+  group: ci-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   smoke-integration-test:
     name: Smoke & Integration Tests - ${{ matrix.os }}
@@ -48,11 +53,28 @@ jobs:
     - name: Build solution (Release)
       run: dotnet build --configuration Release --no-restore
 
-    # Step 5: Unit, synthetic, smoke and DevOps tests. Everything runs against an in-process
-    # HttpListener server (no fixed ports, no internet), so the whole suite takes seconds.
-    - name: Run unit, synthetic, smoke and DevOps tests
-      run: dotnet test tests/CurlDotNet.Tests/CurlDotNet.Tests.csproj --configuration Release --no-build --filter "Category=Synthetic|Category=Unit|Category=Smoke|Category=DevOps" --blame-hang --blame-hang-timeout 180s --blame-hang-dump-type none
-      continue-on-error: false  # Explicitly fail the workflow if tests fail
+    # Step 5: Unit, synthetic, smoke and DevOps tests on .NET 8/9/10. Everything runs against an
+    # in-process HttpListener server (no fixed ports, no internet), so each run takes seconds.
+    - name: Run unit, synthetic, smoke and DevOps tests (.NET 8, 9, 10)
+      shell: bash
+      run: |
+        for tfm in net8.0 net9.0 net10.0; do
+          echo "::group::$tfm"
+          dotnet test tests/CurlDotNet.Tests/CurlDotNet.Tests.csproj --configuration Release --no-build --framework $tfm --filter "Category=Synthetic|Category=Unit|Category=Smoke|Category=DevOps" --blame-hang --blame-hang-timeout 180s --blame-hang-dump-type none
+          echo "::endgroup::"
+        done
+
+    # Step 5b: .NET Framework 4.7.2 / 4.8 (Windows only): the smoke and DevOps categories, as before.
+    # The full suite's in-process servers and TLS fixtures are written for .NET 8+.
+    - name: Run smoke and DevOps tests (.NET Framework 4.7.2 and 4.8)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        for tfm in net472 net48; do
+          echo "::group::$tfm"
+          dotnet test tests/CurlDotNet.Tests/CurlDotNet.Tests.csproj --configuration Release --no-build --framework $tfm --filter "Category=DevOps|Category=Smoke" --blame-hang --blame-hang-timeout 180s --blame-hang-dump-type none
+          echo "::endgroup::"
+        done
 
     # Step 6: Replay curl's own test suite (tests/CurlDotNet.CurlSuite) against the local stub server.
     # Tests listed in known-failures.txt are expected to fail; one that starts passing fails the run
