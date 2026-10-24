@@ -745,6 +745,16 @@ namespace CurlDotNet.Tests
             options.Headers["Content-Type"].Should().Be("application/xml");
         }
 
+#if NET6_0_OR_GREATER
+        [Fact]
+        public async Task PathAsIs_KeepsDotSegments_AndDropsTheFragment()
+        {
+            var (request, _) = await SendAsync(_parser.Parse("curl --path-as-is \"http://example.com/../a/./b?x=../y#frag/../z\""));
+
+            request.RequestUri!.OriginalString.Should().Be("http://example.com/../a/./b?x=../y");
+        }
+#endif
+
         [Fact]
         public void DataUrlencode_EncodesSpacesAsPlus_LikeCurl8()
         {

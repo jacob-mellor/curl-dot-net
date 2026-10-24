@@ -227,7 +227,15 @@ namespace CurlDotNet.Core
 #if NET6_0_OR_GREATER
             if (options.PathAsIs)
             {
-                return new Uri(options.Url, new UriCreationOptions { DangerousDisablePathAndQueryCanonicalization = true });
+                // The fragment is never sent; without canonicalisation .NET would keep it in the request target
+                var url = options.Url;
+                var hash = url.IndexOf('#');
+                if (hash >= 0)
+                {
+                    url = url.Substring(0, hash);
+                }
+
+                return new Uri(url, new UriCreationOptions { DangerousDisablePathAndQueryCanonicalization = true });
             }
 #endif
             return new Uri(options.Url);
