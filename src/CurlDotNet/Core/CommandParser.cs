@@ -1679,6 +1679,10 @@ namespace CurlDotNet.Core
                     ParseResolve(value, options);
                     return true;
 
+                case "--connect-to":
+                    ParseConnectTo(value, options);
+                    return true;
+
                 case "--quote":
                     options.Quote.Add(value);
                     return true;
@@ -1944,17 +1948,79 @@ namespace CurlDotNet.Core
                 : new NetworkCredential(userPass.Substring(0, colon), userPass.Substring(colon + 1));
         }
 
+        private const string NameResolutionDocs = "https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/dns-errors.md";
+
         private void ParseResolve(string resolve, CurlOptions options)
         {
-            // Format: host:port:address
+            // [+]host:port:address[,address]... adds an entry; -host:port removes one (ignored here).
             var parts = resolve.Split(':');
-            if (parts.Length >= 3)
+            if (resolve.StartsWith("-", StringComparison.Ordinal))
             {
-                var hostPort = parts[0] + ":" + parts[1];
-                var address = string.Join(":", parts.Skip(2));
-                options.Resolve[hostPort] = address;
+                return;
             }
+            if (parts.Length < 3 || !IsPort(parts[1]))
+            {
+                throw new CurlOptionSyntaxException("--resolve",
+                    $"Couldn't parse the --resolve entry \"{resolve}\": it must be HOST:PORT:ADDRESS[,ADDRESS] with a numeric port, " +
+                    "for example --resolve example.com:443:127.0.0.1. See " + NameResolutionDocs,
+                    options.OriginalCommand);
+            }
+
+            var hostPort = parts[0] + ":" + parts[1];
+            var address = string.Join(":", parts.Skip(2));
+            options.Resolve[hostPort] = address;
         }
+
+        /// <summary>
+        /// <c>--connect-to HOST1:PORT1:HOST2:PORT2</c>: requests for HOST1:PORT1 connect to HOST2:PORT2
+        /// instead (an empty part means "any host/port" on the left and "unchanged" on the right).
+        /// </summary>
+        private static void ParseConnectTo(string value, CurlOptions options)
+        {
+            if (!TrySplitConnectTo(value, out _, out var port1, out _, out var port2)
+                || (port1.Length > 0 && !IsPort(port1)) || (port2.Length > 0 && !IsPort(port2)))
+            {
+                throw new CurlOptionSyntaxException("--connect-to",
+                    $"Couldn't parse the --connect-to entry \"{value}\": it must be HOST1:PORT1:HOST2:PORT2 with numeric (or empty) ports, " +
+                    "for example --connect-to example.com:443:127.0.0.1:8443 or --connect-to ::127.0.0.1:8080. See " + NameResolutionDocs,
+                    options.OriginalCommand);
+            }
+            options.ConnectTo.Add(value);
+        }
+
+        /// <summary>Splits a <c>--connect-to</c> value into its four parts (IPv6 addresses go in brackets).</summary>
+        internal static bool TrySplitConnectTo(string value, out string host1, out string port1, out string host2, out string port2)
+        {
+            host1 = port1 = host2 = port2 = string.Empty;
+            var parts = new List<string>();
+            var current = new StringBuilder();
+            var bracket = false;
+            foreach (var c in value)
+            {
+                if (c == '[') bracket = true;
+                if (c == ']') bracket = false;
+                if (c == ':' && !bracket)
+                {
+                    parts.Add(current.ToString());
+                    current.Clear();
+                    continue;
+                }
+                current.Append(c);
+            }
+            parts.Add(current.ToString());
+            if (parts.Count != 4)
+            {
+                return false;
+            }
+            host1 = parts[0];
+            port1 = parts[1];
+            host2 = parts[2];
+            port2 = parts[3];
+            return true;
+        }
+
+        private static bool IsPort(string text) =>
+            text.Length > 0 && text.Length <= 5 && text.All(char.IsDigit) && int.Parse(text, CultureInfo.InvariantCulture) <= 65535;
 
         private long ParseSize(string size)
         {

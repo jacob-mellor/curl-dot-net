@@ -496,6 +496,19 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
+        /// Initializes a new instance that carries the curl exit code of the problem.
+        /// </summary>
+        /// <param name="message">The error message describing the invalid syntax and how to fix it.</param>
+        /// <param name="curlErrorCode">The curl exit code (for example 49 for an option value curl cannot parse).</param>
+        /// <param name="invalidPart">The specific part of the command that is invalid.</param>
+        /// <param name="command">The full curl command that failed.</param>
+        protected CurlInvalidCommandException(string message, int curlErrorCode, string invalidPart, string command)
+            : base(message, curlErrorCode, command)
+        {
+            InvalidPart = invalidPart;
+        }
+
+        /// <summary>
         /// Initializes a new instance with serialized data.
         /// </summary>
         protected CurlInvalidCommandException(SerializationInfo info, StreamingContext context) : base(info, context)

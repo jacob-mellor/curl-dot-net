@@ -422,6 +422,7 @@ namespace CurlDotNet.Core
                 || options.Insecure
                 || UsesChallengeAuth(options)
                 || options.Resolve.Count > 0
+                || options.ConnectTo.Count > 0
                 || options.ProxyTunnel
                 || options.Expect100TimeoutSeconds.HasValue;
         }
@@ -975,8 +976,9 @@ namespace CurlDotNet.Core
 
             if (outputPath != null && (failure == null || !options.RemoveOnError))
             {
-                var fromHeader = options.UseRemoteFileName && options.RemoteHeaderName && string.IsNullOrEmpty(options.OutputFile)
-                                 && TransferOutput.ContentDispositionFileName(finalHead?.GetHeader("Content-Disposition") ?? result.GetHeader("Content-Disposition")) != null;
+                // -O -J never replaces an existing file, whether the name came from Content-Disposition
+                // or (without a usable filename there) from the URL (curl test 1718)
+                var fromHeader = options.UseRemoteFileName && options.RemoteHeaderName && string.IsNullOrEmpty(options.OutputFile);
                 // a resumed download, or a retry after an attempt that wrote no body, continues the file
                 var append = resuming || (attempt?.AppendOutput ?? false);
                 writtenPath = append ? outputPath : TransferOutput.PrepareTarget(outputPath, options, fromHeader);

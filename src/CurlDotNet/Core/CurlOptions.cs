@@ -803,11 +803,20 @@ namespace CurlDotNet.Core
         /// </summary>
         internal TransferSession? Session { get; set; }
 
+        /// <summary>
+        /// The error curl reports when it sets this transfer up (after the earlier transfers ran), such as
+        /// a missing <c>-T</c> file of a later URL; the transfer is not sent and the command ends with it.
+        /// </summary>
+        internal CurlDotNet.Exceptions.CurlException? SetupError { get; set; }
+
         /// <summary>The 0-based position of this transfer among all URLs of the command line (<c>%{urlnum}</c>).</summary>
         internal int TransferNumber { get; set; }
 
         /// <summary><c>--out-null</c>: the response headers (<c>-i</c>) and body are read and discarded.</summary>
         internal bool DiscardOutput { get; set; }
+
+        /// <summary><c>--connect-to HOST1:PORT1:HOST2:PORT2</c> entries, in command-line order (the first match wins).</summary>
+        internal List<string> ConnectTo { get; set; } = new List<string>();
 
         /// <summary><c>-n</c>/<c>--netrc</c>, <c>--netrc-optional</c>: whether credentials come from a .netrc file.</summary>
         internal NetrcMode NetrcMode { get; set; }
@@ -878,6 +887,7 @@ namespace CurlDotNet.Core
             clone.CookieFiles = new List<string>(CookieFiles);
             clone.DiscardOutput = DiscardOutput;
             clone.NetrcMode = NetrcMode;
+            clone.ConnectTo = new List<string>(ConnectTo);
             clone.NetrcFile = NetrcFile;
             clone.ProxyTunnelRequested = ProxyTunnelRequested;
             clone.NoProxyHosts = NoProxyHosts;

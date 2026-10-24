@@ -44,6 +44,9 @@ namespace CurlDotNet.Core
             /// <summary>Nesting depth of <c>-K</c> files, to stop a config file that includes itself.</summary>
             public int ConfigDepth { get; set; }
 
+            /// <summary>Set when a transfer after the first could not be set up; no further transfers are made.</summary>
+            public bool SetupFailed { get; set; }
+
             public void StartNewGroup()
             {
                 Current = new TransferGroup(new CurlOptions { OriginalCommand = OriginalCommand });
@@ -214,7 +217,22 @@ namespace CurlDotNet.Core
                             }
                         }
 
-                        FinishTransfer(options, urlMatch.Url, matches, named, hasOutputSlot, outputSlot, uploadMatch?.Url, group, ref methodSpecified);
+                        if (context.SetupFailed)
+                        {
+                            return;
+                        }
+
+                        try
+                        {
+                            FinishTransfer(options, urlMatch.Url, matches, named, hasOutputSlot, outputSlot, uploadMatch?.Url, group, ref methodSpecified);
+                        }
+                        catch (CurlException ex) when (transfers.Count > 0)
+                        {
+                            // curl sets up each transfer just before it runs: the earlier ones still happen,
+                            // then this failure ends the command (for example the 2nd -T file is missing)
+                            options.SetupError = ex;
+                            context.SetupFailed = true;
+                        }
                         transfers.Add(options);
                     }
                 }

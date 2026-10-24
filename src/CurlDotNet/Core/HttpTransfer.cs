@@ -163,6 +163,16 @@ namespace CurlDotNet.Core
                 request.Headers.TryAddWithoutValidation("Referer", rawReferer);
             }
             var uri = request.RequestUri!;
+            if (request.Headers.Host == null)
+            {
+                // .NET lower-cases the host name; curl sends it as written (Host: MiXeDcAsE.cOm:8080)
+                var written = WrittenHost(hop.Url);
+                if (written != null && !string.Equals(written, uri.Host, StringComparison.Ordinal)
+                    && string.Equals(written, uri.Host, StringComparison.OrdinalIgnoreCase))
+                {
+                    request.Headers.Host = uri.IsDefaultPort ? written : written + ":" + uri.Port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+            }
             if (request.Version == System.Net.HttpVersion.Version11
                 && (SeenHttp10 || (Options.Session?.Http10Origins.Contains(Origin(uri)) ?? false)))
             {
@@ -216,6 +226,7 @@ namespace CurlDotNet.Core
             {
                 ConnectTimeoutSeconds = hop.ConnectTimeout ?? 0,
                 Resolve = hop.Resolve.Count > 0 ? hop.Resolve : null,
+                ConnectTo = hop.ConnectTo.Count > 0 ? hop.ConnectTo : null,
                 ViaProxy = proxyUri != null,
                 Transcript = Transcript,
             };
@@ -412,6 +423,30 @@ namespace CurlDotNet.Core
             }
 
             return response;
+        }
+
+        /// <summary>The host name exactly as written in <paramref name="url"/> (case kept), or null.</summary>
+        private static string? WrittenHost(string url)
+        {
+            var start = url.IndexOf("://", StringComparison.Ordinal);
+            if (start < 0)
+            {
+                return null;
+            }
+            start += 3;
+            var end = url.IndexOfAny(new[] { '/', '?', '#' }, start);
+            var authority = end < 0 ? url.Substring(start) : url.Substring(start, end - start);
+            var at = authority.LastIndexOf('@');
+            if (at >= 0)
+            {
+                authority = authority.Substring(at + 1);
+            }
+            if (authority.StartsWith("[", StringComparison.Ordinal))
+            {
+                return null; // IPv6 literals have no case to keep
+            }
+            var colon = authority.IndexOf(':');
+            return colon >= 0 ? authority.Substring(0, colon) : authority;
         }
 
         /// <summary>scheme://host:port of a request URI.</summary>

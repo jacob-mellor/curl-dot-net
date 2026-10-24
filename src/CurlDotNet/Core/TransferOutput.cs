@@ -151,7 +151,7 @@ namespace CurlDotNet.Core
             if (fromHeaderName && File.Exists(path))
             {
                 throw new CurlWriteErrorException(path,
-                    $"Refusing to overwrite '{path}': the name came from the server (-J/--remote-header-name), and curl never replaces an existing file with a server-chosen name. " +
+                    $"Refusing to overwrite '{path}': with -O -J/--remote-header-name the file name is chosen from the response (Content-Disposition, else the URL), and curl never replaces an existing file that way. " +
                     "Remove the file, or use -o to choose the name yourself." + FileDocs,
                     options.OriginalCommand);
             }
@@ -255,7 +255,10 @@ namespace CurlDotNet.Core
         {
             var path = options.DumpHeaderFile!;
             EnsureDirectory(path, options, "-D/--dump-header");
-            WriteFile(path, WireText.Latin1.GetBytes(headerText), append: false, options, "-D/--dump-header");
+            // the first transfer of a command line creates the file; later transfers that dump to the
+            // same file append, so "-D heads url1 url2" keeps both header blocks like curl
+            var append = options.Session != null && !options.Session.DumpHeaderFiles.Add(Path.GetFullPath(path));
+            WriteFile(path, WireText.Latin1.GetBytes(headerText), append, options, "-D/--dump-header");
         }
     }
 }

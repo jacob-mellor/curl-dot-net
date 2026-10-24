@@ -469,6 +469,12 @@ namespace CurlDotNet.Core
                 return new CurlWeirdServerReplyException(WeirdMessage("a chunked-body trailer contains a NUL byte", transfer), command);
             }
 
+            if (final.Chunked && ((final.Trailers ?? string.Empty) + parser.PendingTrailerText).IndexOf('\0') >= 0)
+            {
+                // curl rejects a header line with a NUL byte in it, chunked trailers included
+                return new CurlWeirdServerReplyException(WeirdMessage("a chunked trailer line contains a NUL byte", transfer), command);
+            }
+
             if (!final.BodyComplete)
             {
 

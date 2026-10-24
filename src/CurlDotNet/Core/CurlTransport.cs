@@ -395,6 +395,9 @@ namespace CurlDotNet.Core
         /// <summary>Transcript that receives the CONNECT response header block.</summary>
         public WireTranscript? Transcript { get; set; }
 
+        /// <summary><c>--connect-to</c> entries (HOST1:PORT1:HOST2:PORT2), first match wins.</summary>
+        public List<string>? ConnectTo { get; set; }
+
         /// <summary>The connection the connect callback opened last for this request.</summary>
         public WireConnectionInfo? LastConnection { get; set; }
     }
@@ -555,6 +558,10 @@ namespace CurlDotNet.Core
             var tunnel = settings?.TunnelProxy;
             var host = tunnel?.Host ?? context.DnsEndPoint.Host;
             var port = tunnel?.Port ?? context.DnsEndPoint.Port;
+            if (tunnel == null && settings?.ConnectTo != null && !settings.ViaProxy)
+            {
+                (host, port) = ApplyConnectTo(settings.ConnectTo, host, port);
+            }
 
             using var timeoutCts = settings != null && settings.ConnectTimeoutSeconds > 0
                 ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
@@ -678,6 +685,31 @@ namespace CurlDotNet.Core
                 throw new CurlConnectFailure(ConnectFailureKind.Tunnel, settings.TunnelProxy!.Host, settings.TunnelProxy.Port,
                     $"CONNECT tunnel failed, response {head.StatusCode}") { TunnelStatus = head.StatusCode };
             }
+        }
+
+        /// <summary>curl's --connect-to: the first entry whose HOST1/PORT1 match (empty matches anything) redirects the connection.</summary>
+        internal static (string Host, int Port) ApplyConnectTo(IEnumerable<string> entries, string host, int port)
+        {
+            var bare = host.Trim('[', ']');
+            foreach (var entry in entries)
+            {
+                if (!CommandParser.TrySplitConnectTo(entry, out var host1, out var port1, out var host2, out var port2))
+                {
+                    continue;
+                }
+                if (host1.Length > 0 && !string.Equals(host1.Trim('[', ']'), bare, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                if (port1.Length > 0 && port1 != port.ToString(CultureInfo.InvariantCulture))
+                {
+                    continue;
+                }
+                var newHost = host2.Length > 0 ? host2.Trim('[', ']') : host;
+                var newPort = port2.Length > 0 ? int.Parse(port2, CultureInfo.InvariantCulture) : port;
+                return (newHost, newPort);
+            }
+            return (host, port);
         }
 
         private static IPAddress[]? Lookup(TransportRequestSettings? settings, string host, int port)

@@ -480,6 +480,114 @@ namespace CurlDotNet.Tests
             cookie.Should().EndWith("name1=v1");
         }
 
+        // ------------------------------------------------------------------ connection options
+
+        [Fact]
+        public async Task ConnectTo_SendsTheRequestToAnotherHostAndPort_KeepingTheHostHeader()
+        {
+            using var server = new RawReplyServer(Hello);
+
+            var result = await Curl.ExecuteAsync($"curl --connect-to www.example.com:8081:127.0.0.1:{server.Port} http://www.example.com:8081/x");
+
+            result.Body.Should().Be("hello\n");
+            Line(server.Requests.Single(), "Host").Should().Be("Host: www.example.com:8081");
+        }
+
+        [Fact]
+        public async Task ConnectTo_FirstMatchingEntryWins_EmptyPartsMatchAnything()
+        {
+            using var server = new RawReplyServer(Hello);
+            var dead = ClosedPortNumber();
+
+            await Curl.ExecuteAsync($"curl --connect-to ::127.0.0.1:{server.Port} --connect-to ::127.0.0.1:{dead} http://anything.example/");
+
+            server.Requests.Should().ContainSingle();
+        }
+
+        [Theory]
+        [InlineData("--resolve 8080:example.com:127.0.0.1", "--resolve")]
+        [InlineData("--resolve example.com:http:127.0.0.1", "--resolve")]
+        [InlineData("--connect-to ::example.com:example.com", "--connect-to")]
+        [InlineData("--connect-to a:b", "--connect-to")]
+        public async Task MalformedResolveOrConnectTo_IsExit49(string option, string name)
+        {
+            Func<Task> act = () => Curl.ExecuteAsync($"curl {option} http://example.com/");
+
+            var thrown = await act.Should().ThrowAsync<CurlOptionSyntaxException>();
+            thrown.Which.CurlErrorCode.Should().Be(49);
+            thrown.Which.InvalidPart.Should().Be(name);
+            thrown.Which.Message.Should().Contain("dns-errors.md");
+        }
+
+        [Fact]
+        public async Task HostHeader_KeepsTheCaseOfTheUrl()
+        {
+            using var server = new RawReplyServer(Hello);
+
+            await Curl.ExecuteAsync($"curl --resolve MiXeD.example:{server.Port}:127.0.0.1 http://MiXeD.example:{server.Port}/");
+
+            Line(server.Requests.Single(), "Host").Should().Be($"Host: MiXeD.example:{server.Port}");
+        }
+
+        [Fact]
+        public async Task LaterTransferThatCannotBeSetUp_EndsTheCommandAfterTheEarlierOnesRan()
+        {
+            var good = P("in.txt");
+            File.WriteAllText(good, "surprise!\n");
+            using var server = new RawReplyServer(Hello);
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl {server.Url("/u")} -T \"{{{good},{P("missing.txt")}}}\"");
+
+            var thrown = await act.Should().ThrowAsync<CurlReadErrorException>();
+            thrown.Which.CurlErrorCode.Should().Be(26);
+            server.Requests.Should().ContainSingle().Which.Should().EndWith("surprise!\n");
+        }
+
+        [Fact]
+        public async Task DumpHeader_SharedByTwoTransfers_KeepsBothBlocks()
+        {
+            using var server = new RawReplyServer(Hello, World);
+            var heads = P("heads.txt");
+
+            await Curl.ExecuteAsync($"curl -D {Q(heads)} {server.Url("/1")} {server.Url("/2")}");
+
+            File.ReadAllText(heads).Should().Be("HTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\nHTTP/1.1 200 OK\r\nContent-Length: 6\r\n\r\n");
+        }
+
+        [Fact]
+        public async Task RemoteHeaderName_NeverOverwritesTheUrlFallbackName_Either()
+        {
+            var existing = P("name1718");
+            File.WriteAllText(existing, "initial content\n");
+            using var server = new RawReplyServer(
+                "HTTP/1.1 200 OK\r\nContent-Disposition: inline\r\nContent-Length: 8\r\n\r\nPAYLOAD\n");
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl -O -J --output-dir {Q(_dir)} {server.Url("/name1718")}");
+
+            (await act.Should().ThrowAsync<CurlWriteErrorException>()).Which.CurlErrorCode.Should().Be(23);
+            File.ReadAllText(existing).Should().Be("initial content\n");
+        }
+
+        [Fact]
+        public async Task NulByteInChunkedTrailer_IsWeirdServerReply8()
+        {
+            using var server = new RawReplyServer(
+                "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nTrailer: t\r\n\r\n6\r\n-foo-\n\r\n0\r\nt: he\0llo\r\n\r\n");
+
+            Func<Task> act = () => Curl.ExecuteAsync($"curl {server.Url("/")}");
+
+            (await act.Should().ThrowAsync<CurlWeirdServerReplyException>()).Which.CurlErrorCode.Should().Be(8);
+        }
+
+        private static int ClosedPortNumber()
+        {
+            var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+            var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+            listener.Stop();
+            return port;
+        }
+
         // ------------------------------------------------------------------ FTP upload
 
         [Fact]

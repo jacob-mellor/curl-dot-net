@@ -179,6 +179,12 @@ namespace CurlDotNet.Core
                     transfer.Session = session;
                 }
 
+                if (transfer.SetupError != null)
+                {
+                    lastError = transfer.SetupError; // like curl: the command stops here with this error
+                    break;
+                }
+
                 try
                 {
                     var result = await ExecuteTransferAsync(transfer, cancellationToken);
