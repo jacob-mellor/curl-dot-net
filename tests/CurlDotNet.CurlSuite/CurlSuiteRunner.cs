@@ -125,6 +125,9 @@ public static class CurlSuiteRunner
         // runner.pm: "NAME=value" sets, a bare "NAME" unsets, "#" lines are comments; the old values come back afterwards.
         // (.NET cannot hold an empty variable: "NAME=" unsets it, which is how CurlDotNet reads an empty one anyway.)
         var savedEnvironment = new Dictionary<string, string?>(StringComparer.Ordinal);
+        // runner.pm: $ENV{'COLUMNS'} = 79, the width curl's messages wrap at (a test's <setenv> may change it)
+        savedEnvironment["COLUMNS"] = Environment.GetEnvironmentVariable("COLUMNS");
+        Environment.SetEnvironmentVariable("COLUMNS", "79");
         foreach (var section in test.All("client").Where(s => s.Name == "setenv"))
         {
             foreach (var raw in section.Lines)
@@ -143,6 +146,8 @@ public static class CurlSuiteRunner
         var option = commandSection?.Attr("option") ?? string.Empty;
         var userCommand = string.Join(" ", (commandSection?.Lines ?? new List<string>()).Select(l => l.Trim())).Trim();
         userCommand = pre.Process(userCommand).Replace("\n", " ").Trim();
+        // the test file is read a byte per char; the shell hands curl bytes, and a .NET caller holds the decoded text
+        userCommand = DecodeUtf8(userCommand);
 
         var outFile = Path.Combine(logDir, $"curl{test.Number}.out");
         var hasStdoutSection = test.Has("verify", "stdout");
@@ -175,6 +180,8 @@ public static class CurlSuiteRunner
         string stdout = string.Empty;
         string? failure = null;
         CurlException? curlFailure = null;
+        IReadOnlyList<string> warningsOnSuccess = Array.Empty<string>();
+        var columns = 79; // COLUMNS while the command ran (the environment is restored before stderr is assembled)
         (bool Show, string? StderrFile) errorOutput = (true, null);
         var stderrCapture = new StringWriter();
         var previousStderr = Console.Error;
@@ -186,6 +193,7 @@ public static class CurlSuiteRunner
             // the curl tool always reads .curlrc; CurlDotNet only when asked (runtests' -q switches it off again)
             Curl.DefaultReadConfigFile = true;
             Console.SetError(stderrCapture);
+            columns = int.TryParse(Environment.GetEnvironmentVariable("COLUMNS"), out var c) && c > 20 ? c : 79;
             var task = Curl.ExecuteAsync(command);
             var completed = await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(25)));
             if (completed != task)
@@ -193,6 +201,7 @@ public static class CurlSuiteRunner
                 return new SuiteOutcome { Number = test.Number, Name = name, Status = SuiteStatus.Fail, Reason = "timed out after 25s", Command = command };
             }
             var result = await task;
+            warningsOnSuccess = result.Warnings;
             exitCode = 0;
             stdout = result.Body ?? string.Empty;
         }
@@ -227,21 +236,49 @@ public static class CurlSuiteRunner
         // above; the final "curl: (N) message" line is the curl tool's, so the harness writes it the way
         // tool_operate.c's post_check_result() does: unless -s is given without -S.
         var stderr = stderrCapture.ToString();
+        var (showErrors, stderrFile) = errorOutput;
+        void WriteToolStderr(string text)
+        {
+            if (stderrFile != null)
+            {
+                // --stderr FILE: curl's tool_stderr is that file
+                File.AppendAllText(Path.IsPathRooted(stderrFile) ? stderrFile : Path.Combine(root, stderrFile), text);
+            }
+            else
+            {
+                stderr += text;
+            }
+        }
+
+        // curl's "Warning: ..." lines (tool_msgs.c warnf()). The library writes them only to a --stderr file and keeps them
+        // on the result; the curl tool prints them, wrapped at COLUMNS. Notes ("Note: ...") the library already wrote.
+        if (stderrFile == null)
+        {
+            var warnings = (curlFailure?.Warnings ?? warningsOnSuccess)
+                .Where(w => w.StartsWith(WarningPrefix, StringComparison.Ordinal))
+                .Select(w => WrapLikeCurl(WarningPrefix, w.Substring(WarningPrefix.Length), columns));
+            stderr = string.Concat(warnings) + stderr;
+        }
+
         if (curlFailure != null)
         {
-            var (showErrors, stderrFile) = errorOutput;
-            if (showErrors)
+            if (curlFailure.IsUsageError)
             {
-                var line = $"curl: ({exitCode}) {curlFailure.CurlErrorMessage}\n";
-                if (stderrFile != null)
+                // tool_getparam.c parse_args(): errorf() lines (muted by -s unless -S), then helpf() "option X: reason"
+                // and its hint, which are always printed
+                var lines = curlFailure.CurlErrorMessage.Split('\n');
+                var text = new StringBuilder();
+                for (var i = 0; i < lines.Length - 1; i++)
                 {
-                    // --stderr FILE: curl's tool_stderr is that file
-                    File.AppendAllText(Path.IsPathRooted(stderrFile) ? stderrFile : Path.Combine(root, stderrFile), line);
+                    if (showErrors) text.Append(WrapLikeCurl("curl: ", lines[i], columns));
                 }
-                else
-                {
-                    stderr += line;
-                }
+                text.Append("curl: ").Append(lines[^1]).Append('\n');
+                text.Append("curl: try 'curl --help' for more information\n");
+                WriteToolStderr(text.ToString());
+            }
+            else if (showErrors)
+            {
+                WriteToolStderr($"curl: ({exitCode}) {curlFailure.CurlErrorMessage}\n");
             }
         }
         File.WriteAllBytes(Path.Combine(logDir, $"stderr{test.Number}"), Encoding.UTF8.GetBytes(stderr));
@@ -526,6 +563,57 @@ public static class CurlSuiteRunner
     }
 
     private static string Normalize(string s) => s.Replace("\r\n", "\n");
+
+    private const string WarningPrefix = "Warning: ";
+
+    /// <summary>The command text as UTF-8 when its bytes (one per char) are valid UTF-8, else unchanged.</summary>
+    private static string DecodeUtf8(string latin1)
+    {
+        if (latin1.All(c => c < 0x80)) return latin1;
+        try
+        {
+            return new UTF8Encoding(false, throwOnInvalidBytes: true).GetString(Encoding.Latin1.GetBytes(latin1));
+        }
+        catch (DecoderFallbackException)
+        {
+            return latin1;
+        }
+    }
+
+    /// <summary>
+    /// curl's voutf() (src/tool_msgs.c): lines of at most COLUMNS - prefix bytes, each with the prefix, cut after the last
+    /// blank that fits (or at the width when there is none). COLUMNS is 79 unless a test's &lt;setenv&gt; changes it.
+    /// </summary>
+    private static string WrapLikeCurl(string prefix, string message, int columns)
+    {
+        var bytes = Encoding.UTF8.GetBytes(message);
+        var width = columns > prefix.Length ? columns - prefix.Length : int.MaxValue;
+        var output = new List<byte>();
+        var prefixBytes = Encoding.UTF8.GetBytes(prefix);
+        var pos = 0;
+        var len = bytes.Length;
+        while (len > 0)
+        {
+            output.AddRange(prefixBytes);
+            if (len > width)
+            {
+                var cut = width - 1;
+                while (cut > 0 && bytes[pos + cut] != ' ' && bytes[pos + cut] != '\t') cut--;
+                if (cut == 0) cut = width - 1;
+                output.AddRange(bytes.Skip(pos).Take(cut + 1));
+                output.Add((byte)'\n');
+                pos += cut + 1;
+                len -= cut + 1;
+            }
+            else
+            {
+                output.AddRange(bytes.Skip(pos).Take(len));
+                output.Add((byte)'\n');
+                len = 0;
+            }
+        }
+        return Encoding.UTF8.GetString(output.ToArray());
+    }
 
     /// <summary>runtests.pl's <c>mode="warn"</c>: per line, drop the first "Warning: ", one CR and turn the newline into a space.</summary>
     private static string UnwrapWarnings(string text) =>

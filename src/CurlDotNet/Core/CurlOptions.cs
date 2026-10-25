@@ -1564,6 +1564,7 @@ namespace CurlDotNet.Core
             clone.Session = null; // the cookie store of the command line the original ran in
             clone.TlsVerification = null; // what the original's last certificate check saw
             clone.RetryNumber = 0;
+            clone.Messages = null; // the messages belong to the command line the original was parsed from
             clone.DeferWriteOut = false;
             return clone;
         }
@@ -1921,6 +1922,12 @@ namespace CurlDotNet.Core
 
         /// <summary>The 0-based <c>--retry</c> attempt being run (<c>%{num_retries}</c>); 0 outside a retry loop.</summary>
         internal int RetryNumber { get; set; }
+
+        /// <summary>
+        /// The curl warnings and notes of the command line these options came from (shared by all its transfers); null for
+        /// options built in code. Filled by the parser, written and copied onto the result by the engine.
+        /// </summary>
+        internal ToolMessages? Messages { get; set; }
 
         /// <summary>
         /// Set by the <c>--retry</c> loop while another attempt may follow: the attempt keeps its <c>-w</c> text

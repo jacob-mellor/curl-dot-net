@@ -178,12 +178,26 @@ namespace CurlDotNet.Core
             options.FormData ??= new Dictionary<string, string>();
             options.Files ??= new Dictionary<string, string>();
 
-            if (options.AdditionalTransfers == null || options.AdditionalTransfers.Count == 0)
+            // curl's warnings and notes from reading the command line are printed before the first transfer
+            var messages = options.Messages;
+            messages?.Flush();
+            try
             {
-                return await ExecuteTransferAsync(options, cancellationToken).ConfigureAwait(false);
-            }
+                var result = options.AdditionalTransfers == null || options.AdditionalTransfers.Count == 0
+                    ? await ExecuteTransferAsync(options, cancellationToken).ConfigureAwait(false)
+                    : await ExecuteTransfersAsync(options, cancellationToken).ConfigureAwait(false);
+                if (messages != null)
+                {
+                    result.Warnings = messages.Snapshot();
+                }
 
-            return await ExecuteTransfersAsync(options, cancellationToken).ConfigureAwait(false);
+                return result;
+            }
+            catch (CurlException ex) when (messages != null)
+            {
+                ex.Warnings = messages.Snapshot();
+                throw;
+            }
         }
 
         /// <summary>
@@ -267,6 +281,7 @@ namespace CurlDotNet.Core
         {
             try
             {
+                CommandParser.AddTransferSetupMessages(options); // curl's notes/warnings while it sets the transfer up
                 return await RunHandlerAsync(options, cancellationToken).ConfigureAwait(false);
             }
             catch (CurlException ex)

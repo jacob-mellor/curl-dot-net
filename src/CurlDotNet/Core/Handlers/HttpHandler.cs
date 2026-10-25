@@ -337,6 +337,7 @@ namespace CurlDotNet.Core
                     {
                         // --skip-existing: curl does not even connect when the file is already there
                         trace?.Info($"Skipping {ErrorText.SafeUrl(options.Url)}: '{target}' already exists (--skip-existing)");
+                        options.Messages?.Note($"skips transfer, \"{target}\" exists locally");
                         return new CurlResult { StatusCode = 0, Body = string.Empty, Command = options.OriginalCommand, Timings = timings };
                     }
                 }
@@ -348,10 +349,7 @@ namespace CurlDotNet.Core
                     {
                         // curl: "Failed creating file for saving etags ... Skip this transfer" (no request, no error)
                         trace?.Info($"Skipping {ErrorText.SafeUrl(options.Url)}: --etag-save directory '{etagDir}' does not exist");
-                        if (!options.Silent)
-                        {
-                            WriteStderr(options, $"Warning: Failed creating file for saving etags: \"{options.EtagSave}\". Skip this transfer\n");
-                        }
+                        options.Messages?.Warn($"Failed creating file for saving etags: \"{options.EtagSave}\". Skip this transfer");
                         return new CurlResult { StatusCode = 0, Body = string.Empty, Command = options.OriginalCommand, Timings = timings };
                     }
                 }
@@ -1369,10 +1367,8 @@ namespace CurlDotNet.Core
                 {
                     context.ResponseCode = http.StatusCode;
                 }
-                var message = failure.Message;
-                var newline = message.IndexOf('\n');
                 context.ExitCode = failure.CurlErrorCode ?? 1;
-                context.ErrorMessage = newline < 0 ? message : message.Substring(0, newline);
+                context.ErrorMessage = failure.CurlErrorMessage; // curl's own error text (CurlException.CurlErrorMessage)
                 context.NumRetries = options.RetryNumber;
                 var expanded = WriteOutFormatter.Format(options.WriteOut!, context);
                 WriteStderr(options, expanded.Stderr);
