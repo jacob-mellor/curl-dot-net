@@ -217,6 +217,17 @@ namespace CurlDotNet.Core
         private long _remaining;
         private RawResponseHead? _current;
 
+        // curl accepts a first header line that starts with blanks (curl test 1473:
+        // "HTTP/1.1 200 OK\r\n Date: ..." must succeed with exit 0; it cannot be a fold, as there is
+        // no earlier header to continue). HttpClient rejects it ("invalid header name ' Date'"), so
+        // those leading blanks are hidden from HttpClient (see Feed's hidden list) while this parser
+        // keeps the bytes as received in the recorded head that -i/-D print. (How curl itself prints
+        // or names such a line is not pinned by its test suite.)
+        private int _headLines;      // line feeds seen in the current header block
+        private bool _statusIsHttp;  // the current block's first line starts with "HTTP/"
+        private bool _leadingBlanks; // at the start of the first header line, nothing but blanks so far
+        private int _hiddenBlanks;   // blanks hidden from HttpClient on the first header line
+
         /// <summary>Creates a parser; <paramref name="isHeadRequest"/> means responses carry no body.</summary>
         public ResponseStreamParser(bool isHeadRequest)
         {
@@ -248,7 +259,14 @@ namespace CurlDotNet.Core
         public byte[] RawPrefix => _raw.ToArray();
 
         /// <summary>Feeds bytes read from the connection.</summary>
-        public void Feed(byte[] buffer, int offset, int count)
+        /// <param name="buffer">The bytes read.</param>
+        /// <param name="offset">Where they start in <paramref name="buffer"/>.</param>
+        /// <param name="count">How many bytes were read.</param>
+        /// <param name="hidden">
+        /// When given, receives the buffer indexes (ascending) of bytes HttpClient must not see: the
+        /// leading blanks of a first header line, which curl tolerates and HttpClient rejects.
+        /// </param>
+        public void Feed(byte[] buffer, int offset, int count, List<int>? hidden = null)
         {
             if (_raw.Length < RawCap)
             {
@@ -263,21 +281,49 @@ namespace CurlDotNet.Core
                 {
                     case State.Head:
                     {
-                        var b = buffer[i++];
+                        var b = buffer[i];
                         _head.WriteByte(b);
-                        if (b == (byte)'\n')
+                        if (_leadingBlanks && (b == (byte)' ' || b == (byte)'\t'))
                         {
-                            var len = (int)_head.Length;
-                            var buf = _head.GetBuffer();
-                            if (len == 1 || (len == 2 && buf[0] == (byte)'\r'))
+                            hidden?.Add(i); // recorded, but HttpClient never sees it
+                            _hiddenBlanks++;
+                            i++;
+                            break;
+                        }
+                        i++;
+                        if (b != (byte)'\n')
+                        {
+                            if (b != (byte)'\r')
                             {
-                                _head.SetLength(0); // stray CRLF between responses
+                                _leadingBlanks = false;
                             }
-                            else if ((len >= 2 && buf[len - 2] == (byte)'\n') ||
-                                     (len >= 3 && buf[len - 2] == (byte)'\r' && buf[len - 3] == (byte)'\n'))
-                            {
-                                CompleteHead();
-                            }
+                            break;
+                        }
+
+                        _headLines++;
+                        var len = (int)_head.Length;
+                        var buf = _head.GetBuffer();
+                        if (len == 1 || (len == 2 && buf[0] == (byte)'\r'))
+                        {
+                            ResetHead(); // stray CRLF between responses
+                        }
+                        else if ((len >= 2 && buf[len - 2] == (byte)'\n') ||
+                                 (len >= 3 && buf[len - 2] == (byte)'\r' && buf[len - 3] == (byte)'\n') ||
+                                 (_leadingBlanks && _hiddenBlanks > 0))
+                        {
+                            // the last case: a first header line of nothing but blanks, which HttpClient
+                            // (seeing it without them) takes as the end of the header block
+                            CompleteHead();
+                        }
+                        else if (_headLines == 1)
+                        {
+                            _statusIsHttp = len >= 5 && buf[0] == (byte)'H' && buf[1] == (byte)'T' && buf[2] == (byte)'T'
+                                            && buf[3] == (byte)'P' && buf[4] == (byte)'/';
+                            _leadingBlanks = _statusIsHttp;
+                        }
+                        else
+                        {
+                            _leadingBlanks = false;
                         }
                         break;
                     }
@@ -378,10 +424,19 @@ namespace CurlDotNet.Core
             }
         }
 
+        private void ResetHead()
+        {
+            _head.SetLength(0);
+            _headLines = 0;
+            _statusIsHttp = false;
+            _leadingBlanks = false;
+            _hiddenBlanks = 0;
+        }
+
         private void CompleteHead()
         {
             var text = WireText.Latin1.GetString(_head.GetBuffer(), 0, (int)_head.Length);
-            _head.SetLength(0);
+            ResetHead();
             if (!text.StartsWith("HTTP/", StringComparison.Ordinal) && Heads.Count > 0
                 && !Heads[Heads.Count - 1].IsInformational && Heads[Heads.Count - 1].BodyComplete)
             {
@@ -472,6 +527,61 @@ namespace CurlDotNet.Core
 
         /// <summary>Remote socket address (the proxy when one is used).</summary>
         public IPEndPoint? RemoteEndPoint { get; set; }
+
+        private readonly object _handshakeLock = new object();
+        private Timer? _handshakeTimer;
+        private bool _handshakeDone;
+
+        /// <summary>
+        /// True when --connect-timeout expired after the TCP connection was made but before TLS finished:
+        /// curl's connect timeout covers the TLS handshake ("SSL connection timeout", exit 28).
+        /// </summary>
+        public bool HandshakeTimedOut { get; private set; }
+
+        /// <summary>
+        /// Closes <paramref name="connection"/> when the TLS handshake has not finished (<see cref="HandshakeFinished"/>)
+        /// within <paramref name="remaining"/>, and marks the connection <see cref="HandshakeTimedOut"/>.
+        /// </summary>
+        public void ArmHandshakeTimeout(TimeSpan remaining, Stream connection)
+        {
+            if (remaining < TimeSpan.Zero)
+            {
+                remaining = TimeSpan.Zero;
+            }
+            lock (_handshakeLock)
+            {
+                if (_handshakeDone)
+                {
+                    return;
+                }
+                _handshakeTimer = new Timer(_ =>
+                {
+                    lock (_handshakeLock)
+                    {
+                        if (_handshakeDone)
+                        {
+                            return;
+                        }
+                        _handshakeDone = true;
+                        HandshakeTimedOut = true;
+                    }
+                    connection.Dispose(); // fails the TLS handshake; the error is reported as a timeout
+                }, null, remaining, Timeout.InfiniteTimeSpan);
+            }
+        }
+
+        /// <summary>Stops the handshake timer: HTTP can start (TLS finished, or there is no TLS).</summary>
+        public void HandshakeFinished()
+        {
+            Timer? timer;
+            lock (_handshakeLock)
+            {
+                _handshakeDone = true;
+                timer = _handshakeTimer;
+                _handshakeTimer = null;
+            }
+            timer?.Dispose();
+        }
     }
 
     /// <summary>
@@ -559,7 +669,12 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>Records received bytes for a segment.</summary>
-        public void Received(WireSegment segment, byte[] buffer, int offset, int count)
+        /// <param name="segment">The segment the bytes arrived on.</param>
+        /// <param name="buffer">The bytes read.</param>
+        /// <param name="offset">Where they start in <paramref name="buffer"/>.</param>
+        /// <param name="count">How many bytes were read.</param>
+        /// <param name="hidden">Receives the indexes of bytes HttpClient must not see (<see cref="ResponseStreamParser.Feed"/>).</param>
+        public void Received(WireSegment segment, byte[] buffer, int offset, int count, List<int>? hidden = null)
         {
             lock (_lock)
             {
@@ -567,7 +682,7 @@ namespace CurlDotNet.Core
                 {
                     FirstByteTimestamp = Stopwatch.GetTimestamp();
                 }
-                segment.Parser.Feed(buffer, offset, count);
+                segment.Parser.Feed(buffer, offset, count, hidden);
             }
         }
 
@@ -704,6 +819,7 @@ namespace CurlDotNet.Core
         private MemoryStream? _head;
         private RequestRewrite? _rewrite;
         private ChunkSizeLowercaser? _chunks;
+        private readonly List<int> _hidden = new List<int>(); // reads on one connection never overlap
 
         /// <summary>Wraps <paramref name="inner"/>.</summary>
         public RecordingStream(Stream inner, WireConnectionInfo? info)
@@ -730,43 +846,71 @@ namespace CurlDotNet.Core
             }
         }
 
-        private void OnRead(byte[] buffer, int offset, int requested, int read)
+        /// <summary>
+        /// Records what a read returned and removes the bytes HttpClient must not see (see
+        /// <see cref="ResponseStreamParser.Feed"/>). Returns how many bytes HttpClient gets: 0 only
+        /// at the end of the stream; when every byte read was hidden the caller reads again.
+        /// </summary>
+        private int OnRead(byte[] buffer, int offset, int requested, int read)
         {
             var exchange = _bound;
             var segment = _segment;
             if (exchange == null || segment == null)
             {
-                return;
+                return read;
             }
 
             if (read > 0)
             {
-                exchange.Received(segment, buffer, offset, read);
+                _hidden.Clear();
+                exchange.Received(segment, buffer, offset, read, _hidden);
+                return _hidden.Count == 0 ? read : Compact(new Span<byte>(buffer, offset, read), offset);
             }
-            else if (requested > 0)
+            if (requested > 0)
             {
                 segment.Parser.Closed = true;
             }
+            return read;
         }
 
-        private void OnRead(ReadOnlySpan<byte> data, int requested)
+        private int OnRead(Span<byte> data, int requested)
         {
             var exchange = _bound;
             var segment = _segment;
             if (exchange == null || segment == null)
             {
-                return;
+                return data.Length;
             }
 
             if (data.Length > 0)
             {
                 var copy = data.ToArray();
-                exchange.Received(segment, copy, 0, copy.Length);
+                _hidden.Clear();
+                exchange.Received(segment, copy, 0, copy.Length, _hidden);
+                return _hidden.Count == 0 ? data.Length : Compact(data, 0);
             }
-            else if (requested > 0)
+            if (requested > 0)
             {
                 segment.Parser.Closed = true;
             }
+            return 0;
+        }
+
+        /// <summary>Drops the bytes listed in <see cref="_hidden"/> (indexes relative to <paramref name="baseIndex"/>) and returns the new length.</summary>
+        private int Compact(Span<byte> data, int baseIndex)
+        {
+            var write = 0;
+            var next = 0;
+            for (var read = 0; read < data.Length; read++)
+            {
+                if (next < _hidden.Count && _hidden[next] - baseIndex == read)
+                {
+                    next++;
+                    continue;
+                }
+                data[write++] = data[read];
+            }
+            return write;
         }
 
         /// <inheritdoc />
@@ -799,43 +943,59 @@ namespace CurlDotNet.Core
         /// <inheritdoc />
         public override Task FlushAsync(CancellationToken cancellationToken) => _inner.FlushAsync(cancellationToken);
 
+        // Every read loops while a read returned only bytes hidden from HttpClient (OnRead returned 0
+        // for a non-empty read): returning 0 would tell HttpClient the connection was closed.
+
         /// <inheritdoc />
         public override int Read(byte[] buffer, int offset, int count)
         {
-            var n = _inner.Read(buffer, offset, count);
-            OnRead(buffer, offset, count, n);
-            return n;
+            while (true)
+            {
+                var n = _inner.Read(buffer, offset, count);
+                var kept = OnRead(buffer, offset, count, n);
+                if (n == 0 || kept > 0) return kept;
+            }
         }
 
         /// <inheritdoc />
         public override int Read(Span<byte> buffer)
         {
-            var n = _inner.Read(buffer);
-            OnRead(buffer.Slice(0, n), buffer.Length);
-            return n;
+            while (true)
+            {
+                var n = _inner.Read(buffer);
+                var kept = OnRead(buffer.Slice(0, n), buffer.Length);
+                if (n == 0 || kept > 0) return kept;
+            }
         }
 
         /// <inheritdoc />
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            var n = await _inner.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
-            OnRead(buffer, offset, count, n);
-            return n;
+            while (true)
+            {
+                var n = await _inner.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
+                var kept = OnRead(buffer, offset, count, n);
+                if (n == 0 || kept > 0) return kept;
+            }
         }
 
         /// <inheritdoc />
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            var n = await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            if (System.Runtime.InteropServices.MemoryMarshal.TryGetArray<byte>(buffer, out var segment) && segment.Array != null)
+            while (true)
             {
-                OnRead(segment.Array, segment.Offset, buffer.Length, n); // no copy for the usual array-backed buffer
+                var n = await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+                int kept;
+                if (System.Runtime.InteropServices.MemoryMarshal.TryGetArray<byte>(buffer, out var segment) && segment.Array != null)
+                {
+                    kept = OnRead(segment.Array, segment.Offset, buffer.Length, n); // no copy for the usual array-backed buffer
+                }
+                else
+                {
+                    kept = OnRead(buffer.Span.Slice(0, n), buffer.Length);
+                }
+                if (n == 0 || kept > 0) return kept;
             }
-            else
-            {
-                OnRead(buffer.Span.Slice(0, n), buffer.Length);
-            }
-            return n;
         }
 
         /// <inheritdoc />

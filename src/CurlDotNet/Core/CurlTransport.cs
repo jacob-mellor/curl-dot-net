@@ -443,6 +443,49 @@ namespace CurlDotNet.Core
             return new HttpClient(CreateHandler(options, proxy)) { Timeout = Timeout.InfiniteTimeSpan };
         }
 
+        /// <summary>
+        /// True when the <c>--connect-to</c> entries of <paramref name="options"/> leave its connection where the
+        /// URL points anyway (curl test 2051: <c>--connect-to ::HOST:PORT</c> for a URL on HOST:PORT). curl then
+        /// treats the transfer as one without --connect-to (url.c drops a via-peer equal to the origin), so it
+        /// may reuse the pooled connection of an earlier transfer. With -L a redirect could reach a host that an
+        /// entry does redirect, so that case keeps its own connection pool. Always false where CurlDotNet has
+        /// no connect callback (.NET Framework / .NET Standard 2.0).
+        /// </summary>
+        internal static bool ConnectToChangesNothing(CurlOptions options)
+        {
+            if (options.ConnectTo.Count == 0)
+            {
+                return true;
+            }
+#if NETSTANDARD2_0 || NET472 || NET48
+            return false;
+#else
+            if (options.FollowLocation || !Uri.TryCreate(options.Url, UriKind.Absolute, out var uri))
+            {
+                return false;
+            }
+            var host = uri.Host.Trim('[', ']');
+            var (newHost, newPort) = ApplyConnectTo(options.ConnectTo, host, uri.Port);
+            return newPort == uri.Port && string.Equals(newHost.Trim('[', ']'), host, StringComparison.OrdinalIgnoreCase);
+#endif
+        }
+
+        /// <summary>
+        /// The connection the connect callback opened for <paramref name="request"/> (TCP connected), or null
+        /// (always null on .NET Framework / .NET Standard 2.0, which have no connect callback). Known even when
+        /// nothing was recorded on it, for example when TLS then failed.
+        /// </summary>
+        internal static WireConnectionInfo? LastConnectionOf(HttpRequestMessage? request)
+        {
+#if !NETSTANDARD2_0 && !NET472 && !NET48
+            if (request != null && request.Options.TryGetValue(SettingsKey, out var settings))
+            {
+                return settings.LastConnection;
+            }
+#endif
+            return null;
+        }
+
         /// <summary>Attaches per-request settings that the connect callback reads.</summary>
         public static void Attach(HttpRequestMessage request, TransportRequestSettings settings)
         {
@@ -573,7 +616,8 @@ namespace CurlDotNet.Core
             var info = new WireConnectionInfo { StartedTimestamp = Stopwatch.GetTimestamp() };
 
             var tunnel = settings?.TunnelProxy;
-            var host = tunnel?.Host ?? context.DnsEndPoint.Host;
+            // an aliased URL host (HostAlias) is resolved and --connect-to-matched by its original name
+            var host = tunnel?.Host ?? HostAlias.Restore(context.DnsEndPoint.Host);
             var port = tunnel?.Port ?? context.DnsEndPoint.Port;
             if (tunnel == null && settings?.ConnectTo != null && !settings.ViaProxy)
             {
@@ -647,6 +691,15 @@ namespace CurlDotNet.Core
                     stream.Dispose();
                     throw;
                 }
+            }
+
+            if (timeoutCts != null && string.Equals(context.InitialRequestMessage.RequestUri?.Scheme, "https", StringComparison.OrdinalIgnoreCase))
+            {
+                // curl's --connect-timeout also covers the TLS handshake (curl test 5029: a server that
+                // accepts TCP but never answers the ClientHello fails with 28, "SSL connection timeout").
+                // HttpClient runs TLS after this callback, so the rest of the budget is enforced here.
+                var elapsed = TimeSpan.FromSeconds((Stopwatch.GetTimestamp() - info.StartedTimestamp) / (double)Stopwatch.Frequency);
+                info.ArmHandshakeTimeout(TimeSpan.FromSeconds(settings!.ConnectTimeoutSeconds) - elapsed, stream);
             }
 
             return stream;
@@ -781,6 +834,10 @@ namespace CurlDotNet.Core
         {
             if (context.NegotiatedHttpVersion.Major >= 2)
             {
+                if (context.InitialRequestMessage.Options.TryGetValue(SettingsKey, out var h2) && h2.LastConnection != null)
+                {
+                    h2.LastConnection.HandshakeFinished(); // TLS is done; HTTP/2 is not recorded
+                }
                 return new ValueTask<Stream>(context.PlaintextStream);
             }
 
@@ -799,6 +856,7 @@ namespace CurlDotNet.Core
             if (info != null)
             {
                 info.ReadyTimestamp = Stopwatch.GetTimestamp();
+                info.HandshakeFinished();
             }
 
             return new ValueTask<Stream>(new RecordingStream(context.PlaintextStream, info));

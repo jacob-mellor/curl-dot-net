@@ -2030,6 +2030,13 @@ namespace CurlDotNet.Core
                     return; // curl uses the first Host: header
                 }
 
+                // curl sends one line per -H; remember the values so the request head can do the same
+                if (!options.RepeatedHeaderValues.TryGetValue(key, out var parts))
+                {
+                    parts = new List<string> { existing };
+                    options.RepeatedHeaderValues[key] = parts;
+                }
+                parts.Add(value);
                 options.Headers[key] = existing + ", " + value;
                 return;
             }

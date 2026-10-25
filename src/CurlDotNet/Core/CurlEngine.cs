@@ -288,6 +288,7 @@ namespace CurlDotNet.Core
                     DocLinks.Url), 2, options.OriginalCommand);
 
             options.Url = CommandParser.NormalizeUrl(options.Url);
+            HostAlias.Apply(options); // a host System.Uri refuses but --resolve/--connect-to maps (curl test 46)
 
             // Process-wide opt-ins from Curl.Default* apply to every request that did not set them itself
             if (Curl.DefaultFollowRedirects) options.FollowLocation = true;

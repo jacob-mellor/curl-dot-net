@@ -1554,6 +1554,9 @@ namespace CurlDotNet.Core
             clone.RawHeaderLines = RawHeaderLines == null
                 ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 : new Dictionary<string, string>(RawHeaderLines, RawHeaderLines.Comparer);
+            clone.RepeatedHeaderValues = RepeatedHeaderValues == null
+                ? new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+                : RepeatedHeaderValues.ToDictionary(e => e.Key, e => new List<string>(e.Value), StringComparer.OrdinalIgnoreCase);
             clone.ConnectTo = ConnectTo == null ? new List<string>() : new List<string>(ConnectTo);
             clone.UrlQueryParts = new List<string>(UrlQueryParts);
             clone.RequestKinds = new List<KeyValuePair<RequestKind, string>>(RequestKinds);
@@ -1845,6 +1848,13 @@ namespace CurlDotNet.Core
         /// name), keyed by the trimmed name; the request head carries them verbatim like curl.
         /// </summary>
         internal Dictionary<string, string> RawHeaderLines { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Headers given with more than one <c>-H</c> (<c>-H "Connection: this" -H "Connection: that"</c>): each
+        /// value in order, keyed by name. <see cref="Headers"/> holds them joined with ", "; curl sends one line
+        /// per <c>-H</c>, so the request-head rewrite (RequestRewrite) writes them back as separate lines.
+        /// </summary>
+        internal Dictionary<string, List<string>> RepeatedHeaderValues { get; set; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary><c>--request-target</c>: the target written on the request line instead of the URL's path (for example <c>*</c>).</summary>
         internal string? RequestTarget { get; set; }

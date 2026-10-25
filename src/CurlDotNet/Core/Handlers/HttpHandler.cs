@@ -491,6 +491,20 @@ namespace CurlDotNet.Core
                 var mapped = TransportErrors.Translate(ex, transfer, readingBody);
                 if (mapped != null)
                 {
+                    var connection = CurlTransport.LastConnectionOf(transfer.CurrentRequest);
+                    if (connection != null && connection.HandshakeTimedOut && !string.IsNullOrEmpty(options.WriteOut))
+                    {
+                        // curl test 5029: after a TLS handshake timeout -w still reports the TCP connection
+                        // that was made (remote_ip, remote_port, local_ip and a non-zero time_connect)
+                        var context = BuildFailureWriteOutContext(transfer);
+                        context.LocalIp = connection.LocalEndPoint?.Address.ToString() ?? string.Empty;
+                        context.LocalPort = connection.LocalEndPoint?.Port ?? 0;
+                        context.RemoteIp = connection.RemoteEndPoint?.Address.ToString() ?? string.Empty;
+                        context.RemotePort = connection.RemoteEndPoint?.Port ?? 0;
+                        context.TimeNameLookup = transfer.Transcript.SecondsSinceStart(connection.ResolvedTimestamp);
+                        context.TimeConnect = transfer.Transcript.SecondsSinceStart(connection.ConnectedTimestamp);
+                        AttachFailureOutput(mapped, transfer, null, context, null);
+                    }
                     throw mapped;
                 }
 
@@ -531,7 +545,7 @@ namespace CurlDotNet.Core
                 || CurlTls.IsConfigured(options)
                 || UsesChallengeAuth(options)
                 || options.Resolve.Count > 0
-                || options.ConnectTo.Count > 0
+                || !CurlTransport.ConnectToChangesNothing(options)
                 || options.ProxyTunnel
                 || options.Expect100TimeoutSeconds.HasValue;
         }
@@ -1389,7 +1403,7 @@ namespace CurlDotNet.Core
                 HttpVersion = head == null ? "0" : (head.HttpVersion == "2.0" ? "2" : head.HttpVersion),
                 ContentType = head?.GetHeader("Content-Type"),
                 Url = transfer.OriginalUrl,
-                UrlEffective = uri?.AbsoluteUri ?? options.Url,
+                UrlEffective = HostAlias.RestoreUrl(uri?.AbsoluteUri ?? options.Url),
                 RedirectUrl = transfer.RedirectUrl ?? string.Empty,
                 Method = transfer.CurrentRequest?.Method.Method ?? (options.CustomMethod ?? options.Method ?? "GET").ToUpperInvariant(),
                 Scheme = uri?.Scheme.ToLowerInvariant() ?? string.Empty,
@@ -1727,7 +1741,7 @@ namespace CurlDotNet.Core
                 SizeDownload = downloadSize,
                 SizeUpload = request.Content?.Headers.ContentLength ?? 0,
                 Url = transfer.OriginalUrl,
-                UrlEffective = uri.AbsoluteUri,
+                UrlEffective = HostAlias.RestoreUrl(uri.AbsoluteUri),
                 RedirectUrl = transfer.RedirectUrl ?? string.Empty,
                 Method = request.Method.Method,
                 Scheme = uri.Scheme.ToLowerInvariant(),

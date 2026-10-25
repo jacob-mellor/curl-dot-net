@@ -256,7 +256,7 @@ namespace CurlDotNet.Core
                 var colon = h.LastIndexOf(':');
                 return (colon > 0 ? h.Substring(0, colon) : h).ToLowerInvariant();
             }
-            return uri.Host.Trim('[', ']').ToLowerInvariant();
+            return HostAlias.Restore(uri.Host.Trim('[', ']')).ToLowerInvariant(); // an aliased host matches as written
         }
 
         /// <summary>Builds the jar part of the Cookie header for a request, or null.</summary>
@@ -301,8 +301,13 @@ namespace CurlDotNet.Core
         /// <summary>Stores the cookies of one response.</summary>
         public void StoreFromResponse(Uri requestUri, IEnumerable<string> setCookieValues)
         {
+            Store(requestUri, HostAlias.Restore(requestUri.Host.Trim('[', ']')).ToLowerInvariant(), setCookieValues);
+        }
+
+        /// <summary>Stores the cookies of one response for <paramref name="host"/> (which may not be a valid URI host, such as "domain..tld").</summary>
+        private void Store(Uri requestUri, string host, IEnumerable<string> setCookieValues)
+        {
             var now = Now();
-            var host = requestUri.Host.Trim('[', ']').ToLowerInvariant();
             var defaultPath = DefaultPath(requestUri.AbsolutePath);
             var secure = IsSecureContext(requestUri, host);
             var stored = 0;
@@ -330,9 +335,7 @@ namespace CurlDotNet.Core
         /// <summary>Stores cookies using the Host header override when the request had one.</summary>
         public void StoreFromResponse(Uri requestUri, CurlOptions hop, IEnumerable<string> setCookieValues)
         {
-            var host = HostFor(requestUri, hop);
-            var builder = new UriBuilder(requestUri) { Host = host.Contains(":") ? "[" + host + "]" : host };
-            StoreFromResponse(builder.Uri, setCookieValues);
+            Store(requestUri, HostFor(requestUri, hop), setCookieValues);
         }
 
         private void Add(StoredCookie cookie, long now)

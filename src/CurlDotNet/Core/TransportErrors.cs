@@ -300,6 +300,19 @@ namespace CurlDotNet.Core
                 return clientSide;
             }
 
+            var connection = CurlTransport.LastConnectionOf(transfer.CurrentRequest);
+            if (connection != null && connection.HandshakeTimedOut)
+            {
+                // curl: "SSL connection timeout" (28) - the connect timeout covers the TLS handshake too
+                var seconds = transfer.HopOptions.ConnectTimeout ?? 0;
+                var shown = seconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return new CurlOperationTimeoutException(seconds, CurlException.Compose(
+                    $"SSL connection timeout: the TLS handshake with {uri.Host} port {uri.Port} did not finish within {(long)(seconds * 1000)} milliseconds " +
+                    $"(--connect-timeout {shown} covers the TCP connect and the TLS handshake); the TCP connection was made, but the server never completed TLS",
+                    "Check that this port speaks TLS (an https:// URL on a plain-HTTP port waits like this), or raise --connect-timeout if the server is just slow to answer.",
+                    DocLinks.Timeout), command);
+            }
+
             for (var e = ex; e != null; e = e.InnerException)
             {
                 if (e is CurlException curl)

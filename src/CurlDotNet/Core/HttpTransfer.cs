@@ -51,7 +51,7 @@ namespace CurlDotNet.Core
             _verboseRequest = verboseRequest;
             _verboseResponse = verboseResponse;
             _headerBlock = headerBlock;
-            OriginalUrl = options.Url;
+            OriginalUrl = HostAlias.RestoreUrl(options.Url); // %{url} shows the host as written
             FirstUri = new Uri(options.Url);
             Auth = HttpAuth.Create(options, proxy?.NegotiatesPlainRequests ?? false, proxy?.AuthScheme, proxy?.UserCredentials);
         }
