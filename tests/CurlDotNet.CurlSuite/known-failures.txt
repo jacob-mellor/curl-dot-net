@@ -1,14 +1,7 @@
 # curl test numbers that CurlDotNet does not pass yet. One per line, optional "# reason".
 # A listed test that starts passing fails the suite until it is removed, so this list stays honest.
-# Status 2026-10-25: 586 of 631 runnable HTTP tests pass. The harness now also verifies stderr, replays
+# Status 2026-10-25 (Linux, net10.0): 595 of 631 runnable HTTP tests pass. The harness now also verifies stderr, replays
 # <stripfile>/<strippart> perl and adds runtests' --trace-ascii, which exposed the gaps listed in the last two groups.
-
-# .NET / HttpClient limitations
-209   # harness: the stub does not serve sws's <connectN> parts to CONNECT (the library now sends curl's exact NTLM CONNECTs)
-213   # same as 209; and the stub closes after an HTTP/1.0 CONNECT 407, where CurlDotNet does not reconnect (curl's rule unconfirmed)
-265   # same as 209 (passes with a connectN-aware stub)
-259   # Expect: 100-continue probe with proxy anyauth (Digest): the 100 Continue block appears in the output
-5029  # harness: <stripfile> (time_connect -> [non-zero]) is not applied yet; the library now exits 28 and prints the -w connection facts
 
 # stderr now verified (triage): the library's stderr text differs from curl's
 33    # curl: (43) line: CurlErrorMessage adds ": -C/--continue-at 50 resumes downloads, but this command ..." after curl's "HTTP upload cannot be resumed"

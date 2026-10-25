@@ -93,11 +93,12 @@ public static class CurlSuiteRunner
         List<PerlLineRule> Rules(string sectionName) => stripRules.TryGetValue(sectionName, out var r) ? r : new List<PerlLineRule>();
 
         var replies = new Dictionary<int, string>();
+        var connectReplies = new Dictionary<int, string>();
         foreach (var section in test.All("reply"))
         {
-            var m = Regex.Match(section.Name, @"^data(\d*)$");
+            var m = Regex.Match(section.Name, @"^(data|connect)(\d*)$");
             if (!m.Success) continue;
-            var part = m.Groups[1].Value.Length == 0 ? 0 : int.Parse(m.Groups[1].Value);
+            var part = m.Groups[2].Value.Length == 0 ? 0 : int.Parse(m.Groups[2].Value);
             var text = pre.ProcessSection(section);
             if (section.Attr("crlf") == null)
             {
@@ -105,9 +106,10 @@ public static class CurlSuiteRunner
                 // normalise the header block (never the body) to CRLF.
                 text = CurlTestPreprocessor.ToCrlf(text, headersOnly: true);
             }
-            replies[part] = text;
+            (m.Groups[1].Value == "connect" ? connectReplies : replies)[part] = text;
         }
         server.SetReplies(replies);
+        server.SetConnectReplies(connectReplies);
 
         // Input files the test needs (relative names are relative to %PWD, i.e. the run root).
         foreach (var section in test.All("client").Where(s => Regex.IsMatch(s.Name, @"^file\d?$")))

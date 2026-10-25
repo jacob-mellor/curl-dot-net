@@ -9,7 +9,7 @@ namespace CurlDotNet.CurlSuite;
 /// A from-scratch HTTP/1.x stub server with the behaviour of curl's tests/server/sws.c:
 /// it records every request byte-for-byte, picks the reply part from the number after the
 /// last slash in the request target (NNNN0002 means test NNNN part 2), honours
-/// <c>swsclose</c>/<c>swsbounce</c>, answers <c>Expect: 100-continue</c>, and bumps the part
+/// <c>swsclose</c>/<c>swsbounce</c>, never answers <c>Expect: 100-continue</c> (like sws), and bumps the part
 /// number for Digest/NTLM/Basic/Negotiate challenges exactly like sws does.
 /// Built on TcpListener only so there is nothing between the test and the wire.
 /// </summary>
@@ -17,6 +17,7 @@ public sealed class StubHttpServer : IDisposable
 {
     private readonly TcpListener _listener;
     private Dictionary<int, string> _replies;               // part -> fully preprocessed reply text (Latin-1)
+    private Dictionary<int, string> _connectReplies = new(); // part -> <connectN> reply for CONNECT requests (sws.c)
     private readonly CancellationTokenSource _cts = new();
     private readonly List<byte[]> _requests = new();
     private readonly List<byte[]> _bodies = new();
@@ -38,6 +39,12 @@ public sealed class StubHttpServer : IDisposable
     public void SetReplies(Dictionary<int, string> replies)
     {
         lock (_lock) _replies = replies;
+    }
+
+    /// <summary>Installs the &lt;connectN&gt; parts sws.c answers CONNECT requests with.</summary>
+    public void SetConnectReplies(Dictionary<int, string> replies)
+    {
+        lock (_lock) _connectReplies = replies;
     }
 
     /// <summary>Raw requests in arrival order (request line, headers and body as received).</summary>
@@ -96,6 +103,7 @@ public sealed class StubHttpServer : IDisposable
                 }
 
                 var part = SelectPart(request);
+                var isConnect = request.RequestLine.StartsWith("CONNECT ", StringComparison.Ordinal);
                 string? reply;
                 lock (_lock)
                 {
@@ -103,12 +111,11 @@ public sealed class StubHttpServer : IDisposable
                     {
                         part = _previousPart + 1;
                     }
-                    _replies.TryGetValue(part, out reply);
+                    (isConnect ? _connectReplies : _replies).TryGetValue(part, out reply);
                     _previousPart = part;
                     _bounceNext = reply != null && reply.Contains("swsbounce", StringComparison.Ordinal);
                 }
 
-                var close = request.ConnectionClose;
                 byte[] bytes;
                 if (reply == null)
                 {
@@ -116,17 +123,11 @@ public sealed class StubHttpServer : IDisposable
                     try { client.Client.Shutdown(SocketShutdown.Both); } catch { /* ignore */ }
                     return;
                 }
-                else
-                {
-                    if (reply.Contains("swsclose", StringComparison.Ordinal))
-                    {
-                        close = true;
-                    }
-                    if (!HasFramedBody(reply))
-                    {
-                        close = true; // only EOF can delimit this body
-                    }
-                }
+
+                // sws.c send_doc(): the connection stays open after every reply unless the reply contains
+                // "swsclose" or is empty. That decision is made last and overrides HTTP/1.0 and
+                // "Connection: close" in the request, so neither closes it here either.
+                var close = reply.Length == 0 || reply.Contains("swsclose", StringComparison.Ordinal);
 
                 bytes = Encoding.Latin1.GetBytes(reply);
                 await stream.WriteAsync(bytes, 0, bytes.Length, _cts.Token);
@@ -157,17 +158,6 @@ public sealed class StubHttpServer : IDisposable
 
         public string? Header(string name) =>
             Headers.FirstOrDefault(h => string.Equals(h.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
-    }
-
-    private static bool HasFramedBody(string reply)
-    {
-        var headerEnd = reply.IndexOf("\r\n\r\n", StringComparison.Ordinal);
-        var head = headerEnd < 0 ? reply : reply.Substring(0, headerEnd);
-        if (Regex.IsMatch(head, @"(?im)^Content-Length:\s*\d+")) return true;
-        if (Regex.IsMatch(head, @"(?im)^Transfer-Encoding:.*chunked")) return true;
-        // Replies without a body at all (1xx, 204, 304) are self-delimiting.
-        if (Regex.IsMatch(head, @"^HTTP/\d\.\d (1\d\d|204|304)")) return true;
-        return false;
     }
 
     private async Task<ParsedRequest?> ReadRequestAsync(NetworkStream stream, MemoryStream pending)
@@ -222,12 +212,8 @@ public sealed class StubHttpServer : IDisposable
         request.ConnectionClose = string.Equals(request.Header("Connection"), "close", StringComparison.OrdinalIgnoreCase)
                                   || request.RequestLine.EndsWith("HTTP/1.0", StringComparison.Ordinal);
 
-        if (string.Equals(request.Header("Expect"), "100-continue", StringComparison.OrdinalIgnoreCase))
-        {
-            var cont = Encoding.ASCII.GetBytes("HTTP/1.1 100 Continue\r\n\r\n");
-            await stream.WriteAsync(cont, 0, cont.Length, _cts.Token);
-            await stream.FlushAsync(_cts.Token);
-        }
+        // sws.c never answers "Expect: 100-continue" with a 100 response: curl waits its timeout (1 s)
+        // and sends the body anyway, so the stub just reads on.
 
         var contentLength = request.Header("Content-Length");
         var transferEncoding = request.Header("Transfer-Encoding");
