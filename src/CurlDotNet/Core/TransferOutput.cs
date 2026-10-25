@@ -272,16 +272,55 @@ namespace CurlDotNet.Core
             }
         }
 
-        /// <summary>-D/--dump-header FILE: appends the header blocks (the file is created on first use).</summary>
+        /// <summary>
+        /// -D/--dump-header FILE: appends the header blocks (the file is created on first use). <c>-D %</c> sends
+        /// them to standard error instead (tool_operate.c's setup_headerfile), which is <c>--stderr FILE</c> when
+        /// one is given.
+        /// </summary>
         public static void DumpHeaders(CurlOptions options, string headerText)
         {
             var path = options.DumpHeaderFile!;
+            if (path == DumpHeadersToStderr)
+            {
+                WriteStderr(options, headerText);
+                return;
+            }
             EnsureDirectory(path, options, "-D/--dump-header");
             // the first transfer of a --next group creates the file; later transfers of the group append,
             // so "-D heads url1 url2" keeps both header blocks, while a -D in the next group starts over
             var key = options.GroupNumber.ToString(CultureInfo.InvariantCulture) + "|" + Path.GetFullPath(path);
             var append = options.Session != null && !options.Session.DumpHeaderFiles.Add(key);
             WriteFile(path, WireText.Latin1.GetBytes(headerText), append, options, "-D/--dump-header");
+        }
+
+        /// <summary>The <c>-D</c> argument curl reads as "standard error".</summary>
+        internal const string DumpHeadersToStderr = "%";
+
+        /// <summary>
+        /// Writes tool output meant for standard error: appended to <c>--stderr FILE</c> when one is set (falling
+        /// back to the console when it cannot be opened, like curl), otherwise <see cref="Console.Error"/>.
+        /// </summary>
+        internal static void WriteStderr(CurlOptions options, string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return;
+            }
+            if (!string.IsNullOrEmpty(options.StderrFile) && options.StderrFile != "-")
+            {
+                try
+                {
+                    using var file = new FileStream(options.StderrFile!, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                    var bytes = WireText.Latin1.GetBytes(text);
+                    file.Write(bytes, 0, bytes.Length);
+                    return;
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    // curl falls back to the terminal when --stderr cannot be opened
+                }
+            }
+            Console.Error.Write(text);
         }
     }
 }

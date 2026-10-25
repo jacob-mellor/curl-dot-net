@@ -37,6 +37,7 @@ namespace CurlDotNet.Core
             "--etag-compare",
             "--netrc-file",
             "--request-target",
+            "--haproxy-clientip",
         };
 
         /// <summary>
@@ -49,6 +50,20 @@ namespace CurlDotNet.Core
                 // --- proxy -------------------------------------------------------------------
                 case "--noproxy":
                     options.NoProxy = value;
+                    return true;
+
+                // --- HAProxy PROXY protocol (lib/cf-haproxy.c) --------------------------------------
+                case "--haproxy-protocol":
+                    options.HaproxyProtocol = true;
+                    return true;
+
+                case "--no-haproxy-protocol":
+                    options.HaproxyProtocol = false;
+                    return true;
+
+                case "--haproxy-clientip":
+                    // curl's CURLOPT_HAPROXY_CLIENT_IP also enables the protocol (setopt.c)
+                    options.HaproxyClientIp = string.IsNullOrEmpty(value) ? null : value;
                     return true;
 
                 case "--proxy-basic":

@@ -13,8 +13,10 @@
  ***************************************************************************/
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -240,6 +242,30 @@ namespace CurlDotNet.Core
             }
         }
 
+        /// <summary>
+        /// The header lines of <paramref name="headers"/> as they go on (or came off) the wire, one
+        /// entry per header name with its values joined by ", ". On .NET 6+ this reads
+        /// <c>NonValidated</c>: enumerating the typed collection parses every raw value and stores the
+        /// parsed form back, so merely tracing a request would change the bytes HttpClient then sends
+        /// (curl test 164: <c>Range: bytes=0-10,12-15</c> became <c>bytes=0-10, 12-15</c>).
+        /// </summary>
+        /// <param name="headers">Request, response or content headers.</param>
+        /// <returns>(name, value) pairs in insertion order.</returns>
+        internal static IEnumerable<KeyValuePair<string, string>> HeaderLines(HttpHeaders headers)
+        {
+#if NET6_0_OR_GREATER
+            foreach (var header in headers.NonValidated)
+            {
+                yield return new KeyValuePair<string, string>(header.Key, string.Join(", ", header.Value));
+            }
+#else
+            foreach (var header in headers)
+            {
+                yield return new KeyValuePair<string, string>(header.Key, string.Join(", ", header.Value));
+            }
+#endif
+        }
+
         private static string BuildRequestHead(HttpRequestMessage request)
         {
             var sb = new StringBuilder();
@@ -255,16 +281,16 @@ namespace CurlDotNet.Core
                 sb.Append("Host: ").Append(uri.Authority).Append("\r\n");
             }
 
-            foreach (var header in request.Headers)
+            foreach (var header in HeaderLines(request.Headers))
             {
-                sb.Append(header.Key).Append(": ").Append(string.Join(", ", header.Value)).Append("\r\n");
+                sb.Append(header.Key).Append(": ").Append(header.Value).Append("\r\n");
             }
 
             if (request.Content != null)
             {
-                foreach (var header in request.Content.Headers)
+                foreach (var header in HeaderLines(request.Content.Headers))
                 {
-                    sb.Append(header.Key).Append(": ").Append(string.Join(", ", header.Value)).Append("\r\n");
+                    sb.Append(header.Key).Append(": ").Append(header.Value).Append("\r\n");
                 }
             }
 
@@ -281,16 +307,16 @@ namespace CurlDotNet.Core
               .Append((int)response.StatusCode).Append(' ')
               .Append(response.ReasonPhrase).Append("\r\n");
 
-            foreach (var header in response.Headers)
+            foreach (var header in HeaderLines(response.Headers))
             {
-                sb.Append(header.Key).Append(": ").Append(string.Join(", ", header.Value)).Append("\r\n");
+                sb.Append(header.Key).Append(": ").Append(header.Value).Append("\r\n");
             }
 
             if (response.Content != null)
             {
-                foreach (var header in response.Content.Headers)
+                foreach (var header in HeaderLines(response.Content.Headers))
                 {
-                    sb.Append(header.Key).Append(": ").Append(string.Join(", ", header.Value)).Append("\r\n");
+                    sb.Append(header.Key).Append(": ").Append(header.Value).Append("\r\n");
                 }
             }
 

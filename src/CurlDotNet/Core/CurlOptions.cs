@@ -1179,12 +1179,18 @@ namespace CurlDotNet.Core
         public CurlFlavor Flavor { get; set; }
 
         /// <summary>
-        /// curl's <c>-#</c>/<c>--progress-bar</c> (draw a bar instead of the meter); recorded for compatibility only,
-        /// because CurlDotNet never draws progress on the terminal.
+        /// curl's <c>-#</c>/<c>--progress-bar</c>: draws curl's <c>#</c> progress bar for HTTP downloads on
+        /// <see cref="StderrFile"/> (<c>--stderr FILE</c>) or, without one, standard error.
         /// </summary>
-        /// <value>True when the option was given. Default: false. Not acted on.</value>
+        /// <value>True when the option was given. Default: false.</value>
         /// <remarks>
-        /// <para>Use <see cref="ProgressHandler"/> (or <c>CurlSettings.WithProgress</c>) to show your own progress.</para>
+        /// <para>The bar is curl's own (src/tool_cb_prg.c): a carriage return, <c>#</c> marks across the terminal width
+        /// (<c>COLUMNS</c>, else the console width, else 79 columns) minus 7, and the percentage such as <c>100.0%</c>,
+        /// redrawn at most ten times a second and ended with a newline; a download of unknown size shows curl's moving
+        /// <c>-=O=-</c> animation. <see cref="Silent"/> (<c>-s</c>) turns it off, as in curl. CurlDotNet never draws curl's
+        /// default progress meter.</para>
+        /// <para>Example: <c>await Curl.ExecuteAsync("curl -# -o big.iso https://example.com/big.iso");</c>. In an
+        /// application, prefer <see cref="ProgressHandler"/> (or <c>CurlSettings.WithProgress</c>) to show your own progress.</para>
         /// </remarks>
         /// <seealso cref="ProgressHandler"/>
         public bool ProgressBar { get; set; }
