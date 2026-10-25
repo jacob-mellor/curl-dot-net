@@ -110,6 +110,25 @@ Console.WriteLine(Curl.DetectFlavor(pasted));
 
 The precedence is: the flavor passed to the call, then `CurlSettings.Flavor`, then `Curl.DefaultFlavor`. Choose `Posix` when you want exact bash behaviour and none of Auto's Windows conveniences.
 
+## Match the operating system: `CurlFlavor.Native`
+
+The default stays `Auto`, which reads a command from any shell. When the commands come from people typing at a terminal on the same machine, for example a command-line tool or an admin page that runs a pasted curl command, you may want exactly the rules that machine's shell applies instead. `CurlFlavor.Native` does that:
+
+| Operating system | `Native` reads commands as |
+|---|---|
+| Windows | `WindowsCmd` (cmd.exe and the C runtime, the shell `curl.exe`'s documentation and "Copy as cURL (cmd)" target) |
+| Linux, macOS, containers, everything else | `Posix` (bash rules) |
+
+```csharp
+Curl.DefaultFlavor = CurlFlavor.Native;   // or per call: Curl.ExecuteAsync(pasted, CurlFlavor.Native)
+
+var result = await Curl.ExecuteAsync("curl -d '{\"a\":1}' https://api.example.com");
+Console.WriteLine(result.Command);       // the command as typed
+// result came from bash rules on Linux/macOS, cmd.exe rules on Windows
+```
+
+The operating system is checked each time a command is parsed, and `CurlOptions.Flavor` reports the flavor actually used (`WindowsCmd` or `Posix`, never `Native`). Nothing in the text changes the choice, unlike `Auto`. On Windows, commands typed into PowerShell follow PowerShell's rules, so pass `CurlFlavor.PowerShell` for those.
+
 ## Worked examples: one intent, four ways, the same bytes
 
 Each example below is the same request written for bash, CMD, PowerShell (`curl.exe`) and Invoke-WebRequest. CurlDotNet sends byte-for-byte the same request for all four, with the matching flavor and also with `Auto`; the test `SameIntent_FromBashCmdPowerShellAndInvokeWebRequest_SendsIdenticalBytes` in `tests/CurlDotNet.Tests/ParityFlavorTests.cs` checks exactly these commands against an in-process server.

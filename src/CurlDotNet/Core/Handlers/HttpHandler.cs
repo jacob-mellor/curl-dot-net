@@ -99,7 +99,7 @@ namespace CurlDotNet.Core
             // --retry-delay is not overridden by it. --retry-max-time stops retrying once that much time has
             // passed (or when a Retry-After wait would pass it), and the last attempt's outcome stands. Output that went to stdout cannot be taken back, so each
             // attempt's stdout is kept, like curl; the -w text (and -c -) is written once, for the final attempt.
-            var retryStarted = DateTime.UtcNow;
+            var retryStarted = System.Diagnostics.Stopwatch.StartNew(); // monotonic, like curlx_now() in tool_operate.c
             var earlierStdout = new StringBuilder();
             // curl truncates the output file before a retry only when the failed attempt wrote body
             // bytes to it; header-only attempts (-i, -f) stay in the file
@@ -165,7 +165,7 @@ namespace CurlDotNet.Core
                         var backoff = options.RetryDelay > 0 ? options.RetryDelay : Math.Min(Math.Pow(2, attempt), 600);
                         var serverWait = Math.Min(retryAfter?.TotalSeconds ?? 0, 600);
                         delaySeconds = Math.Max(backoff, serverWait);
-                        var elapsed = (DateTime.UtcNow - retryStarted).TotalSeconds;
+                        var elapsed = retryStarted.Elapsed.TotalSeconds;
                         if (options.RetryMaxTime > 0
                             && (elapsed >= options.RetryMaxTime || (serverWait > backoff && elapsed + serverWait > options.RetryMaxTime)))
                         {

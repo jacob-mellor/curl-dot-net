@@ -116,7 +116,10 @@ namespace CurlDotNet.Tests
         {
             using var server = new RawReplyServer(Busy);
 
-            var result = await Curl.ExecuteAsync($"curl --retry 5 --retry-delay 1 --retry-max-time 1 -w \"|%{{http_code}}\" {server.Url("/")}");
+            // curl (tool_operate.c) retries only while the elapsed time is below --retry-max-time. A 2 s delay
+            // against a 1 s limit keeps the test off that boundary: the first retry starts at ~0 s, and after
+            // sleeping 2 s the limit has passed, so exactly two requests on every OS.
+            var result = await Curl.ExecuteAsync($"curl --retry 5 --retry-delay 2 --retry-max-time 1 -w \"|%{{http_code}}\" {server.Url("/")}");
 
             server.Requests.Should().HaveCount(2);
             result.Body.Should().Be("busy\nbusy\n|503");

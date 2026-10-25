@@ -146,7 +146,9 @@ namespace CurlDotNet
         /// <c>-Uri</c>, and otherwise reads the command permissively as bash. Set this once at start-up when every
         /// command your application runs comes from one place, for example
         /// <c>Curl.DefaultFlavor = CurlFlavor.WindowsCmd;</c> for commands typed by Windows users, or
-        /// <c>Curl.DefaultFlavor = CurlFlavor.Posix;</c> to get exact bash behaviour with no Windows conveniences.</para>
+        /// <c>Curl.DefaultFlavor = CurlFlavor.Posix;</c> to get exact bash behaviour with no Windows conveniences, or
+        /// <c>Curl.DefaultFlavor = CurlFlavor.Native;</c> to read every command with the rules of the shell of the
+        /// operating system the program runs on (cmd.exe on Windows, bash elsewhere).</para>
         /// <para>Applies to <see cref="ExecuteAsync(string)"/>, <see cref="Execute(string)"/>,
         /// <see cref="Validate(string)"/>, the code converters and every other method that takes a command string
         /// without a flavor. A flavor passed to <see cref="ExecuteAsync(string, CurlFlavor)"/> or set with
@@ -156,8 +158,8 @@ namespace CurlDotNet
         /// </remarks>
         /// <value>One of the <see cref="CurlFlavor"/> values. Default is <see cref="CurlFlavor.Auto"/>.</value>
         /// <exception cref="ArgumentOutOfRangeException">The value is not a defined <see cref="CurlFlavor"/> (for
-        /// example a number cast to the enum). Fix: assign <c>CurlFlavor.Auto</c>, <c>Posix</c>, <c>WindowsCmd</c>,
-        /// <c>PowerShell</c> or <c>InvokeWebRequest</c>. See
+        /// example a number cast to the enum). Fix: assign <c>CurlFlavor.Auto</c>, <c>Native</c>, <c>Posix</c>,
+        /// <c>WindowsCmd</c>, <c>PowerShell</c> or <c>InvokeWebRequest</c>. See
         /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</exception>
         /// <seealso cref="DetectFlavor(string)"/>
         /// <seealso cref="CurlOptions.Flavor"/>
@@ -168,11 +170,11 @@ namespace CurlDotNet
             get => _defaultFlavor;
             set
             {
-                if (value < CurlFlavor.Auto || value > CurlFlavor.InvokeWebRequest)
+                if (value < CurlFlavor.Auto || value > CurlFlavor.Native)
                 {
                     throw new ArgumentOutOfRangeException(nameof(value), value, CurlException.Compose(
                         $"Curl.DefaultFlavor was set to {(int)value}, which is not a CurlFlavor value.",
-                        "Assign CurlFlavor.Auto (detect the shell), Posix (bash/zsh), WindowsCmd (cmd.exe), PowerShell (curl.exe in PowerShell) or InvokeWebRequest (Invoke-WebRequest/Invoke-RestMethod syntax).",
+                        "Assign CurlFlavor.Auto (detect the shell), Native (this operating system's shell), Posix (bash/zsh), WindowsCmd (cmd.exe), PowerShell (curl.exe in PowerShell) or InvokeWebRequest (Invoke-WebRequest/Invoke-RestMethod syntax).",
                         DocLinks.HowToFlavors));
                 }
 

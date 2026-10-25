@@ -128,3 +128,4 @@ gh-pages/
 _site/
 tests/CurlDotNet.CurlSuite/curl-suite-report.md
 .claude/worktrees/
+tests/CurlDotNet.CurlSuite/reference/out/

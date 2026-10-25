@@ -326,12 +326,13 @@ namespace CurlDotNet.Tests
             var httpClient = new HttpClient(mockHandler.Object);
             var curl = new CurlEngine(httpClient);
 
-            // Act
-            var result = await curl.ExecuteAsync("curl -f https://api.example.com/missing");
+            // Act: -f/--fail makes an HTTP error a failed transfer, curl's exit 22
+            Func<Task> act = () => curl.ExecuteAsync("curl -f https://api.example.com/missing");
 
             // Assert
-            result.IsSuccess.Should().BeFalse();
-            result.StatusCode.Should().Be(404);
+            var ex = (await act.Should().ThrowAsync<CurlHttpReturnedErrorException>()).Which;
+            ex.StatusCode.Should().Be(404);
+            ex.CurlErrorCode.Should().Be(22);
         }
 
         [Fact]
