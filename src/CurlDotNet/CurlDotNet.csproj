@@ -31,7 +31,7 @@
 
     <!-- Package Metadata -->
     <PackageId>CurlDotNet</PackageId>
-    <Version>9.8.10</Version>
+    <Version>9.8.11</Version>
     <AssemblyVersion>9.7.0.0</AssemblyVersion>
     <FileVersion>9.7.0.0</FileVersion>
 
@@ -80,7 +80,27 @@ CurlDotNet brings the power of curl to .NET. Simply paste any curl command strin
 
     <!-- Package Icon and Release Notes -->
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 9.8.2 - documentation site navigation fix (folder URLs redirect to their own pages); library unchanged since 9.8.0
+    <PackageReleaseNotes>Version 9.8.11 - every runnable curl test passes (631 of 631), checked against real curl on Linux
+
+PARITY: all 631 runnable HTTP tests from curl's own suite pass (286 byte-exact); known-failures.txt is empty.
+   The replay now also compares standard error, applies curl's stripfile/strippart rules, and its stub
+   server behaves like curl's sws. tests/CurlDotNet.CurlSuite/reference builds real curl from the same
+   commit in Docker and runs curl's own runtests.pl, so every disputed behaviour is settled from curl's logs.
+NEW: CurlResult.Warnings / CurlException.Warnings (curl's exact Warning:/Note: lines), CurlException.CurlErrorMessage
+   (curl's own error text, also used by -w %{errormsg}), CurlException.IsUsageError (exit 2 usage errors)
+NEW: CurlFlavor.Native - read commands with the shell of the operating system (cmd.exe on Windows, bash elsewhere);
+   Auto stays the default
+NEW: --haproxy-protocol and --haproxy-clientip (.NET 5+), -#/--progress-bar draws curl's bar, -D % writes to stderr,
+   opt-in Curl.DefaultReadConfigFile reads ~/.curlrc like curl (off by default), -w on file:// URLs
+FIXED: proxy NTLM through CONNECT tunnels negotiated by CurlDotNet with curl's exact bytes; first header line starting
+   with whitespace; two user Connection headers; connection reuse across --next with a same-host --connect-to;
+   TLS handshake inside --connect-timeout is exit 28 with -w connection facts; bad hosts such as domain..tld mapped
+   by --resolve; redirects with close-delimited bodies no longer wait for EOF; tracing never changes wire bytes;
+   gzip/deflate errors (exit 61) and multi-member gzip (exit 23) like curl; multipart Content-Type and empty
+   names like curl; %{size_delivered}; %{header_json} layout; --retry-max-time uses a monotonic clock
+TESTS: CI and test-all-locally.csx run the whole unit project (2073 tests) with no category filter
+
+Version 9.8.2 - documentation site navigation fix (folder URLs redirect to their own pages); library unchanged since 9.8.0
 
 Version 9.8.0 - curl parity release: tested against curl's own test suite
 
