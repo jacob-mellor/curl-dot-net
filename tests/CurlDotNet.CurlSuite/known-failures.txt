@@ -1,24 +1,55 @@
 # curl test numbers that CurlDotNet does not pass yet. One per line, optional "# reason".
 # A listed test that starts passing fails the suite until it is removed, so this list stays honest.
-# Status 2026-10-24 (v9.8.0): 606 of 620 runnable HTTP tests pass; these 14 are the remainder.
-
-# Harness limitations (tests/CurlDotNet.CurlSuite), not library behaviour
-24    # verify/<file stderr24>: the harness does not capture stderr, and curl's "curl: (22) ..." wording is not reproduced
-435   # expected output uses curl's [digits] placeholders that runtests.pl resolves with <strippart> perl
+# Status 2026-10-25: 586 of 631 runnable HTTP tests pass. The harness now also verifies stderr, replays
+# <stripfile>/<strippart> perl and adds runtests' --trace-ascii, which exposed the gaps listed in the last two groups.
 
 # .NET / HttpClient limitations
 46    # System.Uri rejects the deliberately bad host "domain..tld"; curl sends it anyway
 209   # HttpClient performs the CONNECT for proxy NTLM; its type-1/type-3 blobs differ from curl's canned bytes
 213   # same as 209, HTTP/1.0 proxy CONNECT with NTLM then POST
 265   # same as 209, NTLM CONNECT with a body in the 407
-259   # Expect: 100-continue probe with proxy anyauth (Digest): the 100 Continue block appears in the output
+259   # Expect: 100-continue probe with proxy anyauth (Digest): the 100 Continue block appears in the output (stub or library: open question)
 1473  # a first response header line starting with whitespace (obs-fold) is rejected by HttpClient
 1617  # HttpClient joins two user Connection headers into one line
 2051  # connections are not reused across --next transfers that use different HttpClient instances
 5029  # a TLS handshake timeout surfaces as exit 35 (SSL connect error) rather than 28
 
-# Deliberate behaviour differences
-433   # a library must not silently change requests because of ~/.curlrc (XDG_CONFIG_HOME); use -K to read a config file
-436   # same as 433 (CURL_HOME)
+# stderr now verified (triage): the library's stderr text differs from curl's
+33    # curl: (43) line: CurlErrorMessage adds ": -C/--continue-at 50 resumes downloads, but this command ..." after curl's "HTTP upload cannot be resumed"
+426   # same as 33 (-d with -C 3)
+1041  # same as 33 (-T with -C -)
+2271  # same as 33 (-d with -C -)
+2272  # same as 33 (-F with -C -)
+387   # curl: (61) text is 'Bad content encoding "gzip,gzip,..."', curl says "Reject response exceeding limit of 5 transfer encodings"
+418   # same as 387 (several Transfer-Encoding headers)
+2119  # curl: (61) text is 'Bad content encoding "identityx": ...', curl says "Unsolicited Transfer-Encoding (identityx) found"
+2411  # curl: (43) text differs: curl prints "no glob exists with this name in position 16:" plus the name and a caret line
+2415  # same as 2411 (literal URL, no glob)
+481   # exit-2 option error: curl prints "curl: --continue-at is mutually exclusive with --no-clobber", "curl: option -C: is badly used here", "curl: try 'curl --help' ..."; harness writes "curl: (2) " + CurlDotNet's message
+482   # same as 481 (--remove-on-error with -C)
+1188  # -w %{errormsg} is CurlDotNet's first message line "... error: 404 Not Found (URL)"; curl's is "The requested URL returned error: 404" (HttpHandler should use CurlException.CurlErrorMessage)
+360   # missing "Warning: --fail deselects --fail-with-body here"
+371   # missing "Warning: Got more output options than URLs"
+794   # missing "Warning: --follow overrides --location"
+459   # missing config-file warning "log/config:1 Option 'data' uses argument with unquoted whitespace. ..."
+1712  # missing config-file warning "log/config:1 Option 'data' uses argument with leading single quote. ..."
+469   # missing "Warning: The argument '<U+201C>host:' starts with a Unicode character. Maybe ASCII was intended?"
+470   # same as 469 for an argument read from a -K file
+994   # missing 'Note: skips transfer, "log/hey" exists locally' (and log/ho) for --skip-existing
+996   # missing 'Note: skips transfer, "log/there" exists locally'
+1741  # missing "Note: Unnecessary use of -X or --request, POST is already inferred." (notes are on: runtests' --trace-ascii)
+421   # -w %{stderr}%{header_json}: the closing "}" is on the last entry's line; curl puts it on a line of its own
+1489  # -D % writes the headers to a file named "%" instead of standard error
+1148  # --stderr log/stderrlog1148 with -# is never created (no progress bar is written)
+164   # with --trace-ascii (runtests always adds it) -r 0-10,12-15 is sent as "Range: bytes=0-10, 12-15"; without it the header is right
 
-# Small library gaps
+# New with strippart support (triage)
+220   # -w '%{stderr}%{size_delivered}' with --compressed prints 44, curl prints 24
+223   # broken deflate header: exit 18 (partial file), curl exits 61 (bad content encoding)
+277   # -F with -H "Content-Type: text/info": CurlDotNet sends multipart/form-data and form-data parts; curl keeps text/info and "attachment" parts (Content-Length 157 vs 158)
+669   # -H "Content-Type: multipart/form-data; charset=utf-8" with -F: the charset parameter is dropped from the sent Content-Type
+1293  # -F= (empty name and value) to two URLs: the part is sent as 'Content-Disposition: form-data; name=""' (Content-Length 147); curl sends 'form-data' without a name (138)
+1455  # --haproxy-protocol: no "PROXY TCP4 ..." line is sent before the request
+3201  # same as 1455 with --haproxy-clientip 192.168.1.1
+3220  # same as 1455 with an IPv6 --haproxy-clientip
+2305  # two concatenated gzip members: exit 0, curl fails with "curl: (23) Multi-member gzip response not supported"

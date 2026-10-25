@@ -221,6 +221,27 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
+        /// The short error text the curl command-line tool prints after <c>curl: (N) </c> for this failure, in curl's own
+        /// wording where CurlDotNet knows it, such as <c>The requested URL returned error: 404</c> for <c>-f</c>.
+        /// </summary>
+        /// <value>A single line without a trailing newline and without the <c>curl: (N) </c> prefix. Never null.
+        /// For <see cref="CurlHttpReturnedErrorException"/> it is exactly curl's text
+        /// <c>The requested URL returned error: </c> followed by the status code (no reason phrase, no URL); for every other
+        /// exception it is <see cref="WhatHappened"/>, CurlDotNet's own first message line, which states the same failure
+        /// with the values involved but not always in curl's exact words.</value>
+        /// <remarks>
+        /// <para>The curl tool ends a failed run with one line on standard error, <c>curl: (22) The requested URL returned
+        /// error: 404</c>, unless <c>-s</c>/<c>--silent</c> is given without <c>-S</c>/<c>--show-error</c>. Use this property
+        /// to print that line yourself, for example when a .NET tool wraps CurlDotNet and must keep scripts that parse curl's
+        /// error output working: <c>Console.Error.WriteLine($"curl: ({ex.CurlErrorCode}) {ex.CurlErrorMessage}");</c>.</para>
+        /// <para>Prefer <see cref="Message"/> or <see cref="ToUserFriendlyMessage"/> for people: they add how to fix the
+        /// problem and a documentation link.</para>
+        /// </remarks>
+        /// <seealso cref="WhatHappened"/>
+        /// <seealso cref="CurlErrorCode"/>
+        public virtual string CurlErrorMessage => WhatHappened;
+
+        /// <summary>
         /// The documentation page that explains this error and how to fix it: the <c>See https://...</c> link
         /// at the end of <see cref="Message"/>.
         /// </summary>
