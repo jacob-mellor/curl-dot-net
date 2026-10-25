@@ -216,7 +216,13 @@ public sealed class CurlTestPreprocessor
         return text;
     }
 
-    /// <summary>Converts LF to CRLF, for every line or only for the leading header block.</summary>
+    /// <summary>
+    /// Converts LF to CRLF like runtests' <c>subnewlines()</c> (tests/testutil.pm): for every line when
+    /// <paramref name="headersOnly"/> is false (<c>crlf="yes"</c>), otherwise (<c>crlf="headers"</c>) only for
+    /// lines that look like an HTTP status line, a request line or a <c>Name: value</c> header without a CR,
+    /// plus a blank line that directly follows such a line. Every other line keeps its bytes, so a header
+    /// line that starts with a space (curl test 1473) stays LF-terminated, exactly as curl's sws sends it.
+    /// </summary>
     public static string ToCrlf(string text, bool headersOnly)
     {
         if (!headersOnly)
@@ -224,24 +230,43 @@ public sealed class CurlTestPreprocessor
             return text.Replace("\r\n", "\n").Replace("\n", "\r\n");
         }
 
-        // Header block: every line ending becomes CRLF. Body: bytes untouched (a %CR there is deliberate).
         var sb = new StringBuilder(text.Length + 64);
+        var prevUpdate = false;
         var start = 0;
         while (start < text.Length)
         {
             var nl = text.IndexOf('\n', start);
-            var line = nl < 0 ? text.Substring(start) : text.Substring(start, nl - start);
-            var trimmed = line.TrimEnd('\r');
-            sb.Append(trimmed);
-            if (nl >= 0) sb.Append("\r\n");
+            var line = nl < 0 ? text.Substring(start) : text.Substring(start, nl + 1 - start);
             start = nl < 0 ? text.Length : nl + 1;
-            if (trimmed.Length == 0)
+            if (SubNewlinesMatches(line))
             {
-                sb.Append(text.Substring(start)); // rest is the body, verbatim
-                break;
+                sb.Append(EnforceCrlf(line));
+                prevUpdate = true;
+            }
+            else
+            {
+                sb.Append(line == "\n" && prevUpdate ? "\r\n" : line);
+                prevUpdate = false;
             }
         }
         return sb.ToString();
+    }
+
+    private static readonly Regex StatusLine = new(@"^HTTP/(1.1|1.0|2|3) ([1-5]|9)[^\r]*\z", RegexOptions.CultureInvariant);
+    private static readonly Regex RequestLine = new(@"^(GET|HEAD|POST|PUT|DELETE|CONNECT) \S+ HTTP/\d+(\.\d+)?", RegexOptions.CultureInvariant);
+    private static readonly Regex RtspLine = new(@"^(SETUP|GET_PARAMETER|OPTIONS|ANNOUNCE|DESCRIBE) \S+ RTSP/\d+(\.\d+)?", RegexOptions.CultureInvariant);
+    private static readonly Regex HeaderLine = new(@"^[a-z0-9_-]+: [^\r]*\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex CurlError = new(@"^curl: \(\d+\) ", RegexOptions.CultureInvariant);
+
+    private static bool SubNewlinesMatches(string line) =>
+        StatusLine.IsMatch(line) || RequestLine.IsMatch(line) || RtspLine.IsMatch(line)
+        || (HeaderLine.IsMatch(line) && !CurlError.IsMatch(line));
+
+    /// <summary>perl's <c>s/\x0d*\x0a/\x0d\x0a/</c>: the first run of CRs plus LF becomes one CRLF.</summary>
+    private static string EnforceCrlf(string line)
+    {
+        var m = Regex.Match(line, "\r*\n");
+        return m.Success ? line.Substring(0, m.Index) + "\r\n" + line.Substring(m.Index + m.Length) : line;
     }
 
     private string ApplyConditionals(string text)
