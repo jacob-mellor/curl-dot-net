@@ -210,6 +210,37 @@ namespace CurlDotNet.Core
         public List<string> OutputFiles { get; set; } = new List<string>();
 
         /// <summary>
+        /// The warnings and notes the curl tool would have printed on standard error for this command, each with curl's own
+        /// <c>Warning: </c> or <c>Note: </c> prefix and in the order curl prints them.
+        /// </summary>
+        /// <value>A read-only list, empty (never null) when curl would have printed none. Each entry is one message on one
+        /// line, without the line wrapping the curl tool applies at the terminal width (<c>COLUMNS</c>).</value>
+        /// <remarks>
+        /// <para>Warnings point at a command that probably does not do what its author meant. Examples, in curl's words:
+        /// <c>Warning: --fail deselects --fail-with-body here</c>, <c>Warning: --follow overrides --location</c>,
+        /// <c>Warning: Got more output options than URLs</c>, <c>Warning: The argument '“host:' starts with a Unicode
+        /// character. Maybe ASCII was intended?</c> (a typographic quote pasted from a web page) and, for a <c>-K</c> file,
+        /// <c>Warning: app.curlrc:3 Option 'data' uses argument with unquoted whitespace. This may cause side-effects. Consider
+        /// double quotes.</c> Like curl, a warning found while the command line is read is left out when
+        /// <c>-s</c>/<c>--silent</c> was already given at that point (so <c>curl -H “x: y” -s URL</c> still warns); the ones
+        /// curl prints while it sets up or runs a transfer, such as "Got more output options than URLs", follow the final
+        /// <c>-s</c> state.</para>
+        /// <para>Notes are informational and, like curl's, only collected when the command asks for <c>-v</c>,
+        /// <c>--trace</c> or <c>--trace-ascii</c> and not <c>-s</c>: <c>Note: Unnecessary use of -X or --request, POST is
+        /// already inferred.</c>, <c>Note: skips transfer, "out.json" exists locally</c> (<c>--skip-existing</c>) and
+        /// <c>Note: Read config file from '...'</c>.</para>
+        /// <para>CurlDotNet never prints warnings to the console by itself. When the command gives <c>--stderr FILE</c>,
+        /// warnings and notes are appended to that file as the curl tool would write them (wrapped at the <c>COLUMNS</c>
+        /// width, 79 when unset); without it, notes go to <see cref="Console.Error"/> because the command asked for verbose
+        /// output, the same place <c>-w '%{stderr}...'</c> text goes.</para>
+        /// <para>Example: <c>var r = await Curl.ExecuteAsync("curl -f --fail-with-body https://example.com"); foreach (var w in
+        /// r.Warnings) Console.Error.WriteLine(w);</c> prints <c>Warning: --fail-with-body deselects --fail here</c>.</para>
+        /// </remarks>
+        /// <seealso cref="CurlException.Warnings"/>
+        /// <seealso cref="Command"/>
+        public IReadOnlyList<string> Warnings { get; internal set; } = new string[0];
+
+        /// <summary>
         /// The failure behind a result that has no HTTP response, set only by the non-throwing
         /// <see cref="CurlDotNet.Lib.LibCurl"/> API; null for results from <c>Curl.ExecuteAsync</c>, which throws instead.
         /// </summary>

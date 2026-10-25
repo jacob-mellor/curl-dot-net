@@ -455,7 +455,7 @@ namespace CurlDotNet.Core
                 sb.Append(string.Join(",", groups[g].Value.Select(JsonString)));
                 sb.Append(']');
             }
-            sb.Append('}');
+            sb.Append("\n}"); // tool_writeout_json.c headerJSON(): the closing brace is on a line of its own
             return sb.ToString();
         }
 

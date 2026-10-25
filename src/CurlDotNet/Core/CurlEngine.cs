@@ -178,12 +178,34 @@ namespace CurlDotNet.Core
             options.FormData ??= new Dictionary<string, string>();
             options.Files ??= new Dictionary<string, string>();
 
-            if (options.AdditionalTransfers == null || options.AdditionalTransfers.Count == 0)
+            // curl's warnings and notes from reading the command line are printed before the first transfer
+            if (options.Messages == null)
             {
-                return await ExecuteTransferAsync(options, cancellationToken).ConfigureAwait(false);
+                // options built in code have no parsed command line, but curl's run-time warnings and notes
+                // (for example --etag-save failing) still belong on the result, under the same rules
+                options.Messages = new ToolMessages
+                {
+                    Silent = options.Silent,
+                    Tracing = options.Verbose || options.TraceFile != null || options.TraceAsciiFile != null,
+                    StderrFile = options.StderrFile == "-" ? null : options.StderrFile,
+                };
             }
 
-            return await ExecuteTransfersAsync(options, cancellationToken).ConfigureAwait(false);
+            var messages = options.Messages;
+            messages.Flush();
+            try
+            {
+                var result = options.AdditionalTransfers == null || options.AdditionalTransfers.Count == 0
+                    ? await ExecuteTransferAsync(options, cancellationToken).ConfigureAwait(false)
+                    : await ExecuteTransfersAsync(options, cancellationToken).ConfigureAwait(false);
+                result.Warnings = messages.Snapshot();
+                return result;
+            }
+            catch (CurlException ex)
+            {
+                ex.Warnings = messages.Snapshot();
+                throw;
+            }
         }
 
         /// <summary>
@@ -267,6 +289,7 @@ namespace CurlDotNet.Core
         {
             try
             {
+                CommandParser.AddTransferSetupMessages(options); // curl's notes/warnings while it sets the transfer up
                 return await RunHandlerAsync(options, cancellationToken).ConfigureAwait(false);
             }
             catch (CurlException ex)

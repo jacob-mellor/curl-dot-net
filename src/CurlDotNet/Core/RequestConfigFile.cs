@@ -41,13 +41,33 @@ namespace CurlDotNet.Core
                     context.OriginalCommand);
             }
 
-            var lines = ReadAllLinesForOption(path, "-K/--config", context.OriginalCommand);
+            var lines = ReadAllLinesForOption(path, "-K/--config", context.OriginalCommand, keepCarriageReturns: true);
             context.ConfigDepth++;
             try
             {
+                var lineNumber = 0;
                 foreach (var line in lines)
                 {
-                    var args = ParseConfigLine(line);
+                    // curl's my_get_line() hands over neither empty lines nor '#' comment lines, so they are not counted
+                    var start = 0;
+                    while (start < line.Length && (line[start] == ' ' || line[start] == '\t'))
+                    {
+                        start++;
+                    }
+
+                    if (start == line.Length || line[start] == '#')
+                    {
+                        continue;
+                    }
+
+                    lineNumber++;
+                    var args = ParseConfigLine(line, out var argumentWarnings);
+                    foreach (var warning in argumentWarnings)
+                    {
+                        // tool_parsecfg.c extract_param(): the file name as given, the line and the option as written
+                        context.Warn($"{path}:{lineNumber} Option '{ConfigLineOption(line)}' uses argument with {warning}");
+                    }
+
                     if (args.Count > 0)
                     {
                         ProcessArguments(args, context);
@@ -97,46 +117,20 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// curl's <c>Note: Read config file from '...'</c>: written to the <c>--stderr</c> file or standard error once the
-        /// command is parsed, only when it asks for <c>-v</c>/<c>--trace</c>/<c>--trace-ascii</c> and not <c>-s</c> (curl's
-        /// <c>notef()</c> rule).
+        /// curl's <c>Note: Read config file from '...'</c>, recorded once the command is parsed and written when it runs
+        /// (see <see cref="ToolMessages"/>): only when it asks for <c>-v</c>/<c>--trace</c>/<c>--trace-ascii</c> and not
+        /// <c>-s</c> (curl's <c>notef()</c> rule).
         /// </summary>
         private static void WriteDefaultConfigNote(string path, ParseContext context)
         {
             var tracing = false;
-            var silent = false;
-            string? stderrFile = null;
             foreach (var group in context.Groups)
             {
                 var o = group.Options;
                 tracing |= o.Verbose || !string.IsNullOrEmpty(o.TraceFile) || !string.IsNullOrEmpty(o.TraceAsciiFile);
-                silent |= o.Silent;
-                if (!string.IsNullOrEmpty(o.StderrFile))
-                {
-                    stderrFile = o.StderrFile;
-                }
             }
 
-            if (!tracing || silent)
-            {
-                return;
-            }
-
-            var text = $"Note: Read config file from '{path}'\n";
-            if (stderrFile != null && stderrFile != "-")
-            {
-                try
-                {
-                    File.AppendAllText(stderrFile, text);
-                    return;
-                }
-                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
-                {
-                    // curl falls back to the terminal when --stderr cannot be opened
-                }
-            }
-
-            Console.Error.Write(text);
+            context.Messages.AddNote($"Read config file from '{path}'", tracing, context.Silent);
         }
 
         private static bool IsWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
@@ -281,8 +275,37 @@ namespace CurlDotNet.Core
         /// <c>--data</c>, <c>a b</c>. Options that take no argument drop a stray one, as curl does
         /// (with a warning), and unknown options never swallow it as a URL.
         /// </summary>
-        private static List<string> ParseConfigLine(string rawLine)
+        private static List<string> ParseConfigLine(string rawLine) => ParseConfigLine(rawLine, out _);
+
+        private static readonly List<string> NoArgumentWarnings = new List<string>();
+
+        /// <summary>The option word of a config line as written (<c>data</c> in <c>data = x</c>, <c>-d</c> in <c>-d x</c>).</summary>
+        private static string ConfigLineOption(string rawLine)
         {
+            var line = rawLine.TrimEnd('\r', '\n');
+            var i = 0;
+            while (i < line.Length && char.IsWhiteSpace(line[i]))
+            {
+                i++;
+            }
+
+            var dashed = i < line.Length && line[i] == '-';
+            var start = i;
+            while (i < line.Length && !char.IsWhiteSpace(line[i]) && (dashed || (line[i] != ':' && line[i] != '=')))
+            {
+                i++;
+            }
+
+            return line.Substring(start, i - start);
+        }
+
+        /// <summary>
+        /// <see cref="ParseConfigLine(string)"/>, also returning the ends of curl's warnings about an unquoted argument, in
+        /// curl's order (<paramref name="argumentWarnings"/>): "leading single quote. ..." and/or "unquoted whitespace. ...".
+        /// </summary>
+        private static List<string> ParseConfigLine(string rawLine, out List<string> argumentWarnings)
+        {
+            argumentWarnings = NoArgumentWarnings;
             var result = new List<string>();
             var line = rawLine.TrimEnd('\r', '\n');
             var i = 0;
@@ -320,14 +343,33 @@ namespace CurlDotNet.Core
                 }
                 else
                 {
+                    if (line[i] == '\'')
+                    {
+                        argumentWarnings = new List<string> { "leading single quote. It is probably a mistake. Consider double quotes." };
+                    }
+
                     var paramStart = i;
                     while (i < line.Length && !char.IsWhiteSpace(line[i]))
                     {
                         i++;
                     }
 
-                    // curl warns "argument with unquoted whitespace" and uses the first word only
+                    // curl uses the first word only and warns when more than a comment follows it
                     param = line.Substring(paramStart, i - paramStart);
+                    var rest = i;
+                    if (rest < line.Length)
+                    {
+                        rest++; // the space that ended the word
+                        while (rest < line.Length && (line[rest] == ' ' || line[rest] == '\t'))
+                        {
+                            rest++;
+                        }
+
+                        if (rest < line.Length && line[rest] != '#' && line[rest] != '\r' && line[rest] != '\n')
+                        {
+                            argumentWarnings = new List<string>(argumentWarnings) { "unquoted whitespace. This may cause side-effects. Consider double quotes." };
+                        }
+                    }
                 }
             }
 

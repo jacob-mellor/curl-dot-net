@@ -47,6 +47,21 @@ namespace CurlDotNet.Core
             /// <summary>Set when a transfer after the first could not be set up; no further transfers are made.</summary>
             public bool SetupFailed { get; set; }
 
+            /// <summary>curl's warnings and notes found while reading the command line.</summary>
+            public ToolMessages Messages { get; } = new ToolMessages();
+
+            /// <summary>The command-line word being processed (curl's <c>orig_opt</c>, such as <c>-C</c> or <c>--no-clobber</c>).</summary>
+            public string CurrentWord { get; set; } = string.Empty;
+
+            /// <summary>
+            /// curl's <c>global-&gt;silent</c> at this point of the command line: the last <c>-s</c>/<c>--no-silent</c>, whatever
+            /// <c>--next</c> group it is in.
+            /// </summary>
+            public bool Silent { get; set; }
+
+            /// <summary>curl's <c>warnf()</c> at this point of the command line (nothing under <c>-s</c>).</summary>
+            public void Warn(string text) => Messages.AddWarning(text, Silent);
+
             public void StartNewGroup()
             {
                 Current = new TransferGroup(new CurlOptions { OriginalCommand = OriginalCommand });
@@ -80,12 +95,47 @@ namespace CurlDotNet.Core
             public List<string> UploadSlots { get; } = new List<string>();
 
             public bool RemoteNameAll { get; set; }
+
+            /// <summary>How many of curl's URL nodes the output options (<c>-o</c>, <c>-O</c>, <c>--out-null</c>) took.</summary>
+            public int OutputNodes { get; set; }
+
+            /// <summary>curl's <c>config-&gt;fail</c>: 0 none, 1 <c>--fail</c>, 2 <c>--fail-with-body</c>.</summary>
+            public int FailMode { get; set; }
+
+            /// <summary>curl's <c>config-&gt;followlocation</c>: 0 none, 1 <c>--location</c> (ALL), 2 <c>--follow</c> (OBEYCODE).</summary>
+            public int FollowMode { get; set; }
+
+            /// <summary>curl's <c>config-&gt;use_resume</c>: <c>-C</c> was given.</summary>
+            public bool Resume { get; set; }
+
+            /// <summary><c>-r</c>/<c>--range</c> was given.</summary>
+            public bool RangeGiven { get; set; }
+
+            /// <summary>curl's <c>config-&gt;rm_partial</c>: <c>--remove-on-error</c>.</summary>
+            public bool RemoveOnError { get; set; }
+
+            /// <summary>curl's <c>CLOBBER_NEVER</c>: <c>--no-clobber</c>.</summary>
+            public bool NoClobber { get; set; }
         }
 
         /// <summary>Processes the argument vector and returns the first transfer, with the rest attached.</summary>
         private CurlOptions ParseArgumentList(IList<string> args, string? originalCommand)
         {
             var context = new ParseContext(originalCommand);
+            try
+            {
+                return BuildTransfers(args, originalCommand, context);
+            }
+            catch (CurlException ex)
+            {
+                // what curl would have printed before it stopped
+                ex.Warnings = context.Messages.Snapshot();
+                throw;
+            }
+        }
+
+        private CurlOptions BuildTransfers(IList<string> args, string? originalCommand, ParseContext context)
+        {
             ProcessArguments(args, context);
 
             var transfers = new List<CurlOptions>();
@@ -111,14 +161,80 @@ namespace CurlDotNet.Core
                     2, "URL", originalCommand);
             }
 
+            // the state curl's messages see once the whole command line is read
+            var messages = context.Messages;
+            messages.Silent = context.Silent;
+            foreach (var group in context.Groups)
+            {
+                var o = group.Options;
+                messages.Tracing |= o.Verbose || !string.IsNullOrEmpty(o.TraceFile) || !string.IsNullOrEmpty(o.TraceAsciiFile);
+                if (!string.IsNullOrEmpty(o.StderrFile))
+                {
+                    messages.StderrFile = o.StderrFile == "-" ? null : o.StderrFile;
+                }
+            }
+
+            // tool_operate.c create_single(): a -o/-O/-T slot left without a URL
+            foreach (var group in context.Groups)
+            {
+                if (group.Urls.Count > 0 && Math.Max(group.OutputNodes, group.UploadSlots.Count) > group.Urls.Count)
+                {
+                    messages.AddWarning("Got more output options than URLs", messages.Silent);
+                }
+            }
+
             var first = transfers[0];
+            first.Messages = messages;
             for (var i = 1; i < transfers.Count; i++)
             {
                 transfers[i].TransferNumber = i;
+                transfers[i].Messages = messages;
                 first.AdditionalTransfers.Add(transfers[i]);
             }
 
             return first;
+        }
+
+        /// <summary>
+        /// The messages curl prints while it sets a transfer up (<c>config2setopts.c</c>'s <c>customrequest_helper()</c>):
+        /// <c>-X</c> naming the method the other options already select, or <c>-X HEAD</c> without <c>-I</c>. Called by the
+        /// engine just before each transfer runs.
+        /// </summary>
+        internal static void AddTransferSetupMessages(CurlOptions options)
+        {
+            var messages = options.Messages;
+            var method = options.CustomMethod;
+            if (messages == null || options.SetupMessagesAdded || string.IsNullOrEmpty(method))
+            {
+                return;
+            }
+
+            options.SetupMessagesAdded = true; // running the same options again must not repeat the notes
+
+            // curl's dflt[] by config->httpreq: unspecified and -G are GET, -I HEAD, -F and -d POST, -T PUT
+            var inferred = "GET";
+            foreach (var kind in options.RequestKinds)
+            {
+                if (options.UseGet && kind.Key == RequestKind.Post)
+                {
+                    continue;
+                }
+
+                inferred = kind.Key == RequestKind.Head ? "HEAD"
+                    : kind.Key == RequestKind.Put ? "PUT"
+                    : kind.Key == RequestKind.Post || kind.Key == RequestKind.MimePost ? "POST"
+                    : inferred;
+                break;
+            }
+
+            if (string.Equals(method, inferred, StringComparison.OrdinalIgnoreCase))
+            {
+                messages.Note($"Unnecessary use of -X or --request, {inferred} is already inferred.");
+            }
+            else if (string.Equals(method, "head", StringComparison.OrdinalIgnoreCase))
+            {
+                messages.Warn("Setting custom HTTP method to HEAD with -X/--request may not work the way you want. Consider using -I/--head instead.");
+            }
         }
 
         private static void AddUrl(ParseContext context, string url)
@@ -152,7 +268,7 @@ namespace CurlDotNet.Core
         internal static string MaskCredentials(string? command) => ErrorText.RedactCommand(command);
 
         /// <summary>Reads a text file named by an option, one line per entry; failures become exit code 26.</summary>
-        private static List<string> ReadAllLinesForOption(string path, string option, string? command)
+        private static List<string> ReadAllLinesForOption(string path, string option, string? command, bool keepCarriageReturns = false)
         {
             var text = Encoding.UTF8.GetString(RequestShaping.ReadFileForOption(path, option, command));
             if (text.Length > 0 && text[0] == '﻿')
@@ -161,7 +277,7 @@ namespace CurlDotNet.Core
             }
 
             var lines = new List<string>(text.Split('\n'));
-            for (var i = 0; i < lines.Count; i++)
+            for (var i = 0; i < lines.Count && !keepCarriageReturns; i++)
             {
                 lines[i] = lines[i].TrimEnd('\r');
             }
@@ -305,7 +421,6 @@ namespace CurlDotNet.Core
 
             ValidateRequestKinds(options);
             ValidateResume(options);
-            ValidateExclusiveWithResume(options, group);
             ApplyAutoResume(options);
             RequestShaping.BuildRequestBody(options);
             ShapeUrl(options);
@@ -364,6 +479,7 @@ namespace CurlDotNet.Core
             var http = scheme.Equals("http", StringComparison.OrdinalIgnoreCase) || scheme.Equals("https", StringComparison.OrdinalIgnoreCase);
             if (upload && http)
             {
+                // curl: "HTTP upload cannot be resumed", from config2setopts.c (-d, -F) or lib/http.c (-T)
                 throw new CurlDotNet.Exceptions.CurlBadFunctionArgumentException(
                     "--continue-at",
                     CurlException.Compose(
@@ -371,35 +487,7 @@ namespace CurlDotNet.Core
                         $"but this command also sends a body to {ErrorText.SafeUrl(options.Url)} (-d, -F or -T).",
                         "Remove -C to send the whole body again, or, to fetch only part of a download, drop the body and use -r/--range (for example -r 1000-).",
                         DocLinks.HowToDownload),
-                    options.OriginalCommand);
-            }
-        }
-
-        /// <summary>
-        /// curl refuses <c>-C</c> together with <c>--no-clobber</c> or <c>--remove-on-error</c>
-        /// ("--continue-at is mutually exclusive with ...", exit code 2).
-        /// </summary>
-        private static void ValidateExclusiveWithResume(CurlOptions options, TransferGroup group)
-        {
-            if (options.ResumeFrom == null)
-            {
-                return;
-            }
-
-            foreach (var recorded in group.Recorded)
-            {
-                if (recorded.Key == "--no-clobber" || recorded.Key == "--remove-on-error")
-                {
-                    throw new CurlException(
-                        CurlException.Compose(
-                            $"--continue-at is mutually exclusive with {recorded.Key}: resuming appends to an existing file, which {recorded.Key} is meant to protect.",
-                            recorded.Key == "--no-clobber"
-                                ? "Remove -C to download to a new numbered file, or remove --no-clobber to resume into the existing file."
-                                : "Remove -C, or remove --remove-on-error so a failed resume keeps the partial file for the next attempt.",
-                            DocLinks.HowToDownload),
-                        2,
-                        options.OriginalCommand);
-                }
+                    options.OriginalCommand).WithCurlErrorMessage("HTTP upload cannot be resumed");
             }
         }
 

@@ -234,16 +234,24 @@ namespace CurlDotNet.Tests
             var parser = new CommandParser();
             var path = Path.Combine(home, ".curlrc");
 
+            // parsing only records curl's messages; the engine writes them (Flush) when the command runs
             var quiet = Path.Combine(_dir, "quiet.txt");
-            parser.Parse($"curl --stderr {CommandParser.ShellQuote(quiet)} http://example.com/");
+            var quietOptions = parser.Parse($"curl --stderr {CommandParser.ShellQuote(quiet)} http://example.com/");
+            quietOptions.Messages!.Flush();
             File.Exists(quiet).Should().BeFalse("curl's notef() prints nothing without -v/--trace");
+            quietOptions.Messages.Snapshot().Should().BeEmpty();
 
             var noisy = Path.Combine(_dir, "noisy.txt");
-            parser.Parse($"curl -v --stderr {CommandParser.ShellQuote(noisy)} http://example.com/");
-            File.ReadAllText(noisy).Should().Be($"Note: Read config file from '{path}'\n");
+            var noisyOptions = parser.Parse($"curl -v --stderr {CommandParser.ShellQuote(noisy)} http://example.com/");
+            File.Exists(noisy).Should().BeFalse("Parse (and so Curl.Validate) writes nothing");
+            noisyOptions.Messages!.Flush();
+            File.ReadAllText(noisy).Should().Be(ToolMessages.Format("Note: ", $"Read config file from '{path}'", ToolMessages.TerminalColumns()),
+                "written like curl's notef(): wrapped at the COLUMNS width");
+            noisyOptions.Messages.Snapshot().Should().Equal($"Note: Read config file from '{path}'");
 
             var silent = Path.Combine(_dir, "silent.txt");
-            parser.Parse($"curl -v -s --stderr {CommandParser.ShellQuote(silent)} http://example.com/");
+            var silentOptions = parser.Parse($"curl -v -s --stderr {CommandParser.ShellQuote(silent)} http://example.com/");
+            silentOptions.Messages!.Flush();
             File.Exists(silent).Should().BeFalse("-s mutes notes");
         }
 
