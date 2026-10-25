@@ -30,6 +30,7 @@ namespace CurlDotNet.Core
         public string HttpVersion = "0";
         public string? ContentType;
         public long SizeDownload;
+        public long SizeDelivered;
         public long SizeUpload;
         public long SizeHeader;
         public long SizeRequest;
@@ -314,7 +315,7 @@ namespace CurlDotNet.Core
                 case "remote_ip": return ctx.RemoteIp;
                 case "remote_port": return ctx.RemotePort == 0 ? string.Empty : Int(ctx.RemotePort);
                 case "scheme": return ctx.Scheme;
-                case "size_delivered":
+                case "size_delivered": return Int(ctx.SizeDelivered);
                 case "size_download": return Int(ctx.SizeDownload);
                 case "size_header": return Int(ctx.SizeHeader);
                 case "size_request": return Int(ctx.SizeRequest);

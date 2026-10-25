@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -253,16 +254,25 @@ namespace CurlDotNet.Core
         /// <see cref="MultipartFormDataContent"/> whose parts carry curl's raw part headers and whose
         /// Content-Type names the boundary unquoted.
         /// </summary>
+        /// <remarks>
+        /// Like lib/http.c and lib/mime.c, a <c>-H "Content-Type: ..."</c> given with <c>-F</c> becomes the type of
+        /// the whole body, parameters included, with <c>; boundary=...</c> appended. The parts are then
+        /// <c>form-data</c> only when that type is <c>multipart/form-data</c>; under any other type (such as
+        /// <c>text/info</c>) curl labels named parts <c>attachment</c>. A part without a name (<c>-F =value</c>)
+        /// gets no <c>name</c> parameter.
+        /// </remarks>
         /// <exception cref="CurlReadErrorException">A referenced file cannot be read (exit code 26).</exception>
         public static HttpContent Build(IReadOnlyList<CurlFormPart> parts, CurlOptions options)
         {
             var boundary = NewBoundary();
             var content = new MultipartFormDataContent(boundary);
-            SetMultipartType(content, "multipart/form-data", boundary);
+            var rootType = UserContentType(options) ?? "multipart/form-data";
+            SetMultipartType(content, rootType, boundary);
+            // mime_prepare_headers: subparts are "form-data" only under multipart/form-data
+            var rootDisposition = ContentTypeMatch(rootType, "multipart/form-data") ? "form-data" : null;
 
             foreach (var part in parts)
             {
-                var disposition = new StringBuilder("form-data; name=\"").Append(Escape(part.Name, options)).Append('"');
                 HttpContent partContent;
 
                 if (part.MixedFiles.Count > 1)
@@ -273,31 +283,35 @@ namespace CurlDotNet.Core
                     SetMultipartType(mixed, "multipart/mixed", innerBoundary);
                     foreach (var file in part.MixedFiles)
                     {
-                        mixed.Add(FilePart("attachment", file, options));
+                        mixed.Add(FilePart(null, file, options, withName: false)); // multipart/mixed is not form-data: "attachment"
                     }
-                    mixed.Headers.TryAddWithoutValidation("Content-Disposition", disposition.ToString());
+                    var mixedDisposition = Disposition(rootDisposition, part.Name, null, "multipart/mixed", options);
+                    if (mixedDisposition != null)
+                    {
+                        mixed.Headers.TryAddWithoutValidation("Content-Disposition", mixedDisposition);
+                    }
                     partContent = mixed;
                 }
                 else if (part.IsFileUpload)
                 {
-                    partContent = FilePart(disposition.ToString(), part, options);
+                    partContent = FilePart(rootDisposition, part, options);
                 }
                 else
                 {
                     var data = part.IsFileContent
                         ? ReadFile(part, options)
                         : Encoding.UTF8.GetBytes(part.Value ?? string.Empty); // command-line text is UTF-8, like -d
-                    if (part.FileName != null)
-                    {
-                        disposition.Append("; filename=\"").Append(Escape(part.FileName, options)).Append('"');
-                    }
-                    partContent = new ByteArrayContent(data);
-                    partContent.Headers.TryAddWithoutValidation("Content-Disposition", disposition.ToString());
                     // plain text fields get no Content-Type unless ;type= asks for one, or ;filename= names a
                     // known type (-F 'name=a;filename=a.pdf' is application/pdf, like curl)
                     var type = !string.IsNullOrEmpty(part.ContentType)
                         ? part.ContentType
                         : (part.FileName != null && !part.IsFileContent ? KnownContentTypeFor(part.FileName) : null);
+                    partContent = new ByteArrayContent(data);
+                    var disposition = Disposition(rootDisposition, part.Name, part.FileName, type, options);
+                    if (disposition != null)
+                    {
+                        partContent.Headers.TryAddWithoutValidation("Content-Disposition", disposition);
+                    }
                     if (!string.IsNullOrEmpty(type))
                     {
                         partContent.Headers.TryAddWithoutValidation("Content-Type", type);
@@ -305,23 +319,152 @@ namespace CurlDotNet.Core
                     AddPartHeaders(partContent, part);
                 }
 
-                content.Add(partContent);
+                AddKeepingDisposition(content, partContent);
             }
 
             return content;
         }
 
-        /// <summary>A file part: <paramref name="dispositionPrefix"/> plus the filename parameter, typed from the extension.</summary>
-        private static HttpContent FilePart(string dispositionPrefix, CurlFormPart file, CurlOptions options)
+        /// <summary>
+        /// A file part: the <paramref name="disposition"/> (null means curl's default, <c>attachment</c>) with the
+        /// name (when <paramref name="withName"/>) and filename parameters, typed from the extension.
+        /// </summary>
+        private static HttpContent FilePart(string? disposition, CurlFormPart file, CurlOptions options, bool withName = true)
         {
             var data = ReadFile(file, options);
             var fileName = file.FileName ?? Path.GetFileName(file.FilePath ?? string.Empty);
-            var disposition = dispositionPrefix + "; filename=\"" + Escape(fileName, options) + "\"";
+            var type = file.ContentType ?? ContentTypeFor(file.FilePath ?? fileName);
+            // files inside a multipart/mixed field carry only the filename, like curl's subparts
+            var name = withName ? file.Name : null;
             var partContent = new ByteArrayContent(data);
-            partContent.Headers.TryAddWithoutValidation("Content-Disposition", disposition);
-            partContent.Headers.TryAddWithoutValidation("Content-Type", file.ContentType ?? ContentTypeFor(file.FilePath ?? fileName));
+            var header = Disposition(disposition, name, fileName, type, options);
+            if (header != null)
+            {
+                partContent.Headers.TryAddWithoutValidation("Content-Disposition", header);
+            }
+            partContent.Headers.TryAddWithoutValidation("Content-Type", type);
             AddPartHeaders(partContent, file);
             return partContent;
+        }
+
+        /// <summary>
+        /// curl's add_content_disposition (lib/mime.c): without a disposition from the enclosing multipart, a part
+        /// with a name, a filename or a non-multipart type is an <c>attachment</c>; an <c>attachment</c> with
+        /// neither name nor filename gets no header at all (null). An empty name is no name (tool_formparse.c).
+        /// </summary>
+        private static string? Disposition(string? disposition, string? name, string? fileName, string? contentType, CurlOptions options)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                name = null;
+            }
+            if (disposition == null &&
+                (fileName != null || name != null || (contentType != null && !contentType.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase))))
+            {
+                disposition = "attachment";
+            }
+            if (disposition != null && disposition.Equals("attachment", StringComparison.OrdinalIgnoreCase) && name == null && fileName == null)
+            {
+                disposition = null;
+            }
+            if (disposition == null)
+            {
+                return null;
+            }
+            var sb = new StringBuilder(disposition);
+            if (name != null)
+            {
+                sb.Append("; name=\"").Append(Escape(name, options)).Append('"');
+            }
+            if (fileName != null)
+            {
+                sb.Append("; filename=\"").Append(Escape(fileName, options)).Append('"');
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// curl's content_type_match: <paramref name="contentType"/> is <paramref name="target"/>, case-insensitively,
+        /// followed by the end, a blank or a <c>;</c> parameter.
+        /// </summary>
+        private static bool ContentTypeMatch(string contentType, string target)
+        {
+            if (!contentType.StartsWith(target, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            if (contentType.Length == target.Length)
+            {
+                return true;
+            }
+            var next = contentType[target.Length];
+            return next == ' ' || next == '\t' || next == '\r' || next == '\n' || next == ';';
+        }
+
+        /// <summary>
+        /// The <c>-H "Content-Type: ..."</c> value to use as the type of the whole multipart body (lib/http.c skips
+        /// the spaces after the colon and keeps the rest verbatim), or null when none was given.
+        /// </summary>
+        private static string? UserContentType(CurlOptions options)
+        {
+            foreach (var header in options.Headers)
+            {
+                if (header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(header.Value))
+                {
+                    var value = header.Value.TrimStart(' ');
+                    return value.Length > 0 ? value : null;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Adds <paramref name="part"/> with exactly the Content-Disposition this builder gave it. MultipartFormDataContent.Add
+        /// stamps <c>form-data</c> on a part whose header is missing (curl sends none for an unnamed part under a non-form
+        /// type) or does not parse (a filename ending in a backslash), so the raw header is put back afterwards.
+        /// </summary>
+        private static void AddKeepingDisposition(MultipartFormDataContent content, HttpContent part)
+        {
+            var before = RawHeaders(part);
+            var raw = before.FirstOrDefault(h => h.Key.Equals("Content-Disposition", StringComparison.OrdinalIgnoreCase)).Value;
+            content.Add(part);
+            if (raw == null)
+            {
+                part.Headers.Remove("Content-Disposition"); // curl sends none
+                return;
+            }
+            var after = RawHeaders(part).FirstOrDefault(h => h.Key.Equals("Content-Disposition", StringComparison.OrdinalIgnoreCase)).Value;
+            if (after == raw)
+            {
+                return;
+            }
+            // replaced: put every header back in its original order (Content-Disposition first, like curl)
+            foreach (var header in before)
+            {
+                part.Headers.Remove(header.Key);
+            }
+            foreach (var header in before)
+            {
+                part.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+        }
+
+        /// <summary>The part's headers as stored, in order (on .NET 6+ without parsing them).</summary>
+        private static List<KeyValuePair<string, string>> RawHeaders(HttpContent part)
+        {
+            var list = new List<KeyValuePair<string, string>>();
+#if NET6_0_OR_GREATER
+            foreach (var header in part.Headers.NonValidated)
+            {
+                list.Add(new KeyValuePair<string, string>(header.Key, string.Join(", ", header.Value)));
+            }
+#else
+            foreach (var header in part.Headers)
+            {
+                list.Add(new KeyValuePair<string, string>(header.Key, string.Join(", ", header.Value)));
+            }
+#endif
+            return list;
         }
 
         private static void AddPartHeaders(HttpContent content, CurlFormPart part)

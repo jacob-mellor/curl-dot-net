@@ -436,6 +436,12 @@ namespace CurlDotNet.Core
 
         /// <summary>The connection the connect callback opened last for this request.</summary>
         public WireConnectionInfo? LastConnection { get; set; }
+
+        /// <summary>--haproxy-protocol / --haproxy-clientip: send a PROXY protocol v1 line on each new connection.</summary>
+        public bool Haproxy { get; set; }
+
+        /// <summary>--haproxy-clientip: the address claimed as both source and destination, or null for the real ones.</summary>
+        public string? HaproxyClientIp { get; set; }
     }
 
     /// <summary>
@@ -716,6 +722,32 @@ namespace CurlDotNet.Core
                 try
                 {
                     stream = await ProxyTunnel.OpenAsync(stream, context.DnsEndPoint, settings!, token, cancellationToken).ConfigureAwait(false);
+                }
+                catch
+                {
+                    stream.Dispose();
+                    throw;
+                }
+            }
+
+            if (settings != null && settings.Haproxy)
+            {
+                try
+                {
+                    // lib/cf-haproxy.c: the PROXY line is the first thing on the connection (after a -p tunnel,
+                    // before TLS), built from the socket's own addresses and ports
+                    var line = Encoding.ASCII.GetBytes(HaproxyHeader.Line(info, settings.HaproxyClientIp));
+                    await stream.WriteAsync(line, 0, line.Length, token).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is IOException || ex is SocketException)
+                {
+                    stream.Dispose();
+                    throw new CurlConnectFailure(ConnectFailureKind.Connect, host, port, "sending the HAProxy PROXY protocol header failed: " + ex.Message, ex);
+                }
+                catch (OperationCanceledException) when (timeoutCts != null && timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                {
+                    stream.Dispose();
+                    throw new CurlConnectFailure(ConnectFailureKind.Timeout, host, port, "Connection timed out");
                 }
                 catch
                 {

@@ -1,20 +1,6 @@
 # curl test numbers that CurlDotNet does not pass yet. One per line, optional "# reason".
 # A listed test that starts passing fails the suite until it is removed, so this list stays honest.
-# Status 2026-10-25 (Linux, net10.0): 619 of 631 runnable HTTP tests pass. The harness now also verifies stderr, replays
-# <stripfile>/<strippart> perl and adds runtests' --trace-ascii, which exposed the gaps listed in the last two groups.
-
-# stderr now verified (triage): the library's stderr text differs from curl's
-1489  # -D % writes the headers to a file named "%" instead of standard error
-1148  # --stderr log/stderrlog1148 with -# is never created (no progress bar is written)
-164   # with --trace-ascii (runtests always adds it) -r 0-10,12-15 is sent as "Range: bytes=0-10, 12-15"; without it the header is right
-
-# New with strippart support (triage)
-220   # -w '%{stderr}%{size_delivered}' with --compressed prints 44, curl prints 24
-223   # broken deflate header: exit 18 (partial file), curl exits 61 (bad content encoding)
-277   # -F with -H "Content-Type: text/info": CurlDotNet sends multipart/form-data and form-data parts; curl keeps text/info and "attachment" parts (Content-Length 157 vs 158)
-669   # -H "Content-Type: multipart/form-data; charset=utf-8" with -F: the charset parameter is dropped from the sent Content-Type
-1293  # -F= (empty name and value) to two URLs: the part is sent as 'Content-Disposition: form-data; name=""' (Content-Length 147); curl sends 'form-data' without a name (138)
-1455  # --haproxy-protocol: no "PROXY TCP4 ..." line is sent before the request
-3201  # same as 1455 with --haproxy-clientip 192.168.1.1
-3220  # same as 1455 with an IPv6 --haproxy-clientip
-2305  # two concatenated gzip members: exit 0, curl fails with "curl: (23) Multi-member gzip response not supported"
+# Before listing a test, run it in real curl (tests/CurlDotNet.CurlSuite/reference) and give the
+# reason from curl's logs or source, never a guess.
+#
+# Status 2026-10-25 (Linux, net10.0): every runnable test passes; the list is empty.

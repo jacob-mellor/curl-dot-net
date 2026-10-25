@@ -233,6 +233,8 @@ namespace CurlDotNet.Core
                 ConnectTo = hop.ConnectTo.Count > 0 ? hop.ConnectTo : null,
                 ViaProxy = proxyUri != null,
                 Transcript = Transcript,
+                Haproxy = Options.HaproxyEnabled,
+                HaproxyClientIp = string.IsNullOrEmpty(Options.HaproxyClientIp) ? null : Options.HaproxyClientIp,
             };
             if (proxyUri != null && (Options.ProxyTunnel || Proxy!.SelfTunnels(uri)))
             {

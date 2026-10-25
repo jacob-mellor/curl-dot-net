@@ -135,6 +135,7 @@ namespace CurlDotNet.Core
             {
                 ResponseCode = 0,
                 SizeDownload = size,
+                SizeDelivered = size,
                 Url = options.Url,
                 UrlEffective = options.Url,
                 Method = "GET",
