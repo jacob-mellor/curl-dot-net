@@ -70,9 +70,9 @@ namespace CurlDotNet.Core
             }
             foreach (var part in parts)
             {
-                if (part.Length == 0 || part.Length > 3)
+                if (part.Length == 0 || part.Length > 3 || (part.Length > 1 && part[0] == '0'))
                 {
-                    return false;
+                    return false; // inet_pton4 refuses leading zeros
                 }
                 foreach (var c in part)
                 {

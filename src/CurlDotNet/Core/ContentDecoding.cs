@@ -99,6 +99,10 @@ namespace CurlDotNet.Core
                 throw new InvalidDataException("unknown compression method");
             }
             var flags = body[3];
+            if ((flags & 0xe0) != 0)
+            {
+                throw new InvalidDataException("unknown header flags set"); // zlib's inflate() rejects reserved bits
+            }
             var pos = 10;
             if ((flags & 0x04) != 0) // FEXTRA
             {
@@ -109,7 +113,18 @@ namespace CurlDotNet.Core
             if (pos < 0) return -1;
             if ((flags & 0x10) != 0) pos = SkipZeroTerminated(body, pos); // FCOMMENT
             if (pos < 0) return -1;
-            if ((flags & 0x02) != 0) pos += 2; // FHCRC
+            if ((flags & 0x02) != 0) // FHCRC: the low 16 bits of the CRC-32 of the header before it
+            {
+                if (pos + 2 > body.Length) return -1;
+                var expected = body[pos] | (body[pos + 1] << 8);
+                var header = new byte[pos];
+                Buffer.BlockCopy(body, 0, header, 0, pos);
+                if ((Crc32(header) & 0xffff) != expected)
+                {
+                    throw new InvalidDataException("header crc mismatch");
+                }
+                pos += 2;
+            }
             return pos <= body.Length ? pos : -1;
         }
 
@@ -133,6 +148,11 @@ namespace CurlDotNet.Core
                 (byte)crc, (byte)(crc >> 8), (byte)(crc >> 16), (byte)(crc >> 24),
                 (byte)size, (byte)(size >> 8), (byte)(size >> 16), (byte)(size >> 24),
             };
+            // The common case first: the member is the whole body, its trailer the last 8 bytes.
+            if (body.Length - 8 >= start + 2 && Matches(body, body.Length - 8, trailer))
+            {
+                return body.Length;
+            }
             // A deflate stream is at least 2 bytes long, so the trailer cannot start before start + 2.
             for (var i = start + 2; i + 8 <= body.Length; i++)
             {
@@ -151,6 +171,18 @@ namespace CurlDotNet.Core
                 }
             }
             return -1;
+        }
+
+        private static bool Matches(byte[] body, int at, byte[] trailer)
+        {
+            for (var j = 0; j < trailer.Length; j++)
+            {
+                if (body[at + j] != trailer[j])
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static readonly uint[] CrcTable = BuildCrcTable();
@@ -204,6 +236,7 @@ namespace CurlDotNet.Core
         private readonly CancellationTokenSource _failed = new CancellationTokenSource();
         private byte[] _head = Array.Empty<byte>();
         private bool _started;
+        private bool _disabled;
 
         private ContentDecodeProbe(bool gzip)
         {
@@ -246,7 +279,7 @@ namespace CurlDotNet.Core
         /// <summary>Hands the decoder the next received bytes (copied).</summary>
         internal void Feed(byte[] buffer, int count)
         {
-            if (count <= 0 || _failed.IsCancellationRequested)
+            if (count <= 0 || _disabled || _failed.IsCancellationRequested)
             {
                 return;
             }
@@ -274,7 +307,8 @@ namespace CurlDotNet.Core
             bool zlib = !gzipMember && ContentDecoding.IsZlibHeader(head, 0);
             if (_gzip && !gzipMember && !zlib)
             {
-                return; // neither gzip nor zlib: the decode of the whole body reports it
+                _disabled = true; // neither gzip nor zlib: the decode of the whole body reports it
+                return;
             }
             // Only a failure that the decode of the complete body would also report stops the download:
             // a gzip member, or raw deflate. A zlib-looking start may still be raw deflate (the full decode
@@ -363,6 +397,8 @@ namespace CurlDotNet.Core
                 _available.Release();
             }
 
+            // Best effort: after Complete() the reader stops even if chunks are still queued, because the decode
+            // of the complete body is authoritative and the probe only exists to stop a download early.
             public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
             {
                 while (_current == null || _offset >= _current.Length)

@@ -254,6 +254,39 @@ namespace CurlDotNet.Tests
         }
 
         [Fact]
+        public void Gunzip_ReservedFlagsOrABadHeaderCrc_AreCorruptData()
+        {
+            var reserved = Gzip("x");
+            reserved[3] = 0x20;
+            Action flags = () => ContentDecoding.Gunzip(reserved, null);
+            flags.Should().Throw<InvalidDataException>().WithMessage("unknown header flags set");
+
+            var good = Gzip("hcrc");
+            var header = good.Take(10).ToArray();
+            header[3] = 0x02; // FHCRC
+            var crc = ContentDecoding.Crc32(header) & 0xffff;
+            var withCrc = header.Concat(new[] { (byte)crc, (byte)(crc >> 8) }).Concat(good.Skip(10)).ToArray();
+            ContentDecoding.Gunzip(withCrc, null).Should().Equal(Encoding.ASCII.GetBytes("hcrc"));
+
+            withCrc[10] ^= 0xff;
+            Action bad = () => ContentDecoding.Gunzip(withCrc, null);
+            bad.Should().Throw<InvalidDataException>().WithMessage("header crc mismatch");
+        }
+
+        [Fact]
+        public async Task Form_UnnamedPartUnderCustomType_HasNoContentDisposition()
+        {
+            // lib/mime.c add_content_disposition: an "attachment" without name or filename gets no header
+            using var server = new RawReplyServer();
+
+            await Curl.ExecuteAsync($"curl {server.Url("/")} -H \"Content-Type: text/info\" -F =daniel");
+
+            var request = server.Requests.Single();
+            request.Should().NotContain("Content-Disposition");
+            request.Should().MatchRegex("\r\n\r\n--(-{24}[0-9A-Za-z]{22})\r\n\r\ndaniel\r\n--\\1--\r\n$");
+        }
+
+        [Fact]
         public void Crc32_MatchesTheGzipCheckValue()
         {
             ContentDecoding.Crc32(Encoding.ASCII.GetBytes("123456789")).Should().Be(0xCBF43926u);
@@ -413,6 +446,8 @@ namespace CurlDotNet.Tests
         [InlineData("1.2.3.4.5", false)]
         [InlineData("::1", false)]
         [InlineData("a.b.c.d", false)]
+        [InlineData("01.2.3.4", false)]
+        [InlineData("10.0.0.1", true)]
         public void IsIPv4Address_IsCurlsDottedQuadTest(string text, bool expected)
         {
             HaproxyHeader.IsIPv4Address(text).Should().Be(expected);

@@ -744,6 +744,11 @@ namespace CurlDotNet.Core
                     stream.Dispose();
                     throw new CurlConnectFailure(ConnectFailureKind.Connect, host, port, "sending the HAProxy PROXY protocol header failed: " + ex.Message, ex);
                 }
+                catch (OperationCanceledException) when (timeoutCts != null && timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                {
+                    stream.Dispose();
+                    throw new CurlConnectFailure(ConnectFailureKind.Timeout, host, port, "Connection timed out");
+                }
                 catch
                 {
                     stream.Dispose();

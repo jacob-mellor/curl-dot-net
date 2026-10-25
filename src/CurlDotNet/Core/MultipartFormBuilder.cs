@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -318,7 +319,7 @@ namespace CurlDotNet.Core
                     AddPartHeaders(partContent, part);
                 }
 
-                content.Add(partContent);
+                AddKeepingDisposition(content, partContent);
             }
 
             return content;
@@ -415,6 +416,55 @@ namespace CurlDotNet.Core
                 }
             }
             return null;
+        }
+
+        /// <summary>
+        /// Adds <paramref name="part"/> with exactly the Content-Disposition this builder gave it. MultipartFormDataContent.Add
+        /// stamps <c>form-data</c> on a part whose header is missing (curl sends none for an unnamed part under a non-form
+        /// type) or does not parse (a filename ending in a backslash), so the raw header is put back afterwards.
+        /// </summary>
+        private static void AddKeepingDisposition(MultipartFormDataContent content, HttpContent part)
+        {
+            var before = RawHeaders(part);
+            var raw = before.FirstOrDefault(h => h.Key.Equals("Content-Disposition", StringComparison.OrdinalIgnoreCase)).Value;
+            content.Add(part);
+            if (raw == null)
+            {
+                part.Headers.Remove("Content-Disposition"); // curl sends none
+                return;
+            }
+            var after = RawHeaders(part).FirstOrDefault(h => h.Key.Equals("Content-Disposition", StringComparison.OrdinalIgnoreCase)).Value;
+            if (after == raw)
+            {
+                return;
+            }
+            // replaced: put every header back in its original order (Content-Disposition first, like curl)
+            foreach (var header in before)
+            {
+                part.Headers.Remove(header.Key);
+            }
+            foreach (var header in before)
+            {
+                part.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+        }
+
+        /// <summary>The part's headers as stored, in order (on .NET 6+ without parsing them).</summary>
+        private static List<KeyValuePair<string, string>> RawHeaders(HttpContent part)
+        {
+            var list = new List<KeyValuePair<string, string>>();
+#if NET6_0_OR_GREATER
+            foreach (var header in part.Headers.NonValidated)
+            {
+                list.Add(new KeyValuePair<string, string>(header.Key, string.Join(", ", header.Value)));
+            }
+#else
+            foreach (var header in part.Headers)
+            {
+                list.Add(new KeyValuePair<string, string>(header.Key, string.Join(", ", header.Value)));
+            }
+#endif
+            return list;
         }
 
         private static void AddPartHeaders(HttpContent content, CurlFormPart part)
