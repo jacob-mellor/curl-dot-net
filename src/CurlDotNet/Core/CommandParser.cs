@@ -1082,6 +1082,20 @@ namespace CurlDotNet.Core
         /// </summary>
         private void ProcessArguments(IList<string> args, ParseContext context)
         {
+            // The command line itself (not a -K file's line): curl reads .curlrc first, when the application opted in
+            var defaultConfigFile = context.ConfigDepth == 0 ? IncludeDefaultConfigFile(args, context) : null;
+
+            ProcessArgumentVector(args, context);
+
+            if (defaultConfigFile != null)
+            {
+                WriteDefaultConfigNote(defaultConfigFile, context);
+            }
+        }
+
+        /// <summary>Processes options and URLs in order; <c>-K</c> files re-enter here one level deeper.</summary>
+        private void ProcessArgumentVector(IList<string> args, ParseContext context)
+        {
             var stillFlags = true;
 
             for (var i = 0; i < args.Count; i++)
