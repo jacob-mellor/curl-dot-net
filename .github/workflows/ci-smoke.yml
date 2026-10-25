@@ -53,15 +53,15 @@ jobs:
     - name: Build solution (Release)
       run: dotnet build --configuration Release --no-restore
 
-    # Step 5: Unit, synthetic, smoke and DevOps tests on .NET 8/9/10. Everything runs against an
-    # in-process HttpListener server (no fixed ports, no internet), so each run takes seconds.
-    - name: Run unit, synthetic, smoke and DevOps tests (.NET 8, 9, 10)
+    # Step 5: the whole unit test project on .NET 8/9/10, with no category filter, so no test can stay
+    # red unseen. Everything runs against in-process servers (no fixed ports, no internet).
+    - name: Run all unit tests (.NET 8, 9, 10)
       if: runner.os != 'Windows'
       shell: bash
       run: |
         for tfm in net8.0 net9.0 net10.0; do
           echo "::group::$tfm"
-          dotnet test tests/CurlDotNet.Tests/CurlDotNet.Tests.csproj --configuration Release --no-build --framework $tfm --filter "Category=Synthetic|Category=Unit|Category=Smoke|Category=DevOps" --blame-hang --blame-hang-timeout 180s --blame-hang-dump-type none
+          dotnet test tests/CurlDotNet.Tests/CurlDotNet.Tests.csproj --configuration Release --no-build --framework $tfm --blame-hang --blame-hang-timeout 180s --blame-hang-dump-type none
           echo "::endgroup::"
         done
 
