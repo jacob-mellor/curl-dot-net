@@ -13,6 +13,7 @@
  ***************************************************************************/
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,18 +28,22 @@ namespace CurlDotNet.Core
     {
         public async Task<CurlResult> ExecuteAsync(CurlOptions options, CancellationToken cancellationToken)
         {
+            var started = Stopwatch.StartNew();
             var uri = new Uri(options.Url);
             var filePath = Uri.UnescapeDataString(uri.LocalPath);
 
             // Check if file exists
             if (!File.Exists(filePath))
             {
-                return new CurlResult
+                var missing = new CurlResult
                 {
                     StatusCode = 404,
                     Body = $"File not found: {filePath}",
                     Command = options.OriginalCommand
                 };
+                // curl fails this transfer with exit 37 (CURLE_FILE_COULDNT_READ_FILE); -w still runs and says so
+                AppendWriteOut(missing, options, BuildWriteOutContext(options, 0, null, started, 37, $"Couldn't open file {filePath}"));
+                return missing;
             }
 
             try
@@ -94,6 +99,13 @@ namespace CurlDotNet.Core
                     result.OutputFiles.Add(destination);
                 }
 
+                var size = binaryContent?.LongLength ?? (textContent == null ? 0 : fileInfo.Length);
+                var written = result.OutputFiles.Count > 0 ? result.OutputFiles[result.OutputFiles.Count - 1] : null;
+                if (written != null)
+                {
+                    result.Body = string.Empty; // like the HTTP handler: -o/-O leave Body empty, -w text still lands there
+                }
+                AppendWriteOut(result, options, BuildWriteOutContext(options, size, written, started, 0, string.Empty));
                 return result;
             }
             catch (UnauthorizedAccessException)
@@ -108,6 +120,68 @@ namespace CurlDotNet.Core
                     "Check that no other program holds the file locked and that the disk or network share is still available, then retry.",
                     DocLinks.ErrorReference), options.OriginalCommand, ex);
             }
+        }
+
+        /// <summary>
+        /// The <c>-w</c>/<c>--write-out</c> values for a file:// transfer, as curl reports them (lib/file.c):
+        /// no response code (<c>%{response_code}</c> and <c>%{http_code}</c> print 000), no connection, no
+        /// headers, scheme <c>file</c>, and the file's byte count as <c>%{size_download}</c>.
+        /// </summary>
+        private static WriteOutContext BuildWriteOutContext(CurlOptions options, long size, string? writtenPath, Stopwatch started,
+            int exitCode, string errorMessage)
+        {
+            var seconds = started.Elapsed.TotalSeconds;
+            return new WriteOutContext
+            {
+                ResponseCode = 0,
+                SizeDownload = size,
+                SizeDelivered = size,
+                Url = options.Url,
+                UrlEffective = options.Url,
+                Method = "GET",
+                Scheme = "file",
+                UrlNum = options.TransferNumber,
+                NumRetries = options.RetryNumber,
+                FilenameEffective = writtenPath ?? string.Empty,
+                ExitCode = exitCode,
+                ErrorMessage = errorMessage,
+                TimePreTransfer = seconds,
+                TimeStartTransfer = seconds,
+                TimeTotal = seconds,
+            };
+        }
+
+        /// <summary>
+        /// Expands <c>-w</c> for this transfer: standard-output text is appended to <see cref="CurlResult.Body"/>
+        /// (what curl would print after the file's content), standard-error text goes to <c>--stderr FILE</c> or
+        /// the console.
+        /// </summary>
+        private static void AppendWriteOut(CurlResult result, CurlOptions options, WriteOutContext context)
+        {
+            if (string.IsNullOrEmpty(options.WriteOut))
+            {
+                return;
+            }
+
+            var expanded = WriteOutFormatter.Format(options.WriteOut!, context);
+            result.Body = (result.Body ?? string.Empty) + expanded.Stdout;
+            if (string.IsNullOrEmpty(expanded.Stderr))
+            {
+                return;
+            }
+            if (!string.IsNullOrEmpty(options.StderrFile) && options.StderrFile != "-")
+            {
+                try
+                {
+                    File.AppendAllText(options.StderrFile!, expanded.Stderr);
+                    return;
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    // curl falls back to the terminal when --stderr cannot be opened
+                }
+            }
+            Console.Error.Write(expanded.Stderr);
         }
 
         public bool SupportsProtocol(string protocol)

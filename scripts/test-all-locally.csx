@@ -12,17 +12,10 @@ using Spectre.Console;
 
 // Comprehensive Local Testing Script
 // Runs build, docs, tests, and NuGet pack in a single pass with no redundant rebuilds.
-// Pass --include-integration to also run network-dependent integration tests.
-
-var includeIntegration = Args.Any(a => a == "--include-integration");
+// Every test runs offline against in-process servers, so the whole test project always runs.
 
 AnsiConsole.Write(new FigletText("CurlDotNet Tests")
     .Color(Color.Blue));
-
-if (!includeIntegration)
-{
-    AnsiConsole.MarkupLine("[dim]Running Unit + Synthetic tests only. Use --include-integration for all.[/]");
-}
 
 var stopwatch = Stopwatch.StartNew();
 var hasErrors = false;
@@ -54,15 +47,13 @@ await RunCommand("dotnet", "script scripts/generate-docs.csx -- --no-build");
 AnsiConsole.MarkupLine("\n[yellow]Step 3: Running tests...[/]");
 AnsiConsole.Write(new Rule("[blue]Test Execution[/]").LeftJustified());
 
-// Use positive filter (Category=Synthetic|Category=Unit) to run only properly-categorized
-// fast tests. Tests without a Category trait may start local HTTP servers that never terminate.
-// --blame-hang kills any test that hangs beyond 30s (prevents infinite waits from orphaned servers).
+// Run the whole test project, like CI: every test uses in-process servers (no fixed ports, no
+// internet), so nothing needs filtering out and no red test can hide behind a category filter.
+// --blame-hang kills a test that hangs (an orphaned server would otherwise wait forever).
 // --blame-hang-dump-type none avoids permission issues with crash dump creation on macOS.
-var filter = includeIntegration
-    ? ""
-    : "--filter \"Category=Synthetic|Category=Unit\"";
+var filter = "";
 
-var testArgs = $"test -c Release --no-build {frameworkArg} {filter} --blame-hang --blame-hang-timeout 30s --blame-hang-dump-type none --logger:console;verbosity=minimal";
+var testArgs = $"test -c Release --no-build {frameworkArg} {filter} --blame-hang --blame-hang-timeout 180s --blame-hang-dump-type none --logger:console;verbosity=minimal";
 
 var testResult = await RunCommand("dotnet", testArgs);
 if (testResult != 0)

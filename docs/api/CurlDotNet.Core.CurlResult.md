@@ -63,6 +63,7 @@ Tutorial: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/tutorial
 | [OutputFiles](CurlDotNet.Core.CurlResult.OutputFiles.md 'CurlDotNet\.Core\.CurlResult\.OutputFiles') | Paths of the files this transfer wrote: the `-o`/`-O` output \(with `--output-dir` and `--no-clobber` renaming applied\), plus any files saved later with [SaveToFile\(string\)](CurlDotNet.Core.CurlResult.SaveToFile(string).md 'CurlDotNet\.Core\.CurlResult\.SaveToFile\(string\)') and friends\. |
 | [StatusCode](CurlDotNet.Core.CurlResult.StatusCode.md 'CurlDotNet\.Core\.CurlResult\.StatusCode') | The HTTP status code of the final response \(after any redirects followed with `-L`\), such as 200, 201, 304, 404 or 500 \- curl's `%{http_code}`\. |
 | [Timings](CurlDotNet.Core.CurlResult.Timings.md 'CurlDotNet\.Core\.CurlResult\.Timings') | How long each phase of the transfer took \(DNS, connect, TLS, first byte, total\) in milliseconds, like curl's `-w '%{time_total}'` family\. |
+| [Warnings](CurlDotNet.Core.CurlResult.Warnings.md 'CurlDotNet\.Core\.CurlResult\.Warnings') | The warnings and notes the curl tool would have printed on standard error for this command, each with curl's own `Warning: ` or `Note: ` prefix and in the order curl prints them\. |
 
 | Methods | |
 | :--- | :--- |

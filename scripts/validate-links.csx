@@ -30,7 +30,11 @@ class LinkValidator
         AnsiConsole.WriteLine();
 
         var markdownFiles = Directory.GetFiles(rootPath, "*.md", SearchOption.AllDirectories)
-            .Where(f => !f.Contains("node_modules") && !f.Contains("_site") && !f.Contains(".git"))
+            .Where(f => !f.Contains("node_modules") && !f.Contains("_site") && !f.Contains(".git")
+                        && !f.Contains(Path.DirectorySeparatorChar + ".claude" + Path.DirectorySeparatorChar)  // agent worktrees: copies of the repo
+                        && !f.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar)
+                        && !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar)
+                        && !f.Contains(Path.Combine("CurlDotNet.CurlSuite", "data")))  // curl's vendored test files
             .ToList();
 
         AnsiConsole.MarkupLine($"[cyan]Found {markdownFiles.Count} markdown files to check[/]");
@@ -61,14 +65,21 @@ class LinkValidator
         var fileDir = Path.GetDirectoryName(filePath);
 
         // Find all markdown links: [text](url)
-        var linkPattern = @"\[([^\]]*)\]\(([^)]+)\)";
+        var linkPattern = @"\[([^\]]*)\]\(((?:[^()\s]|\([^()\s]*\))+)(?:\s+(?:'[^']*'|""[^""]*""))?\)";
         var matches = Regex.Matches(content, linkPattern);
 
         foreach (Match match in matches)
         {
             var linkText = match.Groups[1].Value;
-            var linkUrl = match.Groups[2].Value;
+            // [text](url "title") / [text](url 'title'): the target ends at the first whitespace
+            var linkUrl = match.Groups[2].Value.Trim().Split(new[] { ' ', '\t', '\n' }, 2)[0].Trim('<', '>');
             totalLinks++;
+
+            if (linkUrl.StartsWith("mailto:"))
+            {
+                validLinks++;
+                continue;
+            }
 
             // Skip external links and anchors
             if (linkUrl.StartsWith("http://") || linkUrl.StartsWith("https://") || linkUrl.StartsWith("#"))
@@ -78,7 +89,11 @@ class LinkValidator
             }
 
             // Remove anchor from link for file checking
-            var cleanUrl = linkUrl.Split('#')[0];
+            // the anchor starts at the first '#' after the page name; API pages for constructors are named
+            // "Type.#ctor.md", so a '#' before ".md" is part of the file name
+            var pageEnd = linkUrl.IndexOf(".md#", StringComparison.Ordinal);
+            if (pageEnd < 0) pageEnd = linkUrl.IndexOf(".html#", StringComparison.Ordinal) is var h && h >= 0 ? h + 2 : -1;
+            var cleanUrl = pageEnd >= 0 ? linkUrl.Substring(0, pageEnd + 3) : linkUrl.Split('#')[0];
             if (string.IsNullOrEmpty(cleanUrl))
             {
                 validLinks++;
@@ -121,6 +136,12 @@ class LinkValidator
                     warnings.Add($"Directory link without index: {relativePath} -> {linkUrl}");
                 }
             }
+            // The Jekyll site publishes page.md as page.html (README.md as README.html), so an .html link is
+            // valid when the Markdown page it is built from exists
+            else if (cleanUrl.EndsWith(".html") && File.Exists(targetPath.Substring(0, targetPath.Length - 5) + ".md"))
+            {
+                exists = true;
+            }
             // Check with .md extension if not specified
             else if (!cleanUrl.EndsWith(".md") && !cleanUrl.EndsWith(".html"))
             {
@@ -157,7 +178,7 @@ class LinkValidator
     private void PrintResults()
     {
         AnsiConsole.WriteLine();
-        AnsiConsole.Rule("[yellow]Validation Results[/]");
+        AnsiConsole.Write(new Rule("[yellow]Validation Results[/]"));
 
         // Summary
         var table = new Table();
@@ -178,7 +199,7 @@ class LinkValidator
             AnsiConsole.MarkupLine("[yellow]⚠ Warnings:[/]");
             foreach (var warning in warnings)
             {
-                AnsiConsole.MarkupLine($"  [yellow]• {warning}[/]");
+                AnsiConsole.MarkupLine($"  [yellow]• {Markup.Escape(warning)}[/]");
             }
         }
 
@@ -189,7 +210,7 @@ class LinkValidator
             AnsiConsole.MarkupLine("[red]✗ Broken Links Found:[/]");
             foreach (var link in brokenLinks)
             {
-                AnsiConsole.MarkupLine($"  [red]• {link}[/]");
+                AnsiConsole.MarkupLine($"  [red]• {Markup.Escape(link)}[/]");
             }
 
             AnsiConsole.WriteLine();
@@ -237,7 +258,7 @@ if (File.Exists(nugetReadme))
 
     // Special validation for NuGet README - only check internal links
     var content = File.ReadAllText(nugetReadme);
-    var linkPattern = @"\[([^\]]*)\]\(([^)]+)\)";
+    var linkPattern = @"\[([^\]]*)\]\(((?:[^()\s]|\([^()\s]*\))+)(?:\s+(?:'[^']*'|""[^""]*""))?\)";
     var matches = Regex.Matches(content, linkPattern);
     var brokenNugetLinks = new List<string>();
 

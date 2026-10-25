@@ -12,13 +12,13 @@ CurlDotNet identifies itself as curl 8.7.1 (`User-Agent: curl/8.7.1`) and claims
 | Result | Count |
 |--------|-------|
 | Test files replayed | 1092 |
-| Runnable (not skipped) | 620 |
-| Pass | 607 (97.9%) |
-| of which byte-exact, header order included | 216 |
-| Fail, every one listed in `known-failures.txt` | 13 |
-| Skipped (need servers or features CurlDotNet does not have) | 472 |
+| Runnable (not skipped) | 631 |
+| Pass | 631 (100%) |
+| of which byte-exact, header order included | 286 |
+| Fail | 0 (`known-failures.txt` is empty) |
+| Skipped (need servers or features CurlDotNet does not have) | 461 |
 
-Source: curl/curl commit `178e5077b6`, October 2026. The figures come from `tests/CurlDotNet.CurlSuite/curl-suite-report.md`, which every run regenerates.
+Source: curl/curl commit `178e5077b6`, October 2026. The figures are from a run on Linux with .NET 10 (v9.8.11). They come from `tests/CurlDotNet.CurlSuite/curl-suite-report.md`, which every run regenerates.
 
 ## What a curl test file is
 
@@ -35,9 +35,9 @@ curl's own `runtests.pl` runs these against its `sws` test server. CurlDotNet's 
 For every test file whose only server is `http`:
 
 1. **Skip check.** Tests that need something CurlDotNet does not provide are skipped with a reason: another server (FTP, SMTP, SOCKS, DNS), a C test program (`libtest`, `unittest`), stdin, custom server commands, or a curl feature outside CurlDotNet's list (for example `Debug`, `ipfs`, `PSL`, `alt-svc`, `IDN`).
-2. **Serve the reply.** `StubHttpServer.cs` is a from-scratch HTTP/1.x server built on `TcpListener`, so nothing sits between the test and the wire. Like curl's `sws` it records every request byte for byte, picks the reply part from the number at the end of the request path, honours `swsclose` and `swsbounce`, answers `Expect: 100-continue`, and moves to the next reply part for Digest, NTLM, Basic and Negotiate challenges.
-3. **Run the command.** The test's command line, with curl's `%HOSTIP`, `%HTTPPORT`, `%LOGDIR` and similar variables substituted, is passed to `Curl.ExecuteAsync` from a per-test working directory, with `--output` and `--include` added exactly as `runtests.pl` adds them. Each test has 25 seconds.
-4. **Compare.** The exit code is `CurlErrorCode` of the thrown exception (0 for a result). The recorded request is compared with `<protocol>`, uploaded bytes with `<upload>`, standard output (`result.Body`, or `CurlException.StandardOutput` for a failure) with `<stdout>`, and output files with `<data>` / `<datacheck>` and any `<file>` sections.
+2. **Serve the reply.** `StubHttpServer.cs` is a from-scratch HTTP/1.x server built on `TcpListener`, so nothing sits between the test and the wire. Like curl's `sws` it records every request byte for byte, picks the reply part from the number at the end of the request path, honours `swsclose` and `swsbounce`, serves `<connectN>` replies to `CONNECT`, and moves to the next reply part for Digest, NTLM, Basic and Negotiate challenges. Like `sws`, it keeps every connection open unless the reply contains `swsclose` or is empty, and it never sends `100 Continue`.
+3. **Run the command.** The test's command line, with curl's `%HOSTIP`, `%HTTPPORT`, `%LOGDIR` and similar variables substituted, is passed to `Curl.ExecuteAsync` from a per-test working directory, with `-q`, `--output`, `--include` and `--trace-ascii` added exactly as `runtests.pl` adds them, and the test's environment variables set. Each test has 25 seconds.
+4. **Compare.** The exit code is `CurlErrorCode` of the thrown exception (0 for a result). The recorded request is compared with `<protocol>`, uploaded bytes with `<upload>`, standard output (`result.Body`, or `CurlException.StandardOutput` for a failure) with `<stdout>`, standard error with `<stderr>` (the harness writes curl's `curl: (N) message` line from `CurlException.CurlErrorMessage`, and curl's warnings from `Warnings`), and output files with `<data>` / `<datacheck>` and any `<file>` sections. The Perl rewrite rules in `<stripfile>` and `<strippart>` are replayed first, and `crlf="headers"` converts exactly the lines `runtests.pl`'s `subnewlines()` converts.
 
 Requests are compared leniently first: request and status lines must match in order, and the other lines must match as a set, because `HttpClient` controls part of the header order. A test that also matches byte for byte, header order included, is counted as **byte-exact**.
 
@@ -79,21 +79,28 @@ To look at a failing test, open `tests/CurlDotNet.CurlSuite/data/testNNNN`, then
 - A failing test that is **not** on the list fails the build. A change that breaks curl compatibility cannot slip in.
 - A listed test that **starts passing** also fails the build, with the message "now passes: remove it from known-failures.txt". The list cannot quietly go stale.
 
-The 13 tests on the list today, grouped by cause:
+The list is empty today. Before a test goes on it, run that test in real curl (see below) and give a reason taken from curl's logs or source.
 
-| Cause | Tests | Why |
-|-------|-------|-----|
-| Harness limitations | 24, 435 | The harness does not capture stderr; one test's expected output needs `runtests.pl`'s Perl-based placeholder rewriting |
-| `HttpClient` / .NET limitations | 46, 209, 213, 259, 265, 1473, 1617, 2051, 5029 | `System.Uri` rejects the host `domain..tld`; `HttpClient` performs NTLM proxy `CONNECT` itself; a `100 Continue` block with proxy Digest; obs-fold header lines; two user `Connection` headers are joined; no connection reuse across `--next` transfers; a TLS handshake timeout is reported as 35 instead of 28 |
-| Deliberate differences | 433, 436 | CurlDotNet never reads `~/.curlrc` implicitly; a library must not change requests because of a file in the user's home directory (use `-K`) |
+## Checking a test against real curl
+
+When CurlDotNet and a test disagree, the answer comes from real curl, not from memory. `tests/CurlDotNet.CurlSuite/reference` has a Docker setup that builds curl from the same commit the tests were taken from and runs curl's own `runtests.pl` and test servers on Linux:
+
+```bash
+docker build -f tests/CurlDotNet.CurlSuite/reference/Dockerfile.curl \
+  -t curldotnet/curl-reference:178e5077 tests/CurlDotNet.CurlSuite/reference
+docker run --rm -v "$PWD/out":/out curldotnet/curl-reference:178e5077 1473 2051
+```
+
+Each test's log folder holds the exact request bytes curl sent, its output, standard error, a timed trace and the test server's own log. The same folder runs CurlDotNet's replay and unit tests on Linux .NET 10. Its [README](https://github.com/jacob-mellor/curl-dot-net/blob/master/tests/CurlDotNet.CurlSuite/reference/README.md) has the commands.
+
+This is how the last 49 failures were settled. All 13 tests on the list in v9.8.2 pass in real curl on Linux, so each was a CurlDotNet or harness gap. The stricter harness then exposed 36 more, and all 49 now pass.
 
 ## The unit tests
 
-The suite above checks behaviour against curl. The regular unit tests in `tests/CurlDotNet.Tests` (1788 test cases) check CurlDotNet's own API: parsing, the request builder, results, exceptions, and parity tests (`Parity*.cs`) for each curl behaviour that was ported. The offline categories run in a few seconds against an in-process HTTP server; this is the filter CI uses (other categories need the network or a real `curl` binary):
+The suite above checks behaviour against curl. The unit tests in `tests/CurlDotNet.Tests` (2073 test cases) check CurlDotNet's own API: parsing, the request builder, results, exceptions, and parity tests (`Parity*.cs`) for each curl behaviour that was ported. Every one runs offline against in-process servers, so CI and `scripts/test-all-locally.csx` run the whole project with no category filter:
 
 ```bash
-dotnet test tests/CurlDotNet.Tests/CurlDotNet.Tests.csproj -c Release --framework net10.0 \
-  --filter "Category=Synthetic|Category=Unit|Category=Smoke|Category=DevOps"
+dotnet test tests/CurlDotNet.Tests/CurlDotNet.Tests.csproj -c Release --framework net10.0
 ```
 
 ## What the suite does not cover

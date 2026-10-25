@@ -1179,12 +1179,18 @@ namespace CurlDotNet.Core
         public CurlFlavor Flavor { get; set; }
 
         /// <summary>
-        /// curl's <c>-#</c>/<c>--progress-bar</c> (draw a bar instead of the meter); recorded for compatibility only,
-        /// because CurlDotNet never draws progress on the terminal.
+        /// curl's <c>-#</c>/<c>--progress-bar</c>: draws curl's <c>#</c> progress bar for HTTP downloads on
+        /// <see cref="StderrFile"/> (<c>--stderr FILE</c>) or, without one, standard error.
         /// </summary>
-        /// <value>True when the option was given. Default: false. Not acted on.</value>
+        /// <value>True when the option was given. Default: false.</value>
         /// <remarks>
-        /// <para>Use <see cref="ProgressHandler"/> (or <c>CurlSettings.WithProgress</c>) to show your own progress.</para>
+        /// <para>The bar is curl's own (src/tool_cb_prg.c): a carriage return, <c>#</c> marks across the terminal width
+        /// (<c>COLUMNS</c>, else the console width, else 79 columns) minus 7, and the percentage such as <c>100.0%</c>,
+        /// redrawn at most ten times a second and ended with a newline; a download of unknown size shows curl's moving
+        /// <c>-=O=-</c> animation. <see cref="Silent"/> (<c>-s</c>) turns it off, as in curl. CurlDotNet never draws curl's
+        /// default progress meter.</para>
+        /// <para>Example: <c>await Curl.ExecuteAsync("curl -# -o big.iso https://example.com/big.iso");</c>. In an
+        /// application, prefer <see cref="ProgressHandler"/> (or <c>CurlSettings.WithProgress</c>) to show your own progress.</para>
         /// </remarks>
         /// <seealso cref="ProgressHandler"/>
         public bool ProgressBar { get; set; }
@@ -1554,6 +1560,9 @@ namespace CurlDotNet.Core
             clone.RawHeaderLines = RawHeaderLines == null
                 ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 : new Dictionary<string, string>(RawHeaderLines, RawHeaderLines.Comparer);
+            clone.RepeatedHeaderValues = RepeatedHeaderValues == null
+                ? new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
+                : RepeatedHeaderValues.ToDictionary(e => e.Key, e => new List<string>(e.Value), StringComparer.OrdinalIgnoreCase);
             clone.ConnectTo = ConnectTo == null ? new List<string>() : new List<string>(ConnectTo);
             clone.UrlQueryParts = new List<string>(UrlQueryParts);
             clone.RequestKinds = new List<KeyValuePair<RequestKind, string>>(RequestKinds);
@@ -1561,6 +1570,8 @@ namespace CurlDotNet.Core
             clone.Session = null; // the cookie store of the command line the original ran in
             clone.TlsVerification = null; // what the original's last certificate check saw
             clone.RetryNumber = 0;
+            clone.Messages = null; // the messages belong to the command line the original was parsed from
+            clone.SetupMessagesAdded = false;
             clone.DeferWriteOut = false;
             return clone;
         }
@@ -1846,6 +1857,13 @@ namespace CurlDotNet.Core
         /// </summary>
         internal Dictionary<string, string> RawHeaderLines { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// Headers given with more than one <c>-H</c> (<c>-H "Connection: this" -H "Connection: that"</c>): each
+        /// value in order, keyed by name. <see cref="Headers"/> holds them joined with ", "; curl sends one line
+        /// per <c>-H</c>, so the request-head rewrite (RequestRewrite) writes them back as separate lines.
+        /// </summary>
+        internal Dictionary<string, List<string>> RepeatedHeaderValues { get; set; } = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
         /// <summary><c>--request-target</c>: the target written on the request line instead of the URL's path (for example <c>*</c>).</summary>
         internal string? RequestTarget { get; set; }
 
@@ -1911,6 +1929,15 @@ namespace CurlDotNet.Core
 
         /// <summary>The 0-based <c>--retry</c> attempt being run (<c>%{num_retries}</c>); 0 outside a retry loop.</summary>
         internal int RetryNumber { get; set; }
+
+        /// <summary>
+        /// The curl warnings and notes of the command line these options came from (shared by all its transfers); null for
+        /// options built in code. Filled by the parser, written and copied onto the result by the engine.
+        /// </summary>
+        internal ToolMessages? Messages { get; set; }
+
+        /// <summary>True once this transfer's set-up notes were recorded, so a second run does not repeat them.</summary>
+        internal bool SetupMessagesAdded { get; set; }
 
         /// <summary>
         /// Set by the <c>--retry</c> loop while another attempt may follow: the attempt keeps its <c>-w</c> text

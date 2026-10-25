@@ -110,8 +110,10 @@ namespace CurlDotNet.Core
         }
 
         /// <summary>
-        /// curl's Transfer-Encoding rules: chunked must be the last coding, only chunked and identity
-        /// are accepted unless --tr-encoding allows gzip/deflate, and at most five codings (exit 61).
+        /// curl's Transfer-Encoding rules (lib/content_encoding.c, <c>Curl_build_unencoding_stack()</c>, run once per
+        /// Transfer-Encoding header line): without <c>--tr-encoding</c> only chunked and identity are accepted; chunked must be
+        /// the last coding; at most five decoders are stacked (exit 61). The exception's
+        /// <see cref="CurlException.CurlErrorMessage"/> is curl's own text.
         /// </summary>
         internal static CurlException? ValidateTransferEncoding(RawResponseHead head, CurlOptions options)
         {
@@ -121,39 +123,95 @@ namespace CurlDotNet.Core
                 return null;
             }
 
+            const int MaxEncodeStack = 5; // curl's MAX_ENCODE_STACK
             var raw = string.Join(", ", values);
-            var tokens = raw.Split(',').Select(t => t.Trim().ToLowerInvariant()).Where(t => t.Length > 0).ToList();
             var command = options.OriginalCommand;
-            for (var i = 0; i < tokens.Count; i++)
+            var stacked = 0;
+            var chunkedStacked = false;
+            string? unknown = null;
+            foreach (var value in values)
             {
-                var token = tokens[i];
-                if (token == "chunked")
+                var hasChunked = false; // per header line, like curl's local has_chunked
+                foreach (var part in value.Split(','))
                 {
-                    if (i != tokens.Count - 1)
+                    // curl skips leading blanks and stops the name at its last character above ' '
+                    var token = part.TrimStart(' ', '\t');
+                    var end = token.Length;
+                    while (end > 0 && token[end - 1] <= ' ')
                     {
-                        return new CurlBadContentEncodingException(raw, "chunked must be the last transfer-coding", command);
+                        end--;
                     }
-                    continue;
+
+                    token = token.Substring(0, end);
+                    if (token.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    var isChunked = token.Equals("chunked", StringComparison.OrdinalIgnoreCase);
+                    if (!options.TransferEncoding && !isChunked)
+                    {
+                        if (hasChunked)
+                        {
+                            return TransferEncodingError(raw, $"A Transfer-Encoding ({token}) was listed after chunked",
+                                $"\"{token}\" is listed after chunked, which must be the last transfer-coding", command);
+                        }
+
+                        if (token.Equals("identity", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        var known = IsTransferDecoder(token);
+                        return TransferEncodingError(raw, $"Unsolicited Transfer-Encoding ({token}) found",
+                            known
+                                ? $"the server used transfer-coding \"{token}\" without being asked (add --tr-encoding to accept it)"
+                                : $"unsupported transfer-coding \"{token}\"", command);
+                    }
+
+                    if (stacked >= MaxEncodeStack)
+                    {
+                        return TransferEncodingError(raw, $"Reject response exceeding limit of {MaxEncodeStack} transfer encodings",
+                            $"more than {MaxEncodeStack} transfer-codings were applied, curl's limit", command);
+                    }
+
+                    if (!isChunked && chunkedStacked)
+                    {
+                        return TransferEncodingError(raw, "Reject response due to 'chunked' not being the last Transfer-Encoding",
+                            "chunked must be the last transfer-coding", command);
+                    }
+
+                    if (!(isChunked && chunkedStacked))
+                    {
+                        // a repeated chunked is ignored; an unknown coding fails once the body arrives (curl's error_writer)
+                        stacked++;
+                        if (!IsTransferDecoder(token) && unknown == null)
+                        {
+                            unknown = token;
+                        }
+                    }
+
+                    if (isChunked)
+                    {
+                        hasChunked = true;
+                        chunkedStacked = true;
+                    }
                 }
-                if (token == "identity")
-                {
-                    continue;
-                }
-                if ((token == "gzip" || token == "x-gzip" || token == "deflate") && options.TransferEncoding)
-                {
-                    continue;
-                }
-                return new CurlBadContentEncodingException(raw, options.TransferEncoding || (token != "gzip" && token != "deflate")
-                    ? $"unsupported transfer-coding \"{token}\""
-                    : $"the server used transfer-coding \"{token}\" without being asked (add --tr-encoding to accept it)", command);
             }
 
-            if (tokens.Count(t => t != "chunked" && t != "identity") > 5)
-            {
-                return new CurlBadContentEncodingException(raw, "more than five transfer-codings were applied", command);
-            }
-            return null;
+            // curl's error_writer fails with this text once body bytes arrive
+            return unknown == null ? null : TransferEncodingError(raw, "Unrecognized content encoding type",
+                $"unsupported transfer-coding \"{unknown}\"", command);
         }
+
+        /// <summary>The transfer codings CurlDotNet decodes: chunked, identity, gzip (x-gzip) and deflate.</summary>
+        private static bool IsTransferDecoder(string token) =>
+            token.Equals("chunked", StringComparison.OrdinalIgnoreCase) || token.Equals("identity", StringComparison.OrdinalIgnoreCase) ||
+            token.Equals("gzip", StringComparison.OrdinalIgnoreCase) || token.Equals("x-gzip", StringComparison.OrdinalIgnoreCase) ||
+            token.Equals("deflate", StringComparison.OrdinalIgnoreCase);
+
+        private static CurlException TransferEncodingError(string raw, string curlText, string detail, string? command) =>
+            new CurlBadContentEncodingException(raw, detail, command).WithCurlErrorMessage(curlText);
 
         private static string StatusLineOf(string text)
         {
@@ -298,6 +356,19 @@ namespace CurlDotNet.Core
             if (clientSide != null)
             {
                 return clientSide;
+            }
+
+            var connection = CurlTransport.LastConnectionOf(transfer.CurrentRequest);
+            if (connection != null && connection.HandshakeTimedOut)
+            {
+                // curl: "SSL connection timeout" (28) - the connect timeout covers the TLS handshake too
+                var seconds = transfer.HopOptions.ConnectTimeout ?? 0;
+                var shown = seconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return new CurlOperationTimeoutException(seconds, CurlException.Compose(
+                    $"SSL connection timeout: the TLS handshake with {uri.Host} port {uri.Port} did not finish within {(long)(seconds * 1000)} milliseconds " +
+                    $"(--connect-timeout {shown} covers the TCP connect and the TLS handshake); the TCP connection was made, but the server never completed TLS",
+                    "Check that this port speaks TLS (an https:// URL on a plain-HTTP port waits like this), or raise --connect-timeout if the server is just slow to answer.",
+                    DocLinks.Timeout), command);
             }
 
             for (var e = ex; e != null; e = e.InnerException)

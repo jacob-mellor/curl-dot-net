@@ -43,8 +43,15 @@ public static class CurlSuiteRunner
 
     private static readonly string[] UnsupportedSections =
     {
-        "tool", "stdin", "servercmd", "precheck", "postcheck", "strippart", "killserver", "connect", "proxy", "socks", "dns",
+        "tool", "stdin", "servercmd", "precheck", "postcheck", "killserver", "connect", "proxy", "socks", "dns",
     };
+
+    /// <summary>
+    /// Like runtests.pl (runner.pm) every command gets <c>--trace-ascii log/traceN --trace-time</c>: besides writing the
+    /// trace this turns on curl's notes (<c>notef()</c> needs a trace type), such as "Read config file from".
+    /// Set CURL_SUITE_NO_TRACE=1 to leave it out, e.g. to see whether tracing changes what is sent (test 164).
+    /// </summary>
+    public static bool AddTraceAscii { get; set; } = Environment.GetEnvironmentVariable("CURL_SUITE_NO_TRACE") != "1";
 
     public static async Task<SuiteOutcome> RunAsync(string path)
     {
@@ -71,12 +78,27 @@ public static class CurlSuiteRunner
         var features = new HashSet<string>(Features, StringComparer.OrdinalIgnoreCase);
         var pre = new CurlTestPreprocessor(variables, features);
 
+        // <stripfile>, <stripfile1..4> and <strippart>: perl run per output line by runtests.pl
+        var stripRules = new Dictionary<string, List<PerlLineRule>>(StringComparer.Ordinal);
+        foreach (var section in test.All("verify").Where(s => s.Name == "strippart" || Regex.IsMatch(s.Name, @"^stripfile\d?$")))
+        {
+            var lines = pre.Process(section.RawText).Split('\n');
+            var rules = PerlLineRule.ParseAll(lines, out var ruleError);
+            if (rules == null)
+            {
+                return new SuiteOutcome { Number = test.Number, Name = name, Status = SuiteStatus.Skip, Reason = $"<{section.Name}> perl the harness cannot replay: {ruleError}" };
+            }
+            stripRules[section.Name] = rules;
+        }
+        List<PerlLineRule> Rules(string sectionName) => stripRules.TryGetValue(sectionName, out var r) ? r : new List<PerlLineRule>();
+
         var replies = new Dictionary<int, string>();
+        var connectReplies = new Dictionary<int, string>();
         foreach (var section in test.All("reply"))
         {
-            var m = Regex.Match(section.Name, @"^data(\d*)$");
+            var m = Regex.Match(section.Name, @"^(data|connect)(\d*)$");
             if (!m.Success) continue;
-            var part = m.Groups[1].Value.Length == 0 ? 0 : int.Parse(m.Groups[1].Value);
+            var part = m.Groups[2].Value.Length == 0 ? 0 : int.Parse(m.Groups[2].Value);
             var text = pre.ProcessSection(section);
             if (section.Attr("crlf") == null)
             {
@@ -84,9 +106,10 @@ public static class CurlSuiteRunner
                 // normalise the header block (never the body) to CRLF.
                 text = CurlTestPreprocessor.ToCrlf(text, headersOnly: true);
             }
-            replies[part] = text;
+            (m.Groups[1].Value == "connect" ? connectReplies : replies)[part] = text;
         }
         server.SetReplies(replies);
+        server.SetConnectReplies(connectReplies);
 
         // Input files the test needs (relative names are relative to %PWD, i.e. the run root).
         foreach (var section in test.All("client").Where(s => Regex.IsMatch(s.Name, @"^file\d?$")))
@@ -99,12 +122,23 @@ public static class CurlSuiteRunner
             File.WriteAllText(fileName, content, Encoding.Latin1);
         }
 
+        // runner.pm: "NAME=value" sets, a bare "NAME" unsets, "#" lines are comments; the old values come back afterwards.
+        // (.NET cannot hold an empty variable: "NAME=" unsets it, which is how CurlDotNet reads an empty one anyway.)
+        var savedEnvironment = new Dictionary<string, string?>(StringComparer.Ordinal);
+        // runner.pm: $ENV{'COLUMNS'} = 79, the width curl's messages wrap at (a test's <setenv> may change it)
+        savedEnvironment["COLUMNS"] = Environment.GetEnvironmentVariable("COLUMNS");
+        Environment.SetEnvironmentVariable("COLUMNS", "79");
         foreach (var section in test.All("client").Where(s => s.Name == "setenv"))
         {
-            foreach (var line in section.Lines)
+            foreach (var raw in section.Lines)
             {
+                var line = raw.Trim();
+                if (line.Length == 0 || line[0] == '#') continue;
                 var eq = line.IndexOf('=');
-                if (eq > 0) Environment.SetEnvironmentVariable(line.Substring(0, eq), pre.Process(line.Substring(eq + 1)));
+                var variable = eq < 0 ? line : line.Substring(0, eq);
+                if (variable.Length == 0) continue;
+                if (!savedEnvironment.ContainsKey(variable)) savedEnvironment[variable] = Environment.GetEnvironmentVariable(variable);
+                Environment.SetEnvironmentVariable(variable, eq < 0 ? null : pre.Process(line.Substring(eq + 1)));
             }
         }
 
@@ -112,6 +146,8 @@ public static class CurlSuiteRunner
         var option = commandSection?.Attr("option") ?? string.Empty;
         var userCommand = string.Join(" ", (commandSection?.Lines ?? new List<string>()).Select(l => l.Trim())).Trim();
         userCommand = pre.Process(userCommand).Replace("\n", " ").Trim();
+        // the test file is read a byte per char; the shell hands curl bytes, and a .NET caller holds the decoded text
+        userCommand = DecodeUtf8(userCommand);
 
         var outFile = Path.Combine(logDir, $"curl{test.Number}.out");
         var hasStdoutSection = test.Has("verify", "stdout");
@@ -130,19 +166,34 @@ public static class CurlSuiteRunner
             userCommand = userCommand.Substring(0, redirect.Index).TrimEnd();
         }
 
+        // runner.pm: "curl -q" (unless option="no-q") then the output, include and trace options, then the test's command
+        var readCurlrc = option.Contains("no-q");
         var prefix = new StringBuilder("curl");
+        if (!readCurlrc) prefix.Append(" -q");
         if (addOutput) prefix.Append(" --output '").Append(outFile.Replace("'", "'\\''")).Append('\'');
         if (addInclude) prefix.Append(" --include");
+        if (AddTraceAscii) prefix.Append(" --trace-ascii log/trace").Append(test.Number).Append(" --trace-time");
         var command = prefix + " " + userCommand;
 
         var previousCwd = Directory.GetCurrentDirectory();
         int exitCode;
         string stdout = string.Empty;
         string? failure = null;
+        CurlException? curlFailure = null;
+        IReadOnlyList<string> warningsOnSuccess = Array.Empty<string>();
+        var columns = 79; // COLUMNS while the command ran (the environment is restored before stderr is assembled)
+        (bool Show, string? StderrFile) errorOutput = (true, null);
+        var stderrCapture = new StringWriter();
+        var previousStderr = Console.Error;
         var sw = Stopwatch.StartNew();
         try
         {
             Directory.SetCurrentDirectory(root);
+            errorOutput = ErrorOutput(command); // parsed before the opt-in below, so it cannot print a note
+            // the curl tool always reads .curlrc; CurlDotNet only when asked (runtests' -q switches it off again)
+            Curl.DefaultReadConfigFile = true;
+            Console.SetError(stderrCapture);
+            columns = int.TryParse(Environment.GetEnvironmentVariable("COLUMNS"), out var c) && c > 20 ? c : 79;
             var task = Curl.ExecuteAsync(command);
             var completed = await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(25)));
             if (completed != task)
@@ -150,12 +201,14 @@ public static class CurlSuiteRunner
                 return new SuiteOutcome { Number = test.Number, Name = name, Status = SuiteStatus.Fail, Reason = "timed out after 25s", Command = command };
             }
             var result = await task;
+            warningsOnSuccess = result.Warnings;
             exitCode = 0;
             stdout = result.Body ?? string.Empty;
         }
         catch (CurlException ex)
         {
             exitCode = ex.CurlErrorCode ?? 1;
+            curlFailure = ex;
             // what curl would already have written to stdout before failing (-i headers, partial body, -w).
             // The Stdout key already includes the -w text; WriteOut alone is the fallback for older throw sites.
             stdout = ex.Data["CurlDotNet.Stdout"] as string ?? ex.Data["CurlDotNet.WriteOut"] as string ?? string.Empty;
@@ -167,19 +220,70 @@ public static class CurlSuiteRunner
         }
         finally
         {
+            Console.SetError(previousStderr);
+            Curl.DefaultReadConfigFile = false;
             Directory.SetCurrentDirectory(previousCwd);
-            foreach (var section in test.All("client").Where(s => s.Name == "setenv"))
+            foreach (var kv in savedEnvironment)
             {
-                foreach (var line in section.Lines)
-                {
-                    var eq = line.IndexOf('=');
-                    if (eq > 0) Environment.SetEnvironmentVariable(line.Substring(0, eq), null);
-                }
+                Environment.SetEnvironmentVariable(kv.Key, kv.Value);
             }
         }
 
         // Give the server a moment to log the last request.
         await Task.Delay(30);
+
+        // runner.pm sends curl's stderr to log/stderrN. The library's own stderr text (notes, -w %{stderr}) was captured
+        // above; the final "curl: (N) message" line is the curl tool's, so the harness writes it the way
+        // tool_operate.c's post_check_result() does: unless -s is given without -S.
+        var stderr = stderrCapture.ToString();
+        var (showErrors, stderrFile) = errorOutput;
+        void WriteToolStderr(string text)
+        {
+            if (stderrFile != null)
+            {
+                // --stderr FILE: curl's tool_stderr is that file
+                File.AppendAllText(Path.IsPathRooted(stderrFile) ? stderrFile : Path.Combine(root, stderrFile), text);
+            }
+            else
+            {
+                stderr += text;
+            }
+        }
+
+        // curl's "Warning: ..." lines (tool_msgs.c warnf()). The library writes them only to a --stderr file and keeps them
+        // on the result; the curl tool prints them, wrapped at COLUMNS. Notes ("Note: ...") the library already wrote.
+        if (stderrFile == null)
+        {
+            var warnings = (curlFailure?.Warnings ?? warningsOnSuccess)
+                .Where(w => w.StartsWith(WarningPrefix, StringComparison.Ordinal))
+                .Select(w => WrapLikeCurl(WarningPrefix, w.Substring(WarningPrefix.Length), columns));
+            stderr = string.Concat(warnings) + stderr;
+        }
+
+        if (curlFailure != null)
+        {
+            if (curlFailure.IsUsageError)
+            {
+                // tool_getparam.c parse_args(): errorf() lines (muted by -s unless -S), then helpf() "option X: reason"
+                // and its hint, which are always printed
+                var lines = curlFailure.CurlErrorMessage.Split('\n');
+                var text = new StringBuilder();
+                for (var i = 0; i < lines.Length - 1; i++)
+                {
+                    if (showErrors) text.Append(WrapLikeCurl("curl: ", lines[i], columns));
+                }
+                text.Append("curl: ").Append(lines[^1]).Append('\n');
+                text.Append("curl: try 'curl --help' for more information\n");
+                WriteToolStderr(text.ToString());
+            }
+            else if (showErrors)
+            {
+                WriteToolStderr($"curl: ({exitCode}) {curlFailure.CurlErrorMessage}\n");
+            }
+        }
+        File.WriteAllBytes(Path.Combine(logDir, $"stderr{test.Number}"), Encoding.UTF8.GetBytes(stderr));
+        // compare in the same Latin-1 view the expected sections use (a char is a byte)
+        stderr = Encoding.Latin1.GetString(Encoding.UTF8.GetBytes(stderr));
 
         if (redirectFile != null)
         {
@@ -214,7 +318,7 @@ public static class CurlSuiteRunner
         {
             var expected = pre.ProcessSection(protocol);
             var actual = string.Concat(server.Requests.Select(r => Encoding.Latin1.GetString(r)));
-            var cmp = HttpDumpComparer.Compare(expected, actual, strips);
+            var cmp = HttpDumpComparer.Compare(expected, actual, strips, Rules("strippart"));
             if (!cmp.Match) problems.Add("protocol: " + cmp.Message);
             strict &= cmp.Strict;
         }
@@ -224,7 +328,7 @@ public static class CurlSuiteRunner
         if (upload != null)
         {
             var expected = pre.ProcessSection(upload);
-            var actual = string.Concat(server.Bodies.Select(b => Encoding.Latin1.GetString(b)));
+            var actual = PerlLineRule.ApplyStripPart(string.Concat(server.Bodies.Select(b => Encoding.Latin1.GetString(b))), Rules("strippart"));
             if (Normalize(expected) != Normalize(actual))
             {
                 problems.Add("upload: " + HttpDumpComparer.Describe(expected, actual));
@@ -238,8 +342,25 @@ public static class CurlSuiteRunner
         {
             var expected = pre.ProcessSection(stdoutSection);
             if (expected.Trim() == "%EMPTY") expected = string.Empty;
-            var cmp = HttpDumpComparer.Compare(expected, stdout, strips);
+            var cmp = HttpDumpComparer.Compare(expected, PerlLineRule.ApplyStripFile(stdout, Rules("stripfile")), strips);
             if (!cmp.Match) problems.Add("stdout: " + cmp.Message);
+            strict &= cmp.Strict;
+        }
+
+        // stderr (runtests.pl applies <stripfile> to it as well)
+        var stderrSection = test.Get("verify", "stderr");
+        if (stderrSection != null)
+        {
+            var expected = pre.ProcessSection(stderrSection);
+            var actual = PerlLineRule.ApplyStripFile(stderr, Rules("stripfile"));
+            if (stderrSection.HasAttr("mode", "warn"))
+            {
+                // runtests: drop "Warning: " and join the wrapped lines, so terminal width does not matter
+                expected = UnwrapWarnings(expected);
+                actual = UnwrapWarnings(actual);
+            }
+            var cmp = HttpDumpComparer.Compare(expected, actual, Array.Empty<string>());
+            if (!cmp.Match) problems.Add("stderr: " + cmp.Message);
             strict &= cmp.Strict;
         }
 
@@ -270,10 +391,8 @@ public static class CurlSuiteRunner
         }
 
         // verify files
-        var hasStripFile = test.All("verify").Any(s => s.Name.StartsWith("stripfile", StringComparison.Ordinal));
         foreach (var section in test.All("verify").Where(s => Regex.IsMatch(s.Name, @"^file\d?$")))
         {
-            if (hasStripFile) break; // perl post-processing we cannot replay
             var fileName = pre.Process(section.Attr("name") ?? string.Empty).Trim();
             if (fileName.Length == 0) continue;
             fileName = Path.IsPathRooted(fileName) ? fileName : Path.Combine(root, fileName);
@@ -284,7 +403,8 @@ public static class CurlSuiteRunner
                 problems.Add($"file {Path.GetFileName(fileName)}: not written");
                 continue;
             }
-            var actual = File.ReadAllText(fileName, Encoding.Latin1);
+            // <file> gets <stripfile>, <fileN> gets <stripfileN>
+            var actual = PerlLineRule.ApplyStripFile(File.ReadAllText(fileName, Encoding.Latin1), Rules("strip" + section.Name));
             var fileCmp = HttpDumpComparer.Compare(expected, actual, Array.Empty<string>());
             if (!fileCmp.Match)
             {
@@ -314,6 +434,32 @@ public static class CurlSuiteRunner
             Strict = status == SuiteStatus.Pass && strict,
             Command = command,
         };
+    }
+
+    /// <summary>
+    /// Whether curl prints its "curl: (N) ..." line for this command (not with <c>-s</c> unless <c>-S</c> is given, both
+    /// global in curl) and the <c>--stderr</c> file it would go to.
+    /// </summary>
+    private static (bool Show, string? StderrFile) ErrorOutput(string command)
+    {
+        try
+        {
+            var options = Curl.Validate(command).ParsedOptions;
+            if (options == null)
+            {
+                return (true, null);
+            }
+
+            var transfers = new[] { options }.Concat(options.AdditionalTransfers).ToList();
+            var silent = transfers.Any(t => t.Silent);
+            var showError = transfers.Any(t => t.ShowError);
+            var file = transfers.Select(t => t.StderrFile).LastOrDefault(f => !string.IsNullOrEmpty(f) && f != "-");
+            return (!silent || showError, file);
+        }
+        catch (Exception)
+        {
+            return (true, null); // a command curl rejects while parsing: curl still reports the error
+        }
     }
 
     private static string? SkipReason(CurlTestFile test)
@@ -418,6 +564,69 @@ public static class CurlSuiteRunner
 
     private static string Normalize(string s) => s.Replace("\r\n", "\n");
 
+    private const string WarningPrefix = "Warning: ";
+
+    /// <summary>The command text as UTF-8 when its bytes (one per char) are valid UTF-8, else unchanged.</summary>
+    private static string DecodeUtf8(string latin1)
+    {
+        if (latin1.All(c => c < 0x80)) return latin1;
+        try
+        {
+            return new UTF8Encoding(false, throwOnInvalidBytes: true).GetString(Encoding.Latin1.GetBytes(latin1));
+        }
+        catch (DecoderFallbackException)
+        {
+            return latin1;
+        }
+    }
+
+    /// <summary>
+    /// curl's voutf() (src/tool_msgs.c): lines of at most COLUMNS - prefix bytes, each with the prefix, cut after the last
+    /// blank that fits (or at the width when there is none). COLUMNS is 79 unless a test's &lt;setenv&gt; changes it.
+    /// </summary>
+    private static string WrapLikeCurl(string prefix, string message, int columns)
+    {
+        var bytes = Encoding.UTF8.GetBytes(message);
+        var width = columns > prefix.Length ? columns - prefix.Length : int.MaxValue;
+        var output = new List<byte>();
+        var prefixBytes = Encoding.UTF8.GetBytes(prefix);
+        var pos = 0;
+        var len = bytes.Length;
+        while (len > 0)
+        {
+            output.AddRange(prefixBytes);
+            if (len > width)
+            {
+                var cut = width - 1;
+                while (cut > 0 && bytes[pos + cut] != ' ' && bytes[pos + cut] != '\t') cut--;
+                if (cut == 0) cut = width - 1;
+                output.AddRange(bytes.Skip(pos).Take(cut + 1));
+                output.Add((byte)'\n');
+                pos += cut + 1;
+                len -= cut + 1;
+            }
+            else
+            {
+                output.AddRange(bytes.Skip(pos).Take(len));
+                output.Add((byte)'\n');
+                len = 0;
+            }
+        }
+        return Encoding.UTF8.GetString(output.ToArray());
+    }
+
+    /// <summary>runtests.pl's <c>mode="warn"</c>: per line, drop the first "Warning: ", one CR and turn the newline into a space.</summary>
+    private static string UnwrapWarnings(string text) =>
+        string.Concat(PerlLineRule.SplitKeepingNewlines(text).Select(l =>
+        {
+            var w = l.IndexOf("Warning: ", StringComparison.Ordinal);
+            if (w >= 0) l = l.Remove(w, "Warning: ".Length);
+            var cr = l.IndexOf('\r');
+            if (cr >= 0) l = l.Remove(cr, 1);
+            var nl = l.IndexOf('\n');
+            return nl >= 0 ? l.Remove(nl, 1).Insert(nl, " ") : l;
+        }));
+
     private static string FirstLine(string s)
     {
         var nl = s.IndexOf('\n');
@@ -439,10 +648,23 @@ public static class HttpDumpComparer
 
     private static readonly Regex Alternatives = new(@"%alternatives\[([^,\]]*),([^\]]*)\]", RegexOptions.Compiled);
 
-    public static CompareResult Compare(string expected, string actual, IReadOnlyList<string> strips)
+    /// <summary>
+    /// Compares after removing <paramref name="strips"/> lines from both sides; <paramref name="stripPart"/> (the test's
+    /// <c>&lt;strippart&gt;</c>) then rewrites the actual lines in place, in runtests.pl's order.
+    /// </summary>
+    public static CompareResult Compare(string expected, string actual, IReadOnlyList<string> strips, IReadOnlyList<PerlLineRule>? stripPart = null)
     {
         var expectedLines = Strip(Lines(expected), strips);
-        var actualLines = Strip(Lines(actual), strips);
+        List<string> actualLines;
+        if (stripPart != null && stripPart.Count > 0)
+        {
+            actual = PerlLineRule.ApplyStripPart(StripKeepingNewlines(actual, strips), stripPart);
+            actualLines = Lines(actual);
+        }
+        else
+        {
+            actualLines = Strip(Lines(actual), strips);
+        }
 
         // %days[N] expands to %alternatives[a,b]: pick whichever alternative the actual output used
         if (expectedLines.Any(l => l.Contains("%alternatives[", StringComparison.Ordinal)))
@@ -506,6 +728,15 @@ public static class HttpDumpComparer
         var lines = normalized.Split('\n').ToList();
         if (lines.Count > 0 && lines[^1].Length == 0) lines.RemoveAt(lines.Count - 1);
         return lines;
+    }
+
+    /// <summary><see cref="Strip"/> on raw text: the same lines go, the rest keep their exact line endings.</summary>
+    private static string StripKeepingNewlines(string text, IReadOnlyList<string> strips)
+    {
+        if (strips.Count == 0) return text;
+        var kept = PerlLineRule.SplitKeepingNewlines(text)
+            .Where(l => Strip(new List<string> { l.EndsWith("\r\n", StringComparison.Ordinal) ? l[..^2] : l.TrimEnd('\n') }, strips).Count == 1);
+        return string.Concat(kept);
     }
 
     private static List<string> Strip(List<string> lines, IReadOnlyList<string> strips)

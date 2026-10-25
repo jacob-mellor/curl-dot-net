@@ -224,6 +224,31 @@ namespace CurlDotNet
         /// <seealso cref="PowerShell"/>
         /// <seealso cref="Curl.ToPowershellCode(string)">The opposite direction: curl to Invoke-RestMethod</seealso>
         /// <seealso cref="Curl.ExecuteAsync(string, CurlFlavor)"/>
-        InvokeWebRequest = 4
+        InvokeWebRequest = 4,
+        /// <summary>
+        /// The shell of the operating system the program is running on: <see cref="WindowsCmd"/> on Windows,
+        /// <see cref="Posix"/> everywhere else (Linux, macOS, containers).
+        /// </summary>
+        /// <remarks>
+        /// <para>Use it when the commands come from people at a terminal on the same machine, for example a
+        /// command-line tool or an admin page that accepts a pasted curl command, and you want exactly the
+        /// rules that machine's shell would apply, with no detection and no permissive reading.</para>
+        /// <para><b>Windows</b> uses the cmd.exe rules because that is the shell <c>curl.exe</c>'s own
+        /// documentation, batch files and browsers' "Copy as cURL (cmd)" target. Commands typed into
+        /// PowerShell follow different rules; pass <see cref="PowerShell"/> for those.</para>
+        /// <para><b>Linux, macOS and everything else</b> use the bash rules described under
+        /// <see cref="Posix"/>.</para>
+        /// <para>The operating system is checked when the command is parsed, so <see cref="Core.CurlOptions.Flavor"/>
+        /// reports <see cref="WindowsCmd"/> or <see cref="Posix"/>, never <c>Native</c>. Unlike <see cref="Auto"/>,
+        /// nothing in the text changes the choice: a PowerShell backtick continuation on Linux is just a backtick.</para>
+        /// <para>Example: <c>Curl.DefaultFlavor = CurlFlavor.Native;</c> makes
+        /// <c>curl -d '{"a":1}' https://api.example.com</c> send <c>{"a":1}</c> on Linux and macOS, and the
+        /// text <c>'{a:1}'</c> on Windows (cmd.exe keeps the single quotes and removes the double quotes), exactly as
+        /// running it in that machine's terminal would.</para>
+        /// </remarks>
+        /// <seealso cref="Auto"/>
+        /// <seealso cref="Curl.DefaultFlavor"/>
+        /// <seealso href="https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md">curl flavors guide</seealso>
+        Native = 5
     }
 }

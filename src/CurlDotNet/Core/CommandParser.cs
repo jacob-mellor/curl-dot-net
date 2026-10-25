@@ -1082,11 +1082,26 @@ namespace CurlDotNet.Core
         /// </summary>
         private void ProcessArguments(IList<string> args, ParseContext context)
         {
+            // The command line itself (not a -K file's line): curl reads .curlrc first, when the application opted in
+            var defaultConfigFile = context.ConfigDepth == 0 ? IncludeDefaultConfigFile(args, context) : null;
+
+            ProcessArgumentVector(args, context);
+
+            if (defaultConfigFile != null)
+            {
+                WriteDefaultConfigNote(defaultConfigFile, context);
+            }
+        }
+
+        /// <summary>Processes options and URLs in order; <c>-K</c> files re-enter here one level deeper.</summary>
+        private void ProcessArgumentVector(IList<string> args, ParseContext context)
+        {
             var stillFlags = true;
 
             for (var i = 0; i < args.Count; i++)
             {
                 var arg = args[i];
+                context.CurrentWord = arg;
 
                 if (stillFlags && arg == "--")
                 {
@@ -1096,6 +1111,12 @@ namespace CurlDotNet.Core
 
                 if (!stillFlags || arg.Length < 2 || arg[0] != '-')
                 {
+                    // curl's parse_args() passes a bare word to getparameter("--url"), which checks it like any argument
+                    if (context.ConfigDepth == 0)
+                    {
+                        WarnLeadingUnicode(context, "url", arg);
+                    }
+
                     AddUrl(context, arg);
                     continue;
                 }
@@ -1130,7 +1151,7 @@ namespace CurlDotNet.Core
                         }
                         else
                         {
-                            throw MissingOptionValue(typed, context.OriginalCommand);
+                            throw MissingOptionValue(typed, arg, context);
                         }
                     }
 
@@ -1166,7 +1187,7 @@ namespace CurlDotNet.Core
                     }
                     else
                     {
-                        throw MissingOptionValue("-" + letter, context.OriginalCommand);
+                        throw MissingOptionValue("-" + letter, arg, context);
                     }
 
                     Dispatch(context, spec, typed, false, value);
@@ -1175,16 +1196,189 @@ namespace CurlDotNet.Core
             }
         }
 
-        /// <summary>The exception curl's "option -X: requires parameter" (exit code 2) maps to.</summary>
-        private static CurlException MissingOptionValue(string option, string? command)
+        /// <summary>
+        /// The exception curl's "option -X: requires parameter" (exit code 2) maps to; on the command line itself (not in a
+        /// <c>-K</c> file) it is a usage error with curl's text, naming the word as typed (<paramref name="word"/>).
+        /// </summary>
+        private static CurlException MissingOptionValue(string option, string word, ParseContext context)
         {
-            return new CurlException(
+            var exception = new CurlException(
                 CurlException.Compose(
                     $"option {option}: requires parameter (it is the last word of the command, so nothing follows it).",
                     $"Put its value right after it, for example \"{option} {ExampleValue(option)}\", and quote the value if it contains spaces.",
                     DocLinks.CliCompatibility),
                 2,
-                command);
+                context.OriginalCommand);
+            return context.ConfigDepth == 0 ? exception.AsUsageError($"option {word}: requires parameter") : exception;
+        }
+
+        /// <summary>
+        /// curl's <c>PARAM_BAD_USE</c> for an option that cannot be combined with an earlier one (exit code 2): curl prints
+        /// <paramref name="curlMessage"/> with <c>errorf()</c>, then <c>option WORD: is badly used here</c>.
+        /// </summary>
+        private static CurlException BadUse(string curlMessage, string what, string fix, ParseContext context)
+        {
+            var exception = new CurlException(CurlException.Compose(what, fix, DocLinks.HowToDownload), 2, context.OriginalCommand);
+            return context.ConfigDepth == 0
+                ? exception.AsUsageError(curlMessage + "\noption " + context.CurrentWord + ": is badly used here")
+                : exception.WithCurlErrorMessage(curlMessage);
+        }
+
+        /// <summary>
+        /// Value-taking options whose argument curl never echoes in its Unicode warning (<c>ARG_CLEAR</c>: secrets), and the
+        /// deprecated ones curl ignores before it looks (<c>ARG_DEPR</c>).
+        /// </summary>
+        private static readonly HashSet<string> SecretValueOptions = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "cert", "httpsig-key", "oauth2-bearer", "pass", "proxy-cert", "proxy-pass", "proxy-user", "user",
+        };
+
+        private static readonly HashSet<string> DeprecatedValueOptions = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "egd-file", "krb", "krb4", "proxy-tlsauthtype", "proxy-tlspassword", "proxy-tlsuser", "random-file",
+            "tlsauthtype", "tlspassword", "tlsuser",
+        };
+
+        /// <summary>
+        /// curl's <c>has_leading_unicode()</c>: the argument starts with UTF-8 <c>E2 80 xx</c>, the block U+2000 to U+203F
+        /// with the typographic quotes and dashes that a copy from a web page or word processor brings in.
+        /// </summary>
+        private static bool HasLeadingUnicode(string value) => value.Length > 0 && value[0] >= '\u2000' && value[0] <= '\u203F';
+
+        /// <summary>curl's "starts with a Unicode character" warning for the argument of <c>--</c><paramref name="longName"/>.</summary>
+        private static void WarnLeadingUnicode(ParseContext context, string longName, string value)
+        {
+            if (HasLeadingUnicode(value))
+            {
+                context.Warn(SecretValueOptions.Contains(longName)
+                    ? $"The argument to --{longName} starts with a Unicode character. Maybe ASCII was intended?"
+                    : $"The argument '{value}' starts with a Unicode character. Maybe ASCII was intended?");
+            }
+        }
+
+        /// <summary>
+        /// The warnings and option conflicts curl's <c>getparameter()</c> reports while it reads one option, in its order;
+        /// called once per option as typed (never when a group's options are replayed for its other URLs).
+        /// </summary>
+        /// <exception cref="CurlException">Exit code 2 (a usage error) when <c>-C</c> meets <c>--range</c>,
+        /// <c>--remove-on-error</c> or <c>--no-clobber</c>.</exception>
+        private static void CheckOption(ParseContext context, CurlOptionSpec spec, string typed, string value)
+        {
+            var group = context.Current;
+            if (spec.TakesValue && !DeprecatedValueOptions.Contains(spec.LongName))
+            {
+                WarnLeadingUnicode(context, spec.LongName, value);
+            }
+
+            switch (typed)
+            {
+                case "--silent":
+                    context.Silent = true; // curl's global->silent: one switch for the whole command line
+                    break;
+                case "--no-silent":
+                    context.Silent = false;
+                    break;
+                case "--fail":
+                    if (group.FailMode == 2)
+                    {
+                        context.Warn("--fail deselects --fail-with-body here");
+                    }
+
+                    group.FailMode = 1;
+                    break;
+                case "--no-fail":
+                case "--no-fail-with-body":
+                    group.FailMode = 0;
+                    break;
+                case "--fail-with-body":
+                    if (group.FailMode == 1)
+                    {
+                        context.Warn("--fail-with-body deselects --fail here");
+                    }
+
+                    group.FailMode = 2;
+                    break;
+                case "--location":
+                case "--location-trusted":
+                case "--no-location":
+                case "--no-location-trusted":
+                    if (group.FollowMode == 2)
+                    {
+                        context.Warn("--location overrides --follow");
+                    }
+
+                    group.FollowMode = typed.StartsWith("--no-", StringComparison.Ordinal) ? 0 : 1;
+                    break;
+                case "--follow":
+                case "--no-follow":
+                    if (group.FollowMode == 1)
+                    {
+                        context.Warn("--follow overrides --location");
+                    }
+
+                    group.FollowMode = typed == "--follow" ? 2 : 0;
+                    break;
+                case "--continue-at":
+                    if (group.RangeGiven)
+                    {
+                        throw BadUse("--continue-at is mutually exclusive with --range",
+                            "--continue-at is mutually exclusive with --range: -C resumes from an offset, -r asks for an explicit byte range, and curl accepts only one of them.",
+                            "Keep one: -C OFFSET (or -C - to continue an existing file) or -r START-END.", context);
+                    }
+
+                    if (group.RemoveOnError)
+                    {
+                        throw BadUse("--continue-at is mutually exclusive with --remove-on-error",
+                            "--continue-at is mutually exclusive with --remove-on-error: resuming appends to an existing file, which --remove-on-error is meant to protect.",
+                            "Remove -C, or remove --remove-on-error so a failed resume keeps the partial file for the next attempt.", context);
+                    }
+
+                    if (group.NoClobber)
+                    {
+                        throw BadUse("--continue-at is mutually exclusive with --no-clobber",
+                            "--continue-at is mutually exclusive with --no-clobber: resuming appends to an existing file, which --no-clobber is meant to protect.",
+                            "Remove -C to download to a new numbered file, or remove --no-clobber to resume into the existing file.", context);
+                    }
+
+                    group.Resume = true;
+                    break;
+                case "--range":
+                    if (group.Resume)
+                    {
+                        throw BadUse("--continue-at is mutually exclusive with --range",
+                            "--continue-at is mutually exclusive with --range: -C resumes from an offset, -r asks for an explicit byte range, and curl accepts only one of them.",
+                            "Keep one: -C OFFSET (or -C - to continue an existing file) or -r START-END.", context);
+                    }
+
+                    group.RangeGiven = true;
+                    break;
+                case "--remove-on-error":
+                    if (group.Resume)
+                    {
+                        throw BadUse("--continue-at is mutually exclusive with --remove-on-error",
+                            "--continue-at is mutually exclusive with --remove-on-error: resuming appends to an existing file, which --remove-on-error is meant to protect.",
+                            "Remove -C, or remove --remove-on-error so a failed resume keeps the partial file for the next attempt.", context);
+                    }
+
+                    group.RemoveOnError = true;
+                    break;
+                case "--no-remove-on-error":
+                    group.RemoveOnError = false;
+                    break;
+                case "--no-clobber":
+                    if (group.Resume)
+                    {
+                        throw BadUse("--continue-at is mutually exclusive with --no-clobber",
+                            "--continue-at is mutually exclusive with --no-clobber: resuming appends to an existing file, which --no-clobber is meant to protect.",
+                            "Remove -C to download to a new numbered file, or remove --no-clobber to resume into the existing file.", context);
+                    }
+
+                    group.NoClobber = true;
+                    break;
+                case "--clobber":
+                    group.NoClobber = false;
+                    break;
+            }
         }
 
         /// <summary>A typical value for an option, used in "requires parameter" messages.</summary>
@@ -1221,10 +1415,13 @@ namespace CurlDotNet.Core
         {
             var group = context.Current;
 
+            // curl's varexpand() runs before getparameter() looks at the argument
             if (expand)
             {
                 value = ExpandVariables(value, context);
             }
+
+            CheckOption(context, spec, typed, value);
 
             switch (typed)
             {
@@ -1250,19 +1447,27 @@ namespace CurlDotNet.Core
 
                 case "--output":
                     group.OutputSlots.Add(value);
+                    group.OutputNodes++;
                     break;
 
                 case "--remote-name":
                     group.OutputSlots.Add(null);
+                    group.OutputNodes++;
                     break;
 
                 case "--out-null":
                     group.OutputSlots.Add(OutNullSlot);
+                    group.OutputNodes++;
                     break;
 
                 case "--no-remote-name":
                     // curl: takes the next URL's output slot and sends it to stdout, even with --remote-name-all
                     group.OutputSlots.Add("-");
+                    if (group.RemoteNameAll)
+                    {
+                        group.OutputNodes++; // parse_remote_name() only fills a URL node under --remote-name-all
+                    }
+
                     break;
 
                 case "--remote-name-all":
@@ -2030,6 +2235,13 @@ namespace CurlDotNet.Core
                     return; // curl uses the first Host: header
                 }
 
+                // curl sends one line per -H; remember the values so the request head can do the same
+                if (!options.RepeatedHeaderValues.TryGetValue(key, out var parts))
+                {
+                    parts = new List<string> { existing };
+                    options.RepeatedHeaderValues[key] = parts;
+                }
+                parts.Add(value);
                 options.Headers[key] = existing + ", " + value;
                 return;
             }

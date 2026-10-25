@@ -117,6 +117,65 @@ namespace CurlDotNet.Core.Auth
             return host == null && proxy == null ? null : new HttpAuth(host, proxy, proxyCredentials);
         }
 
+        /// <summary>
+        /// The proxy-only engine for one CONNECT tunnel (curl's data->state.authproxy while lib/http_proxy.c
+        /// opens the tunnel), or null when CurlDotNet does not negotiate it: no credentials, Basic (sent
+        /// preemptively), Negotiate (left to HttpClient), and for now Digest and --proxy-anyauth, whose
+        /// CONNECT behaviour is not yet confirmed against curl.
+        /// </summary>
+        /// <param name="proxyScheme">The proxy authentication method; only ntlm is negotiated here.</param>
+        /// <param name="proxyCredentials">The proxy credentials from <c>-U</c> or the proxy URL.</param>
+        public static HttpAuth? ForTunnel(string? proxyScheme, NetworkCredential? proxyCredentials)
+        {
+            var want = WantFor(proxyScheme);
+            if (proxyCredentials == null || want != AuthMethods.Ntlm)
+            {
+                return null;
+            }
+            return new HttpAuth(null, new AuthSide(true, want), proxyCredentials);
+        }
+
+        /// <summary>
+        /// The <c>Proxy-Authorization</c> value for the next CONNECT request (curl's
+        /// <c>Curl_http_output_auth(data, conn, "CONNECT", HTTPREQ_GET, hostport, TRUE)</c>): the NTLM
+        /// type-1 message first, the type-3 answer after the proxy's type-2 challenge, then nothing.
+        /// </summary>
+        /// <param name="authority">The CONNECT target, <c>host:port</c>.</param>
+        /// <exception cref="CurlException">The NTLM type-3 message would exceed curl's 1024-byte limit (exit 100).</exception>
+        public string? TunnelAuthorization(string authority)
+        {
+            var side = _proxy!;
+            if (side.Picked == AuthMethods.None)
+            {
+                side.Picked = side.Want; // curl: authproxy.picked = authproxy.want before the first request
+            }
+            return OutputValue(side, _proxyCredentials!, "CONNECT", () => authority);
+        }
+
+        /// <summary>
+        /// Reads a CONNECT response's <c>Proxy-Authenticate</c> challenges and decides, like curl's
+        /// Curl_http_auth_act() after a 407 to CONNECT, whether another CONNECT is sent.
+        /// </summary>
+        /// <param name="status">The CONNECT response code.</param>
+        /// <param name="proxyChallenges">The response's <c>Proxy-Authenticate</c> values.</param>
+        public bool TunnelShouldRetry(int status, IReadOnlyList<string> proxyChallenges)
+            => ShouldResend(status, Array.Empty<string>(), proxyChallenges, hasHostCredentials: false, hasProxyCredentials: true);
+
+        /// <summary>The method the proxy side uses now, for messages ("NTLM", "Digest", "Basic").</summary>
+        public string TunnelMethodName
+        {
+            get
+            {
+                switch (_proxy?.Picked ?? AuthMethods.None)
+                {
+                    case AuthMethods.Ntlm: return "NTLM";
+                    case AuthMethods.Digest: return "Digest";
+                    case AuthMethods.Basic: return "Basic";
+                    default: return "proxy";
+                }
+            }
+        }
+
         /// <summary>True when the server side is negotiated by this engine (so no preemptive Basic is added elsewhere).</summary>
         public bool OwnsHostAuth => _host != null;
 
@@ -196,15 +255,30 @@ namespace CurlDotNet.Core.Auth
             }
         }
 
-        /// <summary>curl's output_auth_headers() for one side.</summary>
+        /// <summary>curl's output_auth_headers() for one side of a request sent through HttpClient.</summary>
         private static void Output(HttpRequestMessage request, AuthSide side, NetworkCredential credentials, string header)
         {
+            // curl hashes the path and query (also for requests sent to a proxy with an absolute URI)
+            var value = OutputValue(side, credentials, request.Method.Method, () => request.RequestUri!.PathAndQuery);
+            if (value != null && !request.Headers.Contains(header))
+            {
+                request.Headers.TryAddWithoutValidation(header, value);
+            }
+        }
+
+        /// <summary>
+        /// curl's output_auth_headers(): the header value the picked method sends next (null when it sends
+        /// nothing yet), advancing the method's state. <paramref name="target"/> is the request target a
+        /// Digest response covers: the path and query, or <c>host:port</c> for CONNECT.
+        /// </summary>
+        private static string? OutputValue(AuthSide side, NetworkCredential credentials, string method, Func<string> target)
+        {
             string? value = null;
-            var method = false;
+            var multipassMethod = false;
             switch (side.Picked)
             {
                 case AuthMethods.Ntlm:
-                    method = true;
+                    multipassMethod = true;
                     switch (side.Ntlm.Stage)
                     {
                         case NtlmStage.Type2:
@@ -230,34 +304,29 @@ namespace CurlDotNet.Core.Auth
                     break;
 
                 case AuthMethods.Digest:
-                    method = true;
+                    multipassMethod = true;
                     if (side.Digest.Nonce == null)
                     {
                         side.Done = false; // no challenge yet
                     }
                     else
                     {
-                        // curl hashes the path and query (also for requests sent to a proxy with an absolute URI)
-                        var target = request.RequestUri!.PathAndQuery;
                         value = "Digest " + side.Digest.CreateResponse(credentials.UserName ?? string.Empty, credentials.Password ?? string.Empty,
-                            request.Method.Method, target);
+                            method, target());
                         side.Done = true;
                     }
                     break;
 
                 case AuthMethods.Basic:
-                    method = true;
+                    multipassMethod = true;
                     var raw = (credentials.UserName ?? string.Empty) + ":" + (credentials.Password ?? string.Empty);
                     value = "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
                     side.Done = true;
                     break;
             }
 
-            if (value != null && !request.Headers.Contains(header))
-            {
-                request.Headers.TryAddWithoutValidation(header, value);
-            }
-            side.Multipass = method && !side.Done;
+            side.Multipass = multipassMethod && !side.Done;
+            return value;
         }
 
         /// <summary>A probe sends no body: <c>Content-Length: 0</c>, keeping the Content-Type of a simple POST.</summary>

@@ -271,6 +271,44 @@ namespace CurlDotNet.Core
         public string? StderrFile { get; set; }
 
         /// <summary>
+        /// Sends a HAProxy PROXY protocol v1 header as the first bytes of every new connection, curl's
+        /// <c>--haproxy-protocol</c>: <c>PROXY TCP4 SOURCE-IP DEST-IP SOURCE-PORT DEST-PORT\r\n</c> (<c>TCP6</c> for IPv6),
+        /// telling a load balancer or server behind HAProxy which client address the connection comes from.
+        /// </summary>
+        /// <value>True to send the header. Default: false. Also on when <see cref="HaproxyClientIp"/> is set.</value>
+        /// <remarks>
+        /// <para>The addresses and ports are the local and remote ends of the TCP connection, exactly as curl reports them
+        /// (lib/cf-haproxy.c). The header goes out before TLS for <c>https://</c> URLs, and through a <c>-p</c> tunnel after
+        /// the CONNECT. Only send it to servers that expect it: any other server sees a broken request line.</para>
+        /// <para>The PROXY header is written by CurlDotNet's own connection code, which needs .NET 5 or later and an HttpClient
+        /// created by CurlDotNet; on the .NET Standard 2.0 / .NET Framework build, or with an HttpClient you supplied, the transfer
+        /// fails with <see cref="CurlDotNet.Exceptions.CurlNotBuiltInException"/> (exit 4) instead of silently leaving the header out.</para>
+        /// <para>Example: <c>curl --haproxy-protocol http://backend:8080/</c> is
+        /// <c>new CurlOptions { Url = "http://backend:8080/", HaproxyProtocol = true }</c>.</para>
+        /// </remarks>
+        /// <seealso cref="HaproxyClientIp"/>
+        public bool HaproxyProtocol { get; set; }
+
+        /// <summary>
+        /// The client address to claim in the HAProxy PROXY protocol header, curl's <c>--haproxy-clientip</c>; setting it
+        /// also turns on <see cref="HaproxyProtocol"/>.
+        /// </summary>
+        /// <value>An IPv4 or IPv6 address as text (sent verbatim), or null (default) to report the real local address.</value>
+        /// <remarks>
+        /// <para>Like curl, the value is used as both the source and the destination address of the PROXY line, the ports stay
+        /// those of the real connection, and the protocol is <c>TCP4</c> for a dotted IPv4 address and <c>TCP6</c> for anything
+        /// else: <c>--haproxy-clientip 192.168.1.1</c> sends <c>PROXY TCP4 192.168.1.1 192.168.1.1 50123 80</c>. curl does not
+        /// check the value, so neither does CurlDotNet.</para>
+        /// <para>Example: <c>curl --haproxy-clientip 2a04:4e42::347 http://backend/</c> is
+        /// <c>new CurlOptions { Url = "http://backend/", HaproxyClientIp = "2a04:4e42::347" }</c>.</para>
+        /// </remarks>
+        /// <seealso cref="HaproxyProtocol"/>
+        public string? HaproxyClientIp { get; set; }
+
+        /// <summary>True when a PROXY protocol header is sent (<see cref="HaproxyProtocol"/> or <see cref="HaproxyClientIp"/>).</summary>
+        internal bool HaproxyEnabled => HaproxyProtocol || !string.IsNullOrEmpty(HaproxyClientIp);
+
+        /// <summary>
         /// Ignores session cookies (those without an expiry date) when reading cookie files given with <c>-b</c>, as if
         /// starting a new browser session; curl's <c>-j</c>/<c>--junk-session-cookies</c>.
         /// </summary>

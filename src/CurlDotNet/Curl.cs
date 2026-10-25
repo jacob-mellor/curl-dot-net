@@ -146,7 +146,9 @@ namespace CurlDotNet
         /// <c>-Uri</c>, and otherwise reads the command permissively as bash. Set this once at start-up when every
         /// command your application runs comes from one place, for example
         /// <c>Curl.DefaultFlavor = CurlFlavor.WindowsCmd;</c> for commands typed by Windows users, or
-        /// <c>Curl.DefaultFlavor = CurlFlavor.Posix;</c> to get exact bash behaviour with no Windows conveniences.</para>
+        /// <c>Curl.DefaultFlavor = CurlFlavor.Posix;</c> to get exact bash behaviour with no Windows conveniences, or
+        /// <c>Curl.DefaultFlavor = CurlFlavor.Native;</c> to read every command with the rules of the shell of the
+        /// operating system the program runs on (cmd.exe on Windows, bash elsewhere).</para>
         /// <para>Applies to <see cref="ExecuteAsync(string)"/>, <see cref="Execute(string)"/>,
         /// <see cref="Validate(string)"/>, the code converters and every other method that takes a command string
         /// without a flavor. A flavor passed to <see cref="ExecuteAsync(string, CurlFlavor)"/> or set with
@@ -156,8 +158,8 @@ namespace CurlDotNet
         /// </remarks>
         /// <value>One of the <see cref="CurlFlavor"/> values. Default is <see cref="CurlFlavor.Auto"/>.</value>
         /// <exception cref="ArgumentOutOfRangeException">The value is not a defined <see cref="CurlFlavor"/> (for
-        /// example a number cast to the enum). Fix: assign <c>CurlFlavor.Auto</c>, <c>Posix</c>, <c>WindowsCmd</c>,
-        /// <c>PowerShell</c> or <c>InvokeWebRequest</c>. See
+        /// example a number cast to the enum). Fix: assign <c>CurlFlavor.Auto</c>, <c>Native</c>, <c>Posix</c>,
+        /// <c>WindowsCmd</c>, <c>PowerShell</c> or <c>InvokeWebRequest</c>. See
         /// https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md</exception>
         /// <seealso cref="DetectFlavor(string)"/>
         /// <seealso cref="CurlOptions.Flavor"/>
@@ -168,16 +170,54 @@ namespace CurlDotNet
             get => _defaultFlavor;
             set
             {
-                if (value < CurlFlavor.Auto || value > CurlFlavor.InvokeWebRequest)
+                if (value < CurlFlavor.Auto || value > CurlFlavor.Native)
                 {
                     throw new ArgumentOutOfRangeException(nameof(value), value, CurlException.Compose(
                         $"Curl.DefaultFlavor was set to {(int)value}, which is not a CurlFlavor value.",
-                        "Assign CurlFlavor.Auto (detect the shell), Posix (bash/zsh), WindowsCmd (cmd.exe), PowerShell (curl.exe in PowerShell) or InvokeWebRequest (Invoke-WebRequest/Invoke-RestMethod syntax).",
+                        "Assign CurlFlavor.Auto (detect the shell), Native (this operating system's shell), Posix (bash/zsh), WindowsCmd (cmd.exe), PowerShell (curl.exe in PowerShell) or InvokeWebRequest (Invoke-WebRequest/Invoke-RestMethod syntax).",
                         DocLinks.HowToFlavors));
                 }
 
                 _defaultFlavor = value;
             }
+        }
+
+        private static volatile bool _defaultReadConfigFile = false;
+
+        /// <summary>
+        /// Opt-in: when true, every command first reads curl's default config file (<c>.curlrc</c>) from the user's home
+        /// directory exactly like the curl tool does, unless the command starts with <c>-q</c>/<c>--disable</c>. False by default.
+        /// </summary>
+        /// <remarks>
+        /// <para>Why it is off: the curl tool silently applies <c>~/.curlrc</c> to every run, so a file in the user's home
+        /// directory could add headers, a proxy, <c>-k</c> or a POST body to every request your application makes. A library
+        /// should send what its code says, so CurlDotNet ignores the file unless you set this to true (for example in a .NET
+        /// tool that must behave exactly like <c>curl</c> for its users). A config file named in the command with
+        /// <c>-K FILE</c>/<c>--config FILE</c> is always read, whatever this says.</para>
+        /// <para>Lookup order, from curl's <c>src/tool_findfile.c</c>; the first file that can be opened wins and only that one is read:
+        /// <c>$CURL_HOME/.curlrc</c>; <c>$XDG_CONFIG_HOME/curlrc</c> (no dot); <c>$HOME/.curlrc</c>; on Windows also
+        /// <c>%USERPROFILE%\.curlrc</c>, <c>%APPDATA%\.curlrc</c> and <c>%USERPROFILE%\Application Data\.curlrc</c>; then, only
+        /// when <c>XDG_CONFIG_HOME</c> is not set, <c>$CURL_HOME/.config/curlrc</c> and <c>$HOME/.config/curlrc</c>; and last, on
+        /// Linux and macOS, <c>.curlrc</c> in the account's home directory from the user database (which matters when
+        /// <c>HOME</c> is unset). On Windows each <c>.curlrc</c> in the variable-based places is also tried as <c>_curlrc</c>.
+        /// Unset or empty variables are skipped. The curl tool's final Windows fallback, the folder of
+        /// <c>curl.exe</c>, has no equivalent in a library and is not searched.</para>
+        /// <para>The file's options are processed before the command's own, as if typed first, with the same syntax as
+        /// <c>-K</c> files. When one is read and the command asks for <c>-v</c>, <c>--trace</c> or <c>--trace-ascii</c> (and not
+        /// <c>-s</c>), the note <c>Note: Read config file from '&lt;path&gt;'</c> is written to standard error (or the
+        /// <c>--stderr</c> file), as curl does. A file that does not exist is not an error.</para>
+        /// <para>Process-wide; read at the start of every parse; reads and writes are thread-safe. It affects
+        /// <see cref="ExecuteAsync(string)"/>, <see cref="Execute(string)"/>, <see cref="Validate(string)"/> and every other
+        /// method that parses a command string.</para>
+        /// <para>Example: <c>Curl.DefaultReadConfigFile = true;</c> then <c>await Curl.ExecuteAsync("curl https://example.com")</c>
+        /// applies <c>~/.curlrc</c>, while <c>await Curl.ExecuteAsync("curl -q https://example.com")</c> does not.</para>
+        /// </remarks>
+        /// <value>True to read the default config file like the curl tool; false (the default) to never read it.</value>
+        /// <seealso cref="DefaultFlavor"/>
+        public static bool DefaultReadConfigFile
+        {
+            get => _defaultReadConfigFile;
+            set => _defaultReadConfigFile = value;
         }
 
         private static volatile int _defaultConnectTimeoutSeconds = 0;

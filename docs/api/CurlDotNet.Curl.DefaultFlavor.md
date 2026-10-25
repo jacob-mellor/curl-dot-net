@@ -18,8 +18,8 @@ One of the [CurlFlavor](CurlDotNet.CurlFlavor.md 'CurlDotNet\.CurlFlavor') value
 
 [System\.ArgumentOutOfRangeException](https://learn.microsoft.com/en-us/dotnet/api/system.argumentoutofrangeexception 'System\.ArgumentOutOfRangeException')  
 The value is not a defined [CurlFlavor](CurlDotNet.CurlFlavor.md 'CurlDotNet\.CurlFlavor') \(for
-            example a number cast to the enum\)\. Fix: assign `CurlFlavor.Auto`, `Posix`, `WindowsCmd`,
-            `PowerShell` or `InvokeWebRequest`\. See
+            example a number cast to the enum\)\. Fix: assign `CurlFlavor.Auto`, `Native`, `Posix`,
+            `WindowsCmd`, `PowerShell` or `InvokeWebRequest`\. See
             https://github\.com/jacob\-mellor/curl\-dot\-net/blob/master/docs/how\-to/curl\-flavors\-bash\-cmd\-powershell/README\.md
 
 ### Remarks
@@ -31,7 +31,9 @@ A pasted curl command is shell text: bash, Windows cmd.exe and PowerShell quote,
             `-Uri`, and otherwise reads the command permissively as bash. Set this once at start-up when every
             command your application runs comes from one place, for example
             `Curl.DefaultFlavor = CurlFlavor.WindowsCmd;` for commands typed by Windows users, or
-            `Curl.DefaultFlavor = CurlFlavor.Posix;` to get exact bash behaviour with no Windows conveniences.
+            `Curl.DefaultFlavor = CurlFlavor.Posix;` to get exact bash behaviour with no Windows conveniences, or
+            `Curl.DefaultFlavor = CurlFlavor.Native;` to read every command with the rules of the shell of the
+            operating system the program runs on (cmd.exe on Windows, bash elsewhere).
 
 Applies to [ExecuteAsync\(string\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string) 'CurlDotNet\.Curl\.ExecuteAsync\(string\)'), [Execute\(string\)](CurlDotNet.Curl.Execute.md#CurlDotNet.Curl.Execute(string) 'CurlDotNet\.Curl\.Execute\(string\)'),
             [Validate\(string\)](CurlDotNet.Curl.Validate.md#CurlDotNet.Curl.Validate(string) 'CurlDotNet\.Curl\.Validate\(string\)'), the code converters and every other method that takes a command string

@@ -32,3 +32,7 @@ Docs: https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/exceptions/h
 | :--- | :--- |
 | [CurlHttpReturnedErrorException\(int, string, string, string\)](CurlDotNet.Exceptions.CurlHttpReturnedErrorException.#ctor.md#CurlDotNet.Exceptions.CurlHttpReturnedErrorException.CurlHttpReturnedErrorException(int,string,string,string) 'CurlDotNet\.Exceptions\.CurlHttpReturnedErrorException\.CurlHttpReturnedErrorException\(int, string, string, string\)') | Creates the error \(exit code 22\) from a status code, reason phrase and body, with status\-specific advice in the message\. |
 | [CurlHttpReturnedErrorException\(int, string, string, string, bool, string\)](CurlDotNet.Exceptions.CurlHttpReturnedErrorException.#ctor.md#CurlDotNet.Exceptions.CurlHttpReturnedErrorException.CurlHttpReturnedErrorException(int,string,string,string,bool,string) 'CurlDotNet\.Exceptions\.CurlHttpReturnedErrorException\.CurlHttpReturnedErrorException\(int, string, string, string, bool, string\)') | Creates the error for `-f`/`--fail` or `--fail-with-body` with curl's wording `The requested URL returned error: 404` and the URL \(without credentials or query string\)\. |
+
+| Properties | |
+| :--- | :--- |
+| [CurlErrorMessage](CurlDotNet.Exceptions.CurlHttpReturnedErrorException.CurlErrorMessage.md 'CurlDotNet\.Exceptions\.CurlHttpReturnedErrorException\.CurlErrorMessage') | curl's own error text for this failure, `The requested URL returned error: ` followed by the status code, exactly as the curl tool prints it after `curl: (22) `\. |

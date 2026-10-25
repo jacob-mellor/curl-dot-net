@@ -1,0 +1,29 @@
+# Real curl, built from the same commit the tests in ../data were vendored from, with the
+# debug features curl's own test suite expects (--enable-debug), plus curl's test servers.
+# This is the oracle: when CurlDotNet and a test disagree, run the test here with curl's own
+# runtests.pl and compare the bytes instead of guessing what curl does.
+FROM debian:bookworm-slim
+
+ARG CURL_COMMIT=178e5077b60be91a8dfcbaa22a6bf79e179009ff
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates curl build-essential autoconf automake libtool pkg-config perl python3 \
+        libssl-dev zlib1g-dev libpsl-dev libidn2-dev libbrotli-dev libzstd-dev libnghttp2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# curl's test suite refuses some tests as root; build and run as an ordinary user
+RUN useradd -m tester
+USER tester
+WORKDIR /home/tester
+
+RUN curl -fsSL "https://github.com/curl/curl/archive/${CURL_COMMIT}.tar.gz" | tar xz \
+    && mv "curl-${CURL_COMMIT}" curl
+
+WORKDIR /home/tester/curl
+RUN autoreconf -fi \
+    && ./configure --enable-debug --enable-ntlm --with-openssl --with-libpsl --with-libidn2 --with-brotli --with-zstd --with-nghttp2 \
+    && make -j"$(nproc)" \
+    && make -C tests/server -j"$(nproc)"
+
+COPY --chown=tester run-curl-tests.sh /home/tester/run-curl-tests.sh
+ENTRYPOINT ["/bin/bash", "/home/tester/run-curl-tests.sh"]

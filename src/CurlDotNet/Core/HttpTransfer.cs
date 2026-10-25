@@ -51,7 +51,7 @@ namespace CurlDotNet.Core
             _verboseRequest = verboseRequest;
             _verboseResponse = verboseResponse;
             _headerBlock = headerBlock;
-            OriginalUrl = options.Url;
+            OriginalUrl = HostAlias.RestoreUrl(options.Url); // %{url} shows the host as written
             FirstUri = new Uri(options.Url);
             Auth = HttpAuth.Create(options, proxy?.NegotiatesPlainRequests ?? false, proxy?.AuthScheme, proxy?.UserCredentials);
         }
@@ -233,6 +233,8 @@ namespace CurlDotNet.Core
                 ConnectTo = hop.ConnectTo.Count > 0 ? hop.ConnectTo : null,
                 ViaProxy = proxyUri != null,
                 Transcript = Transcript,
+                Haproxy = Options.HaproxyEnabled,
+                HaproxyClientIp = string.IsNullOrEmpty(Options.HaproxyClientIp) ? null : Options.HaproxyClientIp,
             };
             if (proxyUri != null && (Options.ProxyTunnel || Proxy!.SelfTunnels(uri)))
             {

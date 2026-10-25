@@ -99,7 +99,7 @@ namespace CurlDotNet.Core
             // --retry-delay is not overridden by it. --retry-max-time stops retrying once that much time has
             // passed (or when a Retry-After wait would pass it), and the last attempt's outcome stands. Output that went to stdout cannot be taken back, so each
             // attempt's stdout is kept, like curl; the -w text (and -c -) is written once, for the final attempt.
-            var retryStarted = DateTime.UtcNow;
+            var retryStarted = System.Diagnostics.Stopwatch.StartNew(); // monotonic, like curlx_now() in tool_operate.c
             var earlierStdout = new StringBuilder();
             // curl truncates the output file before a retry only when the failed attempt wrote body
             // bytes to it; header-only attempts (-i, -f) stay in the file
@@ -165,7 +165,7 @@ namespace CurlDotNet.Core
                         var backoff = options.RetryDelay > 0 ? options.RetryDelay : Math.Min(Math.Pow(2, attempt), 600);
                         var serverWait = Math.Min(retryAfter?.TotalSeconds ?? 0, 600);
                         delaySeconds = Math.Max(backoff, serverWait);
-                        var elapsed = (DateTime.UtcNow - retryStarted).TotalSeconds;
+                        var elapsed = retryStarted.Elapsed.TotalSeconds;
                         if (options.RetryMaxTime > 0
                             && (elapsed >= options.RetryMaxTime || (serverWait > backoff && elapsed + serverWait > options.RetryMaxTime)))
                         {
@@ -302,6 +302,20 @@ namespace CurlDotNet.Core
                     DocLinks.Ssl), options.OriginalCommand);
             }
 
+            if (options.HaproxyEnabled && (!CurlTransport.SupportsRecording || !_ownsHttpClient))
+            {
+                // the PROXY line is written by CurlDotNet's connect callback; leaving it out would reach a
+                // HAProxy-fronted server with the wrong client address, so refuse like curl's CURLE_NOT_BUILT_IN
+                throw new CurlNotBuiltInException(CurlException.Compose(
+                    $"--haproxy-protocol cannot be sent to {ErrorText.SafeUrl(options.Url)}: " + (CurlTransport.SupportsRecording
+                        ? "the request uses an HttpClient you supplied, and only CurlDotNet's own connection code can write the PROXY header"
+                        : "writing the PROXY protocol header needs the connect callback of .NET 5 or later, and this is the .NET Standard 2.0 / .NET Framework build"),
+                    CurlTransport.SupportsRecording
+                        ? "Let CurlDotNet create the HttpClient (use the CurlEngine constructor without one), or remove --haproxy-protocol/--haproxy-clientip."
+                        : "Run on .NET 8 or later, or remove --haproxy-protocol/--haproxy-clientip.",
+                    DocLinks.CliCompatibility), options.OriginalCommand);
+            }
+
             var proxy = CurlProxy.Resolve(options);
             var client = _httpClient;
             HttpClient? perRequestClient = null;
@@ -337,6 +351,7 @@ namespace CurlDotNet.Core
                     {
                         // --skip-existing: curl does not even connect when the file is already there
                         trace?.Info($"Skipping {ErrorText.SafeUrl(options.Url)}: '{target}' already exists (--skip-existing)");
+                        options.Messages?.Note($"skips transfer, \"{target}\" exists locally");
                         return new CurlResult { StatusCode = 0, Body = string.Empty, Command = options.OriginalCommand, Timings = timings };
                     }
                 }
@@ -348,15 +363,12 @@ namespace CurlDotNet.Core
                     {
                         // curl: "Failed creating file for saving etags ... Skip this transfer" (no request, no error)
                         trace?.Info($"Skipping {ErrorText.SafeUrl(options.Url)}: --etag-save directory '{etagDir}' does not exist");
-                        if (!options.Silent)
-                        {
-                            WriteStderr(options, $"Warning: Failed creating file for saving etags: \"{options.EtagSave}\". Skip this transfer\n");
-                        }
+                        options.Messages?.Warn($"Failed creating file for saving etags: \"{options.EtagSave}\". Skip this transfer");
                         return new CurlResult { StatusCode = 0, Body = string.Empty, Command = options.OriginalCommand, Timings = timings };
                     }
                 }
 
-                if (!string.IsNullOrEmpty(options.DumpHeaderFile) && options.DumpHeaderFile != "-")
+                if (!string.IsNullOrEmpty(options.DumpHeaderFile) && options.DumpHeaderFile != "-" && options.DumpHeaderFile != TransferOutput.DumpHeadersToStderr)
                 {
                     // curl opens the -D file before it connects (tool_operate.c), so a path whose folder does
                     // not exist fails with exit code 23 even when the server never answers
@@ -491,6 +503,20 @@ namespace CurlDotNet.Core
                 var mapped = TransportErrors.Translate(ex, transfer, readingBody);
                 if (mapped != null)
                 {
+                    var connection = CurlTransport.LastConnectionOf(transfer.CurrentRequest);
+                    if (connection != null && connection.HandshakeTimedOut && !string.IsNullOrEmpty(options.WriteOut))
+                    {
+                        // curl test 5029: after a TLS handshake timeout -w still reports the TCP connection
+                        // that was made (remote_ip, remote_port, local_ip and a non-zero time_connect)
+                        var context = BuildFailureWriteOutContext(transfer);
+                        context.LocalIp = connection.LocalEndPoint?.Address.ToString() ?? string.Empty;
+                        context.LocalPort = connection.LocalEndPoint?.Port ?? 0;
+                        context.RemoteIp = connection.RemoteEndPoint?.Address.ToString() ?? string.Empty;
+                        context.RemotePort = connection.RemoteEndPoint?.Port ?? 0;
+                        context.TimeNameLookup = transfer.Transcript.SecondsSinceStart(connection.ResolvedTimestamp);
+                        context.TimeConnect = transfer.Transcript.SecondsSinceStart(connection.ConnectedTimestamp);
+                        AttachFailureOutput(mapped, transfer, null, context, null);
+                    }
                     throw mapped;
                 }
 
@@ -531,9 +557,10 @@ namespace CurlDotNet.Core
                 || CurlTls.IsConfigured(options)
                 || UsesChallengeAuth(options)
                 || options.Resolve.Count > 0
-                || options.ConnectTo.Count > 0
+                || !CurlTransport.ConnectToChangesNothing(options)
                 || options.ProxyTunnel
-                || options.Expect100TimeoutSeconds.HasValue;
+                || options.Expect100TimeoutSeconds.HasValue
+                || options.HaproxyEnabled; // its connections carry a PROXY line, so they are never pooled with others
         }
 
         /// <summary>
@@ -957,10 +984,18 @@ namespace CurlDotNet.Core
 
             var rawBody = Array.Empty<byte>();
             Exception? bodyError = null;
+            // -#: curl's progress bar on --stderr/standard error, ended with a newline after the transfer
+            var bar = ProgressBar.For(options);
+            var uploaded = request.Content?.Headers.ContentLength ?? 0;
+            var downloadTotal = announced.HasValue && announced.Value > 0 && announced.Value != long.MaxValue ? announced.Value : 0;
+            bar?.Update(0, 0, 0, 0);
+            bar?.Update(downloadTotal, 0, uploaded, uploaded);
             if (!isHead && response.Content != null)
             {
-                (rawBody, bodyError) = await ReadBodyAsync(response.Content, cancellationToken, options.MaxFileSize, options, announced).ConfigureAwait(false);
+                (rawBody, bodyError) = await ReadBodyAsync(response.Content, cancellationToken, options.MaxFileSize, options, announced,
+                    bar == null ? (Action<long>?)null : received => bar.Update(downloadTotal, received, uploaded, uploaded)).ConfigureAwait(false);
             }
+            bar?.Finish();
             timings.Total = (DateTime.UtcNow - transfer.StartTime).TotalMilliseconds;
 
             if (bodyError is OperationCanceledException canceled)
@@ -986,7 +1021,12 @@ namespace CurlDotNet.Core
                 failure = TransportErrors.ValidateTrailers(finalHead, transfer);
             }
 
-            if (bodyError is FileSizeLimitReached)
+            var decodeAborted = bodyError as ContentDecodeAborted;
+            if (decodeAborted != null)
+            {
+                // the decode below reports it (curl stops at the first corrupt block)
+            }
+            else if (bodyError is FileSizeLimitReached)
             {
                 failure = new CurlFileSizeExceededException(options.MaxFileSize!.Value, rawBody.Length, command);
             }
@@ -1038,6 +1078,14 @@ namespace CurlDotNet.Core
             if (failure == null && options.Compressed)
             {
                 body = DecodeOrFail(body, response.Content!.Headers.ContentEncoding, "Content-Encoding", command);
+            }
+            if (decodeAborted != null)
+            {
+                // the truncated prefix decoded without complaint, yet the streaming decoder had failed on it
+                var encodings = string.Join(", ", response.Content!.Headers.ContentEncoding);
+                throw new CurlBadContentEncodingException(encodings,
+                    $"Error while processing content unencoding: the body announced with Content-Encoding: {encodings} could not be decoded ({decodeAborted.Message}). " +
+                    "Drop --compressed/--tr-encoding to save the raw bytes, or report the broken encoding to the server owner", command);
             }
 
             // -z: a document whose Last-Modified does not meet the time condition is not downloaded;
@@ -1159,7 +1207,7 @@ namespace CurlDotNet.Core
             {
                 var failureContext = string.IsNullOrEmpty(options.WriteOut)
                     ? null
-                    : BuildWriteOutContext(transfer, request, response, finalHead, result, rawBody.Length, writtenPath);
+                    : BuildWriteOutContext(transfer, request, response, finalHead, result, rawBody.Length, outputBody.Length, writtenPath);
                 AttachFailureOutput(failure, transfer, stdoutText, failureContext, jarText);
                 throw failure;
             }
@@ -1174,7 +1222,7 @@ namespace CurlDotNet.Core
             WriteOutContext? context = null;
             if (!string.IsNullOrEmpty(options.WriteOut))
             {
-                context = BuildWriteOutContext(transfer, request, response, finalHead, result, rawBody.Length, writtenPath);
+                context = BuildWriteOutContext(transfer, request, response, finalHead, result, rawBody.Length, outputBody.Length, writtenPath);
                 if (timeConditionUnmet)
                 {
                     context.ResponseCode = 304;
@@ -1355,10 +1403,8 @@ namespace CurlDotNet.Core
                 {
                     context.ResponseCode = http.StatusCode;
                 }
-                var message = failure.Message;
-                var newline = message.IndexOf('\n');
                 context.ExitCode = failure.CurlErrorCode ?? 1;
-                context.ErrorMessage = newline < 0 ? message : message.Substring(0, newline);
+                context.ErrorMessage = failure.CurlErrorMessage; // curl's own error text (CurlException.CurlErrorMessage)
                 context.NumRetries = options.RetryNumber;
                 var expanded = WriteOutFormatter.Format(options.WriteOut!, context);
                 WriteStderr(options, expanded.Stderr);
@@ -1389,7 +1435,7 @@ namespace CurlDotNet.Core
                 HttpVersion = head == null ? "0" : (head.HttpVersion == "2.0" ? "2" : head.HttpVersion),
                 ContentType = head?.GetHeader("Content-Type"),
                 Url = transfer.OriginalUrl,
-                UrlEffective = uri?.AbsoluteUri ?? options.Url,
+                UrlEffective = HostAlias.RestoreUrl(uri?.AbsoluteUri ?? options.Url),
                 RedirectUrl = transfer.RedirectUrl ?? string.Empty,
                 Method = transfer.CurrentRequest?.Method.Method ?? (options.CustomMethod ?? options.Method ?? "GET").ToUpperInvariant(),
                 Scheme = uri?.Scheme.ToLowerInvariant() ?? string.Empty,
@@ -1513,7 +1559,7 @@ namespace CurlDotNet.Core
         /// (percent or -1, bytes received, total bytes or -1).
         /// </summary>
         private static async Task<(byte[] Body, Exception? Error)> ReadBodyAsync(HttpContent content, CancellationToken cancellationToken, long? maxFileSize,
-            CurlOptions? options = null, long? announcedLength = null)
+            CurlOptions? options = null, long? announcedLength = null, Action<long>? received = null)
         {
             var buffer = new MemoryStream();
             var progress = options?.ProgressHandler;
@@ -1540,6 +1586,14 @@ namespace CurlDotNet.Core
             stall?.CancelAfter(TimeSpan.FromSeconds(speedTime));
             var started = System.Diagnostics.Stopwatch.StartNew();
 
+            // --compressed: decode while downloading so a corrupt stream fails at once, like curl (test 223)
+            using var probe = options != null && options.Compressed ? ContentDecodeProbe.For(content.Headers.ContentEncoding) : null;
+            using var probeLink = probe != null ? CancellationTokenSource.CreateLinkedTokenSource(readToken, probe.Failed) : null;
+            if (probeLink != null)
+            {
+                readToken = probeLink.Token;
+            }
+
             try
             {
 #if NETSTANDARD2_0 || NET472 || NET48
@@ -1557,10 +1611,19 @@ namespace CurlDotNet.Core
                         break;
                     }
                     buffer.Write(chunk, 0, n);
+                    if (probe != null)
+                    {
+                        probe.Feed(chunk, n);
+                        if (probe.Failed.IsCancellationRequested)
+                        {
+                            return (buffer.ToArray(), new ContentDecodeAborted(probe.Error));
+                        }
+                    }
                     if (progress != null)
                     {
                         ReportProgress(progress, buffer.Length, total, options!);
                     }
+                    received?.Invoke(buffer.Length);
                     if (maxFileSize.HasValue && buffer.Length > maxFileSize.Value)
                     {
                         return (buffer.ToArray(), new FileSizeLimitReached());
@@ -1589,6 +1652,10 @@ namespace CurlDotNet.Core
             }
             catch (OperationCanceledException ex)
             {
+                if (probe != null && probe.Failed.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                {
+                    return (buffer.ToArray(), new ContentDecodeAborted(probe.Error));
+                }
                 if (stall != null && stall.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
                 {
                     return (buffer.ToArray(), new SpeedLimitReached(speedLimit, speedTime));
@@ -1597,11 +1664,26 @@ namespace CurlDotNet.Core
             }
             catch (Exception ex) when (ex is IOException || ex is HttpRequestException)
             {
+                if (probe != null && probe.Failed.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                {
+                    return (buffer.ToArray(), new ContentDecodeAborted(probe.Error));
+                }
                 if (stall != null && stall.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
                 {
                     return (buffer.ToArray(), new SpeedLimitReached(speedLimit, speedTime));
                 }
                 return (buffer.ToArray(), ex);
+            }
+        }
+
+        /// <summary>
+        /// Signals that the --compressed decode probe found corrupt data and stopped the download early; the body
+        /// received so far is then decoded to report curl's error (exit 61, or 23 for data after a gzip member).
+        /// </summary>
+        private sealed class ContentDecodeAborted : Exception
+        {
+            public ContentDecodeAborted(Exception? cause) : base(cause?.Message ?? "corrupt compressed data", cause)
+            {
             }
         }
 
@@ -1711,7 +1793,7 @@ namespace CurlDotNet.Core
         }
 
         private static WriteOutContext BuildWriteOutContext(HttpTransfer transfer, HttpRequestMessage request, HttpResponseMessage response,
-            RawResponseHead? finalHead, CurlResult result, long downloadSize, string? writtenPath)
+            RawResponseHead? finalHead, CurlResult result, long downloadSize, long deliveredSize, string? writtenPath)
         {
             var transcript = transfer.Transcript;
             var timings = transfer.Timings;
@@ -1725,9 +1807,10 @@ namespace CurlDotNet.Core
                     : (response.Version.Major >= 2 ? response.Version.Major.ToString(System.Globalization.CultureInfo.InvariantCulture) : $"{response.Version.Major}.{response.Version.Minor}"),
                 ContentType = finalHead != null ? finalHead.GetHeader("Content-Type") : response.Content?.Headers.ContentType?.ToString(),
                 SizeDownload = downloadSize,
+                SizeDelivered = deliveredSize,
                 SizeUpload = request.Content?.Headers.ContentLength ?? 0,
                 Url = transfer.OriginalUrl,
-                UrlEffective = uri.AbsoluteUri,
+                UrlEffective = HostAlias.RestoreUrl(uri.AbsoluteUri),
                 RedirectUrl = transfer.RedirectUrl ?? string.Empty,
                 Method = request.Method.Method,
                 Scheme = uri.Scheme.ToLowerInvariant(),
@@ -1914,7 +1997,7 @@ namespace CurlDotNet.Core
         /// Decodes gzip, deflate (zlib or raw) and, where the framework supports it, Brotli bodies
         /// for --compressed. Unknown or identity encodings are returned untouched.
         /// </summary>
-        private static byte[] DecodeContentEncoding(byte[] body, ICollection<string> encodings)
+        private static byte[] DecodeContentEncoding(byte[] body, ICollection<string> encodings, string? command = null)
         {
             if (body.Length == 0 || encodings == null || encodings.Count == 0)
             {
@@ -1928,7 +2011,8 @@ namespace CurlDotNet.Core
                 {
                     case "gzip":
                     case "x-gzip":
-                        body = Inflate(body, s => new System.IO.Compression.GZipStream(s, System.IO.Compression.CompressionMode.Decompress));
+                        // one gzip member, like curl: a second member is exit 23 (ContentDecoding.Gunzip)
+                        body = ContentDecoding.Gunzip(body, command);
                         break;
                     case "deflate":
                         // RFC 7230 says zlib-wrapped; some servers send raw deflate. Try zlib first.
@@ -1962,7 +2046,7 @@ namespace CurlDotNet.Core
         {
             try
             {
-                return DecodeContentEncoding(body, encodings);
+                return DecodeContentEncoding(body, encodings, command);
             }
             catch (Exception ex) when (ex is InvalidDataException || ex is IOException)
             {
@@ -2000,15 +2084,15 @@ namespace CurlDotNet.Core
             verboseLog.AppendLine($"* Connected to {uri.Host} ({uri.Host}) port {uri.Port} (#0)");
             verboseLog.AppendLine($"> {request.Method} {uri.PathAndQuery} HTTP/{request.Version?.ToString() ?? "1.1"}");
 
-            foreach (var header in request.Headers)
+            foreach (var header in TraceWriter.HeaderLines(request.Headers))
             {
-                verboseLog.AppendLine($"> {header.Key}: {string.Join(", ", header.Value)}");
+                verboseLog.AppendLine($"> {header.Key}: {header.Value}");
             }
             if (request.Content != null)
             {
-                foreach (var header in request.Content.Headers)
+                foreach (var header in TraceWriter.HeaderLines(request.Content.Headers))
                 {
-                    verboseLog.AppendLine($"> {header.Key}: {string.Join(", ", header.Value)}");
+                    verboseLog.AppendLine($"> {header.Key}: {header.Value}");
                 }
             }
             verboseLog.AppendLine(">");
@@ -2020,15 +2104,15 @@ namespace CurlDotNet.Core
                 return;
 
             verboseLog.AppendLine($"< {BuildStatusLine(response)}");
-            foreach (var header in response.Headers)
+            foreach (var header in TraceWriter.HeaderLines(response.Headers))
             {
-                verboseLog.AppendLine($"< {header.Key}: {string.Join(", ", header.Value)}");
+                verboseLog.AppendLine($"< {header.Key}: {header.Value}");
             }
             if (response.Content != null)
             {
-                foreach (var header in response.Content.Headers)
+                foreach (var header in TraceWriter.HeaderLines(response.Content.Headers))
                 {
-                    verboseLog.AppendLine($"< {header.Key}: {string.Join(", ", header.Value)}");
+                    verboseLog.AppendLine($"< {header.Key}: {header.Value}");
                 }
             }
             verboseLog.AppendLine("<");

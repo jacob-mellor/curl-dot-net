@@ -379,6 +379,15 @@ namespace CurlDotNet.Core.Handlers
                 return;
             }
 
+            if (response.Content.Headers.ContentLength == null && response.Headers.TransferEncodingChunked != true)
+            {
+                // curl (lib/http.c): "no chunk, no close, no size. Assume close to signal end". A redirect
+                // whose body only ends when the server closes is not read at all: curl shuts that connection
+                // down and follows on a new one, so a server that keeps the connection open cannot stall it.
+                // Disposing the response (the caller does) closes the connection the same way.
+                return;
+            }
+
             try
             {
                 // read and discard, like curl; a body over 1 MB is abandoned (the connection is then not

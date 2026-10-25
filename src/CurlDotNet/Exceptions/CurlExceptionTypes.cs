@@ -729,6 +729,19 @@ namespace CurlDotNet.Exceptions
                    statusCode, statusText, body, command, 22)
         {
         }
+
+        /// <summary>
+        /// curl's own error text for this failure, <c>The requested URL returned error: </c> followed by the status code,
+        /// exactly as the curl tool prints it after <c>curl: (22) </c>.
+        /// </summary>
+        /// <value>For a 404, <c>The requested URL returned error: 404</c>: no reason phrase and no URL, like curl.</value>
+        /// <remarks>
+        /// <para>The same text is used for <c>-f</c> and <c>--fail-with-body</c>. <see cref="CurlException.WhatHappened"/>
+        /// keeps CurlDotNet's longer first line, which adds the reason phrase and the URL.</para>
+        /// <para>Example: <c>catch (CurlHttpReturnedErrorException ex) { Console.Error.WriteLine($"curl: (22) {ex.CurlErrorMessage}"); }</c></para>
+        /// </remarks>
+        /// <seealso cref="CurlException.CurlErrorMessage"/>
+        public override string CurlErrorMessage => "The requested URL returned error: " + StatusCode;
     }
 
     /// <summary>

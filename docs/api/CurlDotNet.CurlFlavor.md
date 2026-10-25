@@ -244,6 +244,40 @@ Example: `Invoke-RestMethod -Uri https://api.example.com -Method Post -ContentTy
 - [The opposite direction: curl to Invoke\-RestMethod](CurlDotNet.Curl.ToPowershellCode(string).md 'CurlDotNet\.Curl\.ToPowershellCode\(string\)')
 - [ExecuteAsync\(string, CurlFlavor\)](CurlDotNet.Curl.ExecuteAsync.md#CurlDotNet.Curl.ExecuteAsync(string,CurlDotNet.CurlFlavor) 'CurlDotNet\.Curl\.ExecuteAsync\(string, CurlDotNet\.CurlFlavor\)')
 
+<a name='CurlDotNet.CurlFlavor.Native'></a>
+
+`Native` 5
+
+The shell of the operating system the program is running on: [WindowsCmd](CurlDotNet.CurlFlavor.md#CurlDotNet.CurlFlavor.WindowsCmd 'CurlDotNet\.CurlFlavor\.WindowsCmd') on Windows,
+[Posix](CurlDotNet.CurlFlavor.md#CurlDotNet.CurlFlavor.Posix 'CurlDotNet\.CurlFlavor\.Posix') everywhere else \(Linux, macOS, containers\)\.
+
+### Remarks
+
+Use it when the commands come from people at a terminal on the same machine, for example a
+            command-line tool or an admin page that accepts a pasted curl command, and you want exactly the
+            rules that machine's shell would apply, with no detection and no permissive reading.
+
+<b>Windows</b> uses the cmd.exe rules because that is the shell `curl.exe`'s own
+            documentation, batch files and browsers' "Copy as cURL (cmd)" target. Commands typed into
+            PowerShell follow different rules; pass [PowerShell](CurlDotNet.CurlFlavor.md#CurlDotNet.CurlFlavor.PowerShell 'CurlDotNet\.CurlFlavor\.PowerShell') for those.
+
+<b>Linux, macOS and everything else</b> use the bash rules described under
+            [Posix](CurlDotNet.CurlFlavor.md#CurlDotNet.CurlFlavor.Posix 'CurlDotNet\.CurlFlavor\.Posix').
+
+The operating system is checked when the command is parsed, so [Flavor](CurlDotNet.Core.CurlOptions.Flavor.md 'CurlDotNet\.Core\.CurlOptions\.Flavor')
+            reports [WindowsCmd](CurlDotNet.CurlFlavor.md#CurlDotNet.CurlFlavor.WindowsCmd 'CurlDotNet\.CurlFlavor\.WindowsCmd') or [Posix](CurlDotNet.CurlFlavor.md#CurlDotNet.CurlFlavor.Posix 'CurlDotNet\.CurlFlavor\.Posix'), never `Native`. Unlike [Auto](CurlDotNet.CurlFlavor.md#CurlDotNet.CurlFlavor.Auto 'CurlDotNet\.CurlFlavor\.Auto'),
+            nothing in the text changes the choice: a PowerShell backtick continuation on Linux is just a backtick.
+
+Example: `Curl.DefaultFlavor = CurlFlavor.Native;` makes
+            `curl -d '{"a":1}' https://api.example.com` send `{"a":1}` on Linux and macOS, and the
+            text `'{a:1}'` on Windows (cmd.exe keeps the single quotes and removes the double quotes), exactly as
+            running it in that machine's terminal would.
+
+### See Also
+- [Auto](CurlDotNet.CurlFlavor.md#CurlDotNet.CurlFlavor.Auto 'CurlDotNet\.CurlFlavor\.Auto')
+- [DefaultFlavor](CurlDotNet.Curl.DefaultFlavor.md 'CurlDotNet\.Curl\.DefaultFlavor')
+- [curl flavors guide](https://github.com/jacob-mellor/curl-dot-net/blob/master/docs/how-to/curl-flavors-bash-cmd-powershell/README.md 'https://github\.com/jacob\-mellor/curl\-dot\-net/blob/master/docs/how\-to/curl\-flavors\-bash\-cmd\-powershell/README\.md')
+
 ### Remarks
 
 A command copied from a terminal is shell text, not curl syntax. bash, Windows `cmd.exe`

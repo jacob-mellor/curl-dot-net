@@ -14,6 +14,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using CurlDotNet.Exceptions;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -405,21 +406,18 @@ namespace CurlDotNet.Tests
             var url = _serverAdapter.StatusEndpoint(404);
             var curlCommand = $"-f {url}";
 
-            // Act
-            var dotNetResult = await Curl.ExecuteAsync($"curl {curlCommand}");
+            // Act: with -f an HTTP error is a failed transfer. curl exits 22; CurlDotNet throws the
+            // matching CurlHttpReturnedErrorException carrying the same exit code.
+            Func<Task> act = () => Curl.ExecuteAsync($"curl {curlCommand}");
             var curlResult = await ExecuteCurlInShellAsync(curlCommand);
 
             // Assert
-            CompareResults(dotNetResult, curlResult, nameof(FailOnError_CompareWithCurl));
-
-            // With -f, curl should return non-zero exit code for HTTP errors
-            // dotNetResult may throw exception or return error status
-            dotNetResult.StatusCode.Should().Be(404);
-            // curl with -f returns exit code 22 for HTTP errors, or 56 for network receive errors
-            // Both are valid error responses
+            var ex = (await act.Should().ThrowAsync<CurlHttpReturnedErrorException>()).Which;
+            ex.StatusCode.Should().Be(404);
+            ex.CurlErrorCode.Should().Be(22);
             if (curlResult.ExitCode != 0)
             {
-                curlResult.ExitCode.Should().BeOneOf(22, 56); // curl exit codes for HTTP or network errors
+                curlResult.ExitCode.Should().Be(22, "curl -f exits 22 when the server answers with an HTTP error");
             }
         }
 

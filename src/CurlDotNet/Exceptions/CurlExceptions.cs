@@ -221,6 +221,94 @@ namespace CurlDotNet.Exceptions
         }
 
         /// <summary>
+        /// The short error text the curl command-line tool prints after <c>curl: (N) </c> for this failure, in curl's own
+        /// wording where CurlDotNet knows it, such as <c>The requested URL returned error: 404</c> for <c>-f</c>.
+        /// </summary>
+        /// <value>Text without a trailing newline and without the <c>curl: (N) </c> prefix. Never null. Where CurlDotNet knows
+        /// curl's wording it is exactly that text, for example <c>The requested URL returned error: 404</c> (<c>-f</c>, no reason
+        /// phrase, no URL), <c>HTTP upload cannot be resumed</c> (<c>-C</c> with <c>-d</c>, <c>-F</c> or <c>-T</c>),
+        /// <c>Unsolicited Transfer-Encoding (identityx) found</c> and <c>Reject response exceeding limit of 5 transfer
+        /// encodings</c>. A few of curl's messages span lines, and so does this text then: an output name that uses a glob that
+        /// does not exist is <c>no glob exists with this name in position 16:</c>, the name, and a line with a <c>^</c> under the
+        /// position. For a usage error (<see cref="IsUsageError"/>) every line is one line curl prints after <c>curl: </c>. For
+        /// any other failure it is <see cref="WhatHappened"/>, CurlDotNet's own first message line, which states the same failure
+        /// with the values involved but not always in curl's exact words.</value>
+        /// <remarks>
+        /// <para>The curl tool ends a failed run with one line on standard error, <c>curl: (22) The requested URL returned
+        /// error: 404</c>, unless <c>-s</c>/<c>--silent</c> is given without <c>-S</c>/<c>--show-error</c>. Use this property
+        /// to print that line yourself, for example when a .NET tool wraps CurlDotNet and must keep scripts that parse curl's
+        /// error output working: <c>Console.Error.WriteLine($"curl: ({ex.CurlErrorCode}) {ex.CurlErrorMessage}");</c>.
+        /// <c>-w '%{errormsg}'</c> expands to this text as well.</para>
+        /// <para>Prefer <see cref="Message"/> or <see cref="ToUserFriendlyMessage"/> for people: they add how to fix the
+        /// problem and a documentation link.</para>
+        /// </remarks>
+        /// <seealso cref="WhatHappened"/>
+        /// <seealso cref="CurlErrorCode"/>
+        /// <seealso cref="IsUsageError"/>
+        public virtual string CurlErrorMessage => _curlErrorMessage ?? WhatHappened;
+
+        /// <summary>
+        /// True when the curl tool reports this failure as a mistake in the command line: it prints every line of
+        /// <see cref="CurlErrorMessage"/> after <c>curl: </c>, then <c>curl: try 'curl --help' for more information</c>, and no
+        /// <c>curl: (2) ...</c> line.
+        /// </summary>
+        /// <value>True for option errors curl finds while it reads the command line, such as <c>-C</c> together with
+        /// <c>--no-clobber</c> or an option given as the last word without its value; <see cref="CurlErrorCode"/> is 2 then.
+        /// False for failures curl reports as <c>curl: (N) message</c>, and also for option errors inside a <c>-K</c> file,
+        /// where curl adds a <c>FILE:LINE config file option ...</c> line that CurlDotNet does not reproduce (their
+        /// <see cref="CurlErrorMessage"/> is curl's first error line only).</value>
+        /// <remarks>
+        /// <para>For <c>curl --no-clobber -C 1 -o out URL</c> the text is two lines, <c>--continue-at is mutually exclusive with
+        /// --no-clobber</c> and <c>option -C: is badly used here</c>. The first line is an error message, which curl leaves out
+        /// under <c>-s</c> unless <c>-S</c> is given; the last line (the option and what is wrong with it) and the
+        /// <c>try 'curl --help'</c> hint are always printed.</para>
+        /// <para>A .NET tool that imitates the curl command line prints it like this: <c>foreach (var line in
+        /// ex.CurlErrorMessage.Split('\n')) Console.Error.WriteLine("curl: " + line);</c> followed by
+        /// <c>Console.Error.WriteLine("curl: try 'curl --help' for more information");</c>.</para>
+        /// </remarks>
+        /// <seealso cref="CurlErrorMessage"/>
+        /// <seealso cref="CurlErrorCode"/>
+        public bool IsUsageError { get; private set; }
+
+        /// <summary>
+        /// The warnings and notes the curl tool would have printed on standard error before this failure, each with curl's
+        /// own <c>Warning: </c> or <c>Note: </c> prefix and in the order curl prints them.
+        /// </summary>
+        /// <value>A read-only list, empty (never null) when curl would have printed none. Each entry is one message on one
+        /// line, without the line wrapping the curl tool applies at the terminal width.</value>
+        /// <remarks>
+        /// <para>The same list as <see cref="CurlDotNet.Core.CurlResult.Warnings"/> for a command that succeeds; see there
+        /// for which messages are collected and when they are also written to a <c>--stderr</c> file.</para>
+        /// <para>Example: <c>catch (CurlException ex) { foreach (var w in ex.Warnings) logger.LogWarning(w); }</c> logs
+        /// <c>Warning: --fail deselects --fail-with-body here</c> for a command that has both options.</para>
+        /// </remarks>
+        /// <seealso cref="CurlDotNet.Core.CurlResult.Warnings"/>
+        /// <seealso cref="CurlErrorMessage"/>
+        public IReadOnlyList<string> Warnings { get; internal set; } = NoWarnings;
+
+        private static readonly IReadOnlyList<string> NoWarnings = new string[0];
+
+        private string? _curlErrorMessage;
+
+        /// <summary>Sets <see cref="CurlErrorMessage"/> to curl's exact text and returns this exception.</summary>
+        internal CurlException WithCurlErrorMessage(string text)
+        {
+            _curlErrorMessage = text;
+            return this;
+        }
+
+        /// <summary>
+        /// Marks this as a curl command-line usage error (<see cref="IsUsageError"/>) whose <see cref="CurlErrorMessage"/> is
+        /// <paramref name="lines"/> and returns this exception.
+        /// </summary>
+        internal CurlException AsUsageError(string lines)
+        {
+            _curlErrorMessage = lines;
+            IsUsageError = true;
+            return this;
+        }
+
+        /// <summary>
         /// The documentation page that explains this error and how to fix it: the <c>See https://...</c> link
         /// at the end of <see cref="Message"/>.
         /// </summary>

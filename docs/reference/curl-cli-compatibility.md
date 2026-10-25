@@ -7,11 +7,11 @@ description: Generated reference of every curl command-line option and its statu
 
 This page lists every curl command-line option and what CurlDotNet does with it when you run a command string in C#. CurlDotNet's parser carries curl's complete option table (everything in curl 8.7.1's `curl --help all`, plus the newer options that curl's current test suite uses, such as `--follow`, `--out-null`, `--skip-existing`, `--ech` and `--mptcp`), so every real option consumes its value correctly even when CurlDotNet does not act on it. The leading `curl` word is optional in every command string.
 
-Summary: 281 options in curl's table: **133 implemented**, 4 parsed but without effect, 5 terminal-only, 139 accepted and ignored (recorded in `UnsupportedOptions`).
+Summary: 281 options in curl's table: **136 implemented**, 4 parsed but without effect, 4 terminal-only, 137 accepted and ignored (recorded in `UnsupportedOptions`).
 
 ## How this table was produced
 
-The table is generated, not written by hand. A small probe program loaded the built `CurlDotNet.dll` (net10.0, version 9.8.0), read every `Opt(...)` row of the `CurlOptionTable` in `src/CurlDotNet/Core/CommandParser.cs`, and parsed `curl --<option> <value> http://example.com/` for each one. An option is:
+The table was generated at version 9.8.0, not written by hand, and has since been updated by hand for the options implemented in 9.8.11 (`--haproxy-clientip` and `-#`). The probe program loaded the built `CurlDotNet.dll` (net10.0), read every `Opt(...)` row of the `CurlOptionTable` in `src/CurlDotNet/Core/CommandParser.cs`, and parsed `curl --<option> <value> http://example.com/` for each one. An option is:
 
 - **Ignored** when the parser recorded it in `CurlOptions.UnsupportedOptions` (no handler in `ProcessOption` / `ProcessTransportOption`).
 - **Implemented** when a handler took it and the `CurlOptions` property it sets is read by the transfer code.
@@ -42,6 +42,7 @@ Console.WriteLine(string.Join(", ", ok.ParsedOptions!.UnsupportedOptions)); // -
 
 | Option | Takes a value | Notes |
 |---|---|---|
+| `-#`, `--progress-bar` | no | draws curl's progress bar (`#` characters, the width of `COLUMNS` or 79) to `--stderr FILE` or standard error; `-s` turns it off |
 | `--anyauth` | no | prefers Digest, NTLM, Basic |
 | `--aws-sigv4` | yes | request signing; malformed value is exit 2 |
 | `--basic` | no |  |
@@ -81,6 +82,8 @@ Console.WriteLine(string.Join(", ", ok.ParsedOptions!.UnsupportedOptions)); // -
 | `-g`, `--globoff` | no | disables `{}`/`[]` globbing |
 | `-I`, `--head` | no |  |
 | `-H`, `--header` | yes |  |
+| `--haproxy-clientip` | yes | sends this address as both source and destination in the PROXY v1 line, and turns `--haproxy-protocol` on (.NET 5+) |
+| `--haproxy-protocol` | no | sends a HAProxy PROXY protocol v1 line before the request, after any `-p` tunnel and before TLS (.NET 5+; exit 4 with an explanation on .NET Framework and netstandard2.0) |
 | `--http0.9` | no |  |
 | `-0`, `--http1.0` | no |  |
 | `--http1.1` | no |  |
@@ -195,15 +198,16 @@ These change what the curl tool prints on a terminal. A library returns a `CurlR
 |---|---|---|
 | `-N`, `--no-buffer` | no | output is not buffered to a terminal |
 | `--no-progress-meter` | no | no progress meter in a library |
-| `-#`, `--progress-bar` | no | no progress meter in a library |
 | `-S`, `--show-error` | no | no stderr in a library; errors are exceptions |
-| `-s`, `--silent` | no | no progress meter to hide; kept for `-w %{stderr}` and error text |
+| `-s`, `--silent` | no | hides the `-#` progress bar and curl's warnings; kept for `-w %{stderr}` and error text |
 
 ## Accepted and ignored
 
 Each of these is parsed (its value is consumed, so the rest of the command is read correctly) and recorded in `CurlOptions.UnsupportedOptions`. Most belong to protocols CurlDotNet does not implement (SMTP, IMAP, TFTP, TELNET, SSH), to TLS backend tuning that .NET does not expose per request (CRL files, curves, proxy-side TLS options), to connection details HttpClient does not expose (`--interface`, `--dns-servers`, `--local-port`), to raw FTP commands (`--quote`, `--disable-epsv`, `--disable-eprt`), or to curl tool features such as `--parallel` (transfers always run one after another), `--libcurl` and `--help`. `--ciphers`, `--tls13-ciphers` and a non-PEM `--key-type` appear here only on platforms that cannot apply them (see the notes in the implemented table); on netstandard2.0 and .NET Framework `--cacert`, `--capath`, `--cert`, `--key`, `--cert-type`, `--pass` and `--pinnedpubkey` are recorded here as well.
 
-`--abstract-unix-socket`, `--alt-svc`, `-a`, `--append`, `--ca-native`, `--cert-status`, `--compressed-ssh`, `--create-file-mode`, `--crlf`, `--crlfile`, `--curves`, `--delegation`, `-q`, `--disable`, `--disable-eprt`, `--disable-epsv`, `--disallow-username-in-url`, `--dns-interface`, `--dns-ipv4-addr`, `--dns-ipv6-addr`, `--dns-servers`, `--doh-cert-status`, `--doh-insecure`, `--doh-url`, `--dump-ca-embed`, `--ech`, `--egd-file`, `--engine`, `--false-start`, `--ftp-account`, `--ftp-alternative-to-user`, `--ftp-create-dirs`, `--ftp-method`, `-P`, `--ftp-port`, `--ftp-pret`, `--ftp-skip-pasv-ip`, `--ftp-ssl-ccc`, `--ftp-ssl-ccc-mode`, `--ftp-ssl-control`, `--ftp-ssl-reqd`, `--happy-eyeballs-timeout-ms`, `--haproxy-clientip`, `--haproxy-protocol`, `-h`, `--help`, `--hostpubmd5`, `--hostpubsha256`, `--hsts`, `--httpsig-algo`, `--httpsig-headers`, `--httpsig-key`, `--httpsig-keyid`, `--interface`, `--ip-tos`, `--ipfs-gateway`, `-4`, `--ipv4`, `-6`, `--ipv6`, `--keepalive-cnt`, `--knownhosts`, `--krb`, `--krb4`, `--libcurl`, `-l`, `--list-only`, `--local-port`, `--login-options`, `--mail-auth`, `--mail-from`, `--mail-rcpt`, `--mail-rcpt-allowfails`, `-M`, `--manual`, `--metalink`, `--mptcp`, `--no-alpn`, `--no-npn`, `--no-sessionid`, `--ntlm-wb`, `-Z`, `--parallel`, `--parallel-immediate`, `--parallel-max`, `--preproxy`, `--proto`, `--proto-redir`, `--proxy-ca-native`, `--proxy-cacert`, `--proxy-capath`, `--proxy-cert`, `--proxy-cert-type`, `--proxy-ciphers`, `--proxy-crlfile`, `--proxy-dump-ca-embed`, `--proxy-http2`, `--proxy-insecure`, `--proxy-key`, `--proxy-key-type`, `--proxy-pass`, `--proxy-pinnedpubkey`, `--proxy-service-name`, `--proxy-ssl-allow-beast`, `--proxy-ssl-auto-client-cert`, `--proxy-tls13-ciphers`, `--proxy-tlsauthtype`, `--proxy-tlspassword`, `--proxy-tlsuser`, `--proxy-tlsv1`, `--pubkey`, `-Q`, `--quote`, `--random-file`, `--rate`, `--sasl-authzid`, `--sasl-ir`, `--service-name`, `--sigalgs`, `--socks5-basic`, `--socks5-gssapi`, `--socks5-gssapi-nec`, `--socks5-gssapi-service`, `--ssl`, `--ssl-allow-beast`, `--ssl-auto-client-cert`, `--ssl-no-revoke`, `--ssl-reqd`, `--ssl-revoke-best-effort`, `--ssl-sessions`, `-2`, `--sslv2`, `-3`, `--sslv3`, `--styled-output`, `--suppress-connect-headers`, `-t`, `--telnet-option`, `--tftp-blksize`, `--tftp-no-options`, `--tls-earlydata`, `--tlsauthtype`, `--tlspassword`, `--tlsuser`, `--trace-config`, `--trace-ids`, `--unix-socket`, `--upload-flags`, `-B`, `--use-ascii`, `-V`, `--version`, `--vlan-priority`, `--xattr`
+`--abstract-unix-socket`, `--alt-svc`, `-a`, `--append`, `--ca-native`, `--cert-status`, `--compressed-ssh`, `--create-file-mode`, `--crlf`, `--crlfile`, `--curves`, `--delegation`, `-q`, `--disable`, `--disable-eprt`, `--disable-epsv`, `--disallow-username-in-url`, `--dns-interface`, `--dns-ipv4-addr`, `--dns-ipv6-addr`, `--dns-servers`, `--doh-cert-status`, `--doh-insecure`, `--doh-url`, `--dump-ca-embed`, `--ech`, `--egd-file`, `--engine`, `--false-start`, `--ftp-account`, `--ftp-alternative-to-user`, `--ftp-create-dirs`, `--ftp-method`, `-P`, `--ftp-port`, `--ftp-pret`, `--ftp-skip-pasv-ip`, `--ftp-ssl-ccc`, `--ftp-ssl-ccc-mode`, `--ftp-ssl-control`, `--ftp-ssl-reqd`, `--happy-eyeballs-timeout-ms`, `-h`, `--help`, `--hostpubmd5`, `--hostpubsha256`, `--hsts`, `--httpsig-algo`, `--httpsig-headers`, `--httpsig-key`, `--httpsig-keyid`, `--interface`, `--ip-tos`, `--ipfs-gateway`, `-4`, `--ipv4`, `-6`, `--ipv6`, `--keepalive-cnt`, `--knownhosts`, `--krb`, `--krb4`, `--libcurl`, `-l`, `--list-only`, `--local-port`, `--login-options`, `--mail-auth`, `--mail-from`, `--mail-rcpt`, `--mail-rcpt-allowfails`, `-M`, `--manual`, `--metalink`, `--mptcp`, `--no-alpn`, `--no-npn`, `--no-sessionid`, `--ntlm-wb`, `-Z`, `--parallel`, `--parallel-immediate`, `--parallel-max`, `--preproxy`, `--proto`, `--proto-redir`, `--proxy-ca-native`, `--proxy-cacert`, `--proxy-capath`, `--proxy-cert`, `--proxy-cert-type`, `--proxy-ciphers`, `--proxy-crlfile`, `--proxy-dump-ca-embed`, `--proxy-http2`, `--proxy-insecure`, `--proxy-key`, `--proxy-key-type`, `--proxy-pass`, `--proxy-pinnedpubkey`, `--proxy-service-name`, `--proxy-ssl-allow-beast`, `--proxy-ssl-auto-client-cert`, `--proxy-tls13-ciphers`, `--proxy-tlsauthtype`, `--proxy-tlspassword`, `--proxy-tlsuser`, `--proxy-tlsv1`, `--pubkey`, `-Q`, `--quote`, `--random-file`, `--rate`, `--sasl-authzid`, `--sasl-ir`, `--service-name`, `--sigalgs`, `--socks5-basic`, `--socks5-gssapi`, `--socks5-gssapi-nec`, `--socks5-gssapi-service`, `--ssl`, `--ssl-allow-beast`, `--ssl-auto-client-cert`, `--ssl-no-revoke`, `--ssl-reqd`, `--ssl-revoke-best-effort`, `--ssl-sessions`, `-2`, `--sslv2`, `-3`, `--sslv3`, `--styled-output`, `--suppress-connect-headers`, `-t`, `--telnet-option`, `--tftp-blksize`, `--tftp-no-options`, `--tls-earlydata`, `--tlsauthtype`, `--tlspassword`, `--tlsuser`, `--trace-config`, `--trace-ids`, `--unix-socket`, `--upload-flags`, `-B`, `--use-ascii`, `-V`, `--version`, `--vlan-priority`, `--xattr`
+
+`-q` and `--disable` stay in this list because CurlDotNet never reads a default `.curlrc` on its own. When you opt in with `Curl.DefaultReadConfigFile = true`, they work as in curl: given first, they stop that file from being read.
 
 ## Command-line syntax
 

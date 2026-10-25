@@ -99,22 +99,30 @@ namespace CurlDotNet.Tests
         [Fact]
         public void Parse_PowerShellContinuationAndEnv_ShouldNormalizeCommand()
         {
+            // PowerShell rules: backtick-newline continues the line, "$env:NAME" expands inside double
+            // quotes, and single quotes are literal. The flavor is explicit so the test does not depend
+            // on which OS runs it (Auto picks Posix on Linux/macOS).
             const string token = "ps-secret";
             var original = Environment.GetEnvironmentVariable("API_TOKEN");
             Environment.SetEnvironmentVariable("API_TOKEN", token);
+            try
+            {
+                const string command = "curl https://example.com/api `\n" +
+                                       "  -H \"Authorization: Bearer $env:API_TOKEN\" `\n" +
+                                       "  -H 'X-Literal: $env:API_TOKEN' `\n" +
+                                       "  -d '{\"name\":\"cli\"}'";
 
-            const string command = "curl https://example.com/api `\n" +
-                                   "  -H 'Authorization: Bearer $env:API_TOKEN' `\n" +
-                                   "  -d '{\"name\":\"cli\"}'";
+                var options = _parser.Parse(command, CurlFlavor.PowerShell);
 
-            var options = _parser.Parse(command);
-
-            options.Url.Should().Be("https://example.com/api");
-            options.Headers.Should().ContainKey("Authorization");
-            options.Headers["Authorization"].Should().Be($"Bearer {token}");
-            options.Data.Should().Contain("\"name\"");
-
-            Environment.SetEnvironmentVariable("API_TOKEN", original);
+                options.Url.Should().Be("https://example.com/api");
+                options.Headers["Authorization"].Should().Be($"Bearer {token}");
+                options.Headers["X-Literal"].Should().Be("$env:API_TOKEN", "single quotes are literal in PowerShell");
+                options.Data.Should().Contain("\"name\"");
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("API_TOKEN", original);
+            }
         }
 
         /// <summary>
@@ -304,10 +312,9 @@ namespace CurlDotNet.Tests
             // Act
             var options = _parser.Parse(command);
 
-            // Assert
-            // TODO: DataUrlEncode property not yet implemented in CurlOptions
-            // options.DataUrlEncode.Should().BeTrue();
-            options.Data.Should().Be("name=John Doe");
+            // Assert: real curl sends "name=John+Doe" (form encoding, a space becomes '+'),
+            // checked against curl built from source in tests/CurlDotNet.CurlSuite/reference
+            options.Data.Should().Be("name=John+Doe");
         }
 
         #endregion

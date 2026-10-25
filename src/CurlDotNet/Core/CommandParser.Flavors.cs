@@ -45,12 +45,20 @@ namespace CurlDotNet.Core
                     "Pass a command such as \"curl https://example.com\" (the leading word curl is optional), or check the variable that should hold it.",
                     DocLinks.HowToRunCommand));
 
-            if (flavor < CurlFlavor.Auto || flavor > CurlFlavor.InvokeWebRequest)
+            if (flavor < CurlFlavor.Auto || flavor > CurlFlavor.Native)
             {
                 throw new ArgumentOutOfRangeException(nameof(flavor), flavor, CurlException.Compose(
                     $"(CurlFlavor){(int)flavor} is not a defined CurlFlavor value.",
-                    "Use CurlFlavor.Auto (detect the shell), Posix (bash/zsh), WindowsCmd, PowerShell or InvokeWebRequest; do not cast other numbers to CurlFlavor.",
+                    "Use CurlFlavor.Auto (detect the shell), Native (this operating system's shell), Posix (bash/zsh), WindowsCmd, PowerShell or InvokeWebRequest; do not cast other numbers to CurlFlavor.",
                     DocLinks.HowToFlavors));
+            }
+
+            if (flavor == CurlFlavor.Native)
+            {
+                // the shell of the machine we run on: cmd.exe rules on Windows, bash rules elsewhere
+                flavor = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)
+                    ? CurlFlavor.WindowsCmd
+                    : CurlFlavor.Posix;
             }
 
             var used = flavor;

@@ -194,7 +194,7 @@ namespace CurlDotNet.Core
                                         "Name a glob in the URL, as in \"https://example.com/{<" + name + ">a,b}\" or \"https://example.com/[<" + name + ">1-9]\", or use #1, #2... for globs by position.",
                                         DocLinks.Url),
                                     43,
-                                    command);
+                                    command).WithCurlErrorMessage(GlobErrorText("no glob exists with this name", close + 1, pattern));
                             }
 
                             sb.Append(value);
@@ -226,6 +226,13 @@ namespace CurlDotNet.Core
 
             return sb.ToString();
         }
+
+        /// <summary>
+        /// curl's <c>glob_show_error()</c> text (src/tool_urlglob.c): <c>ERROR in position POS:</c>, the text, and a line with
+        /// a <c>^</c> in column <paramref name="position"/> (curl pads with <c>%*s</c>, so at least one space).
+        /// </summary>
+        internal static string GlobErrorText(string error, int position, string text) =>
+            $"{error} in position {position.ToString(CultureInfo.InvariantCulture)}:\n{text}\n{new string(' ', Math.Max(1, position - 1))}^";
 
         private static List<Pattern> ParsePatterns(string text, string? command)
         {

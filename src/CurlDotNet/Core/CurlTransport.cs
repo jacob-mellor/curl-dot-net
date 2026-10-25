@@ -161,16 +161,46 @@ namespace CurlDotNet.Core
             UserCredentials = credentials;
             AuthScheme = string.IsNullOrEmpty(authScheme) ? "basic" : authScheme!.ToLowerInvariant();
             // Requests sent to the proxy as-is (http:// URLs without -p) have their 407 answered by
-            // CurlDotNet's own negotiation (Core/Auth), like curl; CONNECT tunnels keep HttpClient's.
+            // CurlDotNet's own negotiation (Core/Auth), like curl; so is NTLM on the CONNECT tunnels
+            // CurlDotNet opens itself (ProxyTunnel.cs). Negotiate (Kerberos/SPNEGO) stays with HttpClient.
             NegotiatesPlainRequests = plainRequests && AuthScheme != "basic" && AuthScheme != "negotiate";
             if (credentials != null && !NegotiatesPlainRequests && (AuthScheme != "basic" || !CurlTransport.SupportsRecording))
             {
-                // Challenge schemes are answered by the handler after the proxy's 407. Where CurlDotNet
-                // cannot open the CONNECT tunnel itself (.NET Framework/netstandard2.0) Basic is
-                // answered that way too, one round trip later than curl.
+                // Used only where HttpClient talks to the proxy itself (Negotiate, Digest/anyauth CONNECT,
+                // an https:// proxy, the .NET Framework/netstandard2.0 build): the handler answers the
+                // proxy's 407, and Basic one round trip later than curl.
                 Credentials = credentials;
             }
+
+            // CurlTransport's connect callback only sees the proxy URI of a tunnel; this lets it find the
+            // scheme and credentials to answer the CONNECT's 407 with (see ForTunnelProxy).
+            foreach (var proxy in new[] { httpProxy, httpsProxy })
+            {
+                if (proxy != null)
+                {
+                    TunnelOwners.GetValue(proxy, _ => this);
+                }
+            }
         }
+
+        /// <summary>Proxy URIs handed out by <see cref="ProxyFor"/>, mapped (by reference) to their proxy decision.</summary>
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Uri, CurlProxy> TunnelOwners =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<Uri, CurlProxy>();
+
+        /// <summary>
+        /// The proxy decision that returned <paramref name="proxyUri"/> from <see cref="ProxyFor"/>, or null
+        /// for a URI that did not come from one.
+        /// </summary>
+        internal static CurlProxy? ForTunnelProxy(Uri? proxyUri)
+        {
+            return proxyUri != null && TunnelOwners.TryGetValue(proxyUri, out var owner) ? owner : null;
+        }
+
+        /// <summary>
+        /// A fresh proxy authentication engine for one CONNECT tunnel (<c>--proxy-ntlm</c> with
+        /// credentials), or null when the CONNECT carries at most the preemptive Basic header.
+        /// </summary>
+        internal Auth.HttpAuth? CreateTunnelAuth() => Auth.HttpAuth.ForTunnel(AuthScheme, UserCredentials);
 
         /// <summary>Credentials for the proxy (from -U/--proxy-user or the proxy URL).</summary>
         public NetworkCredential? UserCredentials { get; }
@@ -199,13 +229,14 @@ namespace CurlDotNet.Core
 
         /// <summary>
         /// True when CurlDotNet opens the CONNECT tunnel for <paramref name="destination"/> itself (an
-        /// https URL through an HTTP proxy with Basic or no proxy auth), so the CONNECT request carries
-        /// curl's headers and a preemptive Proxy-Authorization. HttpClient then connects "directly"
-        /// through the tunnel the connect callback built.
+        /// https URL through an HTTP proxy with Basic, NTLM or no proxy auth), so the CONNECT requests
+        /// carry curl's headers and curl's NTLM handshake (ProxyTunnel.cs). HttpClient then connects
+        /// "directly" through the tunnel the connect callback built. Digest, --proxy-anyauth and
+        /// Negotiate CONNECTs are still HttpClient's.
         /// </summary>
         public bool SelfTunnels(Uri destination)
         {
-            if (!CurlTransport.SupportsRecording || AuthScheme != "basic"
+            if (!CurlTransport.SupportsRecording || (AuthScheme != "basic" && AuthScheme != "ntlm")
                 || !string.Equals(destination.Scheme, "https", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
@@ -405,6 +436,12 @@ namespace CurlDotNet.Core
 
         /// <summary>The connection the connect callback opened last for this request.</summary>
         public WireConnectionInfo? LastConnection { get; set; }
+
+        /// <summary>--haproxy-protocol / --haproxy-clientip: send a PROXY protocol v1 line on each new connection.</summary>
+        public bool Haproxy { get; set; }
+
+        /// <summary>--haproxy-clientip: the address claimed as both source and destination, or null for the real ones.</summary>
+        public string? HaproxyClientIp { get; set; }
     }
 
     /// <summary>
@@ -441,6 +478,49 @@ namespace CurlDotNet.Core
         public static HttpClient CreateClient(CurlOptions options, CurlProxy? proxy)
         {
             return new HttpClient(CreateHandler(options, proxy)) { Timeout = Timeout.InfiniteTimeSpan };
+        }
+
+        /// <summary>
+        /// True when the <c>--connect-to</c> entries of <paramref name="options"/> leave its connection where the
+        /// URL points anyway (curl test 2051: <c>--connect-to ::HOST:PORT</c> for a URL on HOST:PORT). curl then
+        /// treats the transfer as one without --connect-to (url.c drops a via-peer equal to the origin), so it
+        /// may reuse the pooled connection of an earlier transfer. With -L a redirect could reach a host that an
+        /// entry does redirect, so that case keeps its own connection pool. Always false where CurlDotNet has
+        /// no connect callback (.NET Framework / .NET Standard 2.0).
+        /// </summary>
+        internal static bool ConnectToChangesNothing(CurlOptions options)
+        {
+            if (options.ConnectTo.Count == 0)
+            {
+                return true;
+            }
+#if NETSTANDARD2_0 || NET472 || NET48
+            return false;
+#else
+            if (options.FollowLocation || !Uri.TryCreate(options.Url, UriKind.Absolute, out var uri))
+            {
+                return false;
+            }
+            var host = uri.Host.Trim('[', ']');
+            var (newHost, newPort) = ApplyConnectTo(options.ConnectTo, host, uri.Port);
+            return newPort == uri.Port && string.Equals(newHost.Trim('[', ']'), host, StringComparison.OrdinalIgnoreCase);
+#endif
+        }
+
+        /// <summary>
+        /// The connection the connect callback opened for <paramref name="request"/> (TCP connected), or null
+        /// (always null on .NET Framework / .NET Standard 2.0, which have no connect callback). Known even when
+        /// nothing was recorded on it, for example when TLS then failed.
+        /// </summary>
+        internal static WireConnectionInfo? LastConnectionOf(HttpRequestMessage? request)
+        {
+#if !NETSTANDARD2_0 && !NET472 && !NET48
+            if (request != null && request.Options.TryGetValue(SettingsKey, out var settings))
+            {
+                return settings.LastConnection;
+            }
+#endif
+            return null;
         }
 
         /// <summary>Attaches per-request settings that the connect callback reads.</summary>
@@ -573,7 +653,8 @@ namespace CurlDotNet.Core
             var info = new WireConnectionInfo { StartedTimestamp = Stopwatch.GetTimestamp() };
 
             var tunnel = settings?.TunnelProxy;
-            var host = tunnel?.Host ?? context.DnsEndPoint.Host;
+            // an aliased URL host (HostAlias) is resolved and --connect-to-matched by its original name
+            var host = tunnel?.Host ?? HostAlias.Restore(context.DnsEndPoint.Host);
             var port = tunnel?.Port ?? context.DnsEndPoint.Port;
             if (tunnel == null && settings?.ConnectTo != null && !settings.ViaProxy)
             {
@@ -640,7 +721,7 @@ namespace CurlDotNet.Core
             {
                 try
                 {
-                    await OpenTunnelAsync(stream, context.DnsEndPoint, settings!, token).ConfigureAwait(false);
+                    stream = await ProxyTunnel.OpenAsync(stream, context.DnsEndPoint, settings!, token, cancellationToken).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -649,59 +730,42 @@ namespace CurlDotNet.Core
                 }
             }
 
-            return stream;
-        }
-
-        /// <summary>
-        /// -p/--proxytunnel for an http:// URL: sends CONNECT to the proxy on the fresh socket and
-        /// returns once the proxy answered 2xx. The response header block is recorded so -i prints it.
-        /// </summary>
-        private static async Task OpenTunnelAsync(Stream stream, DnsEndPoint target, TransportRequestSettings settings, CancellationToken token)
-        {
-            var authority = target.Host.Contains(":") ? "[" + target.Host + "]:" + target.Port : target.Host + ":" + target.Port;
-            var sb = new StringBuilder();
-            sb.Append("CONNECT ").Append(authority).Append(" HTTP/").Append(settings.TunnelVersion).Append("\r\n");
-            sb.Append("Host: ").Append(authority).Append("\r\n");
-            if (settings.TunnelAuthorization != null)
+            if (settings != null && settings.Haproxy)
             {
-                sb.Append("Proxy-Authorization: ").Append(settings.TunnelAuthorization).Append("\r\n");
-            }
-            if (!string.IsNullOrEmpty(settings.TunnelUserAgent))
-            {
-                sb.Append("User-Agent: ").Append(settings.TunnelUserAgent).Append("\r\n");
-            }
-            sb.Append("Proxy-Connection: Keep-Alive\r\n\r\n");
-            var bytes = Encoding.ASCII.GetBytes(sb.ToString());
-            await stream.WriteAsync(bytes, 0, bytes.Length, token).ConfigureAwait(false);
-            await stream.FlushAsync(token).ConfigureAwait(false);
-
-            var parser = new ResponseStreamParser(isHeadRequest: true);
-            var buffer = new byte[1];
-            while (parser.Heads.Count == 0 || parser.Heads[parser.Heads.Count - 1].IsInformational)
-            {
-                var n = await stream.ReadAsync(buffer, 0, 1, token).ConfigureAwait(false);
-                if (n <= 0)
+                try
                 {
-                    throw new CurlConnectFailure(ConnectFailureKind.Tunnel, settings.TunnelProxy!.Host, settings.TunnelProxy.Port,
-                        "Proxy closed the connection while answering CONNECT");
+                    // lib/cf-haproxy.c: the PROXY line is the first thing on the connection (after a -p tunnel,
+                    // before TLS), built from the socket's own addresses and ports
+                    var line = Encoding.ASCII.GetBytes(HaproxyHeader.Line(info, settings.HaproxyClientIp));
+                    await stream.WriteAsync(line, 0, line.Length, token).ConfigureAwait(false);
                 }
-                parser.Feed(buffer, 0, 1);
+                catch (Exception ex) when (ex is IOException || ex is SocketException)
+                {
+                    stream.Dispose();
+                    throw new CurlConnectFailure(ConnectFailureKind.Connect, host, port, "sending the HAProxy PROXY protocol header failed: " + ex.Message, ex);
+                }
+                catch (OperationCanceledException) when (timeoutCts != null && timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                {
+                    stream.Dispose();
+                    throw new CurlConnectFailure(ConnectFailureKind.Timeout, host, port, "Connection timed out");
+                }
+                catch
+                {
+                    stream.Dispose();
+                    throw;
+                }
             }
 
-            var head = parser.Heads[parser.Heads.Count - 1];
-            if (settings.Transcript != null)
+            if (timeoutCts != null && string.Equals(context.InitialRequestMessage.RequestUri?.Scheme, "https", StringComparison.OrdinalIgnoreCase))
             {
-                var exchange = settings.Transcript.Begin(isHeadRequest: true);
-                var segment = exchange.Attach(null, newConnection: false);
-                var raw = WireText.Latin1.GetBytes(string.Concat(parser.Heads.Select(h => h.Text)));
-                exchange.Received(segment, raw, 0, raw.Length);
+                // curl's --connect-timeout also covers the TLS handshake (curl test 5029: a server that
+                // accepts TCP but never answers the ClientHello fails with 28, "SSL connection timeout").
+                // HttpClient runs TLS after this callback, so the rest of the budget is enforced here.
+                var elapsed = TimeSpan.FromSeconds((Stopwatch.GetTimestamp() - info.StartedTimestamp) / (double)Stopwatch.Frequency);
+                info.ArmHandshakeTimeout(TimeSpan.FromSeconds(settings!.ConnectTimeoutSeconds) - elapsed, stream);
             }
 
-            if (head.StatusCode < 200 || head.StatusCode > 299)
-            {
-                throw new CurlConnectFailure(ConnectFailureKind.Tunnel, settings.TunnelProxy!.Host, settings.TunnelProxy.Port,
-                    $"CONNECT tunnel failed, response {head.StatusCode}") { TunnelStatus = head.StatusCode };
-            }
+            return stream;
         }
 
         /// <summary>curl's --connect-to: the first entry whose HOST1/PORT1 match (empty matches anything) redirects the connection.</summary>
@@ -781,6 +845,10 @@ namespace CurlDotNet.Core
         {
             if (context.NegotiatedHttpVersion.Major >= 2)
             {
+                if (context.InitialRequestMessage.Options.TryGetValue(SettingsKey, out var h2) && h2.LastConnection != null)
+                {
+                    h2.LastConnection.HandshakeFinished(); // TLS is done; HTTP/2 is not recorded
+                }
                 return new ValueTask<Stream>(context.PlaintextStream);
             }
 
@@ -799,6 +867,7 @@ namespace CurlDotNet.Core
             if (info != null)
             {
                 info.ReadyTimestamp = Stopwatch.GetTimestamp();
+                info.HandshakeFinished();
             }
 
             return new ValueTask<Stream>(new RecordingStream(context.PlaintextStream, info));
