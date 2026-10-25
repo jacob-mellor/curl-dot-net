@@ -8,9 +8,9 @@
 
 # .NET / HttpClient limitations
 46    # System.Uri rejects the deliberately bad host "domain..tld"; curl sends it anyway
-209   # HttpClient performs the CONNECT for proxy NTLM; its type-1/type-3 blobs differ from curl's canned bytes
-213   # same as 209, HTTP/1.0 proxy CONNECT with NTLM then POST
-265   # same as 209, NTLM CONNECT with a body in the 407
+209   # harness: the stub does not serve sws's <connectN> parts to CONNECT (the library now sends curl's exact NTLM CONNECTs)
+213   # same as 209; and the stub closes after an HTTP/1.0 CONNECT 407, where CurlDotNet does not reconnect (curl's rule unconfirmed)
+265   # same as 209 (passes with a connectN-aware stub)
 259   # Expect: 100-continue probe with proxy anyauth (Digest): the 100 Continue block appears in the output
 1473  # a first response header line starting with whitespace (obs-fold) is rejected by HttpClient
 1617  # HttpClient joins two user Connection headers into one line
