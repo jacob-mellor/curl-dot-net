@@ -7,15 +7,11 @@
 435   # expected output uses curl's [digits] placeholders that runtests.pl resolves with <strippart> perl
 
 # .NET / HttpClient limitations
-46    # System.Uri rejects the deliberately bad host "domain..tld"; curl sends it anyway
 209   # HttpClient performs the CONNECT for proxy NTLM; its type-1/type-3 blobs differ from curl's canned bytes
 213   # same as 209, HTTP/1.0 proxy CONNECT with NTLM then POST
 265   # same as 209, NTLM CONNECT with a body in the 407
 259   # Expect: 100-continue probe with proxy anyauth (Digest): the 100 Continue block appears in the output
-1473  # a first response header line starting with whitespace (obs-fold) is rejected by HttpClient
-1617  # HttpClient joins two user Connection headers into one line
-2051  # connections are not reused across --next transfers that use different HttpClient instances
-5029  # a TLS handshake timeout surfaces as exit 35 (SSL connect error) rather than 28
+5029  # harness: <stripfile> (time_connect -> [non-zero]) is not applied yet; the library now exits 28 and prints the -w connection facts
 
 # Deliberate behaviour differences
 433   # a library must not silently change requests because of ~/.curlrc (XDG_CONFIG_HOME); use -K to read a config file

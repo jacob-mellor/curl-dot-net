@@ -12,6 +12,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace CurlDotNet.Core
@@ -122,7 +123,10 @@ namespace CurlDotNet.Core
         /// <summary>Header names sent without a value (<c>-H "Name;"</c>), written <c>Name:</c> like curl.</summary>
         public HashSet<string> BlankHeaders { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        /// <summary>Header lines HttpClient wrote in its own form, replaced by the line as the user wrote it.</summary>
+        /// <summary>
+        /// Header lines HttpClient wrote in its own form, replaced by the line as the user wrote it (several
+        /// CRLF-separated lines for a header given with more than one <c>-H</c>).
+        /// </summary>
         public Dictionary<string, string> ReplaceLines { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Header lines HttpClient could not send at all (invalid names), added at the end of the head.</summary>
@@ -262,6 +266,27 @@ namespace CurlDotNet.Core
                 needed = true;
             }
 
+            if (!options.Headers.ContainsKey("Host") && Uri.TryCreate(options.Url, UriKind.Absolute, out var url) && HostAlias.IsAlias(url.Host))
+            {
+                // the URL's host was aliased because System.Uri refuses it; curl sends the name as written
+                var original = HostAlias.Restore(url.Host);
+                rewrite.ReplaceLines["Host"] = "Host: " + (url.IsDefaultPort ? original : original + ":" + url.Port.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                needed = true;
+            }
+
+            if (options.TransferEncoding && options.RepeatedHeaderValues.TryGetValue("Connection", out var connections)
+                && options.Headers.TryGetValue("Connection", out var joined) && joined == string.Join(", ", connections)
+                && !options.RawHeaderLines.ContainsKey("Connection"))
+            {
+                // --tr-encoding with several -H "Connection: ..." (curl test 1617): curl appends its TE token to
+                // the first user Connection header and sends each one on its own line ("Connection: this, TE",
+                // then "Connection: that"); HttpClient would join them into one line.
+                var lines = connections.Select(v => "Connection: " + v).ToList();
+                lines[0] += ", TE";
+                rewrite.ReplaceLines["Connection"] = string.Join("\r\n", lines);
+                needed = true;
+            }
+
             return needed ? rewrite : null;
         }
 
@@ -305,6 +330,10 @@ namespace CurlDotNet.Core
                     if (BlankHeaders.Contains("Host"))
                     {
                         line = name + ":";
+                    }
+                    else if (ReplaceLines.TryGetValue(name, out var host))
+                    {
+                        line = host;
                     }
                 }
                 else if (BlankHeaders.Contains(name) && line.Substring(colon + 1).Trim().Length == 0)
